@@ -302,6 +302,7 @@ export class GameResourcesDock {
 
       // Drag events
       cardEl.addEventListener('dragstart', (e) => {
+        this.cardPreview.hide();  // hide card preview to prevent preview bug after dropping
         this.draggedCard = { card, element: cardEl };
         cardEl.classList.add('dragging');
         e.dataTransfer!.effectAllowed = 'move';
