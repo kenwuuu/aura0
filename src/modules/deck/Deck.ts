@@ -14,6 +14,7 @@ export class Deck {
     // Use provided cards if available, otherwise initialize with blank cards
     if (cards && cards.length > 0) {
       this.cards = [...cards];
+      this.shuffleDeck();  // shuffle decks on insert
     } else {
       this.initializeDeck();
     }
