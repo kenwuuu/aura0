@@ -102,8 +102,9 @@ export function DeckImportModal({ isOpen, onClose, onDeckImported }: DeckImportM
               id="deck-name"
               type="text"
               value={deckName}
+              autoFocus={true}
               onChange={(e) => setDeckName(e.target.value)}
-              placeholder="My Awesome Deck"
+              placeholder="Deck name"
               disabled={isImporting}
             />
           </div>
