@@ -8,6 +8,7 @@ import { Player } from './modules/player';
 import { GameResourcesDock, OpponentHealthDisplay } from './modules/gameResourcesDock';
 import { DeckManager } from './components';
 import { SavedDeck } from './modules/deck/types';
+import { TokenService } from './services/scryfall';
 import './style.css';
 
 class AuraApp {
@@ -17,6 +18,7 @@ class AuraApp {
   private localPlayer: Player;
   private localDock: GameResourcesDock;
   private opponentHealthDisplay: OpponentHealthDisplay;
+  private tokenService: TokenService;
   private playerId: string;
 
   constructor() {
@@ -85,6 +87,9 @@ class AuraApp {
       this.playerId
     );
 
+    // Initialize token service
+    this.tokenService = new TokenService();
+
     this.setupEventListeners();
     this.setupConnectionStatus();
     this.setupKeyboardCallbacks();
@@ -144,7 +149,7 @@ class AuraApp {
         e.dataTransfer!.dropEffect = 'move';
       });
 
-      whiteboardContainer.addEventListener('drop', (e) => {
+      whiteboardContainer.addEventListener('drop', async (e) => {
         e.preventDefault();
         const cardId = e.dataTransfer?.getData('text/plain');
         if (!cardId) return;
@@ -156,6 +161,24 @@ class AuraApp {
           card.x = e.clientX - 31.5; // Center card on cursor
           card.y = e.clientY - 44;
           this.whiteboard.addCard(card, this.playerId);
+
+          // Create tokens if this card has any associated tokens
+          if (card.scryfallId) {
+            const result = await this.tokenService.createTokensForCard(
+              card.scryfallId,
+              { x: card.x + 100, y: card.y } // Place tokens to the right of the card
+            );
+
+            // Add tokens to battlefield
+            result.tokens.forEach(token => {
+              this.whiteboard.addCard(token, this.playerId);
+            });
+
+            // Log any errors
+            if (result.errors.length > 0) {
+              console.warn(`Token creation errors for ${card.name}:`, result.errors);
+            }
+          }
         }
       });
     }

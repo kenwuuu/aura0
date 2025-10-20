@@ -9,6 +9,13 @@ interface ScryfallCard {
   card_faces?: Array<{
     image_uris?: CardImageUris;
   }>;
+  all_parts?: Array<{
+    id: string;
+    component: string;
+    name: string;
+    type_line?: string;
+    uri: string;
+  }>;
 }
 
 export interface ParsedDeckEntry {
@@ -165,5 +172,59 @@ export class ScryfallApiService {
    */
   getPendingCount(): number {
     return this.queue.pending;
+  }
+
+  /**
+   * Fetch card data by Scryfall ID
+   */
+  async fetchCardById(scryfallId: string): Promise<ScryfallCard> {
+    const url = `${ScryfallApiService.BASE_URL}/cards/${scryfallId}`;
+
+    return await this.queue.add(() =>
+      pRetry(
+        async () => {
+          const response = await fetch(url);
+          if (!response.ok) {
+            if (response.status === 404) {
+              throw new Error(`Card with ID "${scryfallId}" not found`);
+            }
+            throw new Error(`Scryfall API error: ${response.status} ${response.statusText}`);
+          }
+          return await response.json();
+        },
+        {
+          retries: 3,
+          onFailedAttempt: (error) => {
+            console.warn(`Attempt ${error.attemptNumber} failed for ID "${scryfallId}". ${error.retriesLeft} retries left.`);
+          },
+        }
+      )
+    ) as ScryfallCard;
+  }
+
+  /**
+   * Extract token IDs from a card's all_parts
+   * Returns array of Scryfall IDs for tokens created by this card
+   */
+  extractTokenIds(cardData: ScryfallCard): string[] {
+    if (!cardData.all_parts || !Array.isArray(cardData.all_parts)) {
+      return [];
+    }
+
+    return cardData.all_parts
+      .filter(part => part.component === 'token')
+      .map(part => part.id);
+  }
+
+  /**
+   * Create a Card object from Scryfall data
+   */
+  createCardFromScryfall(scryfallCard: ScryfallCard): CardDataResult {
+    return {
+      count: 1,
+      name: scryfallCard.name,
+      scryfallId: scryfallCard.id,
+      imageUris: this.extractImageUris(scryfallCard),
+    };
   }
 }
