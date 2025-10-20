@@ -3,11 +3,12 @@ import { DeckPileViewer } from './DeckPileViewer';
 import { Card } from '../../deck';
 
 // Helper to create mock cards
-function createMockCard(id: string, cardNumber: number, name?: string): Card {
+function createMockCard(id: string, cardNumber: number, name?: string, type_line?: string): Card {
   return {
     id,
     cardNumber,
     name,
+    type_line,
     x: 0,
     y: 0,
     rotation: 0,
@@ -209,6 +210,78 @@ describe('DeckPileViewer', () => {
           // Absolute position from top = 10 - 1 - 4 = 5 (0-indexed)
           // Display as "Top 6" (1-indexed for humans, since position + 1)
           expect(positionBadge?.textContent).toBe('Top 6');
+          resolve(undefined);
+        }, 200);
+      });
+    });
+
+    it('should filter cards by type_line', () => {
+      const cardsWithTypes = [
+        createMockCard('land-1', 1, 'Mountain', 'Basic Land — Mountain'),
+        createMockCard('land-2', 2, 'Island', 'Basic Land — Island'),
+        createMockCard('creature-1', 3, 'Lightning Bolt', 'Instant'),
+        createMockCard('creature-2', 4, 'Grizzly Bears', 'Creature — Bear'),
+      ];
+
+      viewer.show(cardsWithTypes, 'search');
+
+      const searchInput = document.querySelector('.search-bar-input') as HTMLInputElement;
+      searchInput.value = 'Creature';
+      searchInput.dispatchEvent(new Event('input'));
+
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          const cardElements = document.querySelectorAll('.card-grid-item');
+          // Should only match "Creature — Bear"
+          expect(cardElements.length).toBe(1);
+          expect(cardElements[0].getAttribute('data-card-id')).toBe('creature-2');
+          resolve(undefined);
+        }, 200);
+      });
+    });
+
+    it('should filter cards by type_line case-insensitively', () => {
+      const cardsWithTypes = [
+        createMockCard('land-1', 1, 'Mountain', 'Basic Land — Mountain'),
+        createMockCard('instant-1', 2, 'Lightning Bolt', 'Instant'),
+      ];
+
+      viewer.show(cardsWithTypes, 'search');
+
+      const searchInput = document.querySelector('.search-bar-input') as HTMLInputElement;
+      searchInput.value = 'instant';
+      searchInput.dispatchEvent(new Event('input'));
+
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          const cardElements = document.querySelectorAll('.card-grid-item');
+          expect(cardElements.length).toBe(1);
+          expect(cardElements[0].getAttribute('data-card-id')).toBe('instant-1');
+          resolve(undefined);
+        }, 200);
+      });
+    });
+
+    it('should search across both name and type_line', () => {
+      const cardsWithTypes = [
+        createMockCard('land-1', 1, 'Forest', 'Basic Land — Forest'),
+        createMockCard('creature-1', 2, 'Forest Dragon', 'Creature — Dragon'),
+        createMockCard('instant-1', 3, 'Lightning Bolt', 'Instant'),
+      ];
+
+      viewer.show(cardsWithTypes, 'search');
+
+      const searchInput = document.querySelector('.search-bar-input') as HTMLInputElement;
+      searchInput.value = 'Forest';
+      searchInput.dispatchEvent(new Event('input'));
+
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          const cardElements = document.querySelectorAll('.card-grid-item');
+          // Should match both "Forest" (by name) and "Forest Dragon" (by name) and "Basic Land — Forest" (by type)
+          // Since "Forest" card has both name and type matching, it should appear once
+          // "Forest Dragon" matches by name
+          expect(cardElements.length).toBe(2);
           resolve(undefined);
         }, 200);
       });

@@ -144,6 +144,7 @@ export class TokenService {
             id: `token-${Math.random().toString(36).substring(2, 11)}`,
             cardNumber: this.tokenCardNumberCounter++,
             name: tokenCardData.name,
+            type_line: tokenCardData.type_line,
             images: tokenCardData.imageUris,
             scryfallId: tokenCardData.scryfallId,
             x: position ? position.x + (i * 70) : 100, // Offset tokens horizontally

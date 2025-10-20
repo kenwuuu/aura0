@@ -178,8 +178,10 @@ export class DeckPileViewer {
       const query = this.currentSearchQuery.toLowerCase().trim();
       filtered = this.allCards.filter((card) => {
         const name = card.name?.toLowerCase() || '';
+        const typeLine = card.type_line?.toLowerCase() || '';
         const cardNumber = card.cardNumber.toString();
-        return name.includes(query) || cardNumber.includes(query);
+        return name.includes(query) || cardNumber.includes(query) ||
+          typeLine.includes(query);
       });
     }
 

@@ -69,6 +69,7 @@ export class ScryfallDeckImporter implements DeckImporter {
           id: `card-${Math.random().toString(36).substring(2, 11)}`,
           cardNumber: cardNumberCounter++,
           name: result.name,
+          type_line: result.type_line,
           images: result.imageUris,
           scryfallId: result.scryfallId,
           x: 100,

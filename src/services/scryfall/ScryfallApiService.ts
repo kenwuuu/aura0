@@ -5,6 +5,7 @@ import { CardImages, CardImageUris } from '../../modules/deck/types';
 interface ScryfallCard {
   id: string;
   name: string;
+  type_line?: string;
   image_uris?: CardImageUris;
   card_faces?: Array<{
     image_uris?: CardImageUris;
@@ -26,6 +27,7 @@ export interface ParsedDeckEntry {
 export interface CardDataResult {
   count: number;
   name: string;
+  type_line?: string;
   scryfallId: string;
   imageUris: CardImages;
   error?: string;
@@ -139,6 +141,7 @@ export class ScryfallApiService {
         results.push({
           count: entry.count,
           name: entry.name,
+          type_line: cardObj.type_line,
           scryfallId: cardObj.id,
           imageUris,
         });
@@ -147,6 +150,7 @@ export class ScryfallApiService {
         results.push({
           count: entry.count,
           name: entry.name,
+          type_line: undefined,
           scryfallId: '',
           imageUris: { front: null, back: null },
           error: err instanceof Error ? err.message : 'Unknown error',
@@ -223,6 +227,7 @@ export class ScryfallApiService {
     return {
       count: 1,
       name: scryfallCard.name,
+      type_line: scryfallCard.type_line,
       scryfallId: scryfallCard.id,
       imageUris: this.extractImageUris(scryfallCard),
     };
