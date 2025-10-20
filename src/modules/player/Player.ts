@@ -5,6 +5,7 @@ import { PlayerState, PlayerConfig } from './types';
 export class Player {
   private playerId: string;
   private yPlayerState: Y.Map<any>;
+  private yCardsOnBoard: Y.Map<any>; // Battlefield cards
   private deck: Deck;
   private config: PlayerConfig;
 
@@ -21,6 +22,7 @@ export class Player {
     };
 
     this.yPlayerState = yDoc.getMap(`player-${playerId}`);
+    this.yCardsOnBoard = yDoc.getMap('cards'); // Store reference to battlefield
     this.initializeState();
   }
 
@@ -54,6 +56,44 @@ export class Player {
     this.yPlayerState.set('deckCardCount', this.deck.getCardCount());
 
     return card;
+  }
+
+  // move board to hand. move hand, discard, and exile to deck. keep deck loaded. reset health
+  // equivalent to resetting in IRL game
+  public reset() {
+    // Step 1: Move all battlefield cards owned by this player to hand
+    const battlefieldCards: Card[] = [];
+    this.yCardsOnBoard.forEach((card: any, cardId: string) => {
+      if (card.ownerId === this.playerId) {
+        // Remove WhiteboardCard-specific properties (zIndex, ownerId) to get base Card
+        const { zIndex, ownerId, ...baseCard } = card;
+        battlefieldCards.push(baseCard as Card);
+        // Remove from battlefield
+        this.yCardsOnBoard.delete(cardId);
+      }
+    });
+
+    // Step 2: Get all cards from hand, discard, and exile
+    const hand = this.yPlayerState.get('hand') ?? [];
+    const discardPile = this.yPlayerState.get('discardPile') ?? [];
+    const exilePile = this.yPlayerState.get('exilePile') ?? [];
+
+    // Step 3: Move all cards (battlefield + hand + discard + exile) back to deck
+    [...battlefieldCards, ...hand, ...discardPile, ...exilePile].forEach(card => {
+      this.deck.addCardToBottom(card);
+    });
+
+    // Step 4: Clear all piles in synced state
+    this.yPlayerState.set('hand', []);
+    this.yPlayerState.set('discardPile', []);
+    this.yPlayerState.set('exilePile', []);
+
+    // Step 5: Reset health to initial value
+    this.yPlayerState.set('health', this.config.initialHealth);
+
+    // Step 6: Update deck count and shuffle
+    this.yPlayerState.set('deckCardCount', this.deck.getCardCount());
+    this.deck.shuffleDeck();
   }
 
   public playCardFromHand(cardId: string): Card | null {

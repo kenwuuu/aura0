@@ -46,7 +46,7 @@ class AuraApp {
 
     // Initialize local player
     this.localPlayer = new Player(this.playerId, this.yDoc, localDeck, {
-      initialHealth: 20,
+      initialHealth: 40,
     });
 
     // Initialize whiteboard
@@ -203,6 +203,9 @@ class AuraApp {
 
   private loadDeck(savedDeck: SavedDeck): void {
     console.log(`Loading deck: ${savedDeck.metadata.name} (${savedDeck.cards.length} cards)`);
+
+    // Reset player state: move all cards back to deck, clear piles, reset health
+    this.localPlayer.reset();
 
     // Create a new deck with the imported cards
     const newDeck = new Deck({
