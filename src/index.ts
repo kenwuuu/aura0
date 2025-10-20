@@ -156,6 +156,12 @@ class AuraApp {
           this.localPlayer.mulligan(7);
         }
       },
+      loseHealth: () => {
+        this.localPlayer.modifyHealth(-1);
+      },
+      gainHealth: () => {
+        this.localPlayer.modifyHealth(1);
+      },
     };
 
     this.whiteboard.setKeyboardCallbacks(callbacks);

@@ -13,6 +13,8 @@ export interface KeyboardHandlerCallbacks {
   onEndTurn: () => void;
   onHideCardPreview: () => void;
   onMulligan: () => void;
+  loseHealth: () => void;
+  gainHealth: () => void;
 }
 
 export class KeyboardHandler {
@@ -63,7 +65,21 @@ export class KeyboardHandler {
     if (key === 'm') {
       e.preventDefault();
       this.callbacks.onMulligan();
-      return;;
+      return;
+    }
+
+    // lose health / subtract health
+    if (key === '-' || key === '_' ) {
+      e.preventDefault();
+      this.callbacks.loseHealth();
+      return;
+    }
+
+    // gain health / add health
+    if (key === '=' || key === '+' ) {
+      e.preventDefault();
+      this.callbacks.gainHealth();
+      return;
     }
 
     // Check if GameResourcesDock has a hovered card/pile
