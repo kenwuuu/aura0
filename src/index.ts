@@ -1,13 +1,14 @@
 import * as Y from 'yjs';
 import React from 'react';
-import { createRoot } from 'react-dom/client';
+import { createRoot, Root } from 'react-dom/client';
 import { Deck } from './modules/deck';
 import { Whiteboard, KeyboardHandlerCallbacks } from './modules/whiteboard';
 import { WebRTCProvider } from './modules/webrtc';
 import { getOrCreatePlayerId, getOrCreatePeerId } from './modules/webrtc/persistence';
 import { Player } from './modules/player';
-import { GameResourcesDock, OpponentHealthDisplay } from './modules/gameResourcesDock';
+import { GameResourcesDock } from './modules/gameResourcesDock';
 import { DeckManager } from './components';
+import { OpponentHealthList } from './components/OpponentHealthList';
 import { SavedDeck } from './modules/deck/types';
 import { TokenService } from './services/scryfall';
 import { CardPreview } from './modules/cardPreview';
@@ -20,7 +21,7 @@ class AuraApp {
   private whiteboard: Whiteboard;
   private localPlayer: Player;
   private localDock: GameResourcesDock;
-  private opponentHealthDisplay: OpponentHealthDisplay;
+  private opponentHealthRoot: Root | null = null;
   private tokenService: TokenService;
   private cardPreview: CardPreview;
   private playerId: string;
@@ -87,16 +88,18 @@ class AuraApp {
       playerId: this.playerId,
     }, this.cardPreview);
 
-    // Initialize opponent health display
+    // Initialize opponent health display with React
     const opponentHealthContainer = document.getElementById('opponent-health-container');
     if (!opponentHealthContainer) {
       throw new Error('Opponent health container not found');
     }
 
-    this.opponentHealthDisplay = new OpponentHealthDisplay(
-      opponentHealthContainer,
-      this.yDoc,
-      this.playerId
+    this.opponentHealthRoot = createRoot(opponentHealthContainer);
+    this.opponentHealthRoot.render(
+      React.createElement(OpponentHealthList, {
+        yDoc: this.yDoc,
+        localPlayerId: this.playerId,
+      })
     );
 
     // Initialize token service with zoom level provider
@@ -273,7 +276,9 @@ class AuraApp {
   public destroy(): void {
     this.whiteboard.destroy();
     this.localDock.destroy();
-    this.opponentHealthDisplay.destroy();
+    if (this.opponentHealthRoot) {
+      this.opponentHealthRoot.unmount();
+    }
     this.webrtcProvider.destroy();
     this.cardPreview.destroy();
   }

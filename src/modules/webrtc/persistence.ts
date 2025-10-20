@@ -102,8 +102,9 @@ export function restoreAwarenessState(): AwarenessState | null {
 /**
  * Set up automatic awareness state persistence
  * Saves awareness state before page unload
+ * @returns Cleanup function to remove the event listener
  */
-export function setupAwarenessStatePersistence(getState: () => AwarenessState | null): void {
+export function setupAwarenessStatePersistence(getState: () => AwarenessState | null): () => void {
   const handleBeforeUnload = () => {
     const state = getState();
     if (state) {

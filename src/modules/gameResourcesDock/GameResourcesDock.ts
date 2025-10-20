@@ -4,6 +4,9 @@ import { Card } from '../deck';
 import { PileViewer } from './PileViewer';
 import { DeckPileViewer } from './components';
 import { CardPreview } from '../cardPreview';
+import React from 'react';
+import { createRoot, Root } from 'react-dom/client';
+import { HealthDisplay } from '../../components/HealthDisplay';
 
 export class GameResourcesDock {
   private container: HTMLElement;
@@ -24,6 +27,7 @@ export class GameResourcesDock {
   private handZoomLevel: number = 1;
   private zoomControls?: HTMLElement;
   private cardPreview: CardPreview;
+  private healthRoot: Root | null = null;
 
   constructor(
     container: HTMLElement,
@@ -160,36 +164,26 @@ export class GameResourcesDock {
   }
 
   private createHealthElement(): HTMLElement {
-    const health = document.createElement('div');
-    health.className = 'health-container';
+    const container = document.createElement('div');
 
-    const label = document.createElement('div');
-    label.className = 'health-label';
-    label.textContent = 'Life';
+    this.healthRoot = createRoot(container);
+    this.renderHealthComponent();
 
-    const value = document.createElement('div');
-    value.className = 'health-value';
-    value.textContent = '20';
+    return container;
+  }
 
-    const controls = document.createElement('div');
-    controls.className = 'health-controls';
+  private renderHealthComponent(): void {
+    if (!this.healthRoot) return;
 
-    const decrementBtn = document.createElement('button');
-    decrementBtn.textContent = '-';
-    decrementBtn.onclick = () => this.player.modifyHealth(-1);
-
-    const incrementBtn = document.createElement('button');
-    incrementBtn.textContent = '+';
-    incrementBtn.onclick = () => this.player.modifyHealth(1);
-
-    controls.appendChild(decrementBtn);
-    controls.appendChild(incrementBtn);
-
-    health.appendChild(label);
-    health.appendChild(value);
-    health.appendChild(controls);
-
-    return health;
+    const state = this.player.getState();
+    this.healthRoot.render(
+      React.createElement(HealthDisplay, {
+        label: 'Life',
+        health: state.health,
+        onModifyHealth: (delta: number) => this.player.modifyHealth(delta),
+        variant: 'local'
+      })
+    );
   }
 
   private setupEventListeners(): void {
@@ -248,9 +242,8 @@ export class GameResourcesDock {
     const deckCount = this.elements.deck.querySelector('.pile-count');
     if (deckCount) deckCount.textContent = state.deckCardCount.toString();
 
-    // Update health
-    const healthValue = this.elements.health.querySelector('.health-value');
-    if (healthValue) healthValue.textContent = state.health.toString();
+    // Update health React component
+    this.renderHealthComponent();
 
     // Update hand
     this.updateHandDisplay(state.hand);
@@ -629,6 +622,10 @@ export class GameResourcesDock {
   }
 
   public destroy(): void {
+    if (this.healthRoot) {
+      this.healthRoot.unmount();
+      this.healthRoot = null;
+    }
     if (this.elements) {
       this.container.innerHTML = '';
       this.elements = null;
