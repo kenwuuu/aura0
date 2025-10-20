@@ -2,6 +2,7 @@ import { Player, PlayerState } from '../player';
 import { GameResourcesDockConfig } from './types';
 import { Card } from '../deck';
 import { PileViewer } from './PileViewer';
+import { DeckPileViewer } from './components';
 import { CardPreview } from '../cardPreview';
 
 export class GameResourcesDock {
@@ -9,6 +10,7 @@ export class GameResourcesDock {
   private player: Player;
   private config: GameResourcesDockConfig;
   private pileViewer: PileViewer;
+  private deckViewer: DeckPileViewer;
   private elements: {
     exile: HTMLElement;
     discard: HTMLElement;
@@ -33,6 +35,10 @@ export class GameResourcesDock {
     this.player = player;
     this.config = config;
     this.pileViewer = new PileViewer();
+    this.deckViewer = new DeckPileViewer({
+      onPlayToBattlefield: (card) => this.handleDeckCardToBattlefield(card),
+      onMoveToHand: (card) => this.handleDeckCardToHand(card),
+    });
     this.handZoomLevel = parseFloat(localStorage.getItem('hand-zoom') || '1');
     this.cardPreview = cardPreview;
 
@@ -129,23 +135,24 @@ export class GameResourcesDock {
       this.onDrawCard();
     };
 
-    const searchButton = document.createElement('button');
-    searchButton.className = 'draw-button';
-    searchButton.textContent = 'Search';
-    searchButton.onclick = (e) => {
-      e.stopPropagation();
-      this.searchDeck();
-    };
-
     deck.appendChild(labelEl);
     deck.appendChild(count);
     deck.appendChild(drawButton);
-    deck.appendChild(searchButton);
 
-    // Click deck to view it
+    // Hover tracking for keyboard shortcuts
+    deck.addEventListener('mouseenter', () => {
+      this.hoveredPileType = 'deck';
+      this.hoveredHandCardId = null;
+    });
+
+    deck.addEventListener('mouseleave', () => {
+      this.hoveredPileType = null;
+    });
+
+    // Click deck to view it (with search and sort)
     deck.onclick = (e) => {
-      if (e.target !== drawButton && e.target !== searchButton) {
-        this.viewPile('deck');
+      if (e.target !== drawButton) {
+        this.viewDeck();
       }
     };
 
@@ -349,31 +356,39 @@ export class GameResourcesDock {
     this.pileViewer.show(cards, pileType);
   }
 
-  private searchDeck(): void {
+  private viewDeck(): void {
     const cards = this.player.getDeckCards();
+    this.deckViewer.show(cards, 'search');
+  }
 
-    this.pileViewer.show(cards, 'deck-search', {
-      onPlayToBattlefield: (card) => {
-        // Remove card from deck
-        this.player['deck'].removeCard(card.id);
-        this.player['yPlayerState'].set('deckCardCount', this.player['deck'].getCardCount());
+  private handleDeckCardToBattlefield(card: Card): void {
+    // Remove card from deck
+    this.player['deck'].removeCard(card.id);
+    this.player['yPlayerState'].set('deckCardCount', this.player['deck'].getCardCount());
 
-        // Dispatch event to play card to battlefield
-        const event = new CustomEvent('playCard', {
-          detail: { card, playerId: this.player['playerId'] }
-        });
-        window.dispatchEvent(event);
-      },
-      onMoveToHand: (card) => {
-        // Remove card from deck
-        this.player['deck'].removeCard(card.id);
-        this.player['yPlayerState'].set('deckCardCount', this.player['deck'].getCardCount());
-
-        // Add to hand
-        const hand = this.player.getState().hand;
-        this.player['yPlayerState'].set('hand', [...hand, card]);
-      }
+    // Dispatch event to play card to battlefield
+    const event = new CustomEvent('playCard', {
+      detail: { card, playerId: this.player['playerId'] }
     });
+    window.dispatchEvent(event);
+
+    // Update deck viewer with new card list
+    const updatedCards = this.player.getDeckCards();
+    this.deckViewer.updateCards(updatedCards);
+  }
+
+  private handleDeckCardToHand(card: Card): void {
+    // Remove card from deck
+    this.player['deck'].removeCard(card.id);
+    this.player['yPlayerState'].set('deckCardCount', this.player['deck'].getCardCount());
+
+    // Add to hand
+    const hand = this.player.getState().hand;
+    this.player['yPlayerState'].set('hand', [...hand, card]);
+
+    // Update deck viewer with new card list
+    const updatedCards = this.player.getDeckCards();
+    this.deckViewer.updateCards(updatedCards);
   }
 
   private setupKeyboardShortcuts(): void {
