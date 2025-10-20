@@ -1,9 +1,9 @@
-import { Card } from '../deck/types';
+import { Card } from '../deck';
 
 export class CardPreview {
   // Constants
-  private static readonly PREVIEW_WIDTH = '500px';
-  private static readonly PREVIEW_HEIGHT = '698px'; // Maintain Magic card aspect ratio (~1.4:1)
+  private static readonly BASE_WIDTH = 500;
+  private static readonly BASE_HEIGHT = 698; // Maintain Magic card aspect ratio (~1.4:1)
   private static readonly BORDER_RADIUS = '12px';
   private static readonly Z_INDEX = '10000';
   private static readonly BOX_SHADOW = '0 8px 16px rgba(0, 0, 0, 0.6)';
@@ -14,15 +14,20 @@ export class CardPreview {
   private static readonly POINTER_EVENTS = 'none';
   private static readonly OVERFLOW = 'hidden';
   private static readonly TOP_OFFSET = '20px';
-  private static readonly RIGHT_OFFSET = '20px';
+  private static readonly SIDE_OFFSET = '20px';
   private static readonly DISPLAY_VISIBLE = 'block';
   private static readonly DISPLAY_HIDDEN = 'none';
 
   private previewElement: HTMLElement | null = null;
   private currentCard: Card | null = null;
+  private zoomLevel: number = 1;
+  private zoomControls?: HTMLElement;
+  private currentMouseX: number = 0;
 
   constructor() {
+    this.zoomLevel = parseFloat(localStorage.getItem('card-preview-zoom') || '1');
     this.createPreviewElement();
+    this.setupZoomControls();
   }
 
   private createPreviewElement(): void {
@@ -36,14 +41,25 @@ export class CardPreview {
     this.previewElement.style.boxShadow = CardPreview.BOX_SHADOW;
     this.previewElement.style.border = CardPreview.BORDER;
     this.previewElement.style.overflow = CardPreview.OVERFLOW;
-    this.previewElement.style.width = CardPreview.PREVIEW_WIDTH;
-    this.previewElement.style.height = CardPreview.PREVIEW_HEIGHT;
 
-    // Fixed to top right corner
+    // Apply zoom
+    this.updatePreviewSize();
+
+    // Initially positioned on right side (will be repositioned based on mouse)
     this.previewElement.style.top = CardPreview.TOP_OFFSET;
-    this.previewElement.style.right = CardPreview.RIGHT_OFFSET;
+    this.previewElement.style.right = CardPreview.SIDE_OFFSET;
 
     document.body.appendChild(this.previewElement);
+  }
+
+  private updatePreviewSize(): void {
+    if (!this.previewElement) return;
+
+    const width = CardPreview.BASE_WIDTH * this.zoomLevel;
+    const height = CardPreview.BASE_HEIGHT * this.zoomLevel;
+
+    this.previewElement.style.width = `${width}px`;
+    this.previewElement.style.height = `${height}px`;
   }
 
   public show(card: Card, mouseEvent?: MouseEvent): void {
@@ -52,6 +68,12 @@ export class CardPreview {
 
     this.currentCard = card;
 
+    // Store mouse position for positioning
+    if (mouseEvent) {
+      this.currentMouseX = mouseEvent.clientX;
+      this.updatePreviewPosition();
+    }
+
     // Clear previous content
     this.previewElement.innerHTML = '';
 
@@ -59,8 +81,8 @@ export class CardPreview {
     const img = document.createElement('img');
     img.src = card.images.front.normal;
     img.alt = card.name || `Card #${card.cardNumber}`;
-    img.style.width = CardPreview.PREVIEW_WIDTH;
-    img.style.height = CardPreview.PREVIEW_HEIGHT;
+    img.style.width = this.previewElement.style.width;
+    img.style.height = this.previewElement.style.height;
     img.style.objectFit = CardPreview.OBJECT_FIT;
     this.previewElement.appendChild(img);
 
@@ -69,8 +91,26 @@ export class CardPreview {
   }
 
   public updatePosition(mouseEvent: MouseEvent): void {
-    // No-op: Preview is now fixed to top right corner
-    // Method kept for backward compatibility
+    this.currentMouseX = mouseEvent.clientX;
+    this.updatePreviewPosition();
+  }
+
+  private updatePreviewPosition(): void {
+    if (!this.previewElement) return;
+
+    // If cursor is on right half of screen, show preview on left
+    // If cursor is on left half, show preview on right
+    const screenMidpoint = window.innerWidth / 2;
+
+    if (this.currentMouseX > screenMidpoint) {
+      // Cursor on right, show preview on left
+      this.previewElement.style.left = CardPreview.SIDE_OFFSET;
+      this.previewElement.style.right = 'auto';
+    } else {
+      // Cursor on left, show preview on right
+      this.previewElement.style.right = CardPreview.SIDE_OFFSET;
+      this.previewElement.style.left = 'auto';
+    }
   }
 
   public hide(): void {
@@ -80,10 +120,70 @@ export class CardPreview {
     }
   }
 
+  private setupZoomControls(): void {
+    const controls = document.createElement('div');
+    controls.className = 'zoom-controls card-preview-zoom-controls';
+    controls.style.position = 'fixed';
+    controls.style.bottom = '200px'; // Swap with hand zoom (was 20px)
+    controls.style.left = '20px'; // Left side for card preview zoom
+    controls.style.zIndex = '1000';
+    controls.style.display = 'flex';
+    controls.style.flexDirection = 'column';
+    controls.style.gap = '8px';
+
+    const zoomInBtn = document.createElement('button');
+    zoomInBtn.className = 'zoom-button';
+    zoomInBtn.textContent = '+';
+    zoomInBtn.title = 'Zoom In Card Preview';
+    zoomInBtn.onclick = () => this.adjustZoom(0.1);
+
+    const zoomOutBtn = document.createElement('button');
+    zoomOutBtn.className = 'zoom-button';
+    zoomOutBtn.textContent = '−';
+    zoomOutBtn.title = 'Zoom Out Card Preview';
+    zoomOutBtn.onclick = () => this.adjustZoom(-0.1);
+
+    const resetBtn = document.createElement('button');
+    resetBtn.className = 'zoom-button zoom-display';
+    resetBtn.textContent = `${this.zoomLevel.toFixed(1)}×`;
+    resetBtn.title = 'Reset Card Preview Zoom';
+    resetBtn.onclick = () => this.setZoom(1);
+
+    controls.appendChild(zoomInBtn);
+    controls.appendChild(resetBtn);
+    controls.appendChild(zoomOutBtn);
+
+    document.body.appendChild(controls);
+    this.zoomControls = controls;
+  }
+
+  private adjustZoom(delta: number): void {
+    const newZoom = Math.max(0.5, Math.min(2.5, this.zoomLevel + delta));
+    this.setZoom(newZoom);
+  }
+
+  private setZoom(zoom: number): void {
+    this.zoomLevel = zoom;
+    localStorage.setItem('card-preview-zoom', zoom.toString());
+    this.updatePreviewSize();
+
+    // Update the display button text
+    if (this.zoomControls) {
+      const displayBtn = this.zoomControls.querySelector('.zoom-display');
+      if (displayBtn) {
+        displayBtn.textContent = `${this.zoomLevel.toFixed(1)}×`;
+      }
+    }
+  }
+
   public destroy(): void {
     if (this.previewElement) {
       this.previewElement.remove();
       this.previewElement = null;
+    }
+    if (this.zoomControls) {
+      this.zoomControls.remove();
+      this.zoomControls = undefined;
     }
   }
 }

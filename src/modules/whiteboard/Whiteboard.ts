@@ -4,7 +4,7 @@ import { KeyboardHandler, KeyboardHandlerCallbacks } from './KeyboardHandler';
 import { CardPreview } from '../cardPreview';
 import * as Y from 'yjs';
 import React from 'react';
-import { createRoot, Root } from 'react-dom/client';
+import { createRoot } from 'react-dom/client';
 import { Counter } from '../../components';
 
 export class Whiteboard {
@@ -23,14 +23,15 @@ export class Whiteboard {
   constructor(
     container: HTMLElement,
     yDoc: Y.Doc,
-    config: WhiteboardConfig
+    config: WhiteboardConfig,
+    cardPreview: CardPreview
   ) {
     this.container = container;
     this.config = config;
 
     this.yCards = yDoc.getMap('cards');
     this.zoomLevel = parseFloat(localStorage.getItem('whiteboard-zoom') || '1');
-    this.cardPreview = new CardPreview();
+    this.cardPreview = cardPreview;
     this.setupContainer();
     this.setupZoomControls();
     this.setupYjsSync();
@@ -375,8 +376,8 @@ export class Whiteboard {
     zoomOutBtn.onclick = () => this.adjustZoom(-0.1);
 
     const resetBtn = document.createElement('button');
-    resetBtn.className = 'zoom-button';
-    resetBtn.textContent = '1×';
+    resetBtn.className = 'zoom-button zoom-display';
+    resetBtn.textContent = `${this.zoomLevel.toFixed(1)}×`;
     resetBtn.title = 'Reset Zoom';
     resetBtn.onclick = () => this.setZoom(1);
 
@@ -396,6 +397,14 @@ export class Whiteboard {
   private setZoom(zoom: number): void {
     this.zoomLevel = zoom;
     localStorage.setItem('whiteboard-zoom', zoom.toString());
+
+    // Update the display button text
+    if (this.zoomControls) {
+      const displayBtn = this.zoomControls.querySelector('.zoom-display');
+      if (displayBtn) {
+        displayBtn.textContent = `${this.zoomLevel.toFixed(1)}×`;
+      }
+    }
 
     // Update all card sizes
     this.cards.forEach((card) => {

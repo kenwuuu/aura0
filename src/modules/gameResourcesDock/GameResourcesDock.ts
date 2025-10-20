@@ -26,14 +26,15 @@ export class GameResourcesDock {
   constructor(
     container: HTMLElement,
     player: Player,
-    config: GameResourcesDockConfig
+    config: GameResourcesDockConfig,
+    cardPreview: CardPreview
   ) {
     this.container = container;
     this.player = player;
     this.config = config;
     this.pileViewer = new PileViewer();
     this.handZoomLevel = parseFloat(localStorage.getItem('hand-zoom') || '1');
-    this.cardPreview = new CardPreview();
+    this.cardPreview = cardPreview;
 
     this.render();
     this.setupZoomControls();
@@ -256,7 +257,7 @@ export class GameResourcesDock {
 
     handCards.innerHTML = '';
 
-    hand.forEach((card, index) => {
+    hand.forEach((card) => {
       const cardEl = document.createElement('div');
       cardEl.className = 'hand-card';
       cardEl.dataset.cardId = card.id;
@@ -539,7 +540,7 @@ export class GameResourcesDock {
     const controls = document.createElement('div');
     controls.className = 'zoom-controls hand-zoom-controls';
     controls.style.position = 'fixed';
-    controls.style.bottom = '200px';
+    controls.style.bottom = '20px'; // Swap with preview zoom (was 200px)
     controls.style.left = '20px'; // Left side for hand zoom
     controls.style.zIndex = '1000';
     controls.style.display = 'flex';
@@ -559,8 +560,8 @@ export class GameResourcesDock {
     zoomOutBtn.onclick = () => this.adjustHandZoom(-0.1);
 
     const resetBtn = document.createElement('button');
-    resetBtn.className = 'zoom-button';
-    resetBtn.textContent = '1×';
+    resetBtn.className = 'zoom-button zoom-display';
+    resetBtn.textContent = `${this.handZoomLevel.toFixed(1)}×`;
     resetBtn.title = 'Reset Hand Zoom';
     resetBtn.onclick = () => this.setHandZoom(1);
 
@@ -580,6 +581,14 @@ export class GameResourcesDock {
   private setHandZoom(zoom: number): void {
     this.handZoomLevel = zoom;
     localStorage.setItem('hand-zoom', zoom.toString());
+
+    // Update the display button text
+    if (this.zoomControls) {
+      const displayBtn = this.zoomControls.querySelector('.zoom-display');
+      if (displayBtn) {
+        displayBtn.textContent = `${this.handZoomLevel.toFixed(1)}×`;
+      }
+    }
 
     // Re-render hand with new zoom
     const state = this.player.getState();

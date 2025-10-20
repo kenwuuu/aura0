@@ -9,6 +9,7 @@ import { GameResourcesDock, OpponentHealthDisplay } from './modules/gameResource
 import { DeckManager } from './components';
 import { SavedDeck } from './modules/deck/types';
 import { TokenService } from './services/scryfall';
+import { CardPreview } from './modules/cardPreview';
 import './style.css';
 
 class AuraApp {
@@ -19,6 +20,7 @@ class AuraApp {
   private localDock: GameResourcesDock;
   private opponentHealthDisplay: OpponentHealthDisplay;
   private tokenService: TokenService;
+  private cardPreview: CardPreview;
   private playerId: string;
 
   constructor() {
@@ -51,6 +53,9 @@ class AuraApp {
       initialHealth: 40,
     });
 
+    // Create shared card preview instance (used by both Whiteboard and GameResourcesDock)
+    this.cardPreview = new CardPreview();
+
     // Initialize whiteboard
     const whiteboardContainer = document.getElementById('whiteboard');
     if (!whiteboardContainer) {
@@ -62,7 +67,7 @@ class AuraApp {
       width: window.innerWidth,
       height: window.innerHeight,
       localPlayerId: this.playerId,
-    });
+    }, this.cardPreview);
 
     // Initialize local player's resource dock
     const dockContainer = document.getElementById('local-dock');
@@ -73,7 +78,7 @@ class AuraApp {
     this.localDock = new GameResourcesDock(dockContainer, this.localPlayer, {
       position: 'bottom',
       playerId: this.playerId,
-    });
+    }, this.cardPreview);
 
     // Initialize opponent health display
     const opponentHealthContainer = document.getElementById('opponent-health-container');
@@ -252,6 +257,7 @@ class AuraApp {
     this.localDock.destroy();
     this.opponentHealthDisplay.destroy();
     this.webrtcProvider.destroy();
+    this.cardPreview.destroy();
   }
 }
 
