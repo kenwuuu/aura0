@@ -7,7 +7,7 @@ import { WebRTCProvider } from './modules/webrtc';
 import { getOrCreatePlayerId, getOrCreatePeerId } from './modules/webrtc/persistence';
 import { Player } from './modules/player';
 import { GameResourcesDock } from './modules/gameResourcesDock';
-import { DeckManager } from './components';
+import { DeckManager, WelcomeModal } from './components';
 import { OpponentHealthList } from './components/OpponentHealthList';
 import { SavedDeck } from './modules/deck/types';
 import { TokenService } from './services/scryfall';
@@ -257,6 +257,13 @@ class AuraApp {
         onDeckSelected: (deck: SavedDeck) => this.loadDeck(deck),
       })
     );
+
+    // Setup welcome modal
+    const welcomeModalRoot = document.createElement('div');
+    welcomeModalRoot.id = 'welcome-modal-root';
+    document.body.appendChild(welcomeModalRoot);
+    const welcomeRoot = createRoot(welcomeModalRoot);
+    welcomeRoot.render(React.createElement(WelcomeModal));
   }
 
   private loadDeck(savedDeck: SavedDeck): void {
