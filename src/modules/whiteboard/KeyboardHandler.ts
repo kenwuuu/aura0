@@ -96,6 +96,7 @@ export class KeyboardHandler {
       case 'y': // Y - Move to bottom of deck
         e.preventDefault();
         if (card) {
+          this.callbacks.onHideCardPreview();
           this.callbacks.onMoveToDeckBottom(card);
           this.removeCard(card.id);
         }
@@ -104,6 +105,7 @@ export class KeyboardHandler {
       case 't': // T - Move to top of deck
         e.preventDefault();
         if (card) {
+          this.callbacks.onHideCardPreview();
           this.callbacks.onMoveToDeckTop(card);
           this.removeCard(card.id);
         }
@@ -138,6 +140,7 @@ export class KeyboardHandler {
       case 'd': // D - Move to graveyard
         e.preventDefault();
         if (card) {
+          this.callbacks.onHideCardPreview();
           this.callbacks.onMoveToGraveyard(card);
           this.removeCard(card.id);
         }
@@ -146,6 +149,7 @@ export class KeyboardHandler {
       case 's': // S - Move to exile
         e.preventDefault();
         if (card) {
+          this.callbacks.onHideCardPreview();
           this.callbacks.onMoveToExile(card);
           this.removeCard(card.id);
         }
