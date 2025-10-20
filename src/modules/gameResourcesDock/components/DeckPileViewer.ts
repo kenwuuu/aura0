@@ -1,11 +1,11 @@
 /**
  * DeckPileViewer Component
  *
- * Specialized viewer for deck pile with:
+ * General-purpose pile viewer for deck, exile, and discard piles with:
  * - Card images
  * - Search by card name
  * - Sort by top-to-bottom or alphabetical
- * - Z and H keyboard shortcuts
+ * - Keyboard shortcuts (Z, H, D, S, T, Y)
  *
  * IMPORTANT: Card Order Assumption
  * ================================
@@ -28,11 +28,15 @@ import { SearchBar } from './SearchBar';
 import { SortControl } from './SortControl';
 import { CardGridItem } from './CardGridItem';
 
-export type DeckViewMode = 'view' | 'search';
+export type PileType = 'deck' | 'exile' | 'discard';
 
 export interface DeckPileViewerCallbacks {
   onPlayToBattlefield?: (card: Card) => void;
   onMoveToHand?: (card: Card) => void;
+  onMoveToExile?: (card: Card) => void;
+  onMoveToDiscard?: (card: Card) => void;
+  onMoveToDeckTop?: (card: Card) => void;
+  onMoveToDeckBottom?: (card: Card) => void;
 }
 
 export class DeckPileViewer {
@@ -41,7 +45,7 @@ export class DeckPileViewer {
   private allCards: Card[] = [];
   private filteredCards: Card[] = [];
   private hoveredCard: Card | null = null;
-  private mode: DeckViewMode = 'view';
+  private pileType: PileType = 'deck';
 
   // Components
   private searchBar: SearchBar | null = null;
@@ -56,9 +60,9 @@ export class DeckPileViewer {
     this.callbacks = callbacks;
   }
 
-  public show(cards: Card[], mode: DeckViewMode = 'view'): void {
+  public show(cards: Card[], pileType: PileType): void {
     this.allCards = cards;
-    this.mode = mode;
+    this.pileType = pileType;
     this.currentSearchQuery = '';
     this.currentSortOrder = 'top-to-bottom';
     this.filteredCards = [...cards].reverse();
@@ -112,21 +116,23 @@ export class DeckPileViewer {
     header.className = 'deck-pile-viewer-header';
 
     const title = document.createElement('h2');
-    if (this.mode === 'search') {
+
+    // Set title based on pile type
+    if (this.pileType === 'deck') {
       title.textContent = 'Search Deck';
-
-      const subtitle = document.createElement('div');
-      subtitle.className = 'deck-pile-viewer-subtitle';
-      subtitle.textContent = 'Z: Play to battlefield • H: Move to hand';
-      header.appendChild(title);
-      header.appendChild(subtitle);
-    } else {
-      title.textContent = 'Deck';
+    } else if (this.pileType === 'exile') {
+      title.textContent = 'Exile Pile';
+    } else if (this.pileType === 'discard') {
+      title.textContent = 'Discard Pile';
     }
 
-    if (!header.contains(title)) {
-      header.appendChild(title);
-    }
+    header.appendChild(title);
+
+    // Add subtitle with keyboard shortcuts
+    const subtitle = document.createElement('div');
+    subtitle.className = 'deck-pile-viewer-subtitle';
+    subtitle.textContent = 'Hover card and move to... \nH: Hand • D: Discard • S: Exile • T: Deck Top • Y: Deck Bottom';
+    header.appendChild(subtitle);
 
     const closeBtn = document.createElement('button');
     closeBtn.className = 'deck-pile-viewer-close';
@@ -155,6 +161,7 @@ export class DeckPileViewer {
     this.sortControl = new SortControl({
       options: [
         { value: 'top-to-bottom', label: 'Top to Bottom' },
+        { value: 'bottom-to-top', label: 'Bottom to Top' },
         { value: 'alphabetical', label: 'Alphabetical' },
       ],
       defaultValue: 'top-to-bottom',
@@ -192,9 +199,12 @@ export class DeckPileViewer {
         const nameB = b.name?.toLowerCase() || `card${b.cardNumber}`;
         return nameA.localeCompare(nameB);
       });
-    } else {
-      // top-to-bottom (reverse array to show top cards first)
+    } else if (this.currentSortOrder === 'top-to-bottom') {
+      // Deck pile: reverse array to show top cards first (deck is stored as a stack, so fifo,
+      // which means we must reverse to get most recent card)
       filtered = [...filtered].reverse();
+    } else if (this.currentSortOrder === 'bottom-to-top') {
+      filtered = [...filtered];
     }
 
     this.filteredCards = filtered;
@@ -211,7 +221,7 @@ export class DeckPileViewer {
       empty.className = 'deck-pile-viewer-empty';
       empty.textContent = this.currentSearchQuery
         ? 'No cards found'
-        : 'No cards in deck';
+        : `No cards in ${this.pileType}`;
       this.gridContainer.appendChild(empty);
       return;
     }
@@ -226,7 +236,6 @@ export class DeckPileViewer {
         position: absoluteIndex,
         showPosition: true, // Always show position
         positionPrefix: 'Top',
-        onClick: (card) => this.handleCardClick(card),
         onHover: (card) => {
           this.hoveredCard = card;
           // Focus the card element when hovered to enable immediate hotkey use
@@ -242,14 +251,6 @@ export class DeckPileViewer {
       cardElement.tabIndex = 0;
       this.gridContainer!.appendChild(cardElement);
     });
-  }
-
-  private handleCardClick(card: Card): void {
-    // In search mode, clicking does nothing (use hotkeys)
-    // In view mode, clicking closes modal
-    if (this.mode === 'view') {
-      this.close();
-    }
   }
 
   private attachGlobalListeners(): void {
@@ -268,25 +269,39 @@ export class DeckPileViewer {
         return;
       }
 
-      // Z and H shortcuts require hovered card
+      // All other shortcuts require hovered card
       if (!this.hoveredCard) return;
 
-      if (key === 'z' && this.callbacks.onPlayToBattlefield) {
-        e.preventDefault();
-        this.callbacks.onPlayToBattlefield(this.hoveredCard);
-        // Don't close modal in search mode
-        if (this.mode !== 'search') {
-          this.close();
-        }
-      }
+      // Z - Play to battlefield TODO: implement when we can get them to stop disappearing
 
+      // H - Move to hand
       if (key === 'h' && this.callbacks.onMoveToHand) {
         e.preventDefault();
         this.callbacks.onMoveToHand(this.hoveredCard);
-        // Don't close modal in search mode
-        if (this.mode !== 'search') {
-          this.close();
-        }
+      }
+
+      // D - Move to discard (only if not already in discard)
+      if (key === 'd' && this.callbacks.onMoveToDiscard && this.pileType !== 'discard') {
+        e.preventDefault();
+        this.callbacks.onMoveToDiscard(this.hoveredCard);
+      }
+
+      // S - Move to exile (only if not already in exile)
+      if (key === 's' && this.callbacks.onMoveToExile && this.pileType !== 'exile') {
+        e.preventDefault();
+        this.callbacks.onMoveToExile(this.hoveredCard);
+      }
+
+      // T - Move to deck top (only if not already in deck)
+      if (key === 't' && this.callbacks.onMoveToDeckTop && this.pileType !== 'deck') {
+        e.preventDefault();
+        this.callbacks.onMoveToDeckTop(this.hoveredCard);
+      }
+
+      // Y - Move to deck bottom (only if not already in deck)
+      if (key === 'y' && this.callbacks.onMoveToDeckBottom && this.pileType !== 'deck') {
+        e.preventDefault();
+        this.callbacks.onMoveToDeckBottom(this.hoveredCard);
       }
     };
 

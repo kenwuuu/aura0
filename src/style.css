@@ -888,6 +888,7 @@ body {
   color: #9ca3af;
   margin-top: 4px;
   font-weight: normal;
+  white-space: pre-line;
 }
 
 .deck-pile-viewer-close {
