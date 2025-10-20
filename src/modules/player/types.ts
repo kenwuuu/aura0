@@ -1,5 +1,12 @@
 import { Card } from '../deck';
 
+export interface CustomCounter {
+  id: string;
+  title: string;
+  icon: string;
+  value: number;
+}
+
 export interface PlayerState {
   id: string;
   health: number;
@@ -7,6 +14,7 @@ export interface PlayerState {
   exilePile: Card[];
   discardPile: Card[];
   deckCardCount: number;
+  customCounters: CustomCounter[];
 }
 
 export interface PlayerConfig {

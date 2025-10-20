@@ -1,4 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { CustomCounter } from '../modules/player/types';
+import { CounterModal } from './CounterModal';
+import styles from './HealthDisplay.module.css';
 
 interface HealthDisplayProps {
   label: string;
@@ -6,6 +9,10 @@ interface HealthDisplayProps {
   onModifyHealth: (delta: number) => void;
   variant?: 'local' | 'opponent';
   playerId?: string;
+  customCounters?: CustomCounter[];
+  onAddCounter?: (title: string, icon: string) => void;
+  onModifyCounter?: (counterId: string, delta: number) => void;
+  onRemoveCounter?: (counterId: string) => void;
 }
 
 export const HealthDisplay: React.FC<HealthDisplayProps> = ({
@@ -14,24 +21,83 @@ export const HealthDisplay: React.FC<HealthDisplayProps> = ({
   onModifyHealth,
   variant = 'local',
   playerId,
+  customCounters = [],
+  onAddCounter,
+  onModifyCounter,
+  onRemoveCounter,
 }) => {
-  const containerClass = variant === 'local' ? 'health-container' : 'opponent-health';
+  const [isHovered, setIsHovered] = useState(false);
+  const [showModal, setShowModal] = useState(false);
+
+  const handleAddCounter = (title: string, icon: string) => {
+    onAddCounter?.(title, icon);
+    setShowModal(false);
+  };
+
+  const containerClass = variant === 'local' ? styles.healthContainer : styles.opponentHealth;
+  const expandClass = variant === 'opponent' ? styles.expandLeft : styles.expandRight;
 
   return (
-    <div
-      className={containerClass}
-      data-player-id={playerId}
-    >
-      <div className={variant === 'local' ? 'health-label' : 'opponent-health-label'}>
-        {label}
+    <>
+      <div
+        className={`${containerClass} ${expandClass}`}
+        data-player-id={playerId}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+      >
+        <div className={variant === 'local' ? styles.healthLabel : styles.opponentHealthLabel}>
+          {label}
+        </div>
+        <div className={variant === 'local' ? styles.healthValue : styles.opponentHealthValue}>
+          {health}
+        </div>
+        <div className={variant === 'local' ? styles.healthControls : styles.opponentHealthControls}>
+          <button onClick={() => onModifyHealth(-1)}>-</button>
+          <button onClick={() => onModifyHealth(1)}>+</button>
+        </div>
+
+        {isHovered && (
+          <div className={styles.expandedContent}>
+            {customCounters.map((counter) => (
+              <div key={counter.id} className={styles.customCounter}>
+                <span className={styles.counterIcon}>{counter.icon}</span>
+                <div className={styles.counterInfo}>
+                  <div className={styles.counterTitle}>{counter.title}</div>
+                  <div className={styles.counterValue}>{counter.value}</div>
+                </div>
+                <div className={styles.counterControls}>
+                  <button onClick={() => onModifyCounter?.(counter.id, -1)}>-</button>
+                  <button onClick={() => onModifyCounter?.(counter.id, 1)}>+</button>
+                </div>
+                <button
+                  className={styles.deleteButton}
+                  onClick={() => onRemoveCounter?.(counter.id)}
+                  title="Remove counter"
+                >
+                  ×
+                </button>
+              </div>
+            ))}
+
+            {onAddCounter && (
+              <button
+                className={styles.addCounterButton}
+                onClick={() => setShowModal(true)}
+                title="Add custom counter"
+              >
+                +
+              </button>
+            )}
+          </div>
+        )}
       </div>
-      <div className={variant === 'local' ? 'health-value' : 'opponent-health-value'}>
-        {health}
-      </div>
-      <div className={variant === 'local' ? 'health-controls' : 'opponent-health-controls'}>
-        <button onClick={() => onModifyHealth(-1)}>-</button>
-        <button onClick={() => onModifyHealth(1)}>+</button>
-      </div>
-    </div>
+
+      {showModal && (
+        <CounterModal
+          onAdd={handleAddCounter}
+          onCancel={() => setShowModal(false)}
+        />
+      )}
+    </>
   );
 };

@@ -1,6 +1,6 @@
 import * as Y from 'yjs';
 import { Card, Deck } from '../deck';
-import { PlayerState, PlayerConfig } from './types';
+import { PlayerState, PlayerConfig, CustomCounter } from './types';
 
 export class Player {
   private playerId: string;
@@ -33,6 +33,7 @@ export class Player {
       this.yPlayerState.set('exilePile', []);
       this.yPlayerState.set('discardPile', []);
       this.yPlayerState.set('deckCardCount', this.deck.getCardCount());
+      this.yPlayerState.set('customCounters', []);
     }
   }
 
@@ -44,6 +45,7 @@ export class Player {
       exilePile: this.yPlayerState.get('exilePile') ?? [],
       discardPile: this.yPlayerState.get('discardPile') ?? [],
       deckCardCount: this.yPlayerState.get('deckCardCount') ?? 0,
+      customCounters: this.yPlayerState.get('customCounters') ?? [],
     };
   }
 
@@ -194,5 +196,32 @@ export class Player {
     this.yPlayerState.observe(() => {
       callback(this.getState());
     });
+  }
+
+  public addCustomCounter(title: string, icon: string): void {
+    const counters = this.yPlayerState.get('customCounters') ?? [];
+    const newCounter: CustomCounter = {
+      id: `counter-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+      title,
+      icon,
+      value: 0,
+    };
+    this.yPlayerState.set('customCounters', [...counters, newCounter]);
+  }
+
+  public modifyCustomCounter(counterId: string, delta: number): void {
+    const counters = this.yPlayerState.get('customCounters') ?? [];
+    const updatedCounters = counters.map((counter: CustomCounter) =>
+      counter.id === counterId
+        ? { ...counter, value: counter.value + delta }
+        : counter
+    );
+    this.yPlayerState.set('customCounters', updatedCounters);
+  }
+
+  public removeCustomCounter(counterId: string): void {
+    const counters = this.yPlayerState.get('customCounters') ?? [];
+    const updatedCounters = counters.filter((counter: CustomCounter) => counter.id !== counterId);
+    this.yPlayerState.set('customCounters', updatedCounters);
   }
 }

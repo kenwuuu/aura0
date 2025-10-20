@@ -181,7 +181,11 @@ export class GameResourcesDock {
         label: 'Life',
         health: state.health,
         onModifyHealth: (delta: number) => this.player.modifyHealth(delta),
-        variant: 'local'
+        variant: 'local',
+        customCounters: state.customCounters,
+        onAddCounter: (title: string, icon: string) => this.player.addCustomCounter(title, icon),
+        onModifyCounter: (counterId: string, delta: number) => this.player.modifyCustomCounter(counterId, delta),
+        onRemoveCounter: (counterId: string) => this.player.removeCustomCounter(counterId)
       })
     );
   }

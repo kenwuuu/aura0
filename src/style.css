@@ -55,31 +55,6 @@ body {
   gap: 12px;
 }
 
-.opponent-health {
-  background-color: rgba(13, 13, 13, 0.9);
-  border: 2px solid #ef4444;
-  border-radius: 12px;
-  padding: 12px 20px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(10px);
-}
-
-.opponent-health-label {
-  font-size: 11px;
-  color: #9ca3af;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  margin-bottom: 4px;
-}
-
-.opponent-health-value {
-  font-size: 32px;
-  font-weight: bold;
-  color: #ef4444;
-  text-align: center;
-  font-family: 'Courier New', monospace;
-}
-
 #whiteboard {
   flex: 1;
   position: relative;
@@ -238,60 +213,6 @@ body {
   cursor: grabbing;
 }
 
-/* Health Container */
-.health-container {
-  background-color: #1a1a1a;
-  border: 2px solid #10b981;
-  border-radius: 12px;
-  padding: 12px 20px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  min-width: 120px;
-}
-
-.health-label {
-  font-size: 11px;
-  color: #9ca3af;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-.health-value {
-  font-size: 36px;
-  font-weight: bold;
-  color: #10b981;
-  font-family: 'Courier New', monospace;
-}
-
-.health-controls {
-  display: flex;
-  gap: 8px;
-}
-
-.health-controls button {
-  width: 32px;
-  height: 32px;
-  background-color: #2d2d2d;
-  color: #ffffff;
-  border: 1px solid #4a4a4a;
-  border-radius: 6px;
-  font-size: 18px;
-  font-weight: bold;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.health-controls button:hover {
-  background-color: #3d3d3d;
-  border-color: #5a5a5a;
-}
-
-.health-controls button:active {
-  background-color: #1d1d1d;
-}
-
 /* Specific pile colors */
 .exile-pile {
   border-color: #8b5cf6;
@@ -363,35 +284,6 @@ body {
   border-radius: 4px;
   font-family: 'Courier New', monospace;
   pointer-events: none;
-}
-
-/* Opponent Health Controls */
-.opponent-health-controls {
-  display: flex;
-  gap: 8px;
-  margin-top: 8px;
-}
-
-.opponent-health-controls button {
-  width: 28px;
-  height: 28px;
-  background-color: rgba(239, 68, 68, 0.2);
-  color: #ef4444;
-  border: 1px solid #ef4444;
-  border-radius: 6px;
-  font-size: 16px;
-  font-weight: bold;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.opponent-health-controls button:hover {
-  background-color: rgba(239, 68, 68, 0.3);
-  border-color: #f87171;
-}
-
-.opponent-health-controls button:active {
-  background-color: rgba(239, 68, 68, 0.4);
 }
 
 /* Pile Viewer Modal */

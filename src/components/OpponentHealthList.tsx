@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import * as Y from 'yjs';
 import { HealthDisplay } from './HealthDisplay';
+import { CustomCounter } from '../modules/player/types';
 
 interface OpponentHealthListProps {
   yDoc: Y.Doc;
@@ -10,6 +11,7 @@ interface OpponentHealthListProps {
 interface OpponentData {
   playerId: string;
   health: number;
+  customCounters: CustomCounter[];
 }
 
 export const OpponentHealthList: React.FC<OpponentHealthListProps> = ({
@@ -27,8 +29,9 @@ export const OpponentHealthList: React.FC<OpponentHealthListProps> = ({
           const playerId = key.replace('player-', '');
           const yPlayerState = yDoc.getMap(key);
           const health = (yPlayerState.get('health') as number | undefined) ?? 20;
+          const customCounters = (yPlayerState.get('customCounters') as CustomCounter[] | undefined) ?? [];
 
-          opponentsList.push({ playerId, health });
+          opponentsList.push({ playerId, health, customCounters });
         }
       });
 
@@ -76,6 +79,36 @@ export const OpponentHealthList: React.FC<OpponentHealthListProps> = ({
     yPlayerState.set('health', currentHealth + delta);
   };
 
+  const addOpponentCounter = (playerId: string, title: string, icon: string) => {
+    const yPlayerState = yDoc.getMap(`player-${playerId}`);
+    const counters = (yPlayerState.get('customCounters') as CustomCounter[] | undefined) ?? [];
+    const newCounter: CustomCounter = {
+      id: `counter-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+      title,
+      icon,
+      value: 0,
+    };
+    yPlayerState.set('customCounters', [...counters, newCounter]);
+  };
+
+  const modifyOpponentCounter = (playerId: string, counterId: string, delta: number) => {
+    const yPlayerState = yDoc.getMap(`player-${playerId}`);
+    const counters = (yPlayerState.get('customCounters') as CustomCounter[] | undefined) ?? [];
+    const updatedCounters = counters.map(counter =>
+      counter.id === counterId
+        ? { ...counter, value: counter.value + delta }
+        : counter
+    );
+    yPlayerState.set('customCounters', updatedCounters);
+  };
+
+  const removeOpponentCounter = (playerId: string, counterId: string) => {
+    const yPlayerState = yDoc.getMap(`player-${playerId}`);
+    const counters = (yPlayerState.get('customCounters') as CustomCounter[] | undefined) ?? [];
+    const updatedCounters = counters.filter(counter => counter.id !== counterId);
+    yPlayerState.set('customCounters', updatedCounters);
+  };
+
   return (
     <>
       {opponents.map((opponent) => (
@@ -86,6 +119,10 @@ export const OpponentHealthList: React.FC<OpponentHealthListProps> = ({
           onModifyHealth={(delta) => modifyOpponentHealth(opponent.playerId, delta)}
           variant="opponent"
           playerId={opponent.playerId}
+          customCounters={opponent.customCounters}
+          onAddCounter={(title, icon) => addOpponentCounter(opponent.playerId, title, icon)}
+          onModifyCounter={(counterId, delta) => modifyOpponentCounter(opponent.playerId, counterId, delta)}
+          onRemoveCounter={(counterId) => removeOpponentCounter(opponent.playerId, counterId)}
         />
       ))}
     </>
