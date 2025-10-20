@@ -50,6 +50,12 @@ export class KeyboardHandler {
       return;
     }
 
+    if (key === 'v') {
+      e.preventDefault();
+      this.callbacks.onShuffleDeck();
+      return;
+    }
+
     // Check if GameResourcesDock has a hovered card/pile
     const getDockState = (window as any).getGameResourcesDockHoverState;
     const dockState = getDockState ? getDockState() : null;
