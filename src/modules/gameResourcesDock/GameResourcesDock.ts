@@ -306,6 +306,14 @@ export class GameResourcesDock {
         this.cardPreview.hide();  // hide card preview to prevent preview bug after dropping
         this.draggedCard = { card, element: cardEl };
         cardEl.classList.add('dragging');
+
+        // Center the drag image under the cursor. This helps us place the card in the
+        // correct position after dragging to board
+        const rect = cardEl.getBoundingClientRect();
+        const offsetX = rect.width / 2;
+        const offsetY = rect.height / 2;
+        e.dataTransfer!.setDragImage(cardEl, offsetX, offsetY);
+
         e.dataTransfer!.effectAllowed = 'move';
         e.dataTransfer!.setData('text/plain', card.id);
       });

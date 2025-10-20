@@ -1,4 +1,5 @@
 import { Card } from '../deck';
+import { CARD_HEIGHT, CARD_WIDTH } from '../../constants';
 import { WhiteboardCard, WhiteboardConfig, DragState } from './types';
 import { KeyboardHandler, KeyboardHandlerCallbacks } from './KeyboardHandler';
 import { CardPreview } from '../cardPreview';
@@ -161,10 +162,8 @@ export class Whiteboard {
   }
 
   private createCardElement(card: WhiteboardCard): HTMLElement {
-    const baseWidth = 63;
-    const baseHeight = 88;
-    const width = baseWidth * this.zoomLevel;
-    const height = baseHeight * this.zoomLevel;
+    const width = CARD_WIDTH * this.zoomLevel;
+    const height = CARD_HEIGHT * this.zoomLevel;
 
     const cardElement = document.createElement('div');
     cardElement.dataset.cardId = card.id;
@@ -392,6 +391,10 @@ export class Whiteboard {
   private adjustZoom(delta: number): void {
     const newZoom = Math.max(0.5, Math.min(2.5, this.zoomLevel + delta));
     this.setZoom(newZoom);
+  }
+
+  public getZoomLevel() {
+    return this.zoomLevel;
   }
 
   private setZoom(zoom: number): void {

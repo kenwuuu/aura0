@@ -11,6 +11,7 @@ import { SavedDeck } from './modules/deck/types';
 import { TokenService } from './services/scryfall';
 import { CardPreview } from './modules/cardPreview';
 import './style.css';
+import {CARD_HEIGHT, CARD_WIDTH} from "./constants";
 
 class AuraApp {
   private yDoc: Y.Doc;
@@ -162,9 +163,9 @@ class AuraApp {
         // Try to play the card from hand
         const card = this.localPlayer.playCardFromHand(cardId);
         if (card) {
-          // Place card at drop position
-          card.x = e.clientX - 31.5; // Center card on cursor
-          card.y = e.clientY - 44;
+          // Subtract card offsets and place card at drop position
+          card.x = e.clientX - ((CARD_WIDTH / 2) * this.whiteboard.getZoomLevel());
+          card.y = e.clientY - ((CARD_HEIGHT / 2) * this.whiteboard.getZoomLevel()) - (60);
           this.whiteboard.addCard(card, this.playerId);
 
           // Create tokens if this card has any associated tokens
