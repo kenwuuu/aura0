@@ -44,6 +44,12 @@ export class KeyboardHandler {
     const key = e.key.toLowerCase();
     const card = this.hoveredCardId ? this.yCards.get(this.hoveredCardId) : null;
 
+    if (key === 'c') {
+      e.preventDefault();
+      this.callbacks.onDrawCard();
+      return;
+    }
+
     // Check if GameResourcesDock has a hovered card/pile
     const getDockState = (window as any).getGameResourcesDockHoverState;
     const dockState = getDockState ? getDockState() : null;
