@@ -1,9 +1,58 @@
+/**
+ * WebRTC Provider - Real-time peer-to-peer synchronization for Aura
+ *
+ * This module wraps y-webrtc and y-indexeddb to provide:
+ * - Peer-to-peer WebRTC connections for real-time state sync
+ * - Local IndexedDB persistence for offline-first experience
+ * - Persistent peer identity across page reloads
+ * - Awareness state restoration (user presence/metadata)
+ *
+ * ## How It Works
+ *
+ * 1. **Y.Doc (Yjs Document)**: Shared CRDT data structure that syncs between peers
+ * 2. **WebRTC Provider**: Establishes peer-to-peer connections via signaling server
+ * 3. **IndexedDB Persistence**: Stores Y.Doc locally for instant reload
+ * 4. **Awareness**: Tracks which peers are online and their metadata
+ *
+ * ## Connection Flow
+ *
+ * ```
+ * User opens page
+ *     │
+ *     ├─> Load Y.Doc from IndexedDB (instant restoration)
+ *     │
+ *     ├─> Connect to signaling server (wss://...)
+ *     │       │
+ *     │       └─> Discover peers in same room
+ *     │               │
+ *     │               └─> Establish WebRTC connections
+ *     │                       │
+ *     │                       └─> Sync Y.Doc state (bidirectional)
+ *     │
+ *     └─> Restore awareness state (username, color, etc.)
+ * ```
+ *
+ * ## Persistence Strategy
+ *
+ * - **Player ID**: Stored in localStorage, reused across sessions
+ * - **Peer ID**: Stored in localStorage, prevents "new peer" on reload
+ * - **Y.Doc state**: Stored in IndexedDB, instant restoration
+ * - **Awareness**: Stored in localStorage, restored on load
+ *
+ * @see persistence.ts for session management utilities
+ * @see types.ts for configuration interfaces
+ */
+
 import * as Y from 'yjs';
 import { WebrtcProvider } from 'y-webrtc';
 import { IndexeddbPersistence } from 'y-indexeddb';
 import { WebRTCConfig, ConnectionStatus } from './types';
 import { restoreAwarenessState, setupAwarenessStatePersistence, AwarenessState } from './persistence';
 
+/**
+ * Main WebRTC provider class that manages peer-to-peer connections
+ * and document persistence
+ */
 export class WebRTCProvider {
   private yDoc: Y.Doc;
   private provider: WebrtcProvider;

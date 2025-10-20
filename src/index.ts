@@ -99,8 +99,11 @@ class AuraApp {
       this.playerId
     );
 
-    // Initialize token service
-    this.tokenService = new TokenService();
+    // Initialize token service with zoom level provider
+    this.tokenService = new TokenService(
+      () => this.whiteboard.getZoomLevel(), // Inject zoom level getter
+      undefined, // Use default ScryfallApiService
+    );
 
     this.setupEventListeners();
     this.setupConnectionStatus();
@@ -186,7 +189,7 @@ class AuraApp {
           if (card.scryfallId) {
             const result = await this.tokenService.createTokensForCard(
               card.scryfallId,
-              { x: card.x + 100, y: card.y } // Place tokens to the right of the card
+              { x: card.x, y: card.y } // Place tokens to the right of the card
             );
 
             // Add tokens to battlefield

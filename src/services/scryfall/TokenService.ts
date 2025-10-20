@@ -1,5 +1,6 @@
 import { ScryfallApiService } from './ScryfallApiService';
 import { Card } from '../../modules/deck';
+import {CARD_WIDTH} from "../../constants";
 
 export interface TokenCreationResult {
   tokens: Card[];
@@ -99,8 +100,10 @@ export interface TokenCreationResult {
 export class TokenService {
   private scryfallApi: ScryfallApiService;
   private tokenCardNumberCounter: number = 10000; // Start high to avoid conflicts
+  private getZoomLevel: () => number;
 
-  constructor(scryfallApi?: ScryfallApiService) {
+  constructor(getBattlefieldZoomLevel: () => number, scryfallApi?: ScryfallApiService) {
+    this.getZoomLevel = getBattlefieldZoomLevel; // Default to 1x zoom if not provided
     this.scryfallApi = scryfallApi || new ScryfallApiService();
   }
 
@@ -147,7 +150,7 @@ export class TokenService {
             type_line: tokenCardData.type_line,
             images: tokenCardData.imageUris,
             scryfallId: tokenCardData.scryfallId,
-            x: position ? position.x + (i * 70) : 100, // Offset tokens horizontally
+            x: position ? position.x + ((i + 1) * CARD_WIDTH * this.getZoomLevel()) : 100, // Offset tokens horizontally accounting for zoom
             y: position ? position.y : 100,
             rotation: 0,
             isTapped: false,

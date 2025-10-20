@@ -1,5 +1,36 @@
 /**
- * Persistence utilities for managing player identity and awareness state across sessions
+ * Session Persistence Utilities
+ *
+ * Manages persistent identity across page reloads using browser storage:
+ * - **localStorage**: Player ID, Peer ID, Awareness state
+ * - **IndexedDB**: Y.Doc state (handled by y-indexeddb)
+ *
+ * ## Why Persistence Matters
+ *
+ * Without persistence, every page reload creates a "new user":
+ * - ❌ New player ID → Appears as different player
+ * - ❌ New peer ID → Reconnection churn in peer list
+ * - ❌ Lost state → All cards, health, piles reset
+ *
+ * With persistence:
+ * - ✅ Same player ID → Seamless reconnection
+ * - ✅ Same peer ID → Stable peer identity
+ * - ✅ Restored state → Cards and game state persist
+ *
+ * ## Usage Example
+ *
+ * ```typescript
+ * // In index.ts
+ * const playerId = getOrCreatePlayerId(); // "player-abc123" (persists)
+ * const peerId = getOrCreatePeerId();     // UUID (persists)
+ *
+ * const provider = new WebRTCProvider(yDoc, {
+ *   roomName,
+ *   peerId, // Pass persistent peer ID
+ * });
+ * ```
+ *
+ * @see WebRTCProvider.ts for how these are used
  */
 
 const STORAGE_KEYS = {
