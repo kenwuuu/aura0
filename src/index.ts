@@ -136,6 +136,14 @@ class AuraApp {
       onHideCardPreview: () => {
         // Handled by Whiteboard internally
       },
+      onMulligan: () => {
+        const confirmed = window.confirm(
+          "Mulligan? Draw 7 new cards, with 1 less card for each mulligan you've taken."
+        );
+        if (confirmed) {
+          this.localPlayer.mulligan(7);
+        }
+      },
     };
 
     this.whiteboard.setKeyboardCallbacks(callbacks);

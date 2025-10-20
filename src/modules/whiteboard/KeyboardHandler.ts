@@ -12,6 +12,7 @@ export interface KeyboardHandlerCallbacks {
   onUntapAll: () => void;
   onEndTurn: () => void;
   onHideCardPreview: () => void;
+  onMulligan: () => void;
 }
 
 export class KeyboardHandler {
@@ -44,16 +45,25 @@ export class KeyboardHandler {
     const key = e.key.toLowerCase();
     const card = this.hoveredCardId ? this.yCards.get(this.hoveredCardId) : null;
 
+    // draw card
     if (key === 'c') {
       e.preventDefault();
       this.callbacks.onDrawCard();
       return;
     }
 
+    // shuffle deck
     if (key === 'v') {
       e.preventDefault();
       this.callbacks.onShuffleDeck();
       return;
+    }
+
+    // mulligan hand
+    if (key === 'm') {
+      e.preventDefault();
+      this.callbacks.onMulligan();
+      return;;
     }
 
     // Check if GameResourcesDock has a hovered card/pile

@@ -150,6 +150,28 @@ export class Player {
     this.deck.shuffleDeck();
   }
 
+  public mulligan(cardsToDraw: number = 7): void {
+    // Move all cards from hand back to deck
+    const hand = this.yPlayerState.get('hand') ?? [];
+    hand.forEach((card: Card) => {
+      this.deck.addCardToBottom(card);
+    });
+
+    // Clear hand in synced state
+    this.yPlayerState.set('hand', []);
+
+    // Shuffle deck
+    this.deck.shuffleDeck();
+
+    // Update deck count
+    this.yPlayerState.set('deckCardCount', this.deck.getCardCount());
+
+    // Draw new hand
+    for (let i = 0; i < cardsToDraw; i++) {
+      this.drawCard();
+    }
+  }
+
   public getId(): string {
     return this.playerId;
   }
