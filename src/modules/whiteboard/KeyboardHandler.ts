@@ -11,16 +11,19 @@ export interface KeyboardHandlerCallbacks {
   onShuffleDeck: () => void;
   onUntapAll: () => void;
   onEndTurn: () => void;
+  onHideCardPreview: () => void;
 }
 
 export class KeyboardHandler {
   private hoveredCardId: string | null = null;
   private yCards: Y.Map<WhiteboardCard>;
   private callbacks: KeyboardHandlerCallbacks;
+  private readonly localPlayerId: string;
 
-  constructor(yCards: Y.Map<WhiteboardCard>, callbacks: KeyboardHandlerCallbacks) {
+  constructor(yCards: Y.Map<WhiteboardCard>, callbacks: KeyboardHandlerCallbacks, localPlayerId: string) {
     this.yCards = yCards;
     this.callbacks = callbacks;
+    this.localPlayerId = localPlayerId;
     this.attachListeners();
   }
 
@@ -167,6 +170,7 @@ export class KeyboardHandler {
       case 'h': // H - Move to hand
         e.preventDefault();
         if (card) {
+          this.callbacks.onHideCardPreview();
           this.callbacks.onMoveToHand(card);
           this.removeCard(card.id);
         }
@@ -181,7 +185,7 @@ export class KeyboardHandler {
       if (!card) return;
 
       switch (key) {
-        case 'z': // Z - Play from hand to battlefield
+        case 'z': // Z - Play from hand to battlefield  TODO: Doesn't play when you press z on card
           e.preventDefault();
           dockState.playHandCardToBattlefield(dockState.hoveredHandCardId);
           break;
@@ -296,7 +300,7 @@ export class KeyboardHandler {
 
   private untapAllCards(): void {
     this.yCards.forEach((card, cardId) => {
-      if (card.isTapped) {
+      if (card.ownerId === this.localPlayerId && card.isTapped) {
         const updatedCard = { ...card, isTapped: false };
         this.yCards.set(cardId, updatedCard);
       }

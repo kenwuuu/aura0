@@ -47,12 +47,20 @@ export class Whiteboard {
       onShuffleDeck: () => {},
       onUntapAll: () => {},
       onEndTurn: () => {},
-    });
+      onHideCardPreview: () => this.cardPreview.hide(),
+    }, this.config.localPlayerId);
   }
 
   public setKeyboardCallbacks(callbacks: KeyboardHandlerCallbacks): void {
     this.keyboardCallbacks = callbacks;
-    this.keyboardHandler = new KeyboardHandler(this.yCards, callbacks);
+    this.keyboardHandler = new KeyboardHandler(
+      this.yCards,
+      {
+        ...callbacks,
+        onHideCardPreview: () => this.cardPreview.hide(),
+      },
+      this.config.localPlayerId
+    );
   }
 
   private setupContainer(): void {

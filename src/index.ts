@@ -122,6 +122,9 @@ class AuraApp {
       onEndTurn: () => {
         console.log('End turn - not yet implemented');
       },
+      onHideCardPreview: () => {
+        // Handled by Whiteboard internally
+      },
     };
 
     this.whiteboard.setKeyboardCallbacks(callbacks);
