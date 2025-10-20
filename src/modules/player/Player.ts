@@ -47,6 +47,24 @@ export class Player {
     };
   }
 
+  public loadNewDeck(newDeck: Deck): void {
+    // assign deck
+    this.deck = newDeck;
+
+    // get cards
+    const deckCards = this.deck.getCards();
+
+    if (deckCards.length > 0) {  // TODO: change logic based on if deck is commander or not
+      // bring commander to hand
+      const commander = deckCards[deckCards.length - 1];
+      this.deck.removeCard(commander.id);
+      this.deck.addCardToTop(commander);
+      this.drawCard();
+
+      this.deck.shuffleDeck();
+    }
+  }
+
   public drawCard(): Card | null {
     const card = this.deck.drawCard();
     if (!card) return null;

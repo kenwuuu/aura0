@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Deck Import</title>
+    <style>
+        body {
+            font-family: monospace;
+            padding: 20px;
+            background: #1a1a1a;
+            color: #fff;
+        }
+        button {
+            padding: 10px 20px;
+            margin: 10px 0;
+            cursor: pointer;
+        }
+        #output {
+            margin-top: 20px;
+            white-space: pre-wrap;
+            background: #2d2d2d;
+            padding: 10px;
+            border-radius: 8px;
+        }
+        .card-preview {
+            display: inline-block;
+            margin: 10px;
+            text-align: center;
+        }
+        .card-preview img {
+            width: 146px;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Test Deck Import</h1>
+
+    <button onclick="testImport()">Test Import 3 Cards</button>
+    <button onclick="checkStorage()">Check IndexedDB</button>
+    <button onclick="clearStorage()">Clear All Decks</button>
+
+    <div id="output"></div>
+    <div id="previews"></div>
+
+    <script type="module">
+        import { ScryfallDeckImporter } from './src/services/deckImporter/ScryfallDeckImporter.js';
+        import { DeckStorageService } from './src/services/deckStorage/DeckStorageService.js';
+
+        const output = document.getElementById('output');
+        const previews = document.getElementById('previews');
+
+        window.testImport = async function() {
+            output.textContent = 'Starting import...\n';
+
+            const testDeck = `1 Lightning Bolt
+1 Mountain
+1 Island`;
+
+            const importer = new ScryfallDeckImporter((current, total) => {
+                output.textContent += `Progress: ${current}/${total}\n`;
+            });
+
+            const result = await importer.importFromText(testDeck);
+
+            output.textContent += '\n=== IMPORT RESULT ===\n';
+            output.textContent += `Cards imported: ${result.cards.length}\n`;
+            output.textContent += `Errors: ${result.errors?.length || 0}\n\n`;
+
+            result.cards.forEach((card, i) => {
+                output.textContent += `\nCard ${i + 1}:\n`;
+                output.textContent += `  Name: ${card.name}\n`;
+                output.textContent += `  ID: ${card.id}\n`;
+                output.textContent += `  Scryfall ID: ${card.scryfallId}\n`;
+                output.textContent += `  Has images: ${!!card.images}\n`;
+
+                if (card.images?.front) {
+                    output.textContent += `  Image URL: ${card.images.front.normal}\n`;
+
+                    // Show image preview
+                    const preview = document.createElement('div');
+                    preview.className = 'card-preview';
+
+                    const img = document.createElement('img');
+                    img.src = card.images.front.normal || '';
+                    img.alt = card.name || 'Card';
+
+                    const label = document.createElement('div');
+                    label.textContent = card.name || 'Unknown';
+
+                    preview.appendChild(img);
+                    preview.appendChild(label);
+                    previews.appendChild(preview);
+                }
+            });
+
+            if (result.errors) {
+                output.textContent += '\n=== ERRORS ===\n';
+                result.errors.forEach(err => {
+                    output.textContent += `  ${err}\n`;
+                });
+            }
+
+            // Save to storage
+            const storage = new DeckStorageService();
+            const savedDeck = {
+                metadata: {
+                    id: `test-${Date.now()}`,
+                    name: 'Test Deck',
+                    source: 'scryfall',
+                    cardCount: result.cards.length,
+                    importedAt: new Date(),
+                    lastModified: new Date(),
+                },
+                cards: result.cards,
+            };
+
+            await storage.saveDeck(savedDeck);
+            output.textContent += '\n✅ Saved to IndexedDB\n';
+        };
+
+        window.checkStorage = async function() {
+            const storage = new DeckStorageService();
+            const decks = await storage.getAllDecks();
+
+            output.textContent = `=== STORED DECKS (${decks.length}) ===\n\n`;
+
+            decks.forEach(deck => {
+                output.textContent += `Deck: ${deck.metadata.name}\n`;
+                output.textContent += `  ID: ${deck.metadata.id}\n`;
+                output.textContent += `  Cards: ${deck.cards.length}\n`;
+                output.textContent += `  Source: ${deck.metadata.source}\n`;
+
+                deck.cards.slice(0, 3).forEach((card, i) => {
+                    output.textContent += `\n  Card ${i + 1}: ${card.name}\n`;
+                    output.textContent += `    Image: ${card.images?.front?.normal ? 'YES' : 'NO'}\n`;
+                });
+
+                output.textContent += '\n---\n\n';
+            });
+        };
+
+        window.clearStorage = async function() {
+            if (confirm('Clear all decks?')) {
+                const storage = new DeckStorageService();
+                await storage.clearAll();
+                output.textContent = '✅ All decks cleared\n';
+                previews.innerHTML = '';
+            }
+        };
+    </script>
+</body>
+</html>
