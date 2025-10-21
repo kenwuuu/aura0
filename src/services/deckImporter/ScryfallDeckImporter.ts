@@ -12,6 +12,31 @@ export class ScryfallDeckImporter implements DeckImporter {
   }
 
   /**
+   * Detect section headers (lines without numbers at the start)
+   * Returns an array of detected section headers
+   */
+  private detectSectionHeaders(text: string): string[] {
+    const lines = text.trim().split('\n').filter(line => line.trim().length > 0);
+    const sectionHeaders: string[] = [];
+
+    for (const line of lines) {
+      const trimmedLine = line.trim();
+      const parts = trimmedLine.split(/\s+/);
+      const firstPart = parts[0];
+
+      // Check if the first part is NOT a number
+      const isNumber = !isNaN(parseInt(firstPart, 10));
+
+      // If it's not a number and the line is not empty, it's likely a section header
+      if (!isNumber && trimmedLine.length > 0) {
+        sectionHeaders.push(trimmedLine);
+      }
+    }
+
+    return sectionHeaders;
+  }
+
+  /**
    * Validate if text is in Scryfall decklist format
    * Format: "<count> <card name>" per line
    * Example: "4 Lightning Bolt"
@@ -45,6 +70,24 @@ export class ScryfallDeckImporter implements DeckImporter {
         cards: [],
         metadata: {},
         errors: ['Invalid deck format. Expected format: "<count> <card name>" per line'],
+      };
+    }
+
+    // Check for section headers
+    const sectionHeaders = this.detectSectionHeaders(text);
+    if (sectionHeaders.length > 0) {
+      const headerList = sectionHeaders.slice(0, 3).map(h => `"${h}"`).join(', ');
+      const more = sectionHeaders.length > 3 ? ` and ${sectionHeaders.length - 3} more` : '';
+
+      return {
+        cards: [],
+        metadata: {},
+        errors: [
+          `Section headers detected: ${headerList}${more}. \n` +
+          'Please remove section headers like "SIDEBOARD:", "COMMANDER:", etc. \n' +
+          'Use the MTGO preset from Moxfield for best results. \n' +
+          'Click the Help button below for more information.'
+        ],
       };
     }
 

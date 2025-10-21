@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { ScryfallDeckImporter } from '../services/deckImporter';
 import { DeckStorageService } from '../services/deckStorage';
 import { SavedDeck } from '../modules/deck/types';
+import { DeckImportHelpDialog } from './DeckImportHelpDialog';
 
 interface DeckImportModalProps {
   isOpen: boolean;
@@ -16,6 +17,7 @@ export function DeckImportModal({ isOpen, onClose, onDeckImported }: DeckImportM
   const [progress, setProgress] = useState({ current: 0, total: 0 });
   const [errors, setErrors] = useState<string[]>([]);
   const [successMessage, setSuccessMessage] = useState('');
+  const [isHelpOpen, setIsHelpOpen] = useState(false);
 
   const handleImport = async () => {
     if (!deckText.trim() || !deckName.trim()) {
@@ -37,6 +39,8 @@ export function DeckImportModal({ isOpen, onClose, onDeckImported }: DeckImportM
 
       if (result.errors && result.errors.length > 0) {
         setErrors(result.errors);
+        setIsImporting(false);
+        return;
       }
 
       if (result.cards.length === 0) {
@@ -136,7 +140,7 @@ export function DeckImportModal({ isOpen, onClose, onDeckImported }: DeckImportM
           )}
 
           {errors.length > 0 && (
-            <div className="error-container">
+            <div className="error-container" style={{ whiteSpace: 'pre-line' }}>
               <h4>Errors:</h4>
               <ul>
                 {errors.map((error, idx) => (
@@ -154,6 +158,10 @@ export function DeckImportModal({ isOpen, onClose, onDeckImported }: DeckImportM
         </div>
 
         <div className="modal-footer">
+          <button onClick={() => setIsHelpOpen(true)} disabled={isImporting}>
+            Help
+          </button>
+          <div style={{ flex: 1 }} />
           <button onClick={handleClose} disabled={isImporting}>
             Cancel
           </button>
@@ -166,6 +174,8 @@ export function DeckImportModal({ isOpen, onClose, onDeckImported }: DeckImportM
           </button>
         </div>
       </div>
+
+      <DeckImportHelpDialog isOpen={isHelpOpen} onClose={() => setIsHelpOpen(false)} />
     </div>
   );
 }
