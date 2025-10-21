@@ -1,6 +1,26 @@
+# Keyboard shortcuts
 We have split up handling of keyboard shortcuts in GameResourcesDock.ts, KeyboardHandler, and Whiteboard.ts, we should 
 probably look into consolidating using a hotkey library. Determine best course of action. 
 
+# Lack of UI component library
+We should use a component library that we can customize to our style needs rather than write components from scratch. 
+Additionally, we shouldn't write plain HTML and JS, that makes state management hard. Use React when applicable.
+
+# Dragging card is handled differently 
+Between Hand and Whiteboard, card dragging is handled differently. Meaning that if we want to drag a whiteboard card 
+back into hand, it's difficult to code that. We need to analyze if this is the best approach.
+
+# 🧩 Modal Behavior Refactor
+
+Our custom `DeckSelectionModal` manually handles open/close logic (e.g., Escape key, backdrop click, focus trapping).  
+This introduces unnecessary complexity and potential accessibility issues.
+
+**Action:** Replace with a proper modal/dialog component from a UI library (e.g., `shadcn/ui`’s `Dialog` or Radix UI).
+
+**Goals:**
+- Native support for `Esc` and backdrop dismissal
+- Built-in accessibility and focus management
+- Simplified code (remove custom keydown/event handlers)
 
 # issues with hide card preview for whiteboard in commit 
 Issues with Current Approach
