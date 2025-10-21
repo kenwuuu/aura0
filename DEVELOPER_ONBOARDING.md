@@ -1101,6 +1101,218 @@ private createCommandZoneElement(): HTMLElement {
 }
 ```
 
+### Understanding Card Flow: Hand to Battlefield
+
+**How cards move from GameResourcesDock to Whiteboard**
+
+This section documents the complete flow of dragging a card from hand onto the battlefield.
+
+#### Step 1: Drag Start (GameResourcesDock.ts:326-341)
+
+When a player starts dragging a card from their hand:
+
+```typescript
+// In updateHandDisplay(), each hand card gets drag event listeners
+cardEl.addEventListener('dragstart', (e) => {
+  this.cardPreview.hide();  // Hide preview to prevent visual bug
+  this.draggedCard = { card, element: cardEl };
+  cardEl.classList.add('dragging');
+
+  // Center the drag image under cursor for accurate drop positioning
+  const rect = cardEl.getBoundingClientRect();
+  const offsetX = rect.width / 2;
+  const offsetY = rect.height / 2;
+  e.dataTransfer!.setDragImage(cardEl, offsetX, offsetY);
+
+  e.dataTransfer!.effectAllowed = 'move';
+  e.dataTransfer!.setData('text/plain', card.id); // Pass card ID via drag data
+});
+```
+
+**Key details:**
+- `this.draggedCard` stores reference to card being dragged (local to GameResourcesDock)
+- Drag image is centered under cursor so drop position is accurate
+- Only the `card.id` is transferred via `dataTransfer` (not the full card object)
+
+#### Step 2: Drop on Whiteboard (index.ts:184-215)
+
+The whiteboard container listens for drop events:
+
+```typescript
+// In setupEventListeners()
+whiteboardContainer.addEventListener('drop', async (e) => {
+  e.preventDefault();
+  const cardId = e.dataTransfer?.getData('text/plain');
+  if (!cardId) return;
+
+  // Try to play the card from hand (removes from hand, returns card object)
+  const card = this.localPlayer.playCardFromHand(cardId);
+  if (card) {
+    // Position card at drop location (subtract half-width/height for centering)
+    card.x = e.clientX - ((CARD_WIDTH / 2) * this.whiteboard.getZoomLevel());
+    card.y = e.clientY - ((CARD_HEIGHT / 2) * this.whiteboard.getZoomLevel()) - 60;
+    this.whiteboard.addCard(card, this.playerId);
+
+    // Token creation (optional, if card has associated tokens)
+    if (card.scryfallId) {
+      const result = await this.tokenService.createTokensForCard(
+        card.scryfallId,
+        { x: card.x, y: card.y }
+      );
+      result.tokens.forEach(token => {
+        this.whiteboard.addCard(token, this.playerId);
+      });
+    }
+  }
+});
+```
+
+**Key details:**
+- `e.clientX` and `e.clientY` are the mouse coordinates at drop time
+- Card position is adjusted by subtracting half the card dimensions (accounts for centered drag image)
+- The `- 60` in the Y coordinate accounts for the dock height at bottom of screen
+- Zoom level affects positioning (cards are larger when zoomed in)
+
+#### Step 3: Remove from Hand (Player.ts:119-130)
+
+`playCardFromHand()` removes the card from the synced hand state:
+
+```typescript
+public playCardFromHand(cardId: string): Card | null {
+  const hand = this.yPlayerState.get('hand') ?? [];
+  const cardIndex = hand.findIndex((c: Card) => c.id === cardId);
+
+  if (cardIndex === -1) return null;
+
+  const card = hand[cardIndex];
+  const newHand = [...hand.slice(0, cardIndex), ...hand.slice(cardIndex + 1)];
+  this.yPlayerState.set('hand', newHand); // Update Yjs state (syncs to all peers)
+
+  return card;
+}
+```
+
+**Key details:**
+- Creates new array without the card (immutable update pattern)
+- Setting `yPlayerState.set('hand', newHand)` triggers Yjs observer
+- Observer in GameResourcesDock updates UI to remove card from hand display
+- Returns the card object so caller can add it to battlefield
+
+#### Step 4: Add to Battlefield (Whiteboard.ts:104-112)
+
+`addCard()` adds the card to the shared battlefield state:
+
+```typescript
+public addCard(card: Card, ownerId: string): void {
+  const whiteboardCard: WhiteboardCard = {
+    ...card,              // Spread all Card properties
+    zIndex: ++this.maxZIndex,  // Increment and assign z-index (newest card on top)
+    ownerId,              // Track which player owns this card
+  };
+
+  this.yCards.set(card.id, whiteboardCard); // Add to shared Yjs map
+}
+```
+
+**Key details:**
+- Converts `Card` to `WhiteboardCard` by adding `zIndex` and `ownerId`
+- `++this.maxZIndex` ensures this card appears on top of all others
+- Setting `yCards.set()` triggers Yjs observer in all connected peers
+- Observer calls `updateCardElement()` to render the card
+
+#### Step 5: Render on Battlefield (Whiteboard.ts:76-102)
+
+The Yjs observer detects the new card and renders it:
+
+```typescript
+// In setupYjsSync()
+this.yCards.observe((event) => {
+  event.changes.keys.forEach((change, key) => {
+    if (change.action === 'add' || change.action === 'update') {
+      const card = this.yCards.get(key);
+      if (card) {
+        // Sync maxZIndex across peers (critical for z-ordering)
+        if (card.zIndex > this.maxZIndex) {
+          this.maxZIndex = card.zIndex;
+        }
+        this.updateCardElement(card); // Create or update DOM element
+      }
+    } else if (change.action === 'delete') {
+      this.removeCardElement(key);
+    }
+  });
+});
+```
+
+**Key details:**
+- Observer fires on ALL peers when card is added
+- `maxZIndex` is synchronized from observed cards (prevents z-index conflicts)
+- `updateCardElement()` creates a new DOM element if one doesn't exist
+- All players see the same card at the same position
+
+#### Complete Flow Diagram
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│ 1. User drags card from hand                                    │
+│    GameResourcesDock.ts:326 (dragstart event)                   │
+│    - Stores draggedCard reference                               │
+│    - Sets dataTransfer with card.id                             │
+└────────────────────────┬────────────────────────────────────────┘
+                         ↓
+┌─────────────────────────────────────────────────────────────────┐
+│ 2. User drops card on whiteboard                                │
+│    index.ts:184 (drop event on whiteboard container)            │
+│    - Reads card.id from dataTransfer                            │
+│    - Calculates drop position (e.clientX, e.clientY)            │
+└────────────────────────┬────────────────────────────────────────┘
+                         ↓
+┌─────────────────────────────────────────────────────────────────┐
+│ 3. Remove card from hand                                        │
+│    Player.ts:119 (playCardFromHand)                             │
+│    - Finds card in hand array                                   │
+│    - Creates new hand array without card                        │
+│    - Updates yPlayerState.set('hand', newHand)                  │
+│    - Returns card object                                        │
+└────────────────────────┬────────────────────────────────────────┘
+                         ↓
+┌─────────────────────────────────────────────────────────────────┐
+│ 4. Add card to battlefield                                      │
+│    Whiteboard.ts:104 (addCard)                                  │
+│    - Converts Card → WhiteboardCard                             │
+│    - Assigns card.x, card.y (from drop event)                   │
+│    - Assigns zIndex = ++maxZIndex                               │
+│    - Assigns ownerId                                            │
+│    - Updates yCards.set(card.id, whiteboardCard)                │
+└────────────────────────┬────────────────────────────────────────┘
+                         ↓
+┌─────────────────────────────────────────────────────────────────┐
+│ 5. Render card on battlefield (ALL PEERS)                       │
+│    Whiteboard.ts:78 (yCards.observe)                            │
+│    - Observer detects 'add' action                              │
+│    - Syncs maxZIndex from card.zIndex                           │
+│    - Calls updateCardElement(card)                              │
+│    - Creates DOM element at card.x, card.y                      │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+#### Alternative Entry Points
+
+Cards can also enter the battlefield from:
+
+1. **Piles (exile/discard)** - via `handlePileCardToBattlefield()` in GameResourcesDock.ts:369
+   - Removes card from pile array in `yPlayerState`
+   - Dispatches `playCard` CustomEvent with card data
+   - Event listener in `index.ts` (not shown) would call `whiteboard.addCard()`
+
+2. **Deck** - via keyboard shortcuts or pile viewer
+   - Draws card using `player.drawCard()` (moves to hand)
+   - OR directly plays to battlefield via `movePileCardToBattlefield()` (GameResourcesDock.ts:549)
+
+3. **Keyboard shortcut (Space)** - when hovering hand card
+   - Calls `playHandCardToBattlefield()` exposed by GameResourcesDock (line 510)
+   - Same flow as drag-and-drop but position is centered on screen
+
 ### Adding a New Keyboard Shortcut
 
 **Example: Add "G" to show graveyard**
