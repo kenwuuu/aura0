@@ -7,7 +7,7 @@ import { WebRTCProvider } from './modules/webrtc';
 import { getOrCreatePlayerId, getOrCreatePeerId } from './modules/webrtc/persistence';
 import { Player } from './modules/player';
 import { GameResourcesDock } from './modules/gameResourcesDock';
-import { DeckManager, WelcomeModal } from './components';
+import { DeckManager, WelcomeModal, HotkeysModal } from './components';
 import { OpponentHealthList } from './components/OpponentHealthList';
 import { SavedDeck } from './modules/deck/types';
 import { TokenService } from './services/scryfall';
@@ -112,6 +112,7 @@ class AuraApp {
     this.setupConnectionStatus();
     this.setupKeyboardCallbacks();
     this.setupDeckManager();
+    this.setupHotkeyHintsModal();
   }
 
   private setupKeyboardCallbacks(): void {
@@ -284,6 +285,38 @@ class AuraApp {
     this.localPlayer['yPlayerState'].set('deckCardCount', newDeck.getCardCount());
 
     console.log(`Deck "${savedDeck.metadata.name}" loaded successfully!`);
+  }
+
+  private setupHotkeyHintsModal(): void {
+    const hotkeysRoot = document.getElementById('hotkeys-root');
+    if (!hotkeysRoot) {
+      throw new Error('Hotkeys root not found');
+    }
+
+    // Create a simple component that manages the button and modal state
+    const HotkeysButton: React.FC = () => {
+      const [isOpen, setIsOpen] = React.useState(false);
+
+      return React.createElement(
+        React.Fragment,
+        null,
+        React.createElement(
+          'button',
+          {
+            className: 'toolbar-button',
+            onClick: () => setIsOpen(true),
+          },
+          'Hotkeys'
+        ),
+        React.createElement(HotkeysModal, {
+          isOpen,
+          onClose: () => setIsOpen(false),
+        })
+      );
+    };
+
+    const root = createRoot(hotkeysRoot);
+    root.render(React.createElement(HotkeysButton));
   }
 
   public destroy(): void {
