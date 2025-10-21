@@ -83,8 +83,8 @@ export const WelcomeModal: React.FC = () => {
     const newVisitCount = visitCount + 1;
     localStorage.setItem(VISIT_COUNT_KEY, newVisitCount.toString());
 
-    // Show "Don't show again" button from second visit onwards
-    if (newVisitCount >= 2) {
+    // Show "Don't show again" button from third visit onwards
+    if (newVisitCount >= 3) {
       setShowDontShowAgain(true);
     }
 
