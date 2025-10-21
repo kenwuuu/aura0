@@ -22,11 +22,13 @@ export class KeyboardHandler {
   private yCards: Y.Map<WhiteboardCard>;
   private callbacks: KeyboardHandlerCallbacks;
   private readonly localPlayerId: string;
+  private handleKeyDownBound: (e: KeyboardEvent) => void;
 
   constructor(yCards: Y.Map<WhiteboardCard>, callbacks: KeyboardHandlerCallbacks, localPlayerId: string) {
     this.yCards = yCards;
     this.callbacks = callbacks;
     this.localPlayerId = localPlayerId;
+    this.handleKeyDownBound = (e) => this.handleKeyDown(e);
     this.attachListeners();
   }
 
@@ -35,7 +37,7 @@ export class KeyboardHandler {
   }
 
   private attachListeners(): void {
-    document.addEventListener('keydown', (e) => this.handleKeyDown(e));
+    document.addEventListener('keydown', this.handleKeyDownBound);
   }
 
   private handleKeyDown(e: KeyboardEvent): void {
@@ -350,6 +352,6 @@ export class KeyboardHandler {
   }
 
   public destroy(): void {
-    // Event listener cleanup if needed
+    document.removeEventListener('keydown', this.handleKeyDownBound);
   }
 }

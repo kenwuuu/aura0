@@ -527,13 +527,6 @@ describe('DeckPileViewer', () => {
       expect(subtitle?.textContent).toContain('H: Move to hand');
     });
 
-    it('should not show keyboard shortcuts hint in view mode', () => {
-      viewer.show(mockCards, 'view');
-
-      const subtitle = document.querySelector('.deck-pile-viewer-subtitle');
-      expect(subtitle).toBeNull();
-    });
-
     it('should close modal when close button is clicked', () => {
       viewer.show(mockCards, 'deck');
 

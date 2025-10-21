@@ -55,6 +55,8 @@ export class Whiteboard {
 
   public setKeyboardCallbacks(callbacks: KeyboardHandlerCallbacks): void {
     this.keyboardCallbacks = callbacks;
+    // Clean up old keyboard handler before creating new one
+    this.keyboardHandler.destroy();
     this.keyboardHandler = new KeyboardHandler(
       this.yCards,
       {
