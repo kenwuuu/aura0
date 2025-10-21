@@ -40,7 +40,7 @@ describe('DeckPileViewer', () => {
 
   describe('Initial display and card ordering', () => {
     it('should show cards in correct order (top to bottom)', () => {
-      viewer.show(mockCards, 'search');
+      viewer.show(mockCards, 'deck');
 
       const cardElements = document.querySelectorAll('.card-grid-item');
 
@@ -60,7 +60,7 @@ describe('DeckPileViewer', () => {
       // This test documents the bug: if we don't reverse the cards,
       // they will be shown in wrong order (bottom to top instead of top to bottom)
 
-      viewer.show(mockCards, 'search');
+      viewer.show(mockCards, 'deck');
 
       const cardElements = document.querySelectorAll('.card-grid-item');
 
@@ -74,7 +74,7 @@ describe('DeckPileViewer', () => {
     });
 
     it('should display absolute position labels correctly', () => {
-      viewer.show(mockCards, 'search');
+      viewer.show(mockCards, 'deck');
 
       const positionBadges = document.querySelectorAll('.card-grid-item-position');
 
@@ -95,7 +95,7 @@ describe('DeckPileViewer', () => {
         },
       }));
 
-      viewer.show(cardsWithImages, 'search');
+      viewer.show(cardsWithImages, 'deck');
 
       const images = document.querySelectorAll('.card-grid-item-img');
       expect(images.length).toBe(10);
@@ -106,7 +106,7 @@ describe('DeckPileViewer', () => {
     });
 
     it('should show card number fallback when no images', () => {
-      viewer.show(mockCards, 'search');
+      viewer.show(mockCards, 'deck');
 
       const fallbacks = document.querySelectorAll('.card-grid-item-fallback');
       expect(fallbacks.length).toBe(10);
@@ -116,7 +116,7 @@ describe('DeckPileViewer', () => {
     });
 
     it('should show card names', () => {
-      viewer.show(mockCards, 'search');
+      viewer.show(mockCards, 'deck');
 
       const names = document.querySelectorAll('.card-grid-item-name');
       expect(names.length).toBe(10);
@@ -128,7 +128,7 @@ describe('DeckPileViewer', () => {
 
   describe('Search functionality', () => {
     it('should filter cards by name', () => {
-      viewer.show(mockCards, 'search');
+      viewer.show(mockCards, 'deck');
 
       // Simulate typing in search box
       const searchInput = document.querySelector('.search-bar-input') as HTMLInputElement;
@@ -147,7 +147,7 @@ describe('DeckPileViewer', () => {
     });
 
     it('should filter cards by card number', () => {
-      viewer.show(mockCards, 'search');
+      viewer.show(mockCards, 'deck');
 
       const searchInput = document.querySelector('.search-bar-input') as HTMLInputElement;
       searchInput.value = '7';
@@ -164,7 +164,7 @@ describe('DeckPileViewer', () => {
     });
 
     it('should be case-insensitive', () => {
-      viewer.show(mockCards, 'search');
+      viewer.show(mockCards, 'deck');
 
       const searchInput = document.querySelector('.search-bar-input') as HTMLInputElement;
       searchInput.value = 'card 3';
@@ -180,7 +180,7 @@ describe('DeckPileViewer', () => {
     });
 
     it('should show empty state when no matches', () => {
-      viewer.show(mockCards, 'search');
+      viewer.show(mockCards, 'deck');
 
       const searchInput = document.querySelector('.search-bar-input') as HTMLInputElement;
       searchInput.value = 'Nonexistent Card';
@@ -197,7 +197,7 @@ describe('DeckPileViewer', () => {
     });
 
     it('should maintain absolute position labels when filtering', () => {
-      viewer.show(mockCards, 'search');
+      viewer.show(mockCards, 'deck');
 
       const searchInput = document.querySelector('.search-bar-input') as HTMLInputElement;
       searchInput.value = 'Card 5';
@@ -223,7 +223,7 @@ describe('DeckPileViewer', () => {
         createMockCard('creature-2', 4, 'Grizzly Bears', 'Creature — Bear'),
       ];
 
-      viewer.show(cardsWithTypes, 'search');
+      viewer.show(cardsWithTypes, 'deck');
 
       const searchInput = document.querySelector('.search-bar-input') as HTMLInputElement;
       searchInput.value = 'Creature';
@@ -246,7 +246,7 @@ describe('DeckPileViewer', () => {
         createMockCard('instant-1', 2, 'Lightning Bolt', 'Instant'),
       ];
 
-      viewer.show(cardsWithTypes, 'search');
+      viewer.show(cardsWithTypes, 'deck');
 
       const searchInput = document.querySelector('.search-bar-input') as HTMLInputElement;
       searchInput.value = 'instant';
@@ -269,7 +269,7 @@ describe('DeckPileViewer', () => {
         createMockCard('instant-1', 3, 'Lightning Bolt', 'Instant'),
       ];
 
-      viewer.show(cardsWithTypes, 'search');
+      viewer.show(cardsWithTypes, 'deck');
 
       const searchInput = document.querySelector('.search-bar-input') as HTMLInputElement;
       searchInput.value = 'Forest';
@@ -290,7 +290,7 @@ describe('DeckPileViewer', () => {
 
   describe('Sort functionality', () => {
     it('should default to top-to-bottom sort', () => {
-      viewer.show(mockCards, 'search');
+      viewer.show(mockCards, 'deck');
 
       const select = document.querySelector('.sort-control-select') as HTMLSelectElement;
       expect(select.value).toBe('top-to-bottom');
@@ -304,7 +304,7 @@ describe('DeckPileViewer', () => {
       // This test ensures that when search/sort is applied after initial show(),
       // the filterAndSort() method still reverses cards for top-to-bottom display
 
-      viewer.show(mockCards, 'search');
+      viewer.show(mockCards, 'deck');
 
       // Type in search box to trigger filterAndSort()
       const searchInput = document.querySelector('.search-bar-input') as HTMLInputElement;
@@ -330,7 +330,7 @@ describe('DeckPileViewer', () => {
     });
 
     it('should sort alphabetically when selected', () => {
-      viewer.show(mockCards, 'search');
+      viewer.show(mockCards, 'deck');
 
       const select = document.querySelector('.sort-control-select') as HTMLSelectElement;
       select.value = 'alphabetical';
@@ -344,7 +344,7 @@ describe('DeckPileViewer', () => {
     });
 
     it('should maintain absolute position when sorting alphabetically', () => {
-      viewer.show(mockCards, 'search');
+      viewer.show(mockCards, 'deck');
 
       const select = document.querySelector('.sort-control-select') as HTMLSelectElement;
       select.value = 'alphabetical';
@@ -364,14 +364,14 @@ describe('DeckPileViewer', () => {
     });
 
     it('should show position labels in top-to-bottom mode', () => {
-      viewer.show(mockCards, 'search');
+      viewer.show(mockCards, 'deck');
 
       const positionBadges = document.querySelectorAll('.card-grid-item-position');
       expect(positionBadges.length).toBe(10);
     });
 
     it('should still show position labels in alphabetical mode', () => {
-      viewer.show(mockCards, 'search');
+      viewer.show(mockCards, 'deck');
 
       const select = document.querySelector('.sort-control-select') as HTMLSelectElement;
       select.value = 'alphabetical';
@@ -408,7 +408,7 @@ describe('DeckPileViewer', () => {
       const onMoveToHand = vi.fn();
       viewer = new DeckPileViewer({ onMoveToHand });
 
-      viewer.show(mockCards, 'search');
+      viewer.show(mockCards, 'deck');
 
       // Simulate hovering over first card
       const firstCard = document.querySelector('.card-grid-item') as HTMLElement;
@@ -428,7 +428,7 @@ describe('DeckPileViewer', () => {
       const onPlayToBattlefield = vi.fn();
       viewer = new DeckPileViewer({ onPlayToBattlefield });
 
-      viewer.show(mockCards, 'search');
+      viewer.show(mockCards, 'deck');
 
       // Press Z without hovering
       const keyEvent = new KeyboardEvent('keydown', { key: 'z' });
@@ -441,7 +441,7 @@ describe('DeckPileViewer', () => {
       const onPlayToBattlefield = vi.fn();
       viewer = new DeckPileViewer({ onPlayToBattlefield });
 
-      viewer.show(mockCards, 'search');
+      viewer.show(mockCards, 'deck');
 
       const cardElements = document.querySelectorAll('.card-grid-item') as NodeListOf<HTMLElement>;
 
@@ -466,7 +466,7 @@ describe('DeckPileViewer', () => {
       const onPlayToBattlefield = vi.fn();
       viewer = new DeckPileViewer({ onPlayToBattlefield });
 
-      viewer.show(mockCards, 'search');
+      viewer.show(mockCards, 'deck');
 
       // Hover over a card
       const firstCard = document.querySelector('.card-grid-item') as HTMLElement;
@@ -485,7 +485,7 @@ describe('DeckPileViewer', () => {
     });
 
     it('should close modal when Escape is pressed', () => {
-      viewer.show(mockCards, 'search');
+      viewer.show(mockCards, 'deck');
 
       expect(document.querySelector('.deck-pile-viewer-modal')).not.toBeNull();
 
@@ -499,14 +499,14 @@ describe('DeckPileViewer', () => {
 
   describe('Modal behavior', () => {
     it('should open modal when show() is called', () => {
-      viewer.show(mockCards, 'search');
+      viewer.show(mockCards, 'deck');
 
       const modal = document.querySelector('.deck-pile-viewer-modal');
       expect(modal).not.toBeNull();
     });
 
     it('should show correct title in search mode', () => {
-      viewer.show(mockCards, 'search');
+      viewer.show(mockCards, 'deck');
 
       const title = document.querySelector('.deck-pile-viewer-header h2');
       expect(title?.textContent).toBe('Search Deck');
@@ -520,7 +520,7 @@ describe('DeckPileViewer', () => {
     });
 
     it('should show keyboard shortcuts hint in search mode', () => {
-      viewer.show(mockCards, 'search');
+      viewer.show(mockCards, 'deck');
 
       const subtitle = document.querySelector('.deck-pile-viewer-subtitle');
       expect(subtitle?.textContent).toContain('Z: Play to battlefield');
@@ -535,7 +535,7 @@ describe('DeckPileViewer', () => {
     });
 
     it('should close modal when close button is clicked', () => {
-      viewer.show(mockCards, 'search');
+      viewer.show(mockCards, 'deck');
 
       const closeBtn = document.querySelector('.deck-pile-viewer-close') as HTMLElement;
       closeBtn.click();
@@ -544,7 +544,7 @@ describe('DeckPileViewer', () => {
     });
 
     it('should close modal when backdrop is clicked', () => {
-      viewer.show(mockCards, 'search');
+      viewer.show(mockCards, 'deck');
 
       const modal = document.querySelector('.deck-pile-viewer-modal') as HTMLElement;
       modal.click(); // Click on backdrop
@@ -553,7 +553,7 @@ describe('DeckPileViewer', () => {
     });
 
     it('should not close modal when clicking inside content', () => {
-      viewer.show(mockCards, 'search');
+      viewer.show(mockCards, 'deck');
 
       const content = document.querySelector('.deck-pile-viewer-content') as HTMLElement;
       content.click();
@@ -565,7 +565,7 @@ describe('DeckPileViewer', () => {
       const onPlayToBattlefield = vi.fn();
       viewer = new DeckPileViewer({ onPlayToBattlefield });
 
-      viewer.show(mockCards, 'search');
+      viewer.show(mockCards, 'deck');
 
       const firstCard = document.querySelector('.card-grid-item') as HTMLElement;
       firstCard.dispatchEvent(new MouseEvent('mouseenter'));
@@ -585,7 +585,7 @@ describe('DeckPileViewer', () => {
 
   describe('Edge cases', () => {
     it('should handle empty deck', () => {
-      viewer.show([], 'search');
+      viewer.show([], 'deck');
 
       const emptyState = document.querySelector('.deck-pile-viewer-empty');
       expect(emptyState).not.toBeNull();
@@ -598,7 +598,7 @@ describe('DeckPileViewer', () => {
         name: undefined,
       }));
 
-      viewer.show(cardsWithoutNames, 'search');
+      viewer.show(cardsWithoutNames, 'deck');
 
       const cardElements = document.querySelectorAll('.card-grid-item');
       expect(cardElements.length).toBe(10);
@@ -613,7 +613,7 @@ describe('DeckPileViewer', () => {
         createMockCard('card-1', 1, 'A'.repeat(100)),
       ];
 
-      viewer.show(cardsWithLongNames, 'search');
+      viewer.show(cardsWithLongNames, 'deck');
 
       const name = document.querySelector('.card-grid-item-name');
       expect(name?.textContent?.length).toBe(100);
@@ -621,7 +621,7 @@ describe('DeckPileViewer', () => {
 
     it('should handle search with special characters', () => {
       const specialCard = createMockCard('card-special', 1, 'Card (Special) [Test]');
-      viewer.show([specialCard], 'search');
+      viewer.show([specialCard], 'deck');
 
       const searchInput = document.querySelector('.search-bar-input') as HTMLInputElement;
       searchInput.value = '(Special)';
@@ -637,7 +637,7 @@ describe('DeckPileViewer', () => {
     });
 
     it('should focus search bar on open', () => {
-      viewer.show(mockCards, 'search');
+      viewer.show(mockCards, 'deck');
 
       // Note: In a real browser, focus() would work. In JSDOM, we just check it was called
       const searchInput = document.querySelector('.search-bar-input') as HTMLInputElement;
