@@ -2,7 +2,7 @@ import * as Y from 'yjs';
 import React from 'react';
 import { createRoot, Root } from 'react-dom/client';
 import { Deck } from './modules/deck';
-import { Whiteboard, MultiPlayerBoardManager, KeyboardHandlerCallbacks } from './modules/whiteboard';
+import { MultiPlayerBoardManager, KeyboardHandlerCallbacks } from './modules/whiteboard';
 import { WebRTCProvider } from './modules/webrtc';
 import { getOrCreatePlayerId, getOrCreatePeerId } from './modules/webrtc/persistence';
 import { Player } from './modules/player';
