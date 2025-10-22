@@ -1,5 +1,5 @@
 import { Card } from '../deck';
-import { CARD_HEIGHT, CARD_WIDTH } from '../../constants';
+import { CARD_HEIGHT, CARD_WIDTH, DEFAULT_CARD_BACK } from '../../constants';
 import { WhiteboardCard, DragState } from './types';
 import { KeyboardHandler, KeyboardHandlerCallbacks } from './KeyboardHandler';
 import { CardPreview } from '../cardPreview';
@@ -363,8 +363,55 @@ export class MultiPlayerBoardManager {
       cardElement = this.createCardElement(card);
       container.appendChild(cardElement);
     } else {
-      // Update existing card (for counters, flip state, etc.)
-      cardElement.style.backgroundColor = card.isFlipped ? '#4a4a4a' : '#2d2d2d';
+      // Update image when flip state changes
+      const existingImg = cardElement.querySelector('img');
+      const shouldHaveImage = card.isFlipped
+        ? (card.images?.back?.normal || DEFAULT_CARD_BACK)
+        : card.images?.front?.normal;
+
+      if (existingImg && shouldHaveImage) {
+        // Update existing image
+        existingImg.src = shouldHaveImage;
+        existingImg.alt = card.isFlipped ? 'Card Back' : (card.name || `Card #${card.cardNumber}`);
+      } else if (!existingImg && shouldHaveImage) {
+        // Need to add image (was fallback, now has image)
+        cardElement.innerHTML = ''; // Clear fallback content
+
+        const img = document.createElement('img');
+        img.src = shouldHaveImage;
+        img.alt = card.isFlipped ? 'Card Back' : (card.name || `Card #${card.cardNumber}`);
+        img.style.width = '100%';
+        img.style.height = '100%';
+        img.style.objectFit = 'cover';
+        img.style.pointerEvents = 'none';
+        cardElement.appendChild(img);
+
+        const badge = document.createElement('div');
+        badge.className = 'card-number-badge-battlefield';
+        badge.textContent = `#${card.cardNumber}`;
+        cardElement.appendChild(badge);
+
+        cardElement.style.border = '2px solid #4a4a4a';
+        cardElement.style.borderRadius = '8px';
+        cardElement.style.boxShadow = '0 4px 6px rgba(0, 0, 0, 0.3)';
+        cardElement.style.backgroundColor = '';
+      } else if (existingImg && !shouldHaveImage) {
+        // Need to remove image (had image, now fallback)
+        cardElement.innerHTML = '';
+
+        cardElement.style.backgroundColor = card.isFlipped ? '#4a4a4a' : '#2d2d2d';
+        cardElement.style.border = '2px solid #4a4a4a';
+        cardElement.style.borderRadius = '8px';
+        cardElement.style.boxShadow = '0 4px 6px rgba(0, 0, 0, 0.3)';
+
+        const badge = document.createElement('div');
+        badge.className = 'card-number-badge-battlefield';
+        badge.textContent = `#${card.cardNumber}`;
+        cardElement.appendChild(badge);
+      } else {
+        // No image, just update background color
+        cardElement.style.backgroundColor = card.isFlipped ? '#4a4a4a' : '#2d2d2d';
+      }
 
       // Update counters
       const existingCounters = cardElement.querySelector('.card-counters');
@@ -401,15 +448,26 @@ export class MultiPlayerBoardManager {
     cardElement.style.overflow = 'hidden';
     cardElement.style.pointerEvents = 'auto';  // Enable pointer events so opponents can hover cards
 
-    // Check if card has image and is not flipped
-    if (card.images?.front?.normal && !card.isFlipped) {
+    // Determine which image to show
+    let imageSrc: string | null;
+
+    if (card.isFlipped) {
+      // Card is flipped - show back side
+      imageSrc = card.images?.back?.normal || DEFAULT_CARD_BACK;
+    } else {
+      // Card is face-up - show front side
+      imageSrc = card.images?.front?.normal || null;
+    }
+
+    if (imageSrc) {
+      // Show card image (front, back, or default back)
       cardElement.style.border = '2px solid #4a4a4a';
       cardElement.style.borderRadius = '8px';
       cardElement.style.boxShadow = '0 4px 6px rgba(0, 0, 0, 0.3)';
 
       const img = document.createElement('img');
-      img.src = card.images.front.normal;
-      img.alt = card.name || `Card #${card.cardNumber}`;
+      img.src = imageSrc;
+      img.alt = card.isFlipped ? 'Card Back' : (card.name || `Card #${card.cardNumber}`);
       img.style.width = '100%';
       img.style.height = '100%';
       img.style.objectFit = 'cover';
@@ -422,7 +480,7 @@ export class MultiPlayerBoardManager {
       badge.textContent = `#${card.cardNumber}`;
       cardElement.appendChild(badge);
     } else {
-      // Fallback: show colored div with card number
+      // Fallback: show colored div with card number (no image available)
       cardElement.style.backgroundColor = card.isFlipped ? '#4a4a4a' : '#2d2d2d';
       cardElement.style.border = '2px solid #4a4a4a';
       cardElement.style.borderRadius = '8px';
