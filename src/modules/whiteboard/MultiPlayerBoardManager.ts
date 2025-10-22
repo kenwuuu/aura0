@@ -506,7 +506,9 @@ export class MultiPlayerBoardManager {
     // Enable hover for all cards (for card preview and keyboard shortcuts)
     cardElement.addEventListener('mouseenter', (e: MouseEvent) => {
       this.keyboardHandler.setHoveredCard(card.id);
-      this.cardPreview.show(card, e);
+      // Get latest card state from Yjs to avoid stale closures
+      const latestCard = this.yCards.get(card.id) || card;
+      this.cardPreview.show(latestCard, e);
     });
 
     cardElement.addEventListener('mousemove', (e: MouseEvent) => {

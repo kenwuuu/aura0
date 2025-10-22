@@ -1,4 +1,5 @@
 import { Card } from '../deck';
+import { DEFAULT_CARD_BACK } from '../../constants';
 
 export class CardPreview {
   // Constants
@@ -65,26 +66,37 @@ export class CardPreview {
     this.previewElement.style.height = `${CardPreview.DISPLAY_HEIGHT}px`;
   }
 
-  public show(card: Card, mouseEvent?: MouseEvent): void {
+  public show(card: Card): void {
+    function selectPreviewImage(): string | null {  // Determine which image to show based on flip state
+      let imageSrc: string | null;
+
+      if (card.isFlipped) {
+        // Card is flipped - show back side
+        imageSrc = card.images?.back?.normal || DEFAULT_CARD_BACK;
+      } else {
+        // Card is face-up - show front side
+        imageSrc = card.images?.front?.large || null;
+      }
+
+      return imageSrc;
+    }
+
     if (!this.previewElement) return;
-    if (!card.images?.front?.normal) return; // Only show if card has image
+
+    let imageSrc = selectPreviewImage();
+
+    // Don't show preview if no image available
+    if (!imageSrc) return;
 
     this.currentCard = card;
-
-    // Store mouse position for positioning
-    if (mouseEvent) {
-      this.currentMouseX = mouseEvent.clientX;
-      this.currentMouseY = mouseEvent.clientY;
-      this.updatePreviewPosition();
-    }
 
     // Clear previous content
     this.previewElement.innerHTML = '';
 
     // Add card image
     const img = document.createElement('img');
-    img.src = card.images.front.normal;
-    img.alt = card.name || `Card #${card.cardNumber}`;
+    img.src = imageSrc;
+    img.alt = card.isFlipped ? 'Card Back' : (card.name || `Card #${card.cardNumber}`);
     img.style.width = this.previewElement.style.width;
     img.style.height = this.previewElement.style.height;
     img.style.objectFit = CardPreview.OBJECT_FIT;

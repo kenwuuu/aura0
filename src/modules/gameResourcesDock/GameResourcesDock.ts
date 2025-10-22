@@ -308,10 +308,10 @@ export class GameResourcesDock {
       }
 
       // Hover tracking for keyboard shortcuts and card preview
-      cardEl.addEventListener('mouseenter', (e: MouseEvent) => {
+      cardEl.addEventListener('mouseenter', () => {
         this.hoveredHandCardId = card.id;
         this.hoveredPileType = null;
-        this.cardPreview.show(card, e);
+        this.cardPreview.show(card);
       });
 
       cardEl.addEventListener('mousemove', (e: MouseEvent) => {
