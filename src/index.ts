@@ -7,7 +7,7 @@ import { WebRTCProvider } from './modules/webrtc';
 import { getOrCreatePlayerId, getOrCreatePeerId } from './modules/webrtc/persistence';
 import { Player } from './modules/player';
 import { GameResourcesDock } from './modules/gameResourcesDock';
-import { DeckManager, WelcomeModal, HotkeysModal } from './components';
+import { DeckManager, WelcomeModal, HotkeysModal, HelpModal } from './components';
 import { OpponentHealthList } from './components/OpponentHealthList';
 import { SavedDeck } from './modules/deck/types';
 import { TokenService } from './services/scryfall';
@@ -113,6 +113,7 @@ class AuraApp {
     this.setupConnectionStatus();
     this.setupKeyboardCallbacks();
     this.setupDeckManager();
+    this.setupHelpModal();
     this.setupHotkeyHintsModal();
   }
 
@@ -286,6 +287,38 @@ class AuraApp {
     this.localPlayer['yPlayerState'].set('deckCardCount', newDeck.getCardCount());
 
     console.log(`Deck "${savedDeck.metadata.name}" loaded successfully!`);
+  }
+
+  private setupHelpModal(): void {
+    const helpRoot = document.getElementById('help-root');
+    if (!helpRoot) {
+      throw new Error('Help root not found');
+    }
+
+    // Create a simple component that manages the button and modal state
+    const HelpButton: React.FC = () => {
+      const [isOpen, setIsOpen] = React.useState(false);
+
+      return React.createElement(
+        React.Fragment,
+        null,
+        React.createElement(
+          'button',
+          {
+            className: 'toolbar-button',
+            onClick: () => setIsOpen(true),
+          },
+          'Help'
+        ),
+        React.createElement(HelpModal, {
+          isOpen,
+          onClose: () => setIsOpen(false),
+        })
+      );
+    };
+
+    const root = createRoot(helpRoot);
+    root.render(React.createElement(HelpButton));
   }
 
   private setupHotkeyHintsModal(): void {
