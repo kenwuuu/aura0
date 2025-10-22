@@ -48,8 +48,8 @@ body {
 
 #opponent-health-container {
   position: fixed;
-  top: 50px;
-  right: 20px;
+  top: 60px;
+  right: 10px;
   z-index: 900;
   display: flex;
   flex-direction: column;
@@ -60,6 +60,25 @@ body {
   flex: 1;
   position: relative;
   overflow: hidden;
+}
+
+/* Multi-Player Board Layers */
+.player-board {
+  position: absolute;
+  pointer-events: auto;
+}
+
+.player-board-local {
+  /* Local player's board - full opacity, normal rendering */
+  opacity: 1;
+  z-index: 10;
+}
+
+.player-board-opponent {
+  /* Opponent boards - low opacity by default */
+  opacity: 0.25;
+  pointer-events: none; /* Opponents' cards are not interactive */
+  transition: opacity 0.3s ease;
 }
 
 .card {

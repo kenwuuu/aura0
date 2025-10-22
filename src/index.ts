@@ -2,7 +2,7 @@ import * as Y from 'yjs';
 import React from 'react';
 import { createRoot, Root } from 'react-dom/client';
 import { Deck } from './modules/deck';
-import { Whiteboard, KeyboardHandlerCallbacks } from './modules/whiteboard';
+import { Whiteboard, MultiPlayerBoardManager, KeyboardHandlerCallbacks } from './modules/whiteboard';
 import { WebRTCProvider } from './modules/webrtc';
 import { getOrCreatePlayerId, getOrCreatePeerId } from './modules/webrtc/persistence';
 import { Player } from './modules/player';
@@ -18,7 +18,7 @@ import {CARD_HEIGHT, CARD_WIDTH} from "./constants";
 class AuraApp {
   private yDoc: Y.Doc;
   private webrtcProvider: WebRTCProvider;
-  private whiteboard: Whiteboard;
+  private whiteboard: MultiPlayerBoardManager;
   private localPlayer: Player;
   private localDock: GameResourcesDock;
   private opponentHealthRoot: Root | null = null;
@@ -64,18 +64,19 @@ class AuraApp {
     // Create shared card preview instance (used by both Whiteboard and GameResourcesDock)
     this.cardPreview = new CardPreview();
 
-    // Initialize whiteboard
+    // Initialize multi-player board manager
     const whiteboardContainer = document.getElementById('whiteboard');
     if (!whiteboardContainer) {
       throw new Error('Whiteboard container not found');
     }
 
-    this.whiteboard = new Whiteboard(whiteboardContainer, this.yDoc, {
-      backgroundColor: '#1a1a1a',
-      width: window.innerWidth,
-      height: window.innerHeight,
-      localPlayerId: this.playerId,
-    }, this.cardPreview);
+    this.whiteboard = new MultiPlayerBoardManager(
+      whiteboardContainer,
+      this.yDoc,
+      this.playerId,
+      '#1a1a1a', // backgroundColor
+      this.cardPreview
+    );
 
     // Initialize local player's resource dock
     const dockContainer = document.getElementById('local-dock');
@@ -190,9 +191,17 @@ class AuraApp {
         // Try to play the card from hand
         const card = this.localPlayer.playCardFromHand(cardId);
         if (card) {
-          // Subtract card offsets and place card at drop position
-          card.x = e.clientX - ((CARD_WIDTH / 2) * this.whiteboard.getZoomLevel());
-          card.y = e.clientY - ((CARD_HEIGHT / 2) * this.whiteboard.getZoomLevel()) - (60);
+          // Calculate board offset (board is centered on screen)
+          const BOARD_WIDTH = 16 * CARD_WIDTH;
+          const BOARD_HEIGHT = 6.5 * CARD_HEIGHT;
+          const DOCK_HEIGHT = 160;
+          const boardLeft = (window.innerWidth - BOARD_WIDTH) / 2;
+          const boardTop = window.innerHeight - BOARD_HEIGHT - DOCK_HEIGHT;
+
+          // Convert screen coordinates to board-relative coordinates
+          // Then subtract card center offset for proper placement under cursor
+          card.x = e.clientX - boardLeft - ((CARD_WIDTH / 2) * this.whiteboard.getZoomLevel());
+          card.y = e.clientY - boardTop - ((CARD_HEIGHT / 2) * this.whiteboard.getZoomLevel()) - 60;
           this.whiteboard.addCard(card, this.playerId);
 
           // Create tokens if this card has any associated tokens
@@ -215,14 +224,6 @@ class AuraApp {
         }
       });
     }
-
-    // Handle window resize
-    window.addEventListener('resize', () => {
-      if (whiteboardContainer) {
-        whiteboardContainer.style.width = `${window.innerWidth}px`;
-        whiteboardContainer.style.height = `${window.innerHeight}px`;
-      }
-    });
   }
 
   private setupConnectionStatus(): void {
