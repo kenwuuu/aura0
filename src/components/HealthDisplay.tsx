@@ -77,15 +77,17 @@ export const HealthDisplay: React.FC<HealthDisplayProps> = ({
         onMouseLeave={handleMouseLeave}
         onClick={handleClick}
       >
-        <div className={variant === 'local' ? styles.healthLabel : styles.opponentHealthLabel}>
-          {label}
-        </div>
-        <div className={variant === 'local' ? styles.healthValue : styles.opponentHealthValue}>
-          {health}
-        </div>
-        <div className={variant === 'local' ? styles.healthControls : styles.opponentHealthControls}>
-          <button onClick={() => onModifyHealth(-1)}>-</button>
-          <button onClick={() => onModifyHealth(1)}>+</button>
+        <div className={styles.health}>
+          <div className={variant === 'local' ? styles.healthLabel : styles.opponentHealthLabel}>
+            {label}
+          </div>
+          <div className={variant === 'local' ? styles.healthValue : styles.opponentHealthValue}>
+            {health}
+          </div>
+          <div className={variant === 'local' ? styles.healthControls : styles.opponentHealthControls}>
+            <button onClick={() => onModifyHealth(-1)}>-</button>
+            <button onClick={() => onModifyHealth(1)}>+</button>
+          </div>
         </div>
 
         {isHovered && (
