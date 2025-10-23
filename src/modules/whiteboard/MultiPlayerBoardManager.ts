@@ -6,7 +6,7 @@ import { CardPreview } from '../cardPreview';
 import * as Y from 'yjs';
 import React from 'react';
 import { createRoot } from 'react-dom/client';
-import { Counter } from '../../components';
+import { CardCounter } from '../../components';
 
 // Board Layout Constants
 const BOARD_WIDTH_IN_CARDS = 16;
@@ -535,7 +535,7 @@ export class MultiPlayerBoardManager {
     // Render React Counter component
     const root = createRoot(counterContainer);
     root.render(
-      React.createElement(Counter, {
+      React.createElement(CardCounter, {
         value,
         index,
         onIncrement: () => this.modifyCounter(card.id, index, 1),

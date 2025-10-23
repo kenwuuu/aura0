@@ -1,4 +1,4 @@
-export * from './Counter';
+export * from './CardCounter';
 export * from './DeckImportModal';
 export * from './DeckSelectionModal';
 export * from './DeckManager';

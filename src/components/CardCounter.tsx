@@ -7,7 +7,7 @@ interface CounterProps {
   onDecrement: () => void;
 }
 
-export function Counter({ value, index, onIncrement, onDecrement }: CounterProps) {
+export function CardCounter({ value, index, onIncrement, onDecrement }: CounterProps) {
   const handleIncrement = (e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
