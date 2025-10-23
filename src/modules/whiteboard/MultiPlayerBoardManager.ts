@@ -508,7 +508,7 @@ export class MultiPlayerBoardManager {
       this.keyboardHandler.setHoveredCard(card.id);
       // Get latest card state from Yjs to avoid stale closures
       const latestCard = this.yCards.get(card.id) || card;
-      this.cardPreview.show(latestCard, e);
+      this.cardPreview.show(latestCard);
     });
 
     cardElement.addEventListener('mousemove', (e: MouseEvent) => {
