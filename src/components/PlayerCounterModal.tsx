@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import styles from './CounterModal.module.css';
+import styles from './PlayerCounterModal.module.css';
 
 interface CounterModalProps {
   onAdd: (title: string, icon: string) => void;
@@ -8,7 +8,7 @@ interface CounterModalProps {
 
 const COMMON_ICONS = ['☠️', '⚡', '🔥', '💀', '🌊', '⭐', '💎', '🎯', '⚔️', '🛡️'];
 
-export const CounterModal: React.FC<CounterModalProps> = ({ onAdd, onCancel }) => {
+export const PlayerCounterModal: React.FC<CounterModalProps> = ({ onAdd, onCancel }) => {
   const [title, setTitle] = useState('');
   const [icon, setIcon] = useState('☠️');
   const [customIcon, setCustomIcon] = useState('');

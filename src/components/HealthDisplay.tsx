@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { CustomCounter } from '../modules/player/types';
-import { CounterModal } from './CounterModal';
+import { PlayerCounterModal } from './PlayerCounterModal';
 import styles from './HealthDisplay.module.css';
 
 interface HealthDisplayProps {
@@ -125,7 +125,7 @@ export const HealthDisplay: React.FC<HealthDisplayProps> = ({
       </div>
 
       {showModal && (
-        <CounterModal
+        <PlayerCounterModal
           onAdd={handleAddCounter}
           onCancel={() => setShowModal(false)}
         />
