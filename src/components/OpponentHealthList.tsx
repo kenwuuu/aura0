@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import * as Y from 'yjs';
 import { HealthDisplay } from './HealthDisplay';
-import { CustomCounter } from '../modules/player/types';
+import { CustomCounter, Card } from '../modules/player/types';
+import { DeckPileViewer } from '../modules/gameResourcesDock/components';
 
 interface OpponentHealthListProps {
   yDoc: Y.Doc;
@@ -12,6 +13,8 @@ interface OpponentData {
   playerId: string;
   health: number;
   customCounters: CustomCounter[];
+  exilePile: Card[];
+  discardPile: Card[];
 }
 
 export const OpponentHealthList: React.FC<OpponentHealthListProps> = ({
@@ -19,6 +22,7 @@ export const OpponentHealthList: React.FC<OpponentHealthListProps> = ({
   localPlayerId,
 }) => {
   const [opponents, setOpponents] = useState<OpponentData[]>([]);
+  const pileViewersRef = useRef<Map<string, { exile: DeckPileViewer; discard: DeckPileViewer }>>(new Map());
 
   // Notify MultiPlayerBoardManager when opponent count changes
   useEffect(() => {
@@ -37,8 +41,10 @@ export const OpponentHealthList: React.FC<OpponentHealthListProps> = ({
           const yPlayerState = yDoc.getMap(key);
           const health = (yPlayerState.get('health') as number | undefined) ?? 20;
           const customCounters = (yPlayerState.get('customCounters') as CustomCounter[] | undefined) ?? [];
+          const exilePile = (yPlayerState.get('exilePile') as Card[] | undefined) ?? [];
+          const discardPile = (yPlayerState.get('discardPile') as Card[] | undefined) ?? [];
 
-          opponentsList.push({ playerId, health, customCounters });
+          opponentsList.push({ playerId, health, customCounters, exilePile, discardPile });
         }
       });
 
@@ -116,6 +122,27 @@ export const OpponentHealthList: React.FC<OpponentHealthListProps> = ({
     yPlayerState.set('customCounters', updatedCounters);
   };
 
+  const getOrCreateViewer = (playerId: string, pileType: 'exile' | 'discard'): DeckPileViewer => {
+    let viewers = pileViewersRef.current.get(playerId);
+    if (!viewers) {
+      viewers = {
+        exile: new DeckPileViewer({}),
+        discard: new DeckPileViewer({})
+      };
+      pileViewersRef.current.set(playerId, viewers);
+    }
+    return pileType === 'exile' ? viewers.exile : viewers.discard;
+  };
+
+  const viewPile = (playerId: string, pileType: 'exile' | 'discard') => {
+    const opponent = opponents.find(o => o.playerId === playerId);
+    if (!opponent) return;
+
+    const cards = pileType === 'exile' ? opponent.exilePile : opponent.discardPile;
+    const viewer = getOrCreateViewer(playerId, pileType);
+    viewer.show(cards, pileType);
+  };
+
   return (
     <>
       {opponents.map((opponent) => (
@@ -130,6 +157,10 @@ export const OpponentHealthList: React.FC<OpponentHealthListProps> = ({
           onAddCounter={(title, icon) => addOpponentCounter(opponent.playerId, title, icon)}
           onModifyCounter={(counterId, delta) => modifyOpponentCounter(opponent.playerId, counterId, delta)}
           onRemoveCounter={(counterId) => removeOpponentCounter(opponent.playerId, counterId)}
+          exileCount={opponent.exilePile.length}
+          discardCount={opponent.discardPile.length}
+          onViewExile={() => viewPile(opponent.playerId, 'exile')}
+          onViewDiscard={() => viewPile(opponent.playerId, 'discard')}
         />
       ))}
     </>

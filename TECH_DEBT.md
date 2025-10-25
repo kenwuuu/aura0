@@ -1,10 +1,18 @@
 # Keyboard shortcuts
-We have split up handling of keyboard shortcuts in GameResourcesDock.ts, KeyboardHandler, and Whiteboard.ts, we should 
-probably look into consolidating using a hotkey library. Determine best course of action. 
+We have split up handling of keyboard shortcuts in GameResourcesDock.ts, KeyboardHandler, and Whiteboard.ts, we should
+probably look into consolidating using a hotkey library. Determine best course of action.
 
 # Lack of UI component library
-We should use a component library that we can customize to our style needs rather than write components from scratch. 
+We should use a component library that we can customize to our style needs rather than write components from scratch.
 Additionally, we shouldn't write plain HTML and JS, that makes state management hard. Use React when applicable.
+
+# DeckPileViewer Vanilla JS in React Components
+
+**Problem:** `OpponentHealthList.tsx` uses vanilla JS `DeckPileViewer` class via `useRef` to store instances per opponent. Each opponent gets two viewers (exile/discard) lazily instantiated in a Map. When clicked, `viewer.show(cards, pileType)` is called directly from the React component.
+
+**To Migrate:** When rewriting `DeckPileViewer` as a React component, replace the `useRef<Map>` pattern with React state. Store `{ playerId: string, pileType: 'exile' | 'discard', cards: Card[] } | null` and conditionally render `{viewingPile && <DeckPileViewer ... />}`. Remove `getOrCreateViewer()` and `pileViewersRef` entirely—React will handle component lifecycle. Change `onViewExile/onViewDiscard` callbacks to set state instead of calling `.show()`, and pass `onClose={() => setViewingPile(null)}` to the React component.
+
+**Files Changed:** `OpponentHealthList.tsx` (added useRef, getOrCreateViewer, viewPile functions), `HealthDisplay.tsx` (added exileCount/discardCount/onViewExile/onViewDiscard props and pile elements in JSX between health and expandedContent).
 
 # Dragging card is handled differently 
 Between Hand and Whiteboard, card dragging is handled differently. Meaning that if we want to drag a whiteboard card 

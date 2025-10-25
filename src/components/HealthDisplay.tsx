@@ -13,6 +13,10 @@ interface HealthDisplayProps {
   onAddCounter?: (title: string, icon: string) => void;
   onModifyCounter?: (counterId: string, delta: number) => void;
   onRemoveCounter?: (counterId: string) => void;
+  exileCount?: number;
+  discardCount?: number;
+  onViewExile?: () => void;
+  onViewDiscard?: () => void;
 }
 
 export const HealthDisplay: React.FC<HealthDisplayProps> = ({
@@ -25,6 +29,10 @@ export const HealthDisplay: React.FC<HealthDisplayProps> = ({
   onAddCounter,
   onModifyCounter,
   onRemoveCounter,
+  exileCount = 0,
+  discardCount = 0,
+  onViewExile,
+  onViewDiscard,
 }) => {
   const [isHovered, setIsHovered] = useState(false);
   const [showModal, setShowModal] = useState(false);
@@ -89,6 +97,19 @@ export const HealthDisplay: React.FC<HealthDisplayProps> = ({
             <button onClick={() => onModifyHealth(1)}>+</button>
           </div>
         </div>
+
+        {variant === 'opponent' && isHovered && (
+          <>
+            <div className="resource-pile exile-pile" onClick={onViewExile}>
+              <div className="pile-label">Exile</div>
+              <div className="pile-count">{exileCount}</div>
+            </div>
+            <div className="resource-pile discard-pile" onClick={onViewDiscard}>
+              <div className="pile-label">Discard</div>
+              <div className="pile-count">{discardCount}</div>
+            </div>
+          </>
+        )}
 
         {isHovered && (
           <div className={styles.expandedContent}>
