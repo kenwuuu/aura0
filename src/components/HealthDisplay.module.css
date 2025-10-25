@@ -5,22 +5,20 @@
   border-radius: 12px;
   padding: 12px 16px;
   display: flex;
-  flex-direction: row;
+  flex-direction: row-reverse;
   align-items: center;
   gap: 8px;
-  min-width: 120px;
+  width: fit-content;
   transition: all 0.3s ease;
   cursor: pointer;
+  min-height: 132px;
 }
 
 .health {
   display: flex;
   flex-direction: column;
   align-items: center;
-}
-
-.healthContainer:hover {
-  min-width: 200px;
+  min-width: 96px;
 }
 
 .healthLabel {
@@ -75,11 +73,8 @@
   gap: 8px;
   backdrop-filter: blur(10px);
   transition: all 0.3s ease;
-  cursor: pointer;
-}
-
-.opponentHealth:hover {
-  min-width: 200px;
+  min-height: 132px;
+  width: fit-content;
 }
 
 .opponentHealthLabel {

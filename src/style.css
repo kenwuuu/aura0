@@ -54,6 +54,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: 12px;
+  align-items: flex-end;
 }
 
 #whiteboard {
@@ -111,6 +112,12 @@ body {
   align-items: center;
   justify-content: center;
   backdrop-filter: blur(10px);
+  position: relative;
+}
+
+.game-resources-dock > div:last-child {
+  position: absolute;
+  right: 16px;
 }
 
 .resource-pile {
