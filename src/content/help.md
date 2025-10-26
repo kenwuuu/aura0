@@ -6,6 +6,14 @@ To play with friends, simply **copy your browser's URL** and send it to them. Wh
 
 Example: `https://yoursite.com/?room=mtg-abc123`
 
+## Importing Decks
+We support Moxfield's MTGO export format. We can't promise that anything else will work. The format is: 
+[quantity] [card name], e.g. 1 Mountain
+
+### Commander and Command Zone
+To have your commander drawn into your hand automatically, place your commander as the last card in your import list.
+We plan to support deck editing in the near future.
+
 ## Multiplayer Features
 
 ### 3+ Players

@@ -119,7 +119,9 @@ export function DeckImportModal({ isOpen, onClose, onDeckImported }: DeckImportM
               id="deck-list"
               value={deckText}
               onChange={(e) => setDeckText(e.target.value)}
-              placeholder={`Enter your deck list (one card per line):\n\n4 Lightning Bolt\n20 Mountain\n1 Bonfire of the Damned`}
+              placeholder={`Place your commander in the last line.
+              Enter your deck list (one card per line):
+              \n\n4 Lightning Bolt\n20 Mountain\n1 Bonfire of the Damned`}
               rows={15}
               disabled={isImporting}
             />
