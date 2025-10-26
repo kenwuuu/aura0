@@ -21,14 +21,12 @@ export class ScryfallDeckImporter implements DeckImporter {
 
     for (const line of lines) {
       const trimmedLine = line.trim();
-      const parts = trimmedLine.split(/\s+/);
-      const firstPart = parts[0];
 
-      // Check if the first part is NOT a number
-      const isNumber = !isNaN(parseInt(firstPart, 10));
+      // Check if the line starts with a digit (including 'x' notation like "4x")
+      const startsWithNumber = /^\d/.test(trimmedLine);
 
-      // If it's not a number and the line is not empty, it's likely a section header
-      if (!isNumber && trimmedLine.length > 0) {
+      // If it doesn't start with a number and the line is not empty, it's likely a section header
+      if (!startsWithNumber && trimmedLine.length > 0) {
         sectionHeaders.push(trimmedLine);
       }
     }
@@ -39,7 +37,7 @@ export class ScryfallDeckImporter implements DeckImporter {
   /**
    * Validate if text is in Scryfall decklist format
    * Format: "<count> <card name>" per line
-   * Example: "4 Lightning Bolt"
+   * Example: "4 Lightning Bolt" or "4x Lightning Bolt"
    */
   validateFormat(text: string): boolean {
     if (!text || text.trim().length === 0) {
@@ -53,8 +51,21 @@ export class ScryfallDeckImporter implements DeckImporter {
 
     // Check if at least one line matches the expected format
     const validLines = lines.filter(line => {
-      const parts = line.trim().split(/\s+/);
-      const count = parseInt(parts[0], 10);
+      const trimmed = line.trim();
+      // Must start with a digit
+      if (!/^\d/.test(trimmed)) {
+        return false;
+      }
+
+      const parts = trimmed.split(/\s+/);
+      let firstPart = parts[0];
+
+      // Handle 'x' notation
+      if (firstPart.toLowerCase().endsWith('x')) {
+        firstPart = firstPart.slice(0, -1);
+      }
+
+      const count = parseInt(firstPart, 10);
       return !isNaN(count) && count > 0 && parts.length > 1;
     });
 

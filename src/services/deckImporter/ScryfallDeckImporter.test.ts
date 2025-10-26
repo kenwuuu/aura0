@@ -1,31 +1,29 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ScryfallDeckImporter } from './ScryfallDeckImporter';
+import { ScryfallApiService } from '../scryfall';
 
-// Mock the ScryfallApiService
-vi.mock('../scryfall', () => ({
-  ScryfallApiService: vi.fn().mockImplementation(() => ({
-    parseDecklist: vi.fn().mockReturnValue([
-      { name: 'Lightning Bolt', count: 4 },
-      { name: 'Mountain', count: 20 },
-    ]),
-    fetchImagesForList: vi.fn().mockResolvedValue([
-      {
-        name: 'Lightning Bolt',
-        count: 4,
-        scryfallId: 'bolt-id',
-        type_line: 'Instant',
-        imageUris: { front: { normal: 'https://example.com/bolt.jpg' } },
-      },
-      {
-        name: 'Mountain',
-        count: 20,
-        scryfallId: 'mountain-id',
-        type_line: 'Basic Land',
-        imageUris: { front: { normal: 'https://example.com/mountain.jpg' } },
-      },
-    ]),
-  })),
-}));
+// Mock the ScryfallApiService but use real parseDecklist
+vi.mock('../scryfall', async () => {
+  const actual = await vi.importActual<typeof import('../scryfall')>('../scryfall');
+  return {
+    ScryfallApiService: vi.fn().mockImplementation(() => {
+      const realService = new actual.ScryfallApiService();
+      return {
+        parseDecklist: realService.parseDecklist.bind(realService),
+        fetchImagesForList: vi.fn().mockImplementation(async (entries) => {
+          // Return mock data for each entry
+          return entries.map((entry: any) => ({
+            name: entry.name,
+            count: entry.count,
+            scryfallId: `${entry.name.toLowerCase().replace(/\s+/g, '-')}-id`,
+            type_line: entry.name.includes('Mountain') ? 'Basic Land' : 'Instant',
+            imageUris: { front: { normal: `https://example.com/${entry.name.toLowerCase()}.jpg` } },
+          }));
+        }),
+      };
+    }),
+  };
+});
 
 describe('ScryfallDeckImporter - Section Header Detection', () => {
   let importer: ScryfallDeckImporter;
@@ -207,5 +205,111 @@ SIDEBOARD
       expect(result.cards.length).toBeGreaterThan(0);
       expect(result.errors).toBeUndefined();
     });
+  });
+
+  describe('x notation support', () => {
+    it('should import deck with lowercase x notation', async () => {
+      const deckText = `4x Lightning Bolt
+20x Mountain`;
+
+      const result = await importer.importFromText(deckText);
+
+      expect(result.cards.length).toBeGreaterThan(0);
+      expect(result.errors).toBeUndefined();
+    });
+
+    it('should import deck with uppercase X notation', async () => {
+      const deckText = `4X Lightning Bolt
+20X Mountain`;
+
+      const result = await importer.importFromText(deckText);
+
+      expect(result.cards.length).toBeGreaterThan(0);
+      expect(result.errors).toBeUndefined();
+    });
+
+    it('should import deck with mixed x notation and regular notation', async () => {
+      const deckText = `4x Lightning Bolt
+20 Mountain
+1X Sol Ring`;
+
+      const result = await importer.importFromText(deckText);
+
+      expect(result.cards.length).toBeGreaterThan(0);
+      expect(result.errors).toBeUndefined();
+    });
+  });
+
+//   describe('ignoring non-numeral lines', () => {
+//     it('should automatically filter out comment lines', async () => {
+//       const deckText = `# This is my awesome deck
+// 4 Lightning Bolt
+// // Another comment
+// 20 Mountain`;
+//
+//       const result = await importer.importFromText(deckText);
+//
+//       // Should succeed - comments are filtered out automatically
+//       expect(result.cards.length).toBeGreaterThan(0);
+//       expect(result.errors).toBeUndefined();
+//     });
+//
+//     it('should automatically filter out blank text lines', async () => {
+//       const deckText = `Some random text
+// 4 Lightning Bolt
+// Another line of text
+// 20 Mountain`;
+//
+//       const result = await importer.importFromText(deckText);
+//
+//       // Should succeed - text lines are filtered out automatically
+//       expect(result.cards.length).toBeGreaterThan(0);
+//       expect(result.errors).toBeUndefined();
+//     });
+//   });
+
+  describe('validateFormat', () => {
+    it('should validate deck with x notation', () => {
+      const deckText = `4x Lightning Bolt
+20x Mountain`;
+
+      const result = importer.validateFormat(deckText);
+
+      expect(result).toBe(true);
+    });
+
+    it('should validate deck with mixed notation', () => {
+      const deckText = `4x Lightning Bolt
+20 Mountain`;
+
+      const result = importer.validateFormat(deckText);
+
+      expect(result).toBe(true);
+    });
+
+    it('should invalidate empty deck', () => {
+      const result = importer.validateFormat('');
+      expect(result).toBe(false);
+    });
+
+    it('should invalidate deck with only section headers', () => {
+      const deckText = `SIDEBOARD:
+COMMANDER:`;
+
+      const result = importer.validateFormat(deckText);
+
+      expect(result).toBe(false);
+    });
+
+//     it('should validate deck even if it contains lines to be ignored', () => {
+//       const deckText = `# Comment
+// 4 Lightning Bolt
+// Some text
+// 20 Mountain`;
+//
+//       const result = importer.validateFormat(deckText);
+//
+//       expect(result).toBe(true);
+//     });
   });
 });

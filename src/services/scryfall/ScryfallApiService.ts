@@ -51,16 +51,30 @@ export class ScryfallApiService {
    * Parse a decklist in the format:
    * 1 Mountain
    * 2 Island
-   * 4 Lightning Bolt
+   * 4x Lightning Bolt (supports 'x' notation)
+   *
+   * Lines that don't start with a numeral are ignored.
    */
   parseDecklist(text: string): ParsedDeckEntry[] {
     return text
       .trim()
       .split('\n')
       .filter(line => line.trim().length > 0)
+      .filter(line => {
+        // Ignore lines that don't start with a numeral
+        const trimmed = line.trim();
+        return /^\d/.test(trimmed);
+      })
       .map(line => {
         const parts = line.trim().split(/\s+/);
-        const count = parseInt(parts[0], 10);
+        let firstPart = parts[0];
+
+        // Handle 'x' notation (e.g., "20x" -> "20")
+        if (firstPart.toLowerCase().endsWith('x')) {
+          firstPart = firstPart.slice(0, -1);
+        }
+
+        const count = parseInt(firstPart, 10);
         const name = parts.slice(1).join(' ');
         return { count, name };
       })
