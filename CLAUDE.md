@@ -23,9 +23,12 @@ Aura is a **peer-to-peer Magic: The Gathering collaboration app** using WebRTC (
 - **TypeScript** - Type-safe code throughout
 - **Yjs** - CRDT-based state synchronization library
 - **y-webrtc** - WebRTC provider for Yjs (peer-to-peer networking)
-- **Vanilla JavaScript** - No UI framework (React, Vue, etc.)
+- **React** - No UI framework (React, Vue, etc.)
 
-**Minimal Dependencies:** Only 2 production dependencies (Yjs + y-webrtc). See `LIBRARY_RECOMMENDATIONS.md` for future migration plans.
+**Love Libraries:** Whenever possible, we like to use popular and well supported libraries. For example, UI
+component libraries like shadcn, or helpful libraries like Tailwind CSS and GSAP. Or GitHub hotkeys.
+
+See `LIBRARY_RECOMMENDATIONS.md` for future migration plans.
 
 ## ⚠️ IMPORTANT: Prefer React for New Code
 
