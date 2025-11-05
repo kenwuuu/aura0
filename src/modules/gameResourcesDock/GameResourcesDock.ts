@@ -591,10 +591,10 @@ export class GameResourcesDock {
           if (pileType === 'exile') return; // Already in exile
 
           if (pileType === 'deck') {
-            const drawnCard = this.player.drawCard();
-            if (drawnCard) {
-              this.player.moveCardToExile(drawnCard);
-            }
+            // Remove from deck and move to exile directly (don't draw to hand first)
+            this.player['deck'].removeCard(card.id);
+            this.player['yPlayerState'].set('deckCardCount', this.player['deck'].getCardCount());
+            this.player.moveCardToExile(card);
           } else {
             const state = this.player.getState();
             let pile: Card[] = state.discardPile;
@@ -610,10 +610,10 @@ export class GameResourcesDock {
           if (pileType === 'discard') return; // Already in discard
 
           if (pileType === 'deck') {
-            const drawnCard = this.player.drawCard();
-            if (drawnCard) {
-              this.player.moveCardToDiscard(drawnCard);
-            }
+            // Remove from deck and move to discard directly (don't draw to hand first)
+            this.player['deck'].removeCard(card.id);
+            this.player['yPlayerState'].set('deckCardCount', this.player['deck'].getCardCount());
+            this.player.moveCardToDiscard(card);
           } else {
             const state = this.player.getState();
             let pile: Card[] = state.exilePile;
