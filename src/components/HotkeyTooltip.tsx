@@ -5,7 +5,10 @@ interface HotkeyTooltipProps {
   context: HotkeyContext;
   mouseX: number;
   mouseY: number;
+  isMouseDown?: boolean;
 }
+
+const TOOLTIP_DELAY = 500;
 
 const styles = {
   tooltip: {
@@ -44,9 +47,20 @@ const styles = {
   } as React.CSSProperties,
 };
 
-export const HotkeyTooltip: React.FC<HotkeyTooltipProps> = ({ context, mouseX, mouseY }) => {
+export const HotkeyTooltip: React.FC<HotkeyTooltipProps> = ({ context, mouseX, mouseY, isMouseDown = false }) => {
   const [position, setPosition] = useState({ x: mouseX, y: mouseY });
+  const [isVisible, setIsVisible] = useState(false);
   const hotkeys = getHotkeysForContext(context);
+
+  // Handle visibility delay
+  useEffect(() => {
+    setIsVisible(false);
+    const timer = setTimeout(() => {
+      setIsVisible(true);
+    }, TOOLTIP_DELAY);
+
+    return () => clearTimeout(timer);
+  }, [context]);
 
   useEffect(() => {
     // Offset the tooltip slightly from the cursor
@@ -72,7 +86,8 @@ export const HotkeyTooltip: React.FC<HotkeyTooltipProps> = ({ context, mouseX, m
     setPosition({ x, y });
   }, [mouseX, mouseY, hotkeys.length]);
 
-  if (hotkeys.length === 0) {
+  // Hide tooltip when mouse is down (dragging) or during delay
+  if (hotkeys.length === 0 || isMouseDown || !isVisible) {
     return null;
   }
 

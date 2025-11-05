@@ -34,6 +34,7 @@ export class GameResourcesDock {
   private tooltipContainer: HTMLElement | null = null;
   private currentMouseX: number = 0;
   private currentMouseY: number = 0;
+  private isMouseDown: boolean = false;
 
   constructor(
     container: HTMLElement,
@@ -91,6 +92,17 @@ export class GameResourcesDock {
       this.currentMouseY = e.clientY;
       this.updateTooltip();
     });
+
+    // Track mouse down/up to hide tooltip during dragging
+    document.addEventListener('mousedown', () => {
+      this.isMouseDown = true;
+      this.updateTooltip();
+    });
+
+    document.addEventListener('mouseup', () => {
+      this.isMouseDown = false;
+      this.updateTooltip();
+    });
   }
 
   private updateTooltip(): void {
@@ -112,6 +124,7 @@ export class GameResourcesDock {
           context,
           mouseX: this.currentMouseX,
           mouseY: this.currentMouseY,
+          isMouseDown: this.isMouseDown,
         })
       );
     } else {
@@ -380,6 +393,11 @@ export class GameResourcesDock {
         this.cardPreview.hide();  // hide card preview to prevent preview bug after dropping
         this.draggedCard = { card, element: cardEl };
         cardEl.classList.add('dragging');
+
+        // Clear hover states to prevent tooltip from showing after drag
+        this.hoveredHandCardId = null;
+        this.hoveredPileType = null;
+        this.updateTooltip();
 
         // Center the drag image under the cursor. This helps us place the card in the
         // correct position after dragging to board
