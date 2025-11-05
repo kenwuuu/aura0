@@ -1,4 +1,5 @@
 import React from 'react';
+import { getAllHotkeysWithLongDescriptions } from '../data/hotkeys';
 
 interface HotkeysModalProps {
   isOpen: boolean;
@@ -56,30 +57,8 @@ const styles = {
 export const HotkeysModal: React.FC<HotkeysModalProps> = ({ isOpen, onClose }) => {
   if (!isOpen) return null;
 
-  const hotkeys = [
-    // Global shortcuts
-    { key: 'C', action: 'Draw card' },
-    { key: 'V', action: 'Shuffle deck' },
-    { key: 'M', action: 'Mulligan (draw new hand)' },
-    { key: 'X', action: 'Untap all your cards' },
-    { key: '+  or  =', action: 'Gain 1 life' },
-    { key: '-  or  _', action: 'Lose 1 life' },
-    // { key: 'E', action: 'End turn (not implemented)' },
-
-    // Battlefield card shortcuts (when hovering over a card on battlefield)
-    { key: 'Space', action: 'Tap/Untap card' },
-    { key: 'F', action: 'Flip card face-down/face-up' },
-    { key: 'U', action: 'Add +1 counter to card' },
-    { key: 'I', action: 'Add -1 counter to card' },
-    { key: 'K', action: 'Create copy of card' },
-
-    // Hand card shortcuts (when hovering over a card in hand)
-    { key: 'H', action: 'Move card to hand' },
-    { key: 'D', action: 'Move card from hand/deck to discard' },
-    { key: 'S', action: 'Move card from hand/deck to exile' },
-    { key: 'T', action: 'Move card from hand/deck to top of deck' },
-    { key: 'Y', action: 'Move card from hand/deck to bottom of deck' },
-  ];
+  // Get hotkeys from centralized data source
+  const hotkeys = getAllHotkeysWithLongDescriptions();
 
   // Split into two columns
   const mid = Math.ceil(hotkeys.length / 2);

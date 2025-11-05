@@ -42,6 +42,10 @@ export class KeyboardHandler {
     this.hoveredCardId = cardId;
   }
 
+  public getHoveredCard(): string | null {
+    return this.hoveredCardId;
+  }
+
   private attachListeners(): void {
     document.addEventListener('keydown', this.handleKeyDownBound);
   }

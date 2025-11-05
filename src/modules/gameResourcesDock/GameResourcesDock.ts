@@ -6,6 +6,8 @@ import { CardPreview } from '../cardPreview';
 import React from 'react';
 import { createRoot, Root } from 'react-dom/client';
 import { HealthDisplay } from '../../components/HealthDisplay';
+import { HotkeyTooltip } from '../../components/HotkeyTooltip';
+import { HotkeyContext } from '../../data/hotkeys';
 
 export class GameResourcesDock {
   private container: HTMLElement;
@@ -28,6 +30,10 @@ export class GameResourcesDock {
   private zoomControls?: HTMLElement;
   private cardPreview: CardPreview;
   private healthRoot: Root | null = null;
+  private tooltipRoot: Root | null = null;
+  private tooltipContainer: HTMLElement | null = null;
+  private currentMouseX: number = 0;
+  private currentMouseY: number = 0;
 
   constructor(
     container: HTMLElement,
@@ -69,6 +75,48 @@ export class GameResourcesDock {
     this.setupEventListeners();
     this.setupDragDropZones();
     this.setupKeyboardShortcuts();
+    this.setupTooltip();
+  }
+
+  private setupTooltip(): void {
+    // Create tooltip container
+    this.tooltipContainer = document.createElement('div');
+    this.tooltipContainer.className = 'hotkey-tooltip-container';
+    document.body.appendChild(this.tooltipContainer);
+    this.tooltipRoot = createRoot(this.tooltipContainer);
+
+    // Setup mouse move listener to track cursor position
+    document.addEventListener('mousemove', (e: MouseEvent) => {
+      this.currentMouseX = e.clientX;
+      this.currentMouseY = e.clientY;
+      this.updateTooltip();
+    });
+  }
+
+  private updateTooltip(): void {
+    if (!this.tooltipRoot) return;
+
+    // Determine which context to show based on hover state
+    let context: HotkeyContext | null = null;
+
+    if (this.hoveredHandCardId) {
+      context = 'hand';
+    } else if (this.hoveredPileType) {
+      context = this.hoveredPileType as HotkeyContext;
+    }
+
+    // Render tooltip or hide it
+    if (context) {
+      this.tooltipRoot.render(
+        React.createElement(HotkeyTooltip, {
+          context,
+          mouseX: this.currentMouseX,
+          mouseY: this.currentMouseY,
+        })
+      );
+    } else {
+      this.tooltipRoot.render(null);
+    }
   }
 
   private render(): void {
@@ -106,14 +154,16 @@ export class GameResourcesDock {
     pile.appendChild(labelEl);
     pile.appendChild(count);
 
-    // Hover tracking for keyboard shortcuts
+    // Hover tracking for keyboard shortcuts and tooltip
     pile.addEventListener('mouseenter', () => {
       this.hoveredPileType = type as 'deck' | 'exile' | 'discard';
       this.hoveredHandCardId = null;
+      this.updateTooltip();
     });
 
     pile.addEventListener('mouseleave', () => {
       this.hoveredPileType = null;
+      this.updateTooltip();
     });
 
     // Click to view pile
@@ -307,11 +357,12 @@ export class GameResourcesDock {
         cardEl.appendChild(cardNumber);
       }
 
-      // Hover tracking for keyboard shortcuts and card preview
+      // Hover tracking for keyboard shortcuts, card preview, and tooltip
       cardEl.addEventListener('mouseenter', () => {
         this.hoveredHandCardId = card.id;
         this.hoveredPileType = null;
         this.cardPreview.show(card);
+        this.updateTooltip();
       });
 
       cardEl.addEventListener('mousemove', (e: MouseEvent) => {
@@ -321,6 +372,7 @@ export class GameResourcesDock {
       cardEl.addEventListener('mouseleave', () => {
         this.hoveredHandCardId = null;
         this.cardPreview.hide();
+        this.updateTooltip();
       });
 
       // Drag events
@@ -726,6 +778,14 @@ export class GameResourcesDock {
     if (this.healthRoot) {
       this.healthRoot.unmount();
       this.healthRoot = null;
+    }
+    if (this.tooltipRoot) {
+      this.tooltipRoot.unmount();
+      this.tooltipRoot = null;
+    }
+    if (this.tooltipContainer) {
+      this.tooltipContainer.remove();
+      this.tooltipContainer = null;
     }
     if (this.elements) {
       this.container.innerHTML = '';

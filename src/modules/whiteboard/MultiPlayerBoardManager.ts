@@ -5,8 +5,9 @@ import { KeyboardHandler, KeyboardHandlerCallbacks } from './KeyboardHandler';
 import { CardPreview } from '../cardPreview';
 import * as Y from 'yjs';
 import React from 'react';
-import { createRoot } from 'react-dom/client';
-import { CardCounter } from '../../components';
+import { createRoot, Root } from 'react-dom/client';
+import { CardCounter, HotkeyTooltip } from '../../components';
+import { HotkeyContext } from '../../data/hotkeys';
 
 // Board Layout Constants
 const BOARD_WIDTH_IN_CARDS = 16;
@@ -39,6 +40,10 @@ export class MultiPlayerBoardManager {
   private cardPreview: CardPreview;
   private localPlayerId: string;
   private backgroundColor: string;
+  private tooltipRoot: Root | null = null;
+  private tooltipContainer: HTMLElement | null = null;
+  private currentMouseX: number = 0;
+  private currentMouseY: number = 0;
 
   // Opponent opacity state management
   private pinnedOpponentId: string | null = null;
@@ -69,6 +74,7 @@ export class MultiPlayerBoardManager {
     this.setupYjsSync();
     this.attachEventListeners();
     this.setupOpponentHoverListener();
+    this.setupTooltip();
 
     // Initialize keyboard handler with empty callbacks (will be set by app)
     this.keyboardHandler = new KeyboardHandler(
@@ -267,6 +273,40 @@ export class MultiPlayerBoardManager {
       this.opponentCount = opponentCount;
       this.updateOpponentOpacity();
     }) as EventListener);
+  }
+
+  private setupTooltip(): void {
+    // Create tooltip container
+    this.tooltipContainer = document.createElement('div');
+    this.tooltipContainer.className = 'hotkey-tooltip-container-battlefield';
+    document.body.appendChild(this.tooltipContainer);
+    this.tooltipRoot = createRoot(this.tooltipContainer);
+
+    // Setup mouse move listener to track cursor position
+    document.addEventListener('mousemove', (e: MouseEvent) => {
+      this.currentMouseX = e.clientX;
+      this.currentMouseY = e.clientY;
+      this.updateTooltip();
+    });
+  }
+
+  private updateTooltip(): void {
+    if (!this.tooltipRoot) return;
+
+    // Show tooltip only when hovering a battlefield card
+    const hoveredCardId = this.keyboardHandler.getHoveredCard();
+
+    if (hoveredCardId) {
+      this.tooltipRoot.render(
+        React.createElement(HotkeyTooltip, {
+          context: 'battlefield' as HotkeyContext,
+          mouseX: this.currentMouseX,
+          mouseY: this.currentMouseY,
+        })
+      );
+    } else {
+      this.tooltipRoot.render(null);
+    }
   }
 
   /**
@@ -763,6 +803,14 @@ export class MultiPlayerBoardManager {
     this.playerContainers.clear();
     if (this.zoomControls) {
       this.zoomControls.remove();
+    }
+    if (this.tooltipRoot) {
+      this.tooltipRoot.unmount();
+      this.tooltipRoot = null;
+    }
+    if (this.tooltipContainer) {
+      this.tooltipContainer.remove();
+      this.tooltipContainer = null;
     }
   }
 }
