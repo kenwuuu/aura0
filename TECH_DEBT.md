@@ -173,6 +173,7 @@ class MultiPlayerBoardManager {
 
 **Phase 2:** Extract state managers (minimal dependencies)
 3. `ZoomController` - emits events
+4. `BoardContainerManager` - manages containers
 
 ## Benefits
 

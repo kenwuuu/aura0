@@ -5,31 +5,18 @@ import { KeyboardHandler, KeyboardHandlerCallbacks } from './KeyboardHandler';
 import { CardPreview } from '../cardPreview';
 import { TooltipManager } from './TooltipManager';
 import { ZoomController } from './ZoomController';
+import { BoardContainerManager, BOARD_HEIGHT } from './BoardContainerManager';
 import * as Y from 'yjs';
 import React from 'react';
 import { createRoot, Root } from 'react-dom/client';
 import { CardCounter } from '../../components';
 import {OpponentCoordinateTransformer} from "./OpponentCoordinateTransformer";
 
-// Board Layout Constants
-const BOARD_WIDTH_IN_CARDS = 16;
-const BOARD_HEIGHT_IN_CARDS = 6.5;
-const DOCK_HEIGHT = 160; // Height of bottom UI dock
-
-const BOARD_WIDTH = BOARD_WIDTH_IN_CARDS * CARD_WIDTH;
-const BOARD_HEIGHT = BOARD_HEIGHT_IN_CARDS * CARD_HEIGHT;
-
 const DEFAULT_OPPONENT_OPACITY = 0.25;
 const FOCUSED_OPACITY = 1.0;
 
-interface BoardDimensions {
-  width: number;
-  height: number;
-}
-
 export class MultiPlayerBoardManager {
-  private mainContainer: HTMLElement;
-  private playerContainers: Map<string, HTMLElement> = new Map();
+  private boardContainerManager: BoardContainerManager;
   private cards: Map<string, WhiteboardCard> = new Map();
   private dragState: DragState = { cardId: null, offsetX: 0, offsetY: 0 };
   private yCards: Y.Map<WhiteboardCard>;
@@ -57,7 +44,6 @@ export class MultiPlayerBoardManager {
     backgroundColor: string,
     cardPreview: CardPreview
   ) {
-    this.mainContainer = container;
     this.yDoc = yDoc;
     this.localPlayerId = localPlayerId;
     this.backgroundColor = backgroundColor;
@@ -65,10 +51,17 @@ export class MultiPlayerBoardManager {
 
     this.yCards = yDoc.getMap('cards');
 
+    // Initialize BoardContainerManager
+    this.boardContainerManager = new BoardContainerManager(
+      container,
+      localPlayerId,
+      backgroundColor,
+      this.useOverlay
+    );
+
     // Initialize zoom controller
     this.zoomController = new ZoomController();
 
-    this.setupMainContainer();
     this.setupZoomControls();
     this.setupYjsSync();
     this.attachEventListeners();
@@ -98,9 +91,6 @@ export class MultiPlayerBoardManager {
       },
       this.localPlayerId
     );
-
-    // Create initial container for local player
-    this.createPlayerContainer(this.localPlayerId, true);
   }
 
   public setKeyboardCallbacks(callbacks: KeyboardHandlerCallbacks): void {
@@ -116,61 +106,6 @@ export class MultiPlayerBoardManager {
     );
   }
 
-  private setupMainContainer(): void {
-    this.mainContainer.style.backgroundColor = this.backgroundColor;
-    this.mainContainer.style.width = `${window.innerWidth}px`;
-    this.mainContainer.style.height = `${window.innerHeight}px`;
-    this.mainContainer.style.position = 'relative';
-    this.mainContainer.style.overflow = 'hidden';
-  }
-
-  /**
-   * Creates a board container for a player
-   * All boards are positioned at the same screen location for overlay effect
-   */
-  private createPlayerContainer(playerId: string, isLocal: boolean): HTMLElement {
-    // Check if container already exists
-    if (this.playerContainers.has(playerId)) {
-      return this.playerContainers.get(playerId)!;
-    }
-
-    const container = document.createElement('div');
-    container.className = isLocal ? 'player-board player-board-local' : 'player-board player-board-opponent';
-    container.dataset.playerId = playerId;
-    container.style.position = 'absolute';
-    container.style.width = `${BOARD_WIDTH}px`;
-    container.style.height = `${BOARD_HEIGHT}px`;
-    // Opponent containers: pointer-events none on container, but will enable on cards
-    // Local container: pointer-events auto for full interaction
-    container.style.pointerEvents = isLocal ? 'auto' : 'none';
-    container.style.transition = 'opacity 0.3s ease';
-
-    // Calculate centered position (same for all boards)
-    const left = (window.innerWidth - BOARD_WIDTH) / 2;
-    const top = window.innerHeight - BOARD_HEIGHT - DOCK_HEIGHT;
-
-    container.style.left = `${left}px`;
-    container.style.top = `${top}px`;
-
-    if (isLocal) {
-      // Local player: full opacity, normal z-index
-      container.style.opacity = FOCUSED_OPACITY.toString();
-      container.style.zIndex = '10';
-    } else {
-      // Opponent: low opacity by default
-      container.style.opacity = DEFAULT_OPPONENT_OPACITY.toString();
-
-      // Set z-index based on overlay/underlay preference
-      container.style.zIndex = this.useOverlay ? '15' : '5';
-    }
-
-    this.mainContainer.appendChild(container);
-    this.playerContainers.set(playerId, container);
-
-    console.log(`Created ${isLocal ? 'local' : 'opponent'} player container for ${playerId}`);
-    return container;
-  }
-
   private setupYjsSync(): void {
     // Observe changes from other clients
     this.yCards.observe((event) => {
@@ -184,7 +119,7 @@ export class MultiPlayerBoardManager {
             }
 
             // Ensure player container exists
-            this.ensurePlayerContainer(card.ownerId);
+            this.boardContainerManager.ensureContainer(card.ownerId);
 
             this.updateCardElement(card);
           }
@@ -201,7 +136,7 @@ export class MultiPlayerBoardManager {
       }
 
       // Ensure player container exists
-      this.ensurePlayerContainer(card.ownerId);
+      this.boardContainerManager.ensureContainer(card.ownerId);
 
       this.updateCardElement(card);
     });
@@ -215,9 +150,10 @@ export class MultiPlayerBoardManager {
       this.yDoc.share.forEach((value, key) => {
         if (key.startsWith('player-') && key !== `player-${this.localPlayerId}`) {
           const playerId = key.replace('player-', '');
-          if (!this.playerContainers.has(playerId)) {
+          const container = this.boardContainerManager.getContainer(playerId);
+          if (!container) {
             console.log('New opponent detected:', playerId);
-            this.createPlayerContainer(playerId, false);
+            this.boardContainerManager.createBoardContainer(playerId, false);
           }
         }
       });
@@ -228,13 +164,6 @@ export class MultiPlayerBoardManager {
 
     // Check periodically for new players
     setInterval(checkForNewPlayers, 1000);
-  }
-
-  private ensurePlayerContainer(playerId: string): void {
-    if (!this.playerContainers.has(playerId)) {
-      const isLocal = playerId === this.localPlayerId;
-      this.createPlayerContainer(playerId, isLocal);
-    }
   }
 
   private setupOpponentHoverListener(): void {
@@ -295,7 +224,7 @@ export class MultiPlayerBoardManager {
     // Priority 3: If there's only one opponent, show them by default
     else if (this.opponentCount === 1) {
       // Find the single opponent ID
-      for (const [playerId] of this.playerContainers) {
+      for (const [playerId] of this.boardContainerManager.getAllContainers()) {
         if (playerId !== this.localPlayerId) {
           opaqueOpponentId = playerId;
           break;
@@ -304,7 +233,7 @@ export class MultiPlayerBoardManager {
     }
 
     // Apply opacity to all opponent containers
-    this.playerContainers.forEach((container, playerId) => {
+    this.boardContainerManager.getAllContainers().forEach((container, playerId) => {
       if (playerId === this.localPlayerId) {
         // Local player always at full opacity
         container.style.opacity = FOCUSED_OPACITY.toString();
@@ -332,7 +261,7 @@ export class MultiPlayerBoardManager {
   private updateCardElement(card: WhiteboardCard): void {
     this.cards.set(card.id, card);
 
-    const container = this.playerContainers.get(card.ownerId);
+    const container = this.boardContainerManager.getContainer(card.ownerId);
     if (!container) {
       console.warn(`No container found for player ${card.ownerId}`);
       return;
@@ -561,7 +490,7 @@ export class MultiPlayerBoardManager {
 
     this.cards.delete(cardId);
 
-    const container = this.playerContainers.get(card.ownerId);
+    const container = this.boardContainerManager.getContainer(card.ownerId);
     if (!container) return;
 
     const cardElement = container.querySelector(`[data-card-id="${cardId}"]`);
@@ -585,7 +514,7 @@ export class MultiPlayerBoardManager {
     const updatedCard = { ...card, zIndex: ++this.maxZIndex };
     this.yCards.set(cardId, updatedCard);
 
-    const container = this.playerContainers.get(card.ownerId);
+    const container = this.boardContainerManager.getContainer(card.ownerId);
     if (!container) return;
 
     const cardElement = container.querySelector(
@@ -613,7 +542,7 @@ export class MultiPlayerBoardManager {
     if (this.dragState.cardId) {
       const card = this.cards.get(this.dragState.cardId);
       if (card && card.ownerId === this.localPlayerId) {
-        const container = this.playerContainers.get(card.ownerId);
+        const container = this.boardContainerManager.getContainer(card.ownerId);
         if (container) {
           const cardElement = container.querySelector(
             `[data-card-id="${this.dragState.cardId}"]`
@@ -631,24 +560,7 @@ export class MultiPlayerBoardManager {
   private attachEventListeners(): void {
     document.addEventListener('mousemove', (e) => this.onMouseMove(e));
     document.addEventListener('mouseup', () => this.onMouseUp());
-    window.addEventListener('resize', () => this.recenterAllBoards());
-  }
-
-  /**
-   * Recenter all player board containers based on current window dimensions
-   */
-  private recenterAllBoards(): void {
-    const left = (window.innerWidth - BOARD_WIDTH) / 2;
-    const top = window.innerHeight - BOARD_HEIGHT - DOCK_HEIGHT;
-
-    this.playerContainers.forEach((container) => {
-      container.style.left = `${left}px`;
-      container.style.top = `${top}px`;
-    });
-
-    // Also update main container dimensions
-    this.mainContainer.style.width = `${window.innerWidth}px`;
-    this.mainContainer.style.height = `${window.innerHeight}px`;
+    window.addEventListener('resize', () => this.boardContainerManager.recenterAll());
   }
 
   public tapCard(cardId: string): void {
@@ -666,7 +578,7 @@ export class MultiPlayerBoardManager {
     // Register callback to update all card sizes when zoom changes
     this.zoomController.onZoomChange(() => {
       this.cards.forEach((card) => {
-        const container = this.playerContainers.get(card.ownerId);
+        const container = this.boardContainerManager.getContainer(card.ownerId);
         if (!container) return;
 
         const cardElement = container.querySelector(
@@ -685,8 +597,7 @@ export class MultiPlayerBoardManager {
 
   public destroy(): void {
     this.cards.clear();
-    this.playerContainers.forEach((container) => container.remove());
-    this.playerContainers.clear();
+    this.boardContainerManager.destroy();
     this.zoomController.destroy();
     this.tooltipManager.destroy();
   }
