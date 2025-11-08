@@ -8,6 +8,7 @@ import * as Y from 'yjs';
 import React from 'react';
 import { createRoot, Root } from 'react-dom/client';
 import { CardCounter } from '../../components';
+import {OpponentCoordinateTransformer} from "./OpponentCoordinateTransformer";
 
 // Board Layout Constants
 const BOARD_WIDTH_IN_CARDS = 16;
@@ -34,7 +35,6 @@ export class MultiPlayerBoardManager {
   private yDoc: Y.Doc;
   private maxZIndex: number = 0;
   private keyboardHandler: KeyboardHandler;
-  private keyboardCallbacks?: KeyboardHandlerCallbacks;
   private zoomLevel: number = 1;
   private zoomControls?: HTMLElement;
   private cardPreview: CardPreview;
@@ -102,7 +102,6 @@ export class MultiPlayerBoardManager {
   }
 
   public setKeyboardCallbacks(callbacks: KeyboardHandlerCallbacks): void {
-    this.keyboardCallbacks = callbacks;
     // Clean up old keyboard handler before creating new one
     this.keyboardHandler.destroy();
     this.keyboardHandler = new KeyboardHandler(
@@ -328,30 +327,6 @@ export class MultiPlayerBoardManager {
     this.yCards.set(card.id, whiteboardCard);
   }
 
-  /**
-   * Transform opponent coordinates for local rendering
-   *
-   * IMPORTANT: This only affects how WE see opponent cards on OUR screen.
-   * The coordinates in Yjs are world coordinates and never change.
-   *
-   * Local player cards: No transformation (render as-is)
-   * Opponent cards: Vertical flip (so their bottom becomes our top)
-   */
-  private transformCoordinatesForOpponent(card: WhiteboardCard): { x: number; y: number } {
-    if (card.ownerId === this.localPlayerId) {
-      // Our own cards: render at exact Yjs coordinates
-      return { x: card.x, y: card.y };
-    } else {
-      // Opponent cards: flip Y coordinate so their board appears inverted
-      // When opponent places at Y=0 (their top), it appears at bottom of our view
-      // When opponent places at Y=max (their bottom), it appears at top of our view
-      return {
-        x: card.x,
-        y: BOARD_HEIGHT - card.y - (CARD_HEIGHT * this.zoomLevel) - 300
-      };
-    }
-  }
-
   private updateCardElement(card: WhiteboardCard): void {
     this.cards.set(card.id, card);
 
@@ -574,7 +549,7 @@ export class MultiPlayerBoardManager {
   }
 
   private updateCardPosition(element: HTMLElement, card: WhiteboardCard): void {
-    const { x, y } = this.transformCoordinatesForOpponent(card);
+    const { x, y } = OpponentCoordinateTransformer.transform(card, this.localPlayerId, BOARD_HEIGHT, this.zoomLevel);
     element.style.left = `${x}px`;
     element.style.top = `${y}px`;
     element.style.transform = `rotate(${card.rotation}deg) ${card.isTapped ? 'rotate(90deg)' : ''}`;
