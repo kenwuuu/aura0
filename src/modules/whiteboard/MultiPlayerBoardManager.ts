@@ -4,6 +4,7 @@ import { WhiteboardCard, DragState } from './types';
 import { KeyboardHandler, KeyboardHandlerCallbacks } from './KeyboardHandler';
 import { CardPreview } from '../cardPreview';
 import { TooltipManager } from './TooltipManager';
+import { ZoomController } from './ZoomController';
 import * as Y from 'yjs';
 import React from 'react';
 import { createRoot, Root } from 'react-dom/client';
@@ -35,8 +36,7 @@ export class MultiPlayerBoardManager {
   private yDoc: Y.Doc;
   private maxZIndex: number = 0;
   private keyboardHandler: KeyboardHandler;
-  private zoomLevel: number = 1;
-  private zoomControls?: HTMLElement;
+  private zoomController: ZoomController;
   private cardPreview: CardPreview;
   private localPlayerId: string;
   private backgroundColor: string;
@@ -64,7 +64,9 @@ export class MultiPlayerBoardManager {
     this.cardPreview = cardPreview;
 
     this.yCards = yDoc.getMap('cards');
-    this.zoomLevel = parseFloat(localStorage.getItem('whiteboard-zoom') || '1');
+
+    // Initialize zoom controller
+    this.zoomController = new ZoomController();
 
     this.setupMainContainer();
     this.setupZoomControls();
@@ -415,15 +417,12 @@ export class MultiPlayerBoardManager {
   }
 
   private createCardElement(card: WhiteboardCard): HTMLElement {
-    const width = CARD_WIDTH * this.zoomLevel;
-    const height = CARD_HEIGHT * this.zoomLevel;
-
     const cardElement = document.createElement('div');
     cardElement.dataset.cardId = card.id;
     cardElement.className = 'card';
     cardElement.style.position = 'absolute';
-    cardElement.style.width = `${width}px`;
-    cardElement.style.height = `${height}px`;
+    // Apply zoom to set initial size
+    this.zoomController.applyZoomToCard(cardElement);
     cardElement.style.cursor = 'grab';
     cardElement.style.userSelect = 'none';
     cardElement.style.overflow = 'hidden';
@@ -549,7 +548,7 @@ export class MultiPlayerBoardManager {
   }
 
   private updateCardPosition(element: HTMLElement, card: WhiteboardCard): void {
-    const { x, y } = OpponentCoordinateTransformer.transform(card, this.localPlayerId, BOARD_HEIGHT, this.zoomLevel);
+    const { x, y } = OpponentCoordinateTransformer.transform(card, this.localPlayerId, BOARD_HEIGHT, this.zoomController.getZoomLevel());
     element.style.left = `${x}px`;
     element.style.top = `${y}px`;
     element.style.transform = `rotate(${card.rotation}deg) ${card.isTapped ? 'rotate(90deg)' : ''}`;
@@ -661,94 +660,34 @@ export class MultiPlayerBoardManager {
   }
 
   private setupZoomControls(): void {
-    const controls = document.createElement('div');
-    controls.className = 'zoom-controls';
-    controls.style.position = 'fixed';
-    controls.style.bottom = '200px';
-    controls.style.right = '20px';
-    controls.style.zIndex = '1000';
-    controls.style.display = 'flex';
-    controls.style.flexDirection = 'column';
-    controls.style.gap = '8px';
+    // Setup zoom controller UI
+    this.zoomController.setupControls();
 
-    const zoomInBtn = document.createElement('button');
-    zoomInBtn.className = 'zoom-button';
-    zoomInBtn.textContent = '+';
-    zoomInBtn.title = 'Zoom In Cards';
-    zoomInBtn.onclick = () => this.adjustZoom(0.1);
+    // Register callback to update all card sizes when zoom changes
+    this.zoomController.onZoomChange(() => {
+      this.cards.forEach((card) => {
+        const container = this.playerContainers.get(card.ownerId);
+        if (!container) return;
 
-    const zoomOutBtn = document.createElement('button');
-    zoomOutBtn.className = 'zoom-button';
-    zoomOutBtn.textContent = '−';
-    zoomOutBtn.title = 'Zoom Out Cards';
-    zoomOutBtn.onclick = () => this.adjustZoom(-0.1);
-
-    const resetBtn = document.createElement('button');
-    resetBtn.className = 'zoom-button zoom-display';
-    resetBtn.textContent = `${this.zoomLevel.toFixed(1)}×`;
-    resetBtn.title = 'Reset Zoom';
-    resetBtn.onclick = () => this.setZoom(1);
-
-    controls.appendChild(zoomInBtn);
-    controls.appendChild(resetBtn);
-    controls.appendChild(zoomOutBtn);
-
-    document.body.appendChild(controls);
-    this.zoomControls = controls;
-  }
-
-  private adjustZoom(delta: number): void {
-    const newZoom = Math.max(0.5, Math.min(2.5, this.zoomLevel + delta));
-    this.setZoom(newZoom);
-  }
-
-  public getZoomLevel() {
-    return this.zoomLevel;
-  }
-
-  private setZoom(zoom: number): void {
-    this.zoomLevel = zoom;
-    localStorage.setItem('whiteboard-zoom', zoom.toString());
-
-    // Update the display button text
-    if (this.zoomControls) {
-      const displayBtn = this.zoomControls.querySelector('.zoom-display');
-      if (displayBtn) {
-        displayBtn.textContent = `${this.zoomLevel.toFixed(1)}×`;
-      }
-    }
-
-    // Update all card sizes
-    this.cards.forEach((card) => {
-      const container = this.playerContainers.get(card.ownerId);
-      if (!container) return;
-
-      const cardElement = container.querySelector(
-        `[data-card-id="${card.id}"]`
-      ) as HTMLElement;
-      if (cardElement) {
-        this.applyZoomToCard(cardElement);
-      }
+        const cardElement = container.querySelector(
+          `[data-card-id="${card.id}"]`
+        ) as HTMLElement;
+        if (cardElement) {
+          this.zoomController.applyZoomToCard(cardElement);
+        }
+      });
     });
   }
 
-  private applyZoomToCard(cardElement: HTMLElement): void {
-    const baseWidth = 63;
-    const baseHeight = 88;
-    const width = baseWidth * this.zoomLevel;
-    const height = baseHeight * this.zoomLevel;
-
-    cardElement.style.width = `${width}px`;
-    cardElement.style.height = `${height}px`;
+  public getZoomLevel() {
+    return this.zoomController.getZoomLevel();
   }
 
   public destroy(): void {
     this.cards.clear();
     this.playerContainers.forEach((container) => container.remove());
     this.playerContainers.clear();
-    if (this.zoomControls) {
-      this.zoomControls.remove();
-    }
+    this.zoomController.destroy();
     this.tooltipManager.destroy();
   }
 }

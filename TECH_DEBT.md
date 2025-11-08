@@ -18,7 +18,7 @@ The `MultiPlayerBoardManager.ts` file is 816 lines and handles too many responsi
 
 Break into smaller, composable classes with single responsibilities:
 
-### 1. `PlayerContainerManager`
+### 1. `BoardContainerManager`
 **Responsibility:** Manage player board container lifecycle and positioning
 - `createContainer(playerId, isLocal): HTMLElement`
 - `getContainer(playerId): HTMLElement | undefined`
@@ -38,7 +38,7 @@ Break into smaller, composable classes with single responsibilities:
 
 **State:** `pinnedOpponentId`, `hoveredOpponentId`, `opponentCount`
 
-**Dependencies:** Needs `PlayerContainerManager` to access containers
+**Dependencies:** Needs `BoardContainerManager` to access containers
 
 ### 3. `CardRenderer`
 **Responsibility:** Create and update card DOM elements
@@ -51,7 +51,7 @@ Break into smaller, composable classes with single responsibilities:
 
 **State:** `Map<string, WhiteboardCard>` of cards
 
-**Dependencies:** Needs `PlayerContainerManager`, coordinate transform logic
+**Dependencies:** Needs `BoardContainerManager`, coordinate transform logic
 
 ### 4. `DragController`
 **Responsibility:** Handle drag and drop interactions
@@ -112,7 +112,7 @@ Break into smaller, composable classes with single responsibilities:
 **Composition:**
 ```typescript
 class MultiPlayerBoardManager {
-  private containerManager: PlayerContainerManager;
+  private boardContainerManager: BoardContainerManager;
   private visibilityController: OpponentVisibilityController;
   private cardRenderer: CardRenderer;
   private dragController: DragController;
@@ -123,10 +123,10 @@ class MultiPlayerBoardManager {
 
   constructor(...) {
     // Create all sub-managers
-    this.containerManager = new PlayerContainerManager(mainContainer);
-    this.visibilityController = new OpponentVisibilityController(this.containerManager);
+    this.boardContainerManager = new BoardContainerManager(mainContainer);
+    this.visibilityController = new OpponentVisibilityController(this.boardContainerManager);
     this.zoomController = new ZoomController();
-    this.cardRenderer = new CardRenderer(this.containerManager, this.zoomController);
+    this.cardRenderer = new CardRenderer(this.boardContainerManager, this.zoomController);
     this.dragController = new DragController(yCards, this.cardRenderer);
     this.tooltipManager = new TooltipManager();
     this.yjsSyncManager = new YjsSyncManager(yDoc, yCards);
@@ -153,11 +153,11 @@ class MultiPlayerBoardManager {
 
 **Phase 2:** Extract state managers (minimal dependencies)
 3. `ZoomController` - emits events
-4. `PlayerContainerManager` - manages containers
+4. `BoardContainerManager` - manages containers
 
 **Phase 3:** Extract dependent managers
-5. `OpponentVisibilityController` - depends on PlayerContainerManager
-6. `CardRenderer` - depends on PlayerContainerManager, ZoomController
+5. `OpponentVisibilityController` - depends on BoardContainerManager
+6. `CardRenderer` - depends on BoardContainerManager, ZoomController
 7. `YjsSyncManager` - uses callbacks
 
 **Phase 4:** Extract interaction handlers
@@ -165,6 +165,14 @@ class MultiPlayerBoardManager {
 
 **Phase 5:** Simplify orchestrator
 9. Refactor `MultiPlayerBoardManager` to compose all pieces
+
+## Completed Phases:
+**Phase 1:** Extract pure utility classes (no dependencies)
+1. `CoordinateTransformer` - pure functions
+2. `TooltipManager` - self-contained
+
+**Phase 2:** Extract state managers (minimal dependencies)
+3. `ZoomController` - emits events
 
 ## Benefits
 
@@ -181,7 +189,7 @@ class MultiPlayerBoardManager {
 ```
 src/modules/whiteboard/
 ├── MultiPlayerBoardManager.ts           (orchestrator, ~150 lines)
-├── PlayerContainerManager.ts            (~100 lines)
+├── BoardContainerManager.ts            (~100 lines)
 ├── OpponentVisibilityController.ts      (~120 lines)
 ├── CardRenderer.ts                      (~250 lines)
 ├── DragController.ts                    (~80 lines)
