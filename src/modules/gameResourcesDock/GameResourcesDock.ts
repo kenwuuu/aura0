@@ -307,8 +307,7 @@ export class GameResourcesDock {
           this.player.moveCardToDiscard(this.draggedCard.card);
         }
 
-        // Remove the dragged card from hand
-        this.player.playCardFromHand(this.draggedCard.card.id);
+        this.player.removeCardFromHand(this.draggedCard.card.id);
         this.draggedCard = null;
       });
     });
@@ -474,13 +473,12 @@ export class GameResourcesDock {
       const index = pile.findIndex(c => c.id === card.id);
       if (index !== -1) {
         pile.splice(index, 1);
+        // TODO: add remove from top/bottom functions to PileViewer or whatever class this is
         this.player['yPlayerState'].set(pileType === 'exile' ? 'exilePile' : 'discardPile', pile);
       }
     }
 
-    // Add to hand
-    const hand = this.player.getState().hand;
-    this.player['yPlayerState'].set('hand', [...hand, card]);
+    this.player.putCardInHand(card);
 
     // Update viewer with new card list
     this.updatePileViewer(pileType);
@@ -581,7 +579,7 @@ export class GameResourcesDock {
           const hand = this.player.getState().hand;
           const card = hand.find(c => c.id === cardId);
           if (card) {
-            this.player.playCardFromHand(cardId);
+            this.player.removeCardFromHand(cardId);
           }
         },
         moveHandCardToDiscard: (cardId: string) => {
@@ -589,7 +587,7 @@ export class GameResourcesDock {
           const card = hand.find(c => c.id === cardId);
           if (card) {
             this.player.moveCardToDiscard(card);
-            this.player.playCardFromHand(cardId);
+            this.player.removeCardFromHand(cardId);
           }
         },
         moveHandCardToExile: (cardId: string) => {
@@ -597,7 +595,7 @@ export class GameResourcesDock {
           const card = hand.find(c => c.id === cardId);
           if (card) {
             this.player.moveCardToExile(card);
-            this.player.playCardFromHand(cardId);
+            this.player.removeCardFromHand(cardId);
           }
         },
         moveHandCardToDeckTop: (cardId: string) => {
@@ -605,7 +603,7 @@ export class GameResourcesDock {
           const card = hand.find(c => c.id === cardId);
           if (card) {
             this.player.moveCardToDeckTop(card);
-            this.player.playCardFromHand(cardId);
+            this.player.removeCardFromHand(cardId);
           }
         },
         moveHandCardToDeckBottom: (cardId: string) => {
@@ -613,7 +611,7 @@ export class GameResourcesDock {
           const card = hand.find(c => c.id === cardId);
           if (card) {
             this.player.moveCardToDeckBottom(card);
-            this.player.playCardFromHand(cardId);
+            this.player.removeCardFromHand(cardId);
           }
         },
         movePileCardToBattlefield: (card: Card, pileType: 'deck' | 'exile' | 'discard') => {

@@ -190,7 +190,7 @@ class AuraApp {
         if (!cardId) return;
 
         // Try to play the card from hand
-        const card = this.localPlayer.playCardFromHand(cardId);
+        const card = this.localPlayer.removeCardFromHand(cardId);
         if (card) {
           // Calculate board offset (board is centered on screen)
           const BOARD_WIDTH = 16 * CARD_WIDTH;

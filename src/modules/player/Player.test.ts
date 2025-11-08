@@ -74,17 +74,17 @@ describe('Player.reset()', () => {
       // Move some to discard (and remove from hand)
       if (card1) {
         player.moveCardToDiscard(card1);
-        player.playCardFromHand(card1.id);
+        player.removeCardFromHand(card1.id);
       }
       if (card2) {
         player.moveCardToDiscard(card2);
-        player.playCardFromHand(card2.id);
+        player.removeCardFromHand(card2.id);
       }
 
       // Move some to exile (and remove from hand)
       if (card3) {
         player.moveCardToExile(card3);
-        player.playCardFromHand(card3.id);
+        player.removeCardFromHand(card3.id);
       }
 
       // Keep card4 and card5 in hand
@@ -123,7 +123,7 @@ describe('Player.reset()', () => {
           ownerId: playerId,
         };
         yCards.set(card1.id, whiteboardCard1);
-        player.playCardFromHand(card1.id);
+        player.removeCardFromHand(card1.id);
       }
 
       if (card2) {
@@ -133,7 +133,7 @@ describe('Player.reset()', () => {
           ownerId: playerId,
         };
         yCards.set(card2.id, whiteboardCard2);
-        player.playCardFromHand(card2.id);
+        player.removeCardFromHand(card2.id);
       }
 
       // Verify state before reset
@@ -167,7 +167,7 @@ describe('Player.reset()', () => {
           zIndex: 1,
           ownerId: playerId,
         });
-        player.playCardFromHand(playerCard.id);
+        player.removeCardFromHand(playerCard.id);
       }
 
       // Add opponent's card to battlefield
@@ -214,19 +214,19 @@ describe('Player.reset()', () => {
           zIndex: index + 1,
           ownerId: playerId,
         });
-        player.playCardFromHand(card.id);
+        player.removeCardFromHand(card.id);
       });
 
       // Move 2 to discard
       player.moveCardToDiscard(cards[3]);
-      player.playCardFromHand(cards[3].id);
+      player.removeCardFromHand(cards[3].id);
 
       player.moveCardToDiscard(cards[4]);
-      player.playCardFromHand(cards[4].id);
+      player.removeCardFromHand(cards[4].id);
 
       // Move 1 to exile
       player.moveCardToExile(cards[5]);
-      player.playCardFromHand(cards[5].id);
+      player.removeCardFromHand(cards[5].id);
 
       // Keep cards[6] and cards[7] in hand
 
@@ -369,7 +369,7 @@ describe('Player.playCardFromHand()', () => {
     const card2 = player.drawCard();
 
     if (card1) {
-      const playedCard = player.playCardFromHand(card1.id);
+      const playedCard = player.removeCardFromHand(card1.id);
 
       expect(playedCard).toEqual(card1);
       expect(player.getState().hand.length).toBe(1);
@@ -381,7 +381,7 @@ describe('Player.playCardFromHand()', () => {
   it('should return null if card not in hand', () => {
     player.drawCard();
 
-    const playedCard = player.playCardFromHand('non-existent-id');
+    const playedCard = player.removeCardFromHand('non-existent-id');
 
     expect(playedCard).toBeNull();
     expect(player.getState().hand.length).toBe(1);

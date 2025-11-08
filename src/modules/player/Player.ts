@@ -71,8 +71,7 @@ export class Player {
     const card = this.deck.drawCard();
     if (!card) return null;
 
-    const hand = this.yPlayerState.get('hand') ?? [];
-    this.yPlayerState.set('hand', [...hand, card]);
+    this.putCardInHand(card);
     this.yPlayerState.set('deckCardCount', this.deck.getCardCount());
 
     return card;
@@ -116,7 +115,7 @@ export class Player {
     this.deck.shuffleDeck();
   }
 
-  public playCardFromHand(cardId: string): Card | null {
+  public removeCardFromHand(cardId: string): Card | null {
     const hand = this.yPlayerState.get('hand') ?? [];
     const cardIndex = hand.findIndex((c: Card) => c.id === cardId);
 
@@ -127,6 +126,11 @@ export class Player {
     this.yPlayerState.set('hand', newHand);
 
     return card;
+  }
+
+  public putCardInHand(card: Card) {
+    const hand = this.yPlayerState.get('hand') ?? [];
+    this.yPlayerState.set('hand', [...hand, card]);
   }
 
   public moveCardToDiscard(card: Card): void {
