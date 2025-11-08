@@ -205,7 +205,7 @@ class AuraApp {
           card.y = e.clientY - boardTop - ((CARD_HEIGHT / 2) * this.whiteboard.getZoomLevel()) - 60;
           this.whiteboard.addCard(card, this.playerId);
 
-          // Create tokens if this card has any associated tokens
+          // Search for and create any tokens related to card
           if (card.scryfallId) {
             const result = await this.tokenService.createTokensForCard(
               card.scryfallId,

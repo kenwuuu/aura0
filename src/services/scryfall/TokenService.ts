@@ -143,6 +143,7 @@ export class TokenService {
           );
 
           // Create the token Card object
+          // TODO: extract card creation logic to board manager
           const token: Card = {
             id: `token-${Math.random().toString(36).substring(2, 11)}`,
             cardNumber: this.tokenCardNumberCounter++,
