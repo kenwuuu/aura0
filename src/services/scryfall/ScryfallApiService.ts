@@ -1,8 +1,9 @@
 import PQueue from 'p-queue';
 import pRetry from 'p-retry';
 import { CardImages, CardImageUris } from '../../modules/deck/types';
+import { toCardDataResult } from './ScryfallCardAdapter';
 
-interface ScryfallCard {
+export interface ScryfallCard {
   id: string;
   name: string;
   type_line?: string;
@@ -109,33 +110,6 @@ export class ScryfallApiService {
     ) as ScryfallCard;
   }
 
-  /**
-   * Extract image URIs from Scryfall card object
-   */
-  private extractImageUris(cardObj: ScryfallCard): CardImages {
-    // Single-face cards have image_uris at the root
-    if (cardObj.image_uris) {
-      return {
-        front: cardObj.image_uris,
-        back: null,
-      };
-    }
-
-    // Double-faced/multi-face cards have card_faces array
-    if (Array.isArray(cardObj.card_faces)) {
-      const [faceA, faceB] = cardObj.card_faces;
-      return {
-        front: faceA?.image_uris || null,
-        back: faceB?.image_uris || null,
-      };
-    }
-
-    // Fallback: no images found
-    return {
-      front: null,
-      back: null,
-    };
-  }
 
   /**
    * Fetch images for a list of cards with progress callback
@@ -150,15 +124,7 @@ export class ScryfallApiService {
     for (const entry of entries) {
       try {
         const cardObj = await this.fetchCardData(entry.name);
-        const imageUris = this.extractImageUris(cardObj);
-
-        results.push({
-          count: entry.count,
-          name: entry.name,
-          type_line: cardObj.type_line,
-          scryfallId: cardObj.id,
-          imageUris,
-        });
+        results.push(toCardDataResult(cardObj, entry.count));
       } catch (err) {
         console.error(`Error fetching "${entry.name}":`, err);
         results.push({
@@ -238,12 +204,13 @@ export class ScryfallApiService {
    * Create a Card object from Scryfall data
    */
   createCardFromScryfall(scryfallCard: ScryfallCard): CardDataResult {
-    return {
-      count: 1,
-      name: scryfallCard.name,
-      type_line: scryfallCard.type_line,
-      scryfallId: scryfallCard.id,
-      imageUris: this.extractImageUris(scryfallCard),
-    };
+    return toCardDataResult(scryfallCard, 1);
+  }
+
+  /**
+   * Fetch card by name (public API for adding arbitrary cards)
+   */
+  async fetchCardByName(cardName: string): Promise<ScryfallCard> {
+    return this.fetchCardData(cardName);
   }
 }
