@@ -7,10 +7,11 @@ import { WebRTCProvider } from './modules/webrtc';
 import { getOrCreatePlayerId, getOrCreatePeerId } from './modules/webrtc/persistence';
 import { Player } from './modules/player';
 import { GameResourcesDock } from './modules/gameResourcesDock';
-import { DeckManager, WelcomeModal, HotkeysModal, HelpModal } from './components';
+import { DeckManager, WelcomeModal, HotkeysModal, HelpModal, AddCardManager } from './components';
 import { OpponentHealthList } from './components/OpponentHealthList';
 import { SavedDeck } from './modules/deck/types';
 import { TokenService } from './services/scryfall';
+import { ScryfallApiService } from './services/scryfall/ScryfallApiService';
 import { CardPreview } from './modules/cardPreview';
 import './style.css';
 import {CARD_HEIGHT, CARD_WIDTH} from "./constants";
@@ -25,6 +26,7 @@ class AuraApp {
   private tokenService: TokenService;
   private cardPreview: CardPreview;
   private playerId: string;
+  private scryfallApiService: ScryfallApiService;
 
   constructor() {
     this.yDoc = new Y.Doc();
@@ -103,10 +105,13 @@ class AuraApp {
       })
     );
 
+    // Initialize Scryfall API service
+    this.scryfallApiService = new ScryfallApiService();
+
     // Initialize token service with zoom level provider
     this.tokenService = new TokenService(
       () => this.whiteboard.getZoomLevel(), // Inject zoom level getter
-      undefined, // Use default ScryfallApiService
+      this.scryfallApiService,
     );
 
     this.setupEventListeners();
@@ -115,6 +120,7 @@ class AuraApp {
     this.setupDeckManager();
     this.setupHelpModal();
     this.setupHotkeyHintsModal();
+    this.setupAddCardModal();
   }
 
   private setupKeyboardCallbacks(): void {
@@ -351,6 +357,20 @@ class AuraApp {
 
     const root = createRoot(hotkeysRoot);
     root.render(React.createElement(HotkeysButton));
+  }
+
+  private setupAddCardModal(): void {
+    const addCardModalRoot = document.createElement('div');
+    addCardModalRoot.id = 'add-card-modal-root';
+    document.body.appendChild(addCardModalRoot);
+
+    const root = createRoot(addCardModalRoot);
+    root.render(
+      React.createElement(AddCardManager, {
+        scryfallApiService: this.scryfallApiService,
+        onAddCard: (card) => this.localPlayer.putCardInHand(card),
+      })
+    );
   }
 
   public destroy(): void {
