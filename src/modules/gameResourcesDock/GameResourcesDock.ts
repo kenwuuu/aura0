@@ -25,7 +25,7 @@ export class GameResourcesDock {
   } | null = null;
   private draggedCard: { card: Card; element: HTMLElement } | null = null;
   private hoveredHandCardId: string | null = null;
-  private hoveredPileType: 'deck' | 'exile' | 'discard' | null = null;
+  private hoveredResource: 'deck' | 'exile' | 'discard' | 'health' | null = null;
   private handZoomLevel: number = 1;
   private zoomControls?: HTMLElement;
   private cardPreview: CardPreview;
@@ -113,8 +113,8 @@ export class GameResourcesDock {
 
     if (this.hoveredHandCardId) {
       context = 'hand';
-    } else if (this.hoveredPileType) {
-      context = this.hoveredPileType as HotkeyContext;
+    } else if (this.hoveredResource) {
+      context = this.hoveredResource as HotkeyContext;
     }
 
     // Render tooltip or hide it
@@ -169,13 +169,13 @@ export class GameResourcesDock {
 
     // Hover tracking for keyboard shortcuts and tooltip
     pile.addEventListener('mouseenter', () => {
-      this.hoveredPileType = type as 'deck' | 'exile' | 'discard';
+      this.hoveredResource = type as 'deck' | 'exile' | 'discard' | 'health';
       this.hoveredHandCardId = null;
       this.updateTooltip();
     });
 
     pile.addEventListener('mouseleave', () => {
-      this.hoveredPileType = null;
+      this.hoveredResource = null;
       this.updateTooltip();
     });
 
@@ -224,14 +224,14 @@ export class GameResourcesDock {
     deck.appendChild(count);
     deck.appendChild(drawButton);
 
-    // Hover tracking for keyboard shortcuts
+    // Add hover event listeners for keyboard shortcuts
     deck.addEventListener('mouseenter', () => {
-      this.hoveredPileType = 'deck';
+      this.hoveredResource = 'deck';
       this.hoveredHandCardId = null;
     });
 
     deck.addEventListener('mouseleave', () => {
-      this.hoveredPileType = null;
+      this.hoveredResource = null;
     });
 
     // Click deck to view it (with search and sort)
@@ -245,12 +245,22 @@ export class GameResourcesDock {
   }
 
   private createHealthElement(): HTMLElement {
-    const container = document.createElement('div');
+    const healthElement = document.createElement('div');
 
-    this.healthRoot = createRoot(container);
+    this.healthRoot = createRoot(healthElement);
     this.renderHealthComponent();
 
-    return container;
+    // Add hover event listeners for keyboard shortcuts
+    healthElement.addEventListener('mouseenter', () => {
+      this.hoveredResource = 'health';
+      this.hoveredHandCardId = null;
+    });
+
+    healthElement.addEventListener('mouseleave', () => {
+      this.hoveredResource = null;
+    });
+
+    return healthElement;
   }
 
   private renderHealthComponent(): void {
@@ -369,10 +379,10 @@ export class GameResourcesDock {
         cardEl.appendChild(cardNumber);
       }
 
-      // Hover tracking for keyboard shortcuts, card preview, and tooltip
+      // Add hover event listeners for keyboard shortcuts, card preview, and tooltip
       cardEl.addEventListener('mouseenter', () => {
         this.hoveredHandCardId = card.id;
-        this.hoveredPileType = null;
+        this.hoveredResource = null;
         this.cardPreview.show(card);
         this.updateTooltip();
       });
@@ -395,7 +405,7 @@ export class GameResourcesDock {
 
         // Clear hover states to prevent tooltip from showing after drag
         this.hoveredHandCardId = null;
-        this.hoveredPileType = null;
+        this.hoveredResource = null;
         this.updateTooltip();
 
         // Center the drag image under the cursor. This helps us place the card in the
@@ -558,7 +568,7 @@ export class GameResourcesDock {
     (window as any).getGameResourcesDockHoverState = () => {
       return {
         hoveredHandCardId: this.hoveredHandCardId,
-        hoveredPileType: this.hoveredPileType,
+        hoveredPileType: this.hoveredResource,
         getHandCard: (cardId: string) => {
           const hand = this.player.getState().hand;
           return hand.find(c => c.id === cardId) || null;

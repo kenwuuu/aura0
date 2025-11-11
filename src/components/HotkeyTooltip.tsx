@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { HotkeyContext, getHotkeysForContext } from '../data/hotkeys';
 
 interface HotkeyTooltipProps {
@@ -50,6 +50,7 @@ const styles = {
 export const HotkeyTooltip: React.FC<HotkeyTooltipProps> = ({ context, mouseX, mouseY, isMouseDown = false }) => {
   const [position, setPosition] = useState({ x: mouseX, y: mouseY });
   const [isVisible, setIsVisible] = useState(false);
+  const tooltipRef = useRef<HTMLDivElement>(null);
   const hotkeys = getHotkeysForContext(context);
 
   // Handle visibility delay
@@ -63,6 +64,13 @@ export const HotkeyTooltip: React.FC<HotkeyTooltipProps> = ({ context, mouseX, m
   }, [context]);
 
   useEffect(() => {
+    // Wait for tooltip to be rendered so we can get its actual dimensions
+    if (!tooltipRef.current) return;
+
+    const tooltipRect = tooltipRef.current.getBoundingClientRect();
+    const tooltipWidth = tooltipRect.width;
+    const tooltipHeight = tooltipRect.height;
+
     // Offset the tooltip slightly from the cursor
     const offsetX = 15;
     const offsetY = 15;
@@ -70,10 +78,6 @@ export const HotkeyTooltip: React.FC<HotkeyTooltipProps> = ({ context, mouseX, m
     // Calculate tooltip position, ensuring it stays within viewport
     let x = mouseX + offsetX;
     let y = mouseY + offsetY;
-
-    // Rough estimate of tooltip dimensions (will be adjusted by browser)
-    const tooltipWidth = 280;
-    const tooltipHeight = hotkeys.length * 20 + 16; // approximate height
 
     // Keep tooltip within viewport bounds
     if (x + tooltipWidth > window.innerWidth) {
@@ -84,7 +88,7 @@ export const HotkeyTooltip: React.FC<HotkeyTooltipProps> = ({ context, mouseX, m
     }
 
     setPosition({ x, y });
-  }, [mouseX, mouseY, hotkeys.length]);
+  }, [mouseX, mouseY, hotkeys.length, isVisible]);
 
   // Hide tooltip when mouse is down (dragging) or during delay
   if (hotkeys.length === 0 || isMouseDown || !isVisible) {
@@ -93,6 +97,7 @@ export const HotkeyTooltip: React.FC<HotkeyTooltipProps> = ({ context, mouseX, m
 
   return (
     <div
+      ref={tooltipRef}
       style={{
         ...styles.tooltip,
         left: `${position.x}px`,

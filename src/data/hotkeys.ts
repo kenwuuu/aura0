@@ -3,7 +3,7 @@
  * Each hotkey has both a short description (for tooltips) and a long description (for the modal)
  */
 
-export type HotkeyContext = 'global' | 'battlefield' | 'hand' | 'deck' | 'exile' | 'discard';
+export type HotkeyContext = 'global' | 'battlefield' | 'hand' | 'deck' | 'exile' | 'discard' | 'health';
 
 export interface HotkeyDefinition {
   key: string;
@@ -40,13 +40,13 @@ export const HOTKEYS: HotkeyDefinition[] = [
   },
   {
     key: '+  or  =',
-    context: ['global'],
+    context: ['global', "health"],
     shortDescription: '+1 life',
     longDescription: 'Gain 1 life',
   },
   {
     key: '-  or  _',
-    context: ['global'],
+    context: ['global', "health"],
     shortDescription: '-1 life',
     longDescription: 'Lose 1 life',
   },
