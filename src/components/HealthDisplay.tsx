@@ -165,6 +165,7 @@ export const HealthDisplay: React.FC<HealthDisplayProps> = ({
         <PlayerCounterModal
           onAdd={handleAddCounter}
           onCancel={() => setShowModal(false)}
+          openedFromBottom={variant === 'local'}
         />
       )}
     </>

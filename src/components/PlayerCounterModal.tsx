@@ -4,11 +4,12 @@ import styles from './PlayerCounterModal.module.css';
 interface CounterModalProps {
   onAdd: (title: string, icon: string) => void;
   onCancel: () => void;
+  openedFromBottom: boolean;
 }
 
 const COMMON_ICONS = ['☠️', '⚡', '🔥', '💀', '🌊', '⭐', '💎', '🎯', '⚔️', '🛡️'];
 
-export const PlayerCounterModal: React.FC<CounterModalProps> = ({ onAdd, onCancel }) => {
+export const PlayerCounterModal: React.FC<CounterModalProps> = ({ onAdd, onCancel, openedFromBottom }) => {
   const [title, setTitle] = useState('');
   const [icon, setIcon] = useState('☠️');
   const [customIcon, setCustomIcon] = useState('');
@@ -22,7 +23,7 @@ export const PlayerCounterModal: React.FC<CounterModalProps> = ({ onAdd, onCance
 
   return (
     <div className={styles.modalOverlay} onClick={onCancel}>
-      <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
+      <div className={openedFromBottom ? styles.modalFromBottom : styles.modal} onClick={(e) => e.stopPropagation()}>
         <h2 className={styles.title}>Add Custom Counter</h2>
 
         <form onSubmit={handleSubmit} className={styles.form}>
