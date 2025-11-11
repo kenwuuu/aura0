@@ -13,6 +13,8 @@ import { SavedDeck } from './modules/deck/types';
 import { TokenService } from './services/scryfall';
 import { ScryfallApiService } from './services/scryfall/ScryfallApiService';
 import { CardPreview } from './modules/cardPreview';
+import { DeckStorageService } from './services/deckStorage';
+import { DEFAULT_DECK } from './data/defaultDeck';
 import './style.css';
 import {CARD_HEIGHT, CARD_WIDTH} from "./constants";
 
@@ -254,10 +256,28 @@ class AuraApp {
     });
   }
 
-  private setupDeckManager(): void {
+  private async setupDeckManager(): Promise<void> {
     const deckManagerRoot = document.getElementById('deck-manager-root');
     if (!deckManagerRoot) {
       throw new Error('Deck manager root not found');
+    }
+
+    // Check if this is the user's first-ever load
+    const FIRST_LOAD_KEY = 'aura-first-load-completed';
+    const hasLoadedBefore = localStorage.getItem(FIRST_LOAD_KEY);
+
+    if (!hasLoadedBefore) {
+      // First load ever - add default deck if no decks exist
+      const storage = new DeckStorageService();
+      const deckCount = await storage.getDeckCount();
+
+      if (deckCount === 0) {
+        await storage.saveDeck(DEFAULT_DECK);
+        console.log('Default deck added on first load');
+      }
+
+      // Mark that first load is complete
+      localStorage.setItem(FIRST_LOAD_KEY, 'true');
     }
 
     const root = createRoot(deckManagerRoot);
