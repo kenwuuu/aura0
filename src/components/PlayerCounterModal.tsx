@@ -61,7 +61,7 @@ export const PlayerCounterModal: React.FC<CounterModalProps> = ({ onAdd, onCance
               className={styles.input}
               value={customIcon}
               onChange={(e) => setCustomIcon(e.target.value)}
-              placeholder="Or enter custom emoji/character"
+              placeholder="Or enter custom emoji"
               maxLength={2}
             />
           </div>
