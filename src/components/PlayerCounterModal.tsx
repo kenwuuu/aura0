@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import styles from './PlayerCounterModal.module.css';
 
 interface CounterModalProps {
@@ -13,6 +13,18 @@ export const PlayerCounterModal: React.FC<CounterModalProps> = ({ onAdd, onCance
   const [title, setTitle] = useState('');
   const [icon, setIcon] = useState('☠️');
   const [customIcon, setCustomIcon] = useState('');
+
+  // Handle ESC key to close modal
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onCancel();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onCancel]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

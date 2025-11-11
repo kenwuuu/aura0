@@ -43,6 +43,15 @@ export const HealthDisplay: React.FC<HealthDisplayProps> = ({
   const [isHovered, setIsHovered] = useState(false);
   const [showModal, setShowModal] = useState(false);
 
+  // Emit modal open/close event. Used for hiding hotkey tooltip
+  React.useEffect(() => {
+    if (showModal) {
+      window.dispatchEvent(new CustomEvent('modalOpen'));
+    } else {
+      window.dispatchEvent(new CustomEvent('modalClosed'));
+    }
+  }, [showModal]);
+
   const handleAddCounter = (title: string, icon: string) => {
     onAddCounter?.(title, icon);
     setShowModal(false);

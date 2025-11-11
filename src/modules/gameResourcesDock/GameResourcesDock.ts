@@ -35,6 +35,7 @@ export class GameResourcesDock {
   private currentMouseX: number = 0;
   private currentMouseY: number = 0;
   private isMouseDown: boolean = false;
+  private isModalOpen: boolean = false;
 
   constructor(
     container: HTMLElement,
@@ -90,23 +91,29 @@ export class GameResourcesDock {
     document.addEventListener('mousemove', (e: MouseEvent) => {
       this.currentMouseX = e.clientX;
       this.currentMouseY = e.clientY;
-      this.updateTooltip();
+      this.updateHotkeyTooltip();
     });
 
     // Track mouse down/up to hide tooltip during dragging
     document.addEventListener('mousedown', () => {
       this.isMouseDown = true;
-      this.updateTooltip();
+      this.updateHotkeyTooltip();
     });
 
     document.addEventListener('mouseup', () => {
       this.isMouseDown = false;
-      this.updateTooltip();
+      this.updateHotkeyTooltip();
     });
   }
 
-  private updateTooltip(): void {
+  private updateHotkeyTooltip(): void {
     if (!this.tooltipRoot) return;
+
+    // Hide hotkey tooltip when modal is open
+    if (this.isModalOpen) {
+      this.tooltipRoot.render(null);
+      return;
+    }
 
     // Determine which context to show based on hover state
     let context: HotkeyContext | null = null;
@@ -171,12 +178,12 @@ export class GameResourcesDock {
     pile.addEventListener('mouseenter', () => {
       this.hoveredResource = type as 'deck' | 'exile' | 'discard' | 'health';
       this.hoveredHandCardId = null;
-      this.updateTooltip();
+      this.updateHotkeyTooltip();
     });
 
     pile.addEventListener('mouseleave', () => {
       this.hoveredResource = null;
-      this.updateTooltip();
+      this.updateHotkeyTooltip();
     });
 
     // Click to view pile
@@ -286,6 +293,17 @@ export class GameResourcesDock {
       this.updateUI(state);
     });
 
+    // Listen for modal open/close events to hide tooltip
+    window.addEventListener('modalOpen', () => {
+      this.isModalOpen = true;
+      this.updateHotkeyTooltip();
+    });
+
+    window.addEventListener('modalClosed', () => {
+      this.isModalOpen = false;
+      this.updateHotkeyTooltip();
+    });
+
     // Initial update
     this.updateUI(this.player.getState());
   }
@@ -384,7 +402,7 @@ export class GameResourcesDock {
         this.hoveredHandCardId = card.id;
         this.hoveredResource = null;
         this.cardPreview.show(card);
-        this.updateTooltip();
+        this.updateHotkeyTooltip();
       });
 
       cardEl.addEventListener('mousemove', (e: MouseEvent) => {
@@ -394,7 +412,7 @@ export class GameResourcesDock {
       cardEl.addEventListener('mouseleave', () => {
         this.hoveredHandCardId = null;
         this.cardPreview.hide();
-        this.updateTooltip();
+        this.updateHotkeyTooltip();
       });
 
       // Drag events
@@ -406,7 +424,7 @@ export class GameResourcesDock {
         // Clear hover states to prevent tooltip from showing after drag
         this.hoveredHandCardId = null;
         this.hoveredResource = null;
-        this.updateTooltip();
+        this.updateHotkeyTooltip();
 
         // Center the drag image under the cursor. This helps us place the card in the
         // correct position after dragging to board
