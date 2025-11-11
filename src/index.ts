@@ -29,6 +29,7 @@ class AuraApp {
   private cardPreview: CardPreview;
   private playerId: string;
   private scryfallApiService: ScryfallApiService;
+  private roomName: string;
 
   constructor() {
     this.yDoc = new Y.Doc();
@@ -39,11 +40,11 @@ class AuraApp {
 
     // Get room name from URL or generate a random one
     const urlParams = new URLSearchParams(window.location.search);
-    const roomName = urlParams.get('room') ?? this.generateRoomId();
+    this.roomName = urlParams.get('room') ?? this.generateRoomId();
 
     // Update URL with room name if not present
     if (!urlParams.get('room')) {
-      window.history.replaceState({}, '', `?room=${roomName}`);
+      window.history.replaceState({}, '', `?room=${this.roomName}`);
     }
 
     // Get or create persistent peer ID for WebRTC
@@ -51,7 +52,7 @@ class AuraApp {
 
     // Initialize WebRTC provider with persistence
     this.webrtcProvider = new WebRTCProvider(this.yDoc, {
-      roomName,
+      roomName: this.roomName,
       peerId, // Pass persistent peer ID
     });
 
@@ -299,7 +300,26 @@ class AuraApp {
   }
 
   private async loadDeckOnStart(storage: DeckStorageService) {
-    // Auto-load the first available deck on app start
+    // Only auto-load deck when entering a NEW room, not when reconnecting
+    // Track up to 3 recent rooms to allow switching between them without auto-load
+    const VISITED_ROOMS_KEY = 'aura-visited-rooms';
+    const visitedRoomsJson = localStorage.getItem(VISITED_ROOMS_KEY);
+    const visitedRooms: string[] = visitedRoomsJson ? JSON.parse(visitedRoomsJson) : [];
+
+    // Check if this room was recently visited (in the last 3 rooms)
+    const isRecentRoom = visitedRooms.includes(this.roomName);
+
+    if (isRecentRoom) {
+      console.log('Reconnecting to recent room - skipping auto-load to preserve game state');
+      return;
+    }
+
+    // Add this room to visited list (keep only last 3)
+    const updatedRooms = [this.roomName, ...visitedRooms.filter(r => r !== this.roomName)].slice(0, 3);
+    localStorage.setItem(VISITED_ROOMS_KEY, JSON.stringify(updatedRooms));
+    console.log('New room detected - will auto-load deck');
+
+    // Auto-load the first available deck on entering a new room
     const LAST_LOADED_DECK_KEY = 'aura-last-loaded-deck';
     const lastLoadedDeckId = localStorage.getItem(LAST_LOADED_DECK_KEY);
 
@@ -327,6 +347,7 @@ class AuraApp {
       if (deckToLoad) {
         this.loadDeck(deckToLoad);
         localStorage.setItem(LAST_LOADED_DECK_KEY, deckToLoad.metadata.id);
+        console.log(`Auto-loaded deck "${deckToLoad.metadata.name}" for new room`);
       }
     } catch (error) {
       console.error('Error auto-loading deck:', error);
