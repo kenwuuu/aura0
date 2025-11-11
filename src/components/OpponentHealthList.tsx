@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import * as Y from 'yjs';
 import { HealthDisplay } from './HealthDisplay';
-import { CustomCounter, Card } from '../modules/player/types';
+import { CustomCounter } from '../modules/player/types';
+import { Card } from '../modules/deck';
 import { DeckPileViewer } from '../modules/gameResourcesDock/components';
 
 interface OpponentHealthListProps {
@@ -15,6 +16,8 @@ interface OpponentData {
   customCounters: CustomCounter[];
   exilePile: Card[];
   discardPile: Card[];
+  hand: Card[];
+  allowViewHand: boolean; // Flag to control if hand can be viewed
 }
 
 export const OpponentHealthList: React.FC<OpponentHealthListProps> = ({
@@ -22,7 +25,7 @@ export const OpponentHealthList: React.FC<OpponentHealthListProps> = ({
   localPlayerId,
 }) => {
   const [opponents, setOpponents] = useState<OpponentData[]>([]);
-  const pileViewersRef = useRef<Map<string, { exile: DeckPileViewer; discard: DeckPileViewer }>>(new Map());
+  const pileViewersRef = useRef<Map<string, { exile: DeckPileViewer; discard: DeckPileViewer; hand: DeckPileViewer }>>(new Map());
 
   // Notify MultiPlayerBoardManager when opponent count changes
   useEffect(() => {
@@ -35,7 +38,7 @@ export const OpponentHealthList: React.FC<OpponentHealthListProps> = ({
     const updateOpponents = () => {
       const opponentsList: OpponentData[] = [];
 
-      yDoc.share.forEach((value, key) => {
+      yDoc.share.forEach((_, key) => {
         if (key.startsWith('player-') && key !== `player-${localPlayerId}`) {
           const playerId = key.replace('player-', '');
           const yPlayerState = yDoc.getMap(key);
@@ -43,8 +46,10 @@ export const OpponentHealthList: React.FC<OpponentHealthListProps> = ({
           const customCounters = (yPlayerState.get('customCounters') as CustomCounter[] | undefined) ?? [];
           const exilePile = (yPlayerState.get('exilePile') as Card[] | undefined) ?? [];
           const discardPile = (yPlayerState.get('discardPile') as Card[] | undefined) ?? [];
+          const hand = (yPlayerState.get('hand') as Card[] | undefined) ?? [];
+          const allowViewHand = (yPlayerState.get('allowViewHand') as boolean | undefined) ?? false;
 
-          opponentsList.push({ playerId, health, customCounters, exilePile, discardPile });
+          opponentsList.push({ playerId, health, customCounters, exilePile, discardPile, hand, allowViewHand });
         }
       });
 
@@ -58,7 +63,7 @@ export const OpponentHealthList: React.FC<OpponentHealthListProps> = ({
     const observerCleanups: Array<() => void> = [];
 
     const setupObservers = () => {
-      yDoc.share.forEach((value, key) => {
+      yDoc.share.forEach((_, key) => {
         if (key.startsWith('player-') && key !== `player-${localPlayerId}`) {
           const yPlayerState = yDoc.getMap(key);
           const observer = () => updateOpponents();
@@ -122,16 +127,17 @@ export const OpponentHealthList: React.FC<OpponentHealthListProps> = ({
     yPlayerState.set('customCounters', updatedCounters);
   };
 
-  const getOrCreateViewer = (playerId: string, pileType: 'exile' | 'discard'): DeckPileViewer => {
+  const getOrCreateViewer = (playerId: string, pileType: 'exile' | 'discard' | 'hand'): DeckPileViewer => {
     let viewers = pileViewersRef.current.get(playerId);
     if (!viewers) {
       viewers = {
         exile: new DeckPileViewer({}),
-        discard: new DeckPileViewer({})
+        discard: new DeckPileViewer({}),
+        hand: new DeckPileViewer({})
       };
       pileViewersRef.current.set(playerId, viewers);
     }
-    return pileType === 'exile' ? viewers.exile : viewers.discard;
+    return pileType === 'exile' ? viewers.exile : pileType === 'discard' ? viewers.discard : viewers.hand;
   };
 
   const viewPile = (playerId: string, pileType: 'exile' | 'discard') => {
@@ -141,6 +147,19 @@ export const OpponentHealthList: React.FC<OpponentHealthListProps> = ({
     const cards = pileType === 'exile' ? opponent.exilePile : opponent.discardPile;
     const viewer = getOrCreateViewer(playerId, pileType);
     viewer.show(cards, pileType);
+  };
+
+  const viewHand = (playerId: string) => {
+    const opponent = opponents.find(o => o.playerId === playerId);
+    if (!opponent) return;
+
+    // Only allow viewing if the flag is set
+    // TODO: add ability to take cards from hand without seeing face of card. will have to show blanks, and add a
+    //  function to move card to hand while removing from opponent hand at same time
+    if (!opponent.allowViewHand) return;
+
+    const viewer = getOrCreateViewer(playerId, 'hand');
+    viewer.show(opponent.hand, 'hand');
   };
 
   return (
@@ -157,8 +176,11 @@ export const OpponentHealthList: React.FC<OpponentHealthListProps> = ({
           onAddCounter={(title, icon) => addOpponentCounter(opponent.playerId, title, icon)}
           onModifyCounter={(counterId, delta) => modifyOpponentCounter(opponent.playerId, counterId, delta)}
           onRemoveCounter={(counterId) => removeOpponentCounter(opponent.playerId, counterId)}
+          handCount={opponent.hand.length}
+          allowViewHand={opponent.allowViewHand}
           exileCount={opponent.exilePile.length}
           discardCount={opponent.discardPile.length}
+          onViewHand={() => viewHand(opponent.playerId)}
           onViewExile={() => viewPile(opponent.playerId, 'exile')}
           onViewDiscard={() => viewPile(opponent.playerId, 'discard')}
         />

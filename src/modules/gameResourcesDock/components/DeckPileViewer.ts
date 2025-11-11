@@ -28,7 +28,7 @@ import { SearchBar } from './SearchBar';
 import { SortControl } from './SortControl';
 import { CardGridItem } from './CardGridItem';
 
-export type PileType = 'deck' | 'exile' | 'discard';
+export type PileType = 'deck' | 'exile' | 'discard' | 'hand';
 
 export interface DeckPileViewerCallbacks {
   onPlayToBattlefield?: (card: Card) => void;
@@ -124,6 +124,8 @@ export class DeckPileViewer {
       title.textContent = 'Exile Pile';
     } else if (this.pileType === 'discard') {
       title.textContent = 'Discard Pile';
+    } else if (this.pileType === 'hand') {
+      title.textContent = "Opponent's Hand";
     }
 
     header.appendChild(title);
