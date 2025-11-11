@@ -7,7 +7,7 @@ interface CounterModalProps {
   openedFromBottom: boolean;
 }
 
-const COMMON_ICONS = ['☠️', '⚡', '🔥', '💀', '🌊', '⭐', '💎', '🎯', '⚔️', '🛡️'];
+const COMMON_ICONS = ['☠️', '⚡', '🔥', '🩸', '☢️', '⭐', '💎', '👑', '⚔️', '🛡️'];
 
 export const PlayerCounterModal: React.FC<CounterModalProps> = ({ onAdd, onCancel, openedFromBottom }) => {
   const [title, setTitle] = useState('');
