@@ -262,13 +262,14 @@ class AuraApp {
       throw new Error('Deck manager root not found');
     }
 
+    const storage = new DeckStorageService();
+
     // Check if this is the user's first-ever load
     const FIRST_LOAD_KEY = 'aura-first-load-completed';
     const hasLoadedBefore = localStorage.getItem(FIRST_LOAD_KEY);
 
     if (!hasLoadedBefore) {
       // First load ever - add default deck if no decks exist
-      const storage = new DeckStorageService();
       const deckCount = await storage.getDeckCount();
 
       if (deckCount === 0) {
@@ -279,6 +280,8 @@ class AuraApp {
       // Mark that first load is complete
       localStorage.setItem(FIRST_LOAD_KEY, 'true');
     }
+
+    await this.loadDeckOnStart(storage);
 
     const root = createRoot(deckManagerRoot);
     root.render(
@@ -293,6 +296,42 @@ class AuraApp {
     document.body.appendChild(welcomeModalRoot);
     const welcomeRoot = createRoot(welcomeModalRoot);
     welcomeRoot.render(React.createElement(WelcomeModal));
+  }
+
+  private async loadDeckOnStart(storage: DeckStorageService) {
+    // Auto-load the first available deck on app start
+    const LAST_LOADED_DECK_KEY = 'aura-last-loaded-deck';
+    const lastLoadedDeckId = localStorage.getItem(LAST_LOADED_DECK_KEY);
+
+    try {
+      let deckToLoad: SavedDeck | null = null;
+
+      // Try to load the last loaded deck
+      if (lastLoadedDeckId) {
+        deckToLoad = await storage.getDeck(lastLoadedDeckId);
+      }
+
+      // If no last loaded deck or it doesn't exist anymore, get the first available deck
+      if (!deckToLoad) {
+        const allDecks = await storage.getAllDecks();
+        if (allDecks.length > 0) {
+          // Sort by last modified (most recent first) and take the first one
+          allDecks.sort((a, b) =>
+            new Date(b.metadata.lastModified).getTime() - new Date(a.metadata.lastModified).getTime()
+          );
+          deckToLoad = allDecks[0];
+        }
+      }
+
+      // Load the deck if found
+      if (deckToLoad) {
+        this.loadDeck(deckToLoad);
+        localStorage.setItem(LAST_LOADED_DECK_KEY, deckToLoad.metadata.id);
+      }
+    } catch (error) {
+      console.error('Error auto-loading deck:', error);
+      // Continue without loading a deck - user can manually select one
+    }
   }
 
   private loadDeck(savedDeck: SavedDeck): void {
@@ -311,6 +350,9 @@ class AuraApp {
 
     // Update deck count in Yjs state
     this.localPlayer['yPlayerState'].set('deckCardCount', newDeck.getCardCount());
+
+    // Save this as the last loaded deck for auto-loading on next visit
+    localStorage.setItem('aura-last-loaded-deck', savedDeck.metadata.id);
 
     console.log(`Deck "${savedDeck.metadata.name}" loaded successfully!`);
   }
