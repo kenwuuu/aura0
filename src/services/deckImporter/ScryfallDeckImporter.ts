@@ -119,7 +119,20 @@ export class ScryfallDeckImporter implements DeckImporter {
       console.log(`Importing ${result.count}x ${result.name}`);
 
       for (let i = 0; i < result.count; i++) {
-        cards.push(result.to);
+        cards.push({
+          id: `card-${Math.random().toString(36).substring(2, 11)}`,
+          cardNumber: cardNumberCounter++,
+          name: result.name,
+          type_line: result.type_line,
+          images: result.imageUris,
+          scryfallId: result.scryfallId,
+          x: 100,
+          y: 100,
+          rotation: 0,
+          isTapped: false,
+          isFlipped: false,
+          counters: [],
+        });
       }
     }
 

@@ -49,7 +49,7 @@ export class Player {
     };
   }
 
-  public async loadNewDeck(newDeck: Deck): void {
+  public async loadNewDeck(newDeck: Deck): Promise<void> {
     // assign deck
     this.deck = newDeck;
 
