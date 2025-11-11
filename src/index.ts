@@ -159,7 +159,7 @@ class AuraApp {
       },
       onMulligan: () => {
         const confirmed = window.confirm(
-          "Mulligan? Draw 7 new cards, with 1 less card for each mulligan you've taken."
+          "Mulligan? Draws 7 new cards."
         );
         if (confirmed) {
           this.localPlayer.mulligan(7);
