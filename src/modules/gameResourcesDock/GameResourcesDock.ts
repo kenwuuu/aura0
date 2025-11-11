@@ -8,6 +8,7 @@ import { createRoot, Root } from 'react-dom/client';
 import { HealthDisplay } from '../../components/HealthDisplay';
 import { HotkeyTooltip } from '../../components/HotkeyTooltip';
 import { HotkeyContext } from '../../data/hotkeys';
+import { DEFAULT_CARD_BACK } from '../../constants';
 
 export class GameResourcesDock {
   private container: HTMLElement;
@@ -378,19 +379,29 @@ export class GameResourcesDock {
       // Apply zoom level to card
       this.applyHandZoomToCard(cardEl);
 
-      // Check if card has image
-      if (card.images?.front?.normal) {
+      // Determine which image to show based on flip state
+      const shouldHaveImage = card.isFlipped
+        ? (card.images?.back?.normal || DEFAULT_CARD_BACK)
+        : card.images?.front?.normal;
+
+      if (shouldHaveImage) {
         const img = document.createElement('img');
-        img.src = card.images.front.normal;
-        img.alt = card.name || `Card #${card.cardNumber}`;
+        img.src = shouldHaveImage;
+        img.alt = card.isFlipped ? 'Card Back' : (card.name || `Card #${card.cardNumber}`);
         img.style.width = '100%';
         img.style.height = '100%';
         img.style.objectFit = 'cover';
         img.style.borderRadius = '8px';
         img.style.pointerEvents = 'none';
         cardEl.appendChild(img);
+
+        // Add card number badge
+        const badge = document.createElement('div');
+        badge.className = 'card-number-badge';
+        badge.textContent = `#${card.cardNumber}`;
+        cardEl.appendChild(badge);
       } else {
-        // Fallback: Display card number
+        // Fallback: Display card number only (no image available)
         const cardNumber = document.createElement('div');
         cardNumber.className = 'card-number-badge';
         cardNumber.textContent = `#${card.cardNumber}`;
@@ -640,6 +651,16 @@ export class GameResourcesDock {
           if (card) {
             this.player.moveCardToDeckBottom(card);
             this.player.removeCardFromHand(cardId);
+          }
+        },
+        flipHandCard: (cardId: string) => {
+          const hand = this.player.getState().hand;
+          const card = hand.find(c => c.id === cardId);
+          if (card) {
+            // Toggle flip state
+            const updatedCard = { ...card, isFlipped: !card.isFlipped };
+            const updatedHand = hand.map(c => c.id === cardId ? updatedCard : c);
+            this.player['yPlayerState'].set('hand', updatedHand);
           }
         },
         movePileCardToBattlefield: (card: Card, pileType: 'deck' | 'exile' | 'discard') => {

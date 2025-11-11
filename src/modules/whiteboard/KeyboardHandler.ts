@@ -254,6 +254,11 @@ export class KeyboardHandler {
           dockState.moveHandCardToExile(dockState.hoveredHandCardId);
           break;
 
+        case 'f': // F - Flip hand card
+          e.preventDefault();
+          dockState.flipHandCard(dockState.hoveredHandCardId);
+          break;
+
         case 't': // T - Move to top of deck
           e.preventDefault();
           dockState.moveHandCardToDeckTop(dockState.hoveredHandCardId);
