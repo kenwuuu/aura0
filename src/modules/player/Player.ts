@@ -49,7 +49,7 @@ export class Player {
     };
   }
 
-  public loadNewDeck(newDeck: Deck): void {
+  public async loadNewDeck(newDeck: Deck): void {
     // assign deck
     this.deck = newDeck;
 
@@ -57,6 +57,9 @@ export class Player {
     const deckCards = this.deck.getCards();
 
     if (deckCards.length > 0) {  // TODO: change logic based on if deck is commander or not
+      // use sleep to emphasize that commander is being drawn
+      await new Promise(r => setTimeout(r, 300));
+
       // bring commander to hand
       const commander = deckCards[deckCards.length - 1];
       this.deck.removeCard(commander.id);
@@ -64,6 +67,15 @@ export class Player {
       this.drawCard();
 
       this.deck.shuffleDeck();
+
+      await new Promise(r => setTimeout(r, 450));
+
+      // draw 7
+      for (let i = 0; i < 7; i++) {
+        this.drawCard()
+        await new Promise(r => setTimeout(r, 50));
+      }
+
     }
   }
 
