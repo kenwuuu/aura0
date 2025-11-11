@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { HotkeyDefinition, HotkeyContext, getHotkeysForContext } from '../data/hotkeys';
+import { HotkeyContext, getHotkeysForContext } from '../data/hotkeys';
 
 interface HotkeyTooltipProps {
   context: HotkeyContext;

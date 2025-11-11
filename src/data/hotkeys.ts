@@ -33,6 +33,12 @@ export const HOTKEYS: HotkeyDefinition[] = [
     longDescription: 'Mulligan (draw new hand)',
   },
   {
+    key: 'A',
+    context: ['global', 'deck'],
+    shortDescription: 'Add any card',
+    longDescription: 'Add a card from outside of game',
+  },
+  {
     key: '+  or  =',
     context: ['global'],
     shortDescription: '+1 life',
