@@ -1,6 +1,6 @@
 # Aura - Instantaneous Peer to Peer Magic
 
-A serverless web app built on React, WebRTC, and Yjs. And hopefully Tailwind and shadcn in the future.
+A serverless web app for playing cards built on React, WebRTC, and Yjs. And hopefully Tailwind and shadcn in the future.
 
 ## Contributing
 
