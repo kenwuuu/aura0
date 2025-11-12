@@ -255,6 +255,8 @@ class AuraApp {
         this.localPlayer.moveCardToExile(baseCard);
       } else if (destination === 'discard') {
         this.localPlayer.moveCardToDiscard(baseCard);
+      } else if (destination === 'deck') {
+        this.localPlayer.moveCardToDeckTop(baseCard);
       }
 
       // Remove card from battlefield

@@ -530,15 +530,15 @@ export class MultiPlayerBoardManager {
     return document.elementFromPoint(x, y);
   }
 
-  private findPileType(element: Element | null): 'hand' | 'exile' | 'discard' | null {
+  private findPileType(element: Element | null): 'hand' | 'exile' | 'discard' | 'deck' | null {
     if (!element) return null;
 
     // Walk up the DOM tree to find a pile element
     let current = element as HTMLElement | null;
     while (current) {
       const pileType = current.dataset?.pileType;
-      if (pileType === 'exile' || pileType === 'discard') {
-        return pileType as 'exile' | 'discard';
+      if (pileType === 'exile' || pileType === 'discard' || pileType === 'deck') {
+        return pileType as 'exile' | 'discard' | 'deck';
       }
       // Check if we're over the hand container
       if (current.classList.contains('hand-container') || current.classList.contains('hand-cards')) {
