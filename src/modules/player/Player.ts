@@ -75,7 +75,6 @@ export class Player {
         this.drawCard()
         await new Promise(r => setTimeout(r, 50));
       }
-
     }
   }
 
@@ -196,6 +195,10 @@ export class Player {
 
   public getDeckCards(): Card[] {
     return this.deck.getCards();
+  }
+
+  public getDeck(): Deck {
+    return this.deck;
   }
   
   public moveCardToDeckTop(card: Card): void {
