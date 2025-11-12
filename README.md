@@ -51,7 +51,7 @@ Each module is designed to be independently replaceable:
 Before running the application, you need:
 
 1. **Node.js** (v18 or higher)
-2. **STUN/TURN Servers** (optional - defaults are provided, see [WEBRTC_SETUP.md](./WEBRTC_SETUP.md))
+2. **STUN/TURN Servers** (optional - defaults are provided, see [WEBRTC_SETUP.md](docs/WEBRTC_SETUP.md))
 
 ## Installation
 
@@ -129,7 +129,7 @@ From left to right:
 
 ## Network Requirements
 
-See [WEBRTC_SETUP.md](./WEBRTC_SETUP.md) for detailed network configuration.
+See [WEBRTC_SETUP.md](docs/WEBRTC_SETUP.md) for detailed network configuration.
 
 ### Quick Summary
 
@@ -270,7 +270,7 @@ private transformCoordinates(card: WhiteboardCard): { x: number; y: number } {
 
 1. Check browser console for WebRTC errors
 2. Verify firewall allows WebSocket connections
-3. Try using a TURN server (see [WEBRTC_SETUP.md](./WEBRTC_SETUP.md))
+3. Try using a TURN server (see [WEBRTC_SETUP.md](docs/WEBRTC_SETUP.md))
 
 ### Cards Not Syncing
 
@@ -331,7 +331,7 @@ Private project
 ## Support
 
 For bugs or questions:
-1. Check this README and [WEBRTC_SETUP.md](./WEBRTC_SETUP.md)
+1. Check this README and [WEBRTC_SETUP.md](docs/WEBRTC_SETUP.md)
 2. Search existing issues in the project repository
 3. Contact the development team
 
@@ -342,4 +342,4 @@ For bugs or questions:
 - [ ] Run `npm run dev`
 - [ ] Open the URL in your browser
 - [ ] Share the URL with friends to play together
-- [ ] Read [WEBRTC_SETUP.md](./WEBRTC_SETUP.md) if you encounter connection issues
+- [ ] Read [WEBRTC_SETUP.md](docs/WEBRTC_SETUP.md) if you encounter connection issues
