@@ -1,17 +1,11 @@
-# Aura - Magic: The Gathering Collaboration App
+# Aura - Instantaneous Peer to Peer Magic
 
-A real-time collaboration app for playing Magic: The Gathering with friends using WebRTC and Yjs for peer-to-peer synchronization.
+A serverless web app built on React, WebRTC, and Yjs. And hopefully Tailwind and shadcn in the future.
 
-## Features
+## Contributing
 
-- **Real-time Collaboration**: Peer-to-peer synchronization using Yjs and y-webrtc
-- **Per-Player Resources**: Each player has their own deck, hand, life total, discard pile, and exile pile
-- **Private Hands**: Only you can see your hand - opponents cannot
-- **Interactive Whiteboard**: Dark-themed canvas for placing and moving cards with automatic perspective transformation
-- **Opponent View Transformation**: Cards you play at the bottom of your screen appear at the top for opponents
-- **Shared Life Totals**: Anyone can modify any player's life total (visible in top-right corner for opponents)
-- **Drag-and-Drop**: Move cards around the whiteboard in real-time
-- **Multi-User Support**: Connect with multiple players in the same room
+Want to help? Head over to the [Discord](https://discord.gg/PgH2gVZYKq) first to make sure we're taking 
+new contributions.
 
 ## Architecture
 
