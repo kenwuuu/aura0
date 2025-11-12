@@ -525,6 +525,30 @@ export class MultiPlayerBoardManager {
     }
   }
 
+  private getElementUnderMouse(x: number, y: number): Element | null {
+    // Get the element at the mouse position
+    return document.elementFromPoint(x, y);
+  }
+
+  private findPileType(element: Element | null): 'hand' | 'exile' | 'discard' | 'deck' | null {
+    if (!element) return null;
+
+    // Walk up the DOM tree to find a pile element
+    let current = element as HTMLElement | null;
+    while (current) {
+      const pileType = current.dataset?.pileType;
+      if (pileType === 'exile' || pileType === 'discard' || pileType === 'deck') {
+        return pileType as 'exile' | 'discard' | 'deck';
+      }
+      // Check if we're over the hand container
+      if (current.classList.contains('hand-container') || current.classList.contains('hand-cards')) {
+        return 'hand';
+      }
+      current = current.parentElement;
+    }
+    return null;
+  }
+
   private onMouseMove(e: MouseEvent): void {
     if (!this.dragState.cardId) return;
 
@@ -538,10 +562,32 @@ export class MultiPlayerBoardManager {
     this.yCards.set(this.dragState.cardId, updatedCard);
   }
 
-  private onMouseUp(): void {
+  private onMouseUp(e?: MouseEvent): void {
     if (this.dragState.cardId) {
       const card = this.cards.get(this.dragState.cardId);
       if (card && card.ownerId === this.localPlayerId) {
+        // Check if mouse is over a dock pile
+        if (e) {
+          const elementUnderMouse = this.getElementUnderMouse(e.clientX, e.clientY);
+          const pileType = this.findPileType(elementUnderMouse);
+
+          if (pileType) {
+            // Dispatch event to move card from battlefield to pile
+            const event = new CustomEvent('moveCardFromBattlefield', {
+              detail: {
+                cardId: this.dragState.cardId,
+                destination: pileType
+              }
+            });
+            window.dispatchEvent(event);
+
+            // Clear drag state and return early (card will be removed from battlefield)
+            this.dragState = { cardId: null, offsetX: 0, offsetY: 0 };
+            return;
+          }
+        }
+
+        // Normal case: just dragging around the battlefield
         const container = this.boardContainerManager.getContainer(card.ownerId);
         if (container) {
           const cardElement = container.querySelector(
@@ -559,7 +605,7 @@ export class MultiPlayerBoardManager {
 
   private attachEventListeners(): void {
     document.addEventListener('mousemove', (e) => this.onMouseMove(e));
-    document.addEventListener('mouseup', () => this.onMouseUp());
+    document.addEventListener('mouseup', (e) => this.onMouseUp(e));
     window.addEventListener('resize', () => this.boardContainerManager.recenterAll());
   }
 

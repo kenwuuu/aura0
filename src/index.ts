@@ -14,10 +14,12 @@ import { TokenService } from './services/scryfall';
 import { ScryfallApiService } from './services/scryfall/ScryfallApiService';
 import { CardPreview } from './modules/cardPreview';
 import { DeckStorageService } from './services/deckStorage';
+import { DeckPersistenceService } from './services/deckPersistence';
+import { RoomManager } from './services/roomManager';
+import { WhiteboardEventHandlers } from './services/eventHandlers';
 import { PatchNotesService } from './services/patchNotes';
 import { DEFAULT_DECK } from './data/defaultDeck';
 import './style.css';
-import {CARD_HEIGHT, CARD_WIDTH} from "./constants";
 
 class AuraApp {
   private yDoc: Y.Doc;
@@ -30,7 +32,8 @@ class AuraApp {
   private cardPreview: CardPreview;
   private playerId: string;
   private scryfallApiService: ScryfallApiService;
-  private roomName: string;
+  private roomManager: RoomManager;
+  private eventHandlers: WhiteboardEventHandlers | null = null;
 
   constructor() {
     this.yDoc = new Y.Doc();
@@ -39,26 +42,21 @@ class AuraApp {
     this.playerId = getOrCreatePlayerId();
     console.log('Player ID:', this.playerId);
 
-    // Get room name from URL or generate a random one
-    const urlParams = new URLSearchParams(window.location.search);
-    this.roomName = urlParams.get('room') ?? this.generateRoomId();
-
-    // Update URL with room name if not present
-    if (!urlParams.get('room')) {
-      window.history.replaceState({}, '', `?room=${this.roomName}`);
-    }
+    // Initialize room manager (handles room ID and URL)
+    this.roomManager = new RoomManager();
 
     // Get or create persistent peer ID for WebRTC
     const peerId = getOrCreatePeerId();
 
     // Initialize WebRTC provider with persistence
     this.webrtcProvider = new WebRTCProvider(this.yDoc, {
-      roomName: this.roomName,
+      roomName: this.roomManager.getRoomName(),
       peerId, // Pass persistent peer ID
     });
 
-    // Initialize local player deck
-    const localDeck = new Deck({
+    // Initialize local player deck - restore from localStorage if available for this room
+    const restoredDeck = DeckPersistenceService.restoreDeckForRoom(this.roomManager.getRoomName());
+    const localDeck = restoredDeck ?? new Deck({
       initialCardCount: 60,
     });
 
@@ -136,9 +134,11 @@ class AuraApp {
       },
       onMoveToDeckTop: (card) => {
         this.localPlayer.moveCardToDeckTop(card);
+        DeckPersistenceService.saveDeckForRoom(this.roomManager.getRoomName(), this.localPlayer.getDeck());
       },
       onMoveToDeckBottom: (card) => {
         this.localPlayer.moveCardToDeckBottom(card);
+        DeckPersistenceService.saveDeckForRoom(this.roomManager.getRoomName(), this.localPlayer.getDeck());
       },
       onMoveToGraveyard: (card) => {
         this.localPlayer.moveCardToDiscard(card);
@@ -148,9 +148,11 @@ class AuraApp {
       },
       onDrawCard: () => {
         this.localPlayer.drawCard();
+        DeckPersistenceService.saveDeckForRoom(this.roomManager.getRoomName(), this.localPlayer.getDeck());
       },
       onShuffleDeck: () => {
         this.localPlayer.shuffleDeck();
+        DeckPersistenceService.saveDeckForRoom(this.roomManager.getRoomName(), this.localPlayer.getDeck());
       },
       onUntapAll: () => {
         console.log('Untapping all cards');
@@ -167,6 +169,7 @@ class AuraApp {
         );
         if (confirmed) {
           this.localPlayer.mulligan(7);
+          DeckPersistenceService.saveDeckForRoom(this.roomManager.getRoomName(), this.localPlayer.getDeck());
         }
       },
       loseHealth: () => {
@@ -180,61 +183,17 @@ class AuraApp {
     this.whiteboard.setKeyboardCallbacks(callbacks);
   }
 
-  private generateRoomId(): string {
-    return `mtg-${Math.random().toString(36).substring(2, 9)}`;
-  }
-
   private setupEventListeners(): void {
-    const whiteboardContainer = document.getElementById('whiteboard');
-
-    // Setup whiteboard as a drop zone
-    if (whiteboardContainer) {
-      whiteboardContainer.addEventListener('dragover', (e) => {
-        e.preventDefault();
-        e.dataTransfer!.dropEffect = 'move';
-      });
-
-      whiteboardContainer.addEventListener('drop', async (e) => {
-        e.preventDefault();
-        const cardId = e.dataTransfer?.getData('text/plain');
-        if (!cardId) return;
-
-        // Try to play the card from hand
-        const card = this.localPlayer.removeCardFromHand(cardId);
-        if (card) {
-          // Calculate board offset (board is centered on screen)
-          const BOARD_WIDTH = 16 * CARD_WIDTH;
-          const BOARD_HEIGHT = 6.5 * CARD_HEIGHT;
-          const DOCK_HEIGHT = 160;
-          const boardLeft = (window.innerWidth - BOARD_WIDTH) / 2;
-          const boardTop = window.innerHeight - BOARD_HEIGHT - DOCK_HEIGHT;
-
-          // Convert screen coordinates to board-relative coordinates
-          // Then subtract card center offset for proper placement under cursor
-          card.x = e.clientX - boardLeft - ((CARD_WIDTH / 2) * this.whiteboard.getZoomLevel());
-          card.y = e.clientY - boardTop - ((CARD_HEIGHT / 2) * this.whiteboard.getZoomLevel()) - 60;
-          this.whiteboard.addCard(card, this.playerId);
-
-          // Search for and create any tokens related to card
-          if (card.scryfallId) {
-            const result = await this.tokenService.createTokensForCard(
-              card.scryfallId,
-              { x: card.x, y: card.y } // Place tokens to the right of the card
-            );
-
-            // Add tokens to battlefield
-            result.tokens.forEach(token => {
-              this.whiteboard.addCard(token, this.playerId);
-            });
-
-            // Log any errors
-            if (result.errors.length > 0) {
-              console.warn(`Token creation errors for ${card.name}:`, result.errors);
-            }
-          }
-        }
-      });
-    }
+    // Initialize event handlers for whiteboard interactions
+    this.eventHandlers = new WhiteboardEventHandlers(
+      this.yDoc,
+      this.localPlayer,
+      this.whiteboard,
+      this.tokenService,
+      this.playerId,
+      () => DeckPersistenceService.saveDeckForRoom(this.roomManager.getRoomName(), this.localPlayer.getDeck())
+    );
+    this.eventHandlers.setupEventListeners();
   }
 
   private setupConnectionStatus(): void {
@@ -305,22 +264,15 @@ class AuraApp {
 
   private async loadDeckOnStart(storage: DeckStorageService) {
     // Only auto-load deck when entering a NEW room, not when reconnecting
-    // Track up to 3 recent rooms to allow switching between them without auto-load
-    const VISITED_ROOMS_KEY = 'aura-visited-rooms';
-    const visitedRoomsJson = localStorage.getItem(VISITED_ROOMS_KEY);
-    const visitedRooms: string[] = visitedRoomsJson ? JSON.parse(visitedRoomsJson) : [];
-
-    // Check if this room was recently visited (in the last 3 rooms)
-    const isRecentRoom = visitedRooms.includes(this.roomName);
+    const isRecentRoom = this.roomManager.isRecentRoom();
 
     if (isRecentRoom) {
       console.log('Reconnecting to recent room - skipping auto-load to preserve game state');
       return;
     }
 
-    // Add this room to visited list (keep only last 3)
-    const updatedRooms = [this.roomName, ...visitedRooms.filter(r => r !== this.roomName)].slice(0, 3);
-    localStorage.setItem(VISITED_ROOMS_KEY, JSON.stringify(updatedRooms));
+    // Mark this room as visited
+    this.roomManager.markRoomAsVisited();
     console.log('New room detected - will auto-load deck');
 
     // Auto-load the first available deck on entering a new room
@@ -371,15 +323,18 @@ class AuraApp {
     }, savedDeck.cards);
 
     // Update the player's deck
-    this.localPlayer.loadNewDeck(newDeck);
+    this.localPlayer.loadNewDeck(newDeck).then(() => {
+      // Update deck count in Yjs state
+      this.localPlayer['yPlayerState'].set('deckCardCount', newDeck.getCardCount());
 
-    // Update deck count in Yjs state
-    this.localPlayer['yPlayerState'].set('deckCardCount', newDeck.getCardCount());
+      // Save this as the last loaded deck for auto-loading on next visit
+      localStorage.setItem('aura-last-loaded-deck', savedDeck.metadata.id);
 
-    // Save this as the last loaded deck for auto-loading on next visit
-    localStorage.setItem('aura-last-loaded-deck', savedDeck.metadata.id);
+      // Save the deck state for this room so it persists on refresh
+      DeckPersistenceService.saveDeckForRoom(this.roomManager.getRoomName(), newDeck);
 
-    console.log(`Deck "${savedDeck.metadata.name}" loaded successfully!`);
+      console.log(`Deck "${savedDeck.metadata.name}" loaded successfully!`);
+    });
   }
 
   private setupHelpModal(): void {

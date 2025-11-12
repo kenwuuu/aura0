@@ -312,8 +312,8 @@ export class GameResourcesDock {
   private setupDragDropZones(): void {
     if (!this.elements) return;
 
-    // Setup drop zones for exile and discard
-    [this.elements.exile, this.elements.discard].forEach((pile) => {
+    // Setup drop zones for exile, discard, and deck
+    [this.elements.exile, this.elements.discard, this.elements.deck].forEach((pile) => {
       pile.addEventListener('dragover', (e) => {
         e.preventDefault();
         pile.classList.add('drag-over');
@@ -334,6 +334,8 @@ export class GameResourcesDock {
           this.player.moveCardToExile(this.draggedCard.card);
         } else if (pileType === 'discard') {
           this.player.moveCardToDiscard(this.draggedCard.card);
+        } else if (pileType === 'deck') {
+          this.player.moveCardToDeckTop(this.draggedCard.card);
         }
 
         this.player.removeCardFromHand(this.draggedCard.card.id);
