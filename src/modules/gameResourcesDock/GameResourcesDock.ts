@@ -312,8 +312,8 @@ export class GameResourcesDock {
   private setupDragDropZones(): void {
     if (!this.elements) return;
 
-    // Setup drop zones for exile and discard
-    [this.elements.exile, this.elements.discard].forEach((pile) => {
+    // Setup drop zones for exile, discard, and hand
+    [this.elements.exile, this.elements.discard, this.elements.hand].forEach((pile) => {
       pile.addEventListener('dragover', (e) => {
         e.preventDefault();
         pile.classList.add('drag-over');
@@ -327,17 +327,41 @@ export class GameResourcesDock {
         e.preventDefault();
         pile.classList.remove('drag-over');
 
-        if (!this.draggedCard) return;
+        // Check if this is a card from the hand
+        if (this.draggedCard) {
+          const pileType = pile.dataset.pileType;
+          if (pileType === 'exile') {
+            this.player.moveCardToExile(this.draggedCard.card);
+          } else if (pileType === 'discard') {
+            this.player.moveCardToDiscard(this.draggedCard.card);
+          }
 
-        const pileType = pile.dataset.pileType;
-        if (pileType === 'exile') {
-          this.player.moveCardToExile(this.draggedCard.card);
-        } else if (pileType === 'discard') {
-          this.player.moveCardToDiscard(this.draggedCard.card);
+          this.player.removeCardFromHand(this.draggedCard.card.id);
+          this.draggedCard = null;
+          return;
         }
 
-        this.player.removeCardFromHand(this.draggedCard.card.id);
-        this.draggedCard = null;
+        // Check if this is a card from the battlefield
+        const cardData = e.dataTransfer?.getData('application/json');
+        if (cardData) {
+          try {
+            const { source, cardId } = JSON.parse(cardData);
+
+            if (source === 'battlefield') {
+              // Dispatch event to remove card from battlefield and add to pile
+              const pileType = pile.dataset.pileType;
+              const event = new CustomEvent('moveCardFromBattlefield', {
+                detail: {
+                  cardId,
+                  destination: pileType === 'hand' ? 'hand' : (pileType === 'exile' ? 'exile' : 'discard')
+                }
+              });
+              window.dispatchEvent(event);
+            }
+          } catch (error) {
+            console.error('Failed to parse card data:', error);
+          }
+        }
       });
     });
   }

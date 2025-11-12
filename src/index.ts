@@ -234,6 +234,32 @@ class AuraApp {
         }
       });
     }
+
+    // Listen for cards being dragged from battlefield to dock
+    window.addEventListener('moveCardFromBattlefield', ((event: CustomEvent) => {
+      const { cardId, destination } = event.detail;
+
+      // Get the card from battlefield (yCards)
+      const yCards = this.yDoc.getMap('cards');
+      const card = yCards.get(cardId);
+
+      if (!card || card.ownerId !== this.playerId) return;
+
+      // Remove WhiteboardCard-specific properties (zIndex, ownerId) to get base Card
+      const { zIndex, ownerId, ...baseCard } = card;
+
+      // Add card to the appropriate pile
+      if (destination === 'hand') {
+        this.localPlayer.putCardInHand(baseCard);
+      } else if (destination === 'exile') {
+        this.localPlayer.moveCardToExile(baseCard);
+      } else if (destination === 'discard') {
+        this.localPlayer.moveCardToDiscard(baseCard);
+      }
+
+      // Remove card from battlefield
+      yCards.delete(cardId);
+    }) as EventListener);
   }
 
   private setupConnectionStatus(): void {
