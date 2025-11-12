@@ -7,13 +7,14 @@ import { WebRTCProvider } from './modules/webrtc';
 import { getOrCreatePlayerId, getOrCreatePeerId } from './modules/webrtc/persistence';
 import { Player } from './modules/player';
 import { GameResourcesDock } from './modules/gameResourcesDock';
-import { DeckManager, WelcomeModal, HotkeysModal, HelpModal, AddCardManager } from './components';
+import { DeckManager, WelcomeModal, HotkeysModal, HelpModal, AddCardManager, PatchNotesModal } from './components';
 import { OpponentHealthList } from './components/OpponentHealthList';
 import { SavedDeck } from './modules/deck/types';
 import { TokenService } from './services/scryfall';
 import { ScryfallApiService } from './services/scryfall/ScryfallApiService';
 import { CardPreview } from './modules/cardPreview';
 import { DeckStorageService } from './services/deckStorage';
+import { PatchNotesService } from './services/patchNotes';
 import { DEFAULT_DECK } from './data/defaultDeck';
 import './style.css';
 import {CARD_HEIGHT, CARD_WIDTH} from "./constants";
@@ -297,6 +298,9 @@ class AuraApp {
     document.body.appendChild(welcomeModalRoot);
     const welcomeRoot = createRoot(welcomeModalRoot);
     welcomeRoot.render(React.createElement(WelcomeModal));
+
+    // Setup patch notes modal (shows after welcome modal if there are new notes)
+    this.setupPatchNotesModal();
   }
 
   private async loadDeckOnStart(storage: DeckStorageService) {
@@ -454,6 +458,37 @@ class AuraApp {
         onAddCard: (card) => this.localPlayer.putCardInHand(card),
       })
     );
+  }
+
+  private setupPatchNotesModal(): void {
+    // Only show patch notes if there are new updates
+    if (!PatchNotesService.shouldShowPatchNotes()) {
+      console.log('No new patch notes to show');
+      return;
+    }
+
+    const patchNotesModalRoot = document.createElement('div');
+    patchNotesModalRoot.id = 'patch-notes-modal-root';
+    document.body.appendChild(patchNotesModalRoot);
+
+    // Create a component that auto-opens on mount
+    const PatchNotesContainer: React.FC = () => {
+      const [isOpen, setIsOpen] = React.useState(true);
+
+      const handleClose = () => {
+        setIsOpen(false);
+        // Mark patch notes as seen when user closes the modal
+        PatchNotesService.markPatchNotesAsSeen();
+      };
+
+      return React.createElement(PatchNotesModal, {
+        isOpen,
+        onClose: handleClose,
+      });
+    };
+
+    const root = createRoot(patchNotesModalRoot);
+    root.render(React.createElement(PatchNotesContainer));
   }
 
   public destroy(): void {
