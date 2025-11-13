@@ -1,3 +1,11 @@
+## 2025 November 13
+
+### Features
+- Made card tooltip interactive, try clicking it!
+
+### Bug fixes
+- Fixed a bug with the default Krenko deck where identical cards could be controlled by either player that owned one.
+
 ## 2025 November 11
 
 ### Features
