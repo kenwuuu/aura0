@@ -425,6 +425,11 @@ export class MultiPlayerBoardManager {
       // Get latest card state from Yjs to avoid stale closures
       const latestCard = this.yCards.get(card.id) || card;
       this.cardPreview.show(latestCard);
+
+      // Show tooltip menu on hover for local player's cards (delayed)
+      if (card.ownerId === this.localPlayerId) {
+        this.tooltipManager.showOnHover(card.id, e.clientX, e.clientY);
+      }
     });
 
     cardElement.addEventListener('mousemove', (e: MouseEvent) => {
@@ -434,6 +439,7 @@ export class MultiPlayerBoardManager {
     cardElement.addEventListener('mouseleave', () => {
       this.keyboardHandler.setHoveredCard(null);
       this.cardPreview.hide();
+      this.tooltipManager.hideOnLeave();
     });
 
     // Handle click for tooltip menu (distinguish from drag)

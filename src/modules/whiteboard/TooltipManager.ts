@@ -9,12 +9,12 @@ import { HotkeyContext, HotkeyDefinition } from '../../data/hotkeys';
 export class TooltipManager {
   private tooltipRoot: Root | null = null;
   private tooltipContainer: HTMLElement | null = null;
-  private currentMouseX: number = 0;
-  private currentMouseY: number = 0;
   private mouseMoveHandler: ((e: MouseEvent) => void) | null = null;
   private clickedCardId: string | null = null;
-  private clickPosition: { x: number; y: number } | null = null;
   private onHotkeyClick: ((hotkey: HotkeyDefinition, cardId: string) => void) | null = null;
+  private hoverTimeout: number | null = null;
+  private hideTimeout: number | null = null;
+  private isTooltipHovered: boolean = false;
 
   /**
    * Initialize tooltip container and event listeners
@@ -27,12 +27,19 @@ export class TooltipManager {
     this.tooltipRoot = createRoot(this.tooltipContainer);
     this.onHotkeyClick = onHotkeyClick || null;
 
-    // Setup mouse move listener to track cursor position
-    this.mouseMoveHandler = (e: MouseEvent) => {
-      this.currentMouseX = e.clientX;
-      this.currentMouseY = e.clientY;
-    };
-    document.addEventListener('mousemove', this.mouseMoveHandler);
+    // Track tooltip hover to prevent premature hiding
+    this.tooltipContainer.addEventListener('mouseenter', () => {
+      this.isTooltipHovered = true;
+      if (this.hideTimeout !== null) {
+        clearTimeout(this.hideTimeout);
+        this.hideTimeout = null;
+      }
+    });
+    this.tooltipContainer.addEventListener('mouseleave', () => {
+      this.isTooltipHovered = false;
+      this.scheduleHide();
+    });
+
 
     // Setup click outside handler
     document.addEventListener('click', this.handleClickOutside.bind(this), true);
@@ -65,19 +72,16 @@ export class TooltipManager {
    * @param clickX - X position of the click
    * @param clickY - Y position of the click
    */
-  show(cardId: string, clickX: number, clickY: number): void {
+  show(cardId: string, clickX: number, clickY: number, pinned: boolean = true): void {
+    this.clearTimeouts();
     if (!this.tooltipRoot) return;
 
-    // Toggle: if same card is clicked, hide it
-    if (this.clickedCardId === cardId) {
+    if (this.clickedCardId === cardId && pinned) {
       this.hide();
       return;
     }
 
     this.clickedCardId = cardId;
-    this.clickPosition = { x: clickX, y: clickY };
-    this.currentMouseX = clickX;
-    this.currentMouseY = clickY;
 
     this.tooltipRoot.render(
       React.createElement(HotkeyTooltip, {
@@ -88,7 +92,6 @@ export class TooltipManager {
           if (this.onHotkeyClick && this.clickedCardId) {
             this.onHotkeyClick(hotkey, this.clickedCardId);
           }
-          // Hide menu after clicking an item
           this.hide();
         },
       })
@@ -96,9 +99,62 @@ export class TooltipManager {
   }
 
   /**
+   * Show tooltip on hover (delayed)
+   */
+  showOnHover(cardId: string, mouseX: number, mouseY: number): void {
+    this.clearHoverTimeout();
+
+    this.hoverTimeout = window.setTimeout(() => {
+      this.show(cardId, mouseX, mouseY, false);
+    }, 500);
+  }
+
+  /**
+   * Schedule tooltip hide (delayed)
+   */
+  private scheduleHide(): void {
+    this.clearHideTimeout();
+    this.hideTimeout = window.setTimeout(() => {
+      if (!this.isTooltipHovered) {
+        this.hide();
+      }
+    }, 200);
+  }
+
+  private clearTimeouts(): void {
+    this.clearHoverTimeout();
+    this.clearHideTimeout();
+  }
+
+  private clearHoverTimeout(): void {
+    if (this.hoverTimeout !== null) {
+      clearTimeout(this.hoverTimeout);
+      this.hoverTimeout = null;
+    }
+  }
+
+  private clearHideTimeout(): void {
+    if (this.hideTimeout !== null) {
+      clearTimeout(this.hideTimeout);
+      this.hideTimeout = null;
+    }
+  }
+
+  /**
+   * Hide tooltip immediately (cancel hover, unpin)
+   */
+  hideOnLeave(): void {
+    this.clearHoverTimeout();
+    if (!this.isTooltipHovered) {
+      this.scheduleHide();
+    }
+  }
+
+  /**
    * Hide tooltip
    */
   hide(): void {
+    this.clearTimeouts();
     if (!this.tooltipRoot) return;
     this.clickedCardId = null;
     this.clickPosition = null;
