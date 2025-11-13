@@ -20,7 +20,6 @@ import { WhiteboardEventHandlers } from './services/eventHandlers';
 import { PatchNotesService } from './services/patchNotes';
 import { DEFAULT_DECK } from './data/defaultDeck';
 import './style.css';
-
 import * as Sentry from "@sentry/react";
 
 Sentry.init({
