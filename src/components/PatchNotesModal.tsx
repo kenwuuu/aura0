@@ -22,16 +22,6 @@ const styles = {
     overflowY: 'scroll',
     padding: '0 4px',
   } as React.CSSProperties,
-  badge: {
-    display: 'inline-block',
-    backgroundColor: '#10b981',
-    color: '#fff',
-    padding: '4px 12px',
-    borderRadius: '12px',
-    fontSize: '12px',
-    fontWeight: 'bold',
-    marginLeft: '12px',
-  } as React.CSSProperties,
 };
 
 /**
@@ -211,8 +201,7 @@ export const PatchNotesModal: React.FC<PatchNotesModalProps> = ({ isOpen, onClos
       <div className="modal-content" style={styles.modal} onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <h2>
-            What's New
-            <span style={styles.badge}>NEW</span>
+            Patch Notes
           </h2>
           <button className="modal-close" onClick={onClose}>
             ×
