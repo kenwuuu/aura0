@@ -1,3 +1,6 @@
+# Can't see cards? Wonky board?
+Try zooming out on your browser by clicking on the address bar and using `Ctrl -` (Windows/Linux) or `Cmd -` (Mac). Reset zoom with `Ctrl 0` or `Cmd 0`.
+
 # Getting Started
 
 ## Inviting Friends to Play
