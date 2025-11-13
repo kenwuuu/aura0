@@ -3,6 +3,7 @@ import { AddCardModal } from './AddCardModal';
 import { ScryfallApiService } from '../services/scryfall/ScryfallApiService';
 import { toCard } from '../services/scryfall/ScryfallCardAdapter';
 import { Card } from '../modules/deck/types';
+import * as Sentry from '@sentry/react';
 
 interface AddCardManagerProps {
   scryfallApiService: ScryfallApiService;
@@ -17,15 +18,29 @@ export const AddCardManager: React.FC<AddCardManagerProps> = ({
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key.toLowerCase() === 'a' && !e.repeat) {
-        // Only trigger if not focused on an input element
-        if (
-          document.activeElement?.tagName !== 'INPUT' &&
-          document.activeElement?.tagName !== 'TEXTAREA'
-        ) {
-          e.preventDefault();
-          setIsOpen(true);
+      try {
+        if (e.key.toLowerCase() === 'a' && !e.repeat) {
+          // Only trigger if not focused on an input element
+          if (
+            document.activeElement?.tagName !== 'INPUT' &&
+            document.activeElement?.tagName !== 'TEXTAREA'
+          ) {
+            e.preventDefault();
+            setIsOpen(true);
+          }
         }
+      } catch (error) {
+        Sentry.captureException(error, {
+          extra: { event: e },
+        });
+
+        Sentry.logger.error("Error in AddCardManager_handleKeyDown", {
+          action: 'AddCardManager_handleKeyDown',
+          eventKey: e.key,
+          eventCode: e.code,
+          isRepeat: e.repeat,
+          activeElement: document.activeElement?.tagName,
+        });
       }
     };
 
