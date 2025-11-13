@@ -100,17 +100,17 @@ export class KeyboardHandler {
 
     // If there's a battlefield card, prioritize it
     if (card) {
-      this.handleBattlefieldCardShortcuts(key, card, e);
+      this.handleBattlefieldCardHotkeys(key, card, e);
       return;
     }
 
     // Otherwise check GameResourcesDock hover state
     if (dockState && (dockState.hoveredHandCardId || dockState.hoveredPileType)) {
-      this.handleDockShortcuts(key, dockState, e);
+      this.handleDockHotkeys(key, dockState, e);
       return;
     }
 
-    // Global shortcuts (no hover needed)
+    // Global hotkeys (no hover needed)
     switch (key) {
       case 'c': // C - Draw card
         e.preventDefault();
@@ -136,15 +136,47 @@ export class KeyboardHandler {
     }
   }
 
-  private handleBattlefieldCardShortcuts(key: string, card: WhiteboardCard, e: KeyboardEvent): void {
+  private handleBattlefieldCardHotkeys(key: string, card: WhiteboardCard, e: KeyboardEvent): void {
+    e.preventDefault();
+
+    // All hotkeys that don't hover a card
+    switch (key) {
+      case 'c': // C - Draw card
+        this.callbacks.onDrawCard();
+        break;
+
+      case 'x': // X - Untap all
+        this.callbacks.onUntapAll();
+        this.untapAllCards();
+        break;
+
+      case 'v': // V - Shuffle deck
+        this.callbacks.onShuffleDeck();
+        break;
+
+      case 'e': // E - End turn (boilerplate)
+        this.callbacks.onEndTurn();
+        console.log('End turn - not yet implemented');
+        break;
+    }
+
+    // Return if no card is hovered
+    if (!card) return;
+
+    if (key === 'k') { // K - Create copy
+      this.createCopy(card);
+      return;
+    }
+
+    // Return if hovered card is owned by an opponent (not by user)
+    if (card.ownerId !== this.localPlayerId) return;
+
     switch (key) {
       case ' ': // Space - Tap/Untap
-        e.preventDefault();
         if (card) this.toggleTap(card);
         break;
 
       case 'y': // Y - Move to bottom of deck
-        e.preventDefault();
         if (card) {
           this.callbacks.onHideCardPreview();
           this.callbacks.onMoveToDeckBottom(card);
@@ -153,7 +185,6 @@ export class KeyboardHandler {
         break;
 
       case 't': // T - Move to top of deck
-        e.preventDefault();
         if (card) {
           this.callbacks.onHideCardPreview();
           this.callbacks.onMoveToDeckTop(card);
@@ -162,33 +193,14 @@ export class KeyboardHandler {
         break;
 
       case 'u': // U - Add counter
-        e.preventDefault();
         if (card) this.addPositiveCounter(card);
         break;
 
       case 'i': // U - Add counter
-        e.preventDefault();
         if (card) this.addNegativeCounter(card);
         break;
 
-      case 'c': // C - Draw card
-        e.preventDefault();
-        this.callbacks.onDrawCard();
-        break;
-
-      case 'x': // X - Untap all
-        e.preventDefault();
-        this.callbacks.onUntapAll();
-        this.untapAllCards();
-        break;
-
-      case 'k': // K - Create copy
-        e.preventDefault();
-        if (card) this.createCopy(card);
-        break;
-
       case 'd': // D - Move to graveyard
-        e.preventDefault();
         if (card) {
           this.callbacks.onHideCardPreview();
           this.callbacks.onMoveToGraveyard(card);
@@ -197,7 +209,6 @@ export class KeyboardHandler {
         break;
 
       case 's': // S - Move to exile
-        e.preventDefault();
         if (card) {
           this.callbacks.onHideCardPreview();
           this.callbacks.onMoveToExile(card);
@@ -205,24 +216,11 @@ export class KeyboardHandler {
         }
         break;
 
-      case 'v': // V - Shuffle deck
-        e.preventDefault();
-        this.callbacks.onShuffleDeck();
-        break;
-
-      case 'e': // E - End turn (boilerplate)
-        e.preventDefault();
-        this.callbacks.onEndTurn();
-        console.log('End turn - not yet implemented');
-        break;
-
       case 'f': // F - Flip card
-        e.preventDefault();
         if (card) this.flipCard(card);
         break;
 
       case 'h': // H - Move to hand
-        e.preventDefault();
         if (card) {
           this.callbacks.onHideCardPreview();
           this.callbacks.onMoveToHand(card);
@@ -232,9 +230,9 @@ export class KeyboardHandler {
     }
   }
 
-  private handleDockShortcuts(key: string, dockState: any, e: KeyboardEvent): void {
+  private handleDockHotkeys(key: string, dockState: any, e: KeyboardEvent): void {
     if (dockState.hoveredHandCardId) {
-      // Hand card shortcuts
+      // Hand card hotkeys
       const card = dockState.getHandCard(dockState.hoveredHandCardId);
       if (!card) return;
 
@@ -270,7 +268,7 @@ export class KeyboardHandler {
           break;
       }
     } else if (dockState.hoveredPileType) {
-      // Pile shortcuts (top card)
+      // Pile hotkeys (top card)
       const topCard = dockState.getTopPileCard(dockState.hoveredPileType);
       if (!topCard) return;
 
