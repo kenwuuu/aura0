@@ -5,8 +5,7 @@
     "closeIconLabel":"",
     "acceptAllBtn":"Nicht-Marketing-Cookies akzeptieren",
     "acceptNecessaryBtn":"Alle ablehnen",
-    "showPreferencesBtn":"Einstellungen verwalten",
-    "footer":"<a href=\"#link\">Datenschutzerklärung</a>\n<a href=\"#link\">Nutzungsbedingungen</a>"
+    "showPreferencesBtn":"Einstellungen verwalten"
   },
   "preferencesModal":{
     "title":"Cookie-Einstellungen",

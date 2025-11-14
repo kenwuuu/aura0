@@ -5,8 +5,7 @@
     "closeIconLabel": "",
     "acceptAllBtn": "マーケティング以外のクッキーを許可",
     "acceptNecessaryBtn": "すべて拒否",
-    "showPreferencesBtn": "設定を管理",
-    "footer": "<a href=\"#link\">プライバシーポリシー</a>\n<a href=\"#link\">利用規約</a>"
+    "showPreferencesBtn": "設定を管理"
   },
   "preferencesModal": {
     "title": "クッキー設定",

@@ -5,8 +5,7 @@
     "closeIconLabel":"",
     "acceptAllBtn":"Aceptar cookies no comerciales",
     "acceptNecessaryBtn":"Rechazar todo",
-    "showPreferencesBtn":"Gestionar preferencias",
-    "footer":"<a href=\"#link\">Política de privacidad</a>\n<a href=\"#link\">Términos y condiciones</a>"
+    "showPreferencesBtn":"Gestionar preferencias"
   },
   "preferencesModal":{
     "title":"Preferencias de cookies",
