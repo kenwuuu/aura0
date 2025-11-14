@@ -7,17 +7,6 @@
     <title>Aura - MTG Collaboration</title>
   </head>
   <body>
-    <script>
-        window.isUS = "{{COUNTRY_CODE_FROM_CDN}}" === "US";
-
-        if (window.isUS) {
-            // Dynamically load CookieConsent only for non-US users
-            const script = document.createElement("script");
-            script.type = "module";
-            script.src = "cookieconsent-config.js";
-            document.head.appendChild(script);
-        }
-    </script>
     <div id="app">
       <div id="toolbar">
         <span id="room-name"></span>
