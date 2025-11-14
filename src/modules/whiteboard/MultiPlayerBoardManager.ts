@@ -79,11 +79,13 @@ export class MultiPlayerBoardManager {
         onMoveToDeckBottom: () => {},
         onMoveToGraveyard: () => {},
         onMoveToExile: () => {},
+        onDeleteCard: () => {},
         onDrawCard: () => {},
         onShuffleDeck: () => {},
         onUntapAll: () => {},
         onEndTurn: () => {},
         onHideCardPreview: () => this.cardPreview.hide(),
+        onHideCardTooltip: () => this.tooltipManager.hide(),
         onMulligan: () => {},
         loseHealth: () => {},
         gainHealth: () => {},
@@ -107,6 +109,7 @@ export class MultiPlayerBoardManager {
       {
         ...callbacks,
         onHideCardPreview: () => this.cardPreview.hide(),
+        onHideCardTooltip: () => this.tooltipManager.hide(),
       },
       this.localPlayerId
     );

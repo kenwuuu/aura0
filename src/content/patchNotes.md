@@ -1,3 +1,11 @@
+## 2025 November 13 - Night
+
+### Features
+- Add ability to delete battlefield card using backspace hotkey
+
+### Changes
+- Add Discord server invite to menu bar
+
 ## 2025 November 13
 
 ### Features

@@ -7,11 +7,13 @@ export interface KeyboardHandlerCallbacks {
   onMoveToDeckBottom: (card: WhiteboardCard) => void;
   onMoveToGraveyard: (card: WhiteboardCard) => void;
   onMoveToExile: (card: WhiteboardCard) => void;
+  onDeleteCard: (card: WhiteboardCard) => void;
   onDrawCard: () => void;
   onShuffleDeck: () => void;
   onUntapAll: () => void;
   onEndTurn: () => void;
   onHideCardPreview: () => void;
+  onHideCardTooltip: () => void;
   onMulligan: () => void;
   loseHealth: () => void;
   gainHealth: () => void;
@@ -229,7 +231,7 @@ export class KeyboardHandler {
 
       case 'y': // Y - Move to bottom of deck
         if (card) {
-          this.callbacks.onHideCardPreview();
+          this.hideCardDependents();
           this.callbacks.onMoveToDeckBottom(card);
           this.removeCard(card.id);
         }
@@ -237,7 +239,7 @@ export class KeyboardHandler {
 
       case 't': // T - Move to top of deck
         if (card) {
-          this.callbacks.onHideCardPreview();
+          this.hideCardDependents();
           this.callbacks.onMoveToDeckTop(card);
           this.removeCard(card.id);
         }
@@ -253,7 +255,7 @@ export class KeyboardHandler {
 
       case 'd': // D - Move to graveyard
         if (card) {
-          this.callbacks.onHideCardPreview();
+          this.hideCardDependents();
           this.callbacks.onMoveToGraveyard(card);
           this.removeCard(card.id);
         }
@@ -261,8 +263,16 @@ export class KeyboardHandler {
 
       case 's': // S - Move to exile
         if (card) {
-          this.callbacks.onHideCardPreview();
+          this.hideCardDependents();
+
           this.callbacks.onMoveToExile(card);
+          this.removeCard(card.id);
+        }
+        break;
+
+      case 'backspace':
+        if (card) {
+          this.hideCardDependents();
           this.removeCard(card.id);
         }
         break;
@@ -273,12 +283,17 @@ export class KeyboardHandler {
 
       case 'h': // H - Move to hand
         if (card) {
-          this.callbacks.onHideCardPreview();
+          this.hideCardDependents();
           this.callbacks.onMoveToHand(card);
           this.removeCard(card.id);
         }
         break;
     }
+  }
+
+  private hideCardDependents() {
+    this.callbacks.onHideCardPreview();
+    this.callbacks.onHideCardTooltip();
   }
 
   private handleDockHotkeys(key: string, dockState: any, e: KeyboardEvent): void {

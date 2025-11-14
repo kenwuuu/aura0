@@ -170,6 +170,10 @@ class AuraApp {
       onMoveToExile: (card) => {
         this.localPlayer.moveCardToExile(card);
       },
+      onDeleteCard: (_card) => {
+        // Card deletion is handled directly in KeyboardHandler via removeCard
+        // This callback exists for potential future use
+      },
       onDrawCard: () => {
         this.localPlayer.drawCard();
         DeckPersistenceService.saveDeckForRoom(this.roomManager.getRoomName(), this.localPlayer.getDeck());
@@ -185,6 +189,9 @@ class AuraApp {
         console.log('End turn - not yet implemented');
       },
       onHideCardPreview: () => {
+        // Handled by Whiteboard internally
+      },
+      onHideCardTooltip: () => {
         // Handled by Whiteboard internally
       },
       onMulligan: () => {
