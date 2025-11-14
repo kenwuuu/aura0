@@ -131,6 +131,7 @@ body {
   align-items: center;
   gap: 8px;
   transition: all 0.2s;
+  cursor: pointer;
 }
 
 .resource-pile:hover {
