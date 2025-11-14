@@ -42,13 +42,17 @@ CookieConsent.run({
     onConsent: function(){
         if(CookieConsent.acceptedCategory('analytics')) {
             Sentry.init({
+                environment: process.env.NODE_ENV || "development",
                 dsn: "https://beb5f109e66475063b4650877bc1c6a1@o4510353682006016.ingest.de.sentry.io/4510353685610576",
                 // Setting this option to true will send default PII data to Sentry.
                 // For example, automatic IP address collection on events
                 sendDefaultPii: true,
                 integrations: [
                     Sentry.browserTracingIntegration(),
-                    Sentry.replayIntegration()
+                    Sentry.replayIntegration({
+                        maskAllText: false,
+                        blockAllMedia: false,
+                    })
                 ],
                 // Tracing
                 tracesSampleRate: 1.0, //  Capture 100% of the transactions
