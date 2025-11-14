@@ -101,7 +101,7 @@ export const HOTKEYS: HotkeyDefinition[] = [
     longDescription: 'Create copy of card',
   },
   {
-    key: 'Backspace',
+    key: 'Back', // leaving this icon here: ⌫
     context: ['battlefield'],
     shortDescription: 'Delete card',
     longDescription: 'Delete a card',
