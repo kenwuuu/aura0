@@ -44,6 +44,11 @@ Sentry.init({
   enableLogs: true,
 });
 
+Sentry.replayIntegration({
+  maskAllText: false,
+  blockAllMedia: false,
+})
+
 class AuraApp {
   private yDoc: Y.Doc;
   private webrtcProvider: WebRTCProvider;
