@@ -5,12 +5,14 @@
  */
 
 import { Card } from '../../deck';
+import { DEFAULT_CARD_BACK } from '../../../constants';
 
 export interface CardGridItemConfig {
   card: Card;
   position?: number;
   showPosition?: boolean;
   positionPrefix?: string;
+  showFaceDown?: boolean;
   onClick?: (card: Card) => void;
   onHover?: (card: Card | null) => void;
 }
@@ -26,7 +28,7 @@ export class CardGridItem {
   }
 
   private createElement(): HTMLElement {
-    const { card, position, showPosition, positionPrefix } = this.config;
+    const { card, position, showPosition, positionPrefix, showFaceDown } = this.config;
 
     const container = document.createElement('div');
     container.className = 'card-grid-item';
@@ -36,12 +38,15 @@ export class CardGridItem {
     const imageContainer = document.createElement('div');
     imageContainer.className = 'card-grid-item-image';
 
-    const imageUrl = card.images?.front?.normal || card.images?.front?.small;
+    // Determine which image to show (back if face down, front otherwise)
+    const imageUrl = showFaceDown
+      ? (DEFAULT_CARD_BACK)
+      : (card.images?.front?.normal || card.images?.front?.small);
 
     if (imageUrl) {
       const img = document.createElement('img');
       img.src = imageUrl;
-      img.alt = card.name || `Card #${card.cardNumber}`;
+      img.alt = showFaceDown ? 'Card Back' : (card.name || `Card #${card.cardNumber}`);
       img.className = 'card-grid-item-img';
 
       // Add loading state
@@ -69,8 +74,8 @@ export class CardGridItem {
 
     container.appendChild(imageContainer);
 
-    // Card name (if available)
-    if (card.name) {
+    // Card name (if available and not face down)
+    if (card.name && !showFaceDown) {
       const name = document.createElement('div');
       name.className = 'card-grid-item-name';
       name.textContent = card.name;

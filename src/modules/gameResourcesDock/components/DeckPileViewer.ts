@@ -58,6 +58,8 @@ export class DeckPileViewer {
   // Current state
   private currentSortOrder: string = 'top-to-bottom';
   private currentSearchQuery: string = '';
+  private revealAll: boolean = false;
+  private revealCount: number = 0;
 
   constructor(callbacks: DeckPileViewerCallbacks = {}) {
     this.callbacks = callbacks;
@@ -68,6 +70,8 @@ export class DeckPileViewer {
     this.pileType = pileType;
     this.currentSearchQuery = '';
     this.currentSortOrder = 'top-to-bottom';
+    this.revealAll = this.pileType !== 'deck';
+    this.revealCount = 0;
     this.filteredCards = [...cards].reverse();
 
     this.modal = this.createModal();
@@ -158,7 +162,7 @@ export class DeckPileViewer {
 
     // Search bar
     this.searchBar = new SearchBar({
-      placeholder: 'Search by card name...',
+      placeholder: 'Search by card name or type...',
       onSearch: (query) => {
         this.currentSearchQuery = query;
         this.filterAndSort();
@@ -181,6 +185,69 @@ export class DeckPileViewer {
 
     controls.appendChild(this.searchBar.getElement());
     controls.appendChild(this.sortControl.getElement());
+
+    // Only show reveal controls for deck pile
+    if (this.pileType === 'deck') {
+      // Reveal controls
+      const revealControls = document.createElement('div');
+      revealControls.className = 'deck-pile-viewer-reveal-controls';
+
+      // Reveal All checkbox
+      const revealAllContainer = document.createElement('label');
+      revealAllContainer.className = 'reveal-all-label';
+
+      const revealAllCheckbox = document.createElement('input');
+      revealAllCheckbox.type = 'checkbox';
+      revealAllCheckbox.checked = this.revealAll;
+      revealAllCheckbox.onchange = () => {
+        this.revealAll = revealAllCheckbox.checked;
+        if (this.revealAll) {
+          this.revealCount = 0; // Reset count when revealing all
+          revealCountInput.value = '';
+        }
+        this.renderCards();
+      };
+
+      const revealAllLabel = document.createElement('span');
+      revealAllLabel.textContent = 'Reveal All';
+
+      revealAllContainer.appendChild(revealAllCheckbox);
+      revealAllContainer.appendChild(revealAllLabel);
+
+      // Reveal Count input
+      const revealCountContainer = document.createElement('div');
+      revealCountContainer.className = 'reveal-count-container';
+
+      const revealCountLabel = document.createElement('span');
+      revealCountLabel.textContent = 'Reveal top:';
+      revealCountLabel.style.marginRight = '8px';
+
+      const revealCountInput = document.createElement('input');
+      revealCountInput.type = 'number';
+      revealCountInput.min = '0';
+      revealCountInput.max = this.allCards.length.toString();
+      revealCountInput.placeholder = '0';
+      revealCountInput.className = 'reveal-count-input';
+      revealCountInput.style.width = '60px';
+      revealCountInput.value = this.revealCount > 0 ? this.revealCount.toString() : '';
+      revealCountInput.oninput = () => {
+        const value = parseInt(revealCountInput.value) || 0;
+        this.revealCount = Math.max(0, Math.min(this.allCards.length, value));
+        if (this.revealCount > 0) {
+          this.revealAll = false; // Uncheck reveal all when setting count
+          revealAllCheckbox.checked = false;
+        }
+        this.renderCards();
+      };
+
+      revealCountContainer.appendChild(revealCountLabel);
+      revealCountContainer.appendChild(revealCountInput);
+
+      revealControls.appendChild(revealAllContainer);
+      revealControls.appendChild(revealCountContainer);
+
+      controls.appendChild(revealControls);
+    }
 
     return controls;
   }
@@ -239,11 +306,19 @@ export class DeckPileViewer {
       // Deck is stored bottom-to-top, so reverse to get top-to-bottom index
       const absoluteIndex = this.allCards.length - 1 - this.allCards.findIndex(c => c.id === card.id);
 
+      // Determine if card should be shown face-down
+      // - If revealAll is true: show all cards face-up
+      // - If revealCount > 0: show top N cards face-up (absoluteIndex < revealCount)
+      // - Otherwise: show all cards face-down
+      const shouldShowFaceDown = !this.revealAll &&
+                                 (this.revealCount === 0 || absoluteIndex >= this.revealCount);
+
       const cardItem = new CardGridItem({
         card,
         position: absoluteIndex,
         showPosition: true, // Always show position
         positionPrefix: 'Top',
+        showFaceDown: shouldShowFaceDown,
         onHover: (card) => {
           this.hoveredCard = card;
           // Focus the card element when hovered to enable immediate hotkey use

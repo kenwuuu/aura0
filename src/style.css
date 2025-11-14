@@ -921,6 +921,61 @@ body {
   color: #ffffff;
 }
 
+.deck-pile-viewer-reveal-controls {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  margin-left: auto;
+  padding-left: 16px;
+  border-left: 1px solid #3d3d3d;
+}
+
+.reveal-all-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  color: #d1d5db;
+  font-size: 14px;
+  user-select: none;
+}
+
+.reveal-all-label input[type="checkbox"] {
+  cursor: pointer;
+  width: 18px;
+  height: 18px;
+  accent-color: #3b82f6;
+}
+
+.reveal-count-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #d1d5db;
+  font-size: 14px;
+}
+
+.reveal-count-input {
+  width: 60px;
+  padding: 6px 10px;
+  background-color: #1a1a1a;
+  border: 1px solid #4b5563;
+  border-radius: 6px;
+  color: #ffffff;
+  font-size: 14px;
+  text-align: center;
+}
+
+.reveal-count-input:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
+.reveal-count-input::placeholder {
+  color: #6b7280;
+}
+
 .deck-pile-viewer-subtitle {
   font-size: 14px;
   color: #9ca3af;

@@ -52,6 +52,10 @@ export class GameResourcesDock {
     this.deckViewer = new DeckPileViewer({
       onPlayToBattlefield: (card) => this.handlePileCardToBattlefield(card, 'deck'),
       onMoveToHand: (card) => this.handlePileCardToHand(card, 'deck'),
+      onMoveToDiscard: (card) => this.handlePileCardToDiscard(card, 'deck'),
+      onMoveToExile: (card) => this.handlePileCardToExile(card, 'deck'),
+      onMoveToDeckTop: (card) => this.handlePileCardToDeckTop(card, 'deck'),
+      onMoveToDeckBottom: (card) => this.handlePileCardToDeckBottom(card, 'deck'),
     });
 
     this.exileViewer = new DeckPileViewer({
@@ -543,57 +547,89 @@ export class GameResourcesDock {
     this.updatePileViewer(pileType);
   }
 
-  private handlePileCardToExile(card: Card, pileType: 'discard'): void {
+  private handlePileCardToExile(card: Card, pileType: 'discard' | 'deck'): void {
     const state = this.player.getState();
-    const pile = state.discardPile;
-    const index = pile.findIndex(c => c.id === card.id);
-    if (index !== -1) {
-      pile.splice(index, 1);
-      this.player['yPlayerState'].set('discardPile', pile);
-      this.player.moveCardToExile(card);
+
+    if (pileType === 'deck') {
+      // Remove from deck (local)
+      this.player['deck'].removeCard(card.id);
+    } else if (pileType === 'discard') {
+      // Remove from discard pile
+      const pile = state.discardPile;
+      const index = pile.findIndex(c => c.id === card.id);
+      if (index !== -1) {
+        pile.splice(index, 1);
+        this.player['yPlayerState'].set('discardPile', pile);
+      }
     }
+
+    this.player.moveCardToExile(card);
 
     // Update viewer with new card list
     this.updatePileViewer(pileType);
   }
 
-  private handlePileCardToDiscard(card: Card, pileType: 'exile'): void {
+  private handlePileCardToDiscard(card: Card, pileType: 'exile' | 'deck'): void {
     const state = this.player.getState();
-    const pile = state.exilePile;
-    const index = pile.findIndex(c => c.id === card.id);
-    if (index !== -1) {
-      pile.splice(index, 1);
-      this.player['yPlayerState'].set('exilePile', pile);
-      this.player.moveCardToDiscard(card);
+
+    if (pileType === 'deck') {
+      // Remove from deck (local)
+      this.player['deck'].removeCard(card.id);
+    } else if (pileType === 'exile') {
+      // Remove from exile pile
+      const pile = state.exilePile;
+      const index = pile.findIndex(c => c.id === card.id);
+      if (index !== -1) {
+        pile.splice(index, 1);
+        this.player['yPlayerState'].set('exilePile', pile);
+      }
     }
+
+    this.player.moveCardToDiscard(card);
 
     // Update viewer with new card list
     this.updatePileViewer(pileType);
   }
 
-  private handlePileCardToDeckTop(card: Card, pileType: 'exile' | 'discard'): void {
+  private handlePileCardToDeckTop(card: Card, pileType: 'exile' | 'discard' | 'deck'): void {
     const state = this.player.getState();
-    const pile = pileType === 'exile' ? state.exilePile : state.discardPile;
-    const index = pile.findIndex(c => c.id === card.id);
-    if (index !== -1) {
-      pile.splice(index, 1);
-      this.player['yPlayerState'].set(pileType === 'exile' ? 'exilePile' : 'discardPile', pile);
-      this.player.moveCardToDeckTop(card);
+
+    if (pileType === 'deck') {
+      // Remove from deck (local) and add back to top
+      this.player['deck'].removeCard(card.id);
+    } else {
+      // Remove from exile or discard pile
+      const pile = pileType === 'exile' ? state.exilePile : state.discardPile;
+      const index = pile.findIndex(c => c.id === card.id);
+      if (index !== -1) {
+        pile.splice(index, 1);
+        this.player['yPlayerState'].set(pileType === 'exile' ? 'exilePile' : 'discardPile', pile);
+      }
     }
+
+    this.player.moveCardToDeckTop(card);
 
     // Update viewer with new card list
     this.updatePileViewer(pileType);
   }
 
-  private handlePileCardToDeckBottom(card: Card, pileType: 'exile' | 'discard'): void {
+  private handlePileCardToDeckBottom(card: Card, pileType: 'exile' | 'discard' | 'deck'): void {
     const state = this.player.getState();
-    const pile = pileType === 'exile' ? state.exilePile : state.discardPile;
-    const index = pile.findIndex(c => c.id === card.id);
-    if (index !== -1) {
-      pile.splice(index, 1);
-      this.player['yPlayerState'].set(pileType === 'exile' ? 'exilePile' : 'discardPile', pile);
-      this.player.moveCardToDeckBottom(card);
+
+    if (pileType === 'deck') {
+      // Remove from deck (local) and add back to bottom
+      this.player['deck'].removeCard(card.id);
+    } else {
+      // Remove from exile or discard pile
+      const pile = pileType === 'exile' ? state.exilePile : state.discardPile;
+      const index = pile.findIndex(c => c.id === card.id);
+      if (index !== -1) {
+        pile.splice(index, 1);
+        this.player['yPlayerState'].set(pileType === 'exile' ? 'exilePile' : 'discardPile', pile);
+      }
     }
+
+    this.player.moveCardToDeckBottom(card);
 
     // Update viewer with new card list
     this.updatePileViewer(pileType);
