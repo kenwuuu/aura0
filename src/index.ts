@@ -143,6 +143,7 @@ class AuraApp {
     this.setupKeyboardCallbacks();
     this.setupDeckManager();
     this.setupHelpModal();
+    this.setupDiscordButton();
     this.setupHotkeyHintsModal();
     this.setupAddCardModal();
   }
@@ -389,6 +390,32 @@ class AuraApp {
 
     const root = createRoot(helpRoot);
     root.render(React.createElement(HelpButton));
+  }
+
+  private setupDiscordButton(): void {
+    const discordRoot = document.getElementById('discord-root');
+    if (!discordRoot) {
+      throw new Error('Discord root not found');
+    }
+
+    const DiscordButton: React.FC = () => {
+      return React.createElement(
+        'button',
+        {
+          className: 'toolbar-button discord',
+          onClick: () => window.open('https://discord.gg/PgH2gVZYKq', '_blank'),
+          'aria-label': 'Join Discord Server',
+        },
+        React.createElement('img', {
+          src: '/assets/Discord-Logo-White.svg',
+          alt: 'Discord',
+          style: { height: '16px' },
+        })
+      );
+    };
+
+    const root = createRoot(discordRoot);
+    root.render(React.createElement(DiscordButton));
   }
 
   private setupHotkeyHintsModal(): void {
