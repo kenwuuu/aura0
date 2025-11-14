@@ -3,7 +3,17 @@
  * Each hotkey has both a short description (for tooltips) and a long description (for the modal)
  */
 
-export type HotkeyContext = 'global' | 'battlefield' | 'hand' | 'deck' | 'exile' | 'discard' | 'health';
+export const HotkeyContext = {
+  Global: 'global',
+  Battlefield: 'battlefield',
+  Hand: 'hand',
+  Deck: 'deck',
+  Exile: 'exile',
+  Discard: 'discard',
+  Health: 'health',
+} as const;
+
+export type HotkeyContext = typeof HotkeyContext[keyof typeof HotkeyContext];
 
 export interface HotkeyDefinition {
   key: string;

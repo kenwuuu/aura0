@@ -11,6 +11,7 @@ import React from 'react';
 import { createRoot, Root } from 'react-dom/client';
 import { CardCounter } from '../../components';
 import {OpponentCoordinateTransformer} from "./OpponentCoordinateTransformer";
+import {HotkeyContext} from "../../data/hotkeys";
 
 const DEFAULT_OPPONENT_OPACITY = 1.0;
 const FOCUSED_OPACITY = 1.0;
@@ -431,7 +432,7 @@ export class MultiPlayerBoardManager {
 
       // Show tooltip menu on hover for local player's cards (delayed)
       if (card.ownerId === this.localPlayerId) {
-        this.tooltipManager.showOnHover(card.id, e.clientX, e.clientY);
+        this.tooltipManager.showOnHover(card.id, HotkeyContext.Battlefield, e.clientX, e.clientY);
       }
     });
 
@@ -456,7 +457,7 @@ export class MultiPlayerBoardManager {
         // If mouse moved less than threshold and wasn't dragging, treat as click
         if (distance < this.DRAG_THRESHOLD && !this.isDragging && card.ownerId === this.localPlayerId) {
           // Show tooltip menu
-          this.tooltipManager.show(card.id, e.clientX, e.clientY);
+          this.tooltipManager.show(card.id, HotkeyContext.Battlefield, e.clientX, e.clientY);
         }
       }
       // Always clear drag state after click handler

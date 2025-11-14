@@ -69,10 +69,12 @@ export class TooltipManager {
   /**
    * Show tooltip for a clicked card
    * @param cardId - The ID of the card that was clicked
+   * @param context
    * @param clickX - X position of the click
    * @param clickY - Y position of the click
+   * @param pinned
    */
-  show(cardId: string, clickX: number, clickY: number, pinned: boolean = true): void {
+  show(cardId: string, context: HotkeyContext, clickX: number, clickY: number, pinned: boolean = true): void {
     this.clearTimeouts();
     if (!this.tooltipRoot) return;
 
@@ -85,7 +87,7 @@ export class TooltipManager {
 
     this.tooltipRoot.render(
       React.createElement(HotkeyTooltip, {
-        context: 'battlefield' as HotkeyContext,
+        context: context,
         mouseX: clickX,
         mouseY: clickY,
         onHotkeyClick: (hotkey: HotkeyDefinition) => {
@@ -101,12 +103,12 @@ export class TooltipManager {
   /**
    * Show tooltip on hover (delayed)
    */
-  showOnHover(cardId: string, mouseX: number, mouseY: number): void {
+  showOnHover(cardId: string, context: HotkeyContext, mouseX: number, mouseY: number): void {
     this.clearHoverTimeout();
     this.clearHideTimeout(); // Cancel tooltip hide when moving cursor to new card
 
     this.hoverTimeout = window.setTimeout(() => {
-      this.show(cardId, mouseX, mouseY, false);
+      this.show(cardId, context, mouseX, mouseY, false);
     }, 500);
   }
 

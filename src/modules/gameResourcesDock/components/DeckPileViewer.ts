@@ -27,6 +27,8 @@ import { Card } from '../../deck';
 import { SearchBar } from './SearchBar';
 import { SortControl } from './SortControl';
 import { CardGridItem } from './CardGridItem';
+import { TooltipManager } from '../../whiteboard/TooltipManager';
+import {HotkeyContext, HotkeyDefinition} from '../../../data/hotkeys';
 
 export type PileType = 'deck' | 'exile' | 'discard' | 'hand';
 
@@ -51,6 +53,7 @@ export class DeckPileViewer {
   private searchBar: SearchBar | null = null;
   private sortControl: SortControl | null = null;
   private gridContainer: HTMLElement | null = null;
+  private tooltipManager: TooltipManager | null = null;
 
   // Current state
   private currentSortOrder: string = 'top-to-bottom';
@@ -69,6 +72,9 @@ export class DeckPileViewer {
 
     this.modal = this.createModal();
     document.body.appendChild(this.modal);
+
+    // Initialize tooltip manager
+    this.setupTooltipManager();
 
     this.attachGlobalListeners();
     this.renderCards();
@@ -251,7 +257,60 @@ export class DeckPileViewer {
       const cardElement = cardItem.getElement();
       // Make card focusable for keyboard shortcuts
       cardElement.tabIndex = 0;
+
+      // Attach tooltip events
+      this.attachTooltipEvents(cardElement, card);
+
       this.gridContainer!.appendChild(cardElement);
+    });
+  }
+
+  /**
+   * Setup tooltip manager with hotkey click handler
+   */
+  private setupTooltipManager(): void {
+    this.tooltipManager = new TooltipManager();
+    this.tooltipManager.setup((hotkey: HotkeyDefinition, cardId: string) => {
+      // Find the card that was clicked
+      const card = this.allCards.find(c => c.id === cardId);
+      if (!card) return;
+
+      // Map hotkey key to callback action
+      const key = hotkey.key.toLowerCase();
+
+      if (key === 'h' && this.callbacks.onMoveToHand) {
+        this.callbacks.onMoveToHand(card);
+      } else if (key === 'd' && this.callbacks.onMoveToDiscard && this.pileType !== 'discard') {
+        this.callbacks.onMoveToDiscard(card);
+      } else if (key === 's' && this.callbacks.onMoveToExile && this.pileType !== 'exile') {
+        this.callbacks.onMoveToExile(card);
+      } else if (key === 't' && this.callbacks.onMoveToDeckTop && this.pileType !== 'deck') {
+        this.callbacks.onMoveToDeckTop(card);
+      } else if (key === 'y' && this.callbacks.onMoveToDeckBottom && this.pileType !== 'deck') {
+        this.callbacks.onMoveToDeckBottom(card);
+      }
+    });
+  }
+
+  /**
+   * Attach tooltip hover and click events to a card element
+   */
+  private attachTooltipEvents(cardElement: HTMLElement, card: Card): void {
+    if (!this.tooltipManager) return;
+
+    // Show tooltip on hover (delayed)
+    cardElement.addEventListener('mouseenter', (e: MouseEvent) => {
+      this.tooltipManager?.showOnHover(card.id, HotkeyContext.Hand, e.clientX, e.clientY);
+    });
+
+    // Show tooltip on click (pinned)
+    cardElement.addEventListener('click', (e: MouseEvent) => {
+      this.tooltipManager?.show(card.id, HotkeyContext.Hand, e.clientX, e.clientY);
+    });
+
+    // Hide tooltip on mouse leave
+    cardElement.addEventListener('mouseleave', () => {
+      this.tooltipManager?.hideOnLeave();
     });
   }
 
@@ -321,6 +380,12 @@ export class DeckPileViewer {
       const handler = (this.modal as any)._keyHandler;
       if (handler) {
         document.removeEventListener('keydown', handler);
+      }
+
+      // Clean up tooltip manager
+      if (this.tooltipManager) {
+        this.tooltipManager.destroy();
+        this.tooltipManager = null;
       }
 
       if (this.modal.parentElement) {
