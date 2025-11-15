@@ -104,8 +104,7 @@ export class TooltipManager {
    * Show tooltip on hover (delayed)
    */
   showOnHover(cardId: string, context: HotkeyContext, mouseX: number, mouseY: number): void {
-    this.clearHoverTimeout();
-    this.clearHideTimeout(); // Cancel tooltip hide when moving cursor to new card
+    this.clearTimeouts();
 
     this.hoverTimeout = window.setTimeout(() => {
       this.show(cardId, context, mouseX, mouseY, false);
@@ -126,7 +125,7 @@ export class TooltipManager {
 
   private clearTimeouts(): void {
     this.clearHoverTimeout();
-    this.clearHideTimeout();
+    this.clearHideTimeout();  // Cancel tooltip hide when moving cursor to new card
   }
 
   private clearHoverTimeout(): void {
