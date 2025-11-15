@@ -373,15 +373,28 @@ export class DeckPileViewer {
   private attachTooltipEvents(cardElement: HTMLElement, card: Card): void {
     if (!this.tooltipManager) return;
 
-    // Show tooltip on hover (delayed)
-    cardElement.addEventListener('mouseenter', (e: MouseEvent) => {
-      this.tooltipManager?.showOnHover(card.id, HotkeyContext.Hand, e.clientX, e.clientY);
-    });
+    let context: HotkeyContext;
 
-    // Show tooltip on click (pinned)
-    cardElement.addEventListener('click', (e: MouseEvent) => {
-      this.tooltipManager?.show(card.id, HotkeyContext.Hand, e.clientX, e.clientY);
-    });
+    switch (this.pileType) {
+      case 'deck':
+        context = HotkeyContext.DeckCard;
+        break;
+      case 'discard':
+        context = HotkeyContext.Discard;
+        break;
+      case 'exile':
+        context = HotkeyContext.Exile;
+        break;
+    }
+
+    const showHover = (e: MouseEvent) =>
+      this.tooltipManager?.showOnHover(card.id, context, e.clientX, e.clientY);
+
+    const showPinned = (e: MouseEvent) =>
+      this.tooltipManager?.show(card.id, context, e.clientX, e.clientY);
+
+    cardElement.addEventListener('mouseenter', showHover);
+    cardElement.addEventListener('click', showPinned);
 
     // Hide tooltip on mouse leave
     cardElement.addEventListener('mouseleave', () => {
