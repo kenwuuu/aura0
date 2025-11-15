@@ -1,8 +1,8 @@
 ## 2025 November 14
 
 ### Features
-- Hide deck cards
-- Add interactive tooltips when inside deck viewer
+- Cards are now hidden by default when viewing your deck
+- Added interactive tooltips when inside deck viewer
 - Drawing a card will scroll hand to end
 - Life total is now editable: click and type!
 
