@@ -9,6 +9,7 @@ import { HealthDisplay } from '../../components/HealthDisplay';
 import { HotkeyTooltip } from '../../components/HotkeyTooltip';
 import { HotkeyContext } from '../../data/hotkeys';
 import { DEFAULT_CARD_BACK } from '../../constants';
+import {animate} from "motion";
 
 export class GameResourcesDock {
   private container: HTMLElement;
@@ -456,6 +457,14 @@ export class GameResourcesDock {
       });
 
       handCards.appendChild(cardEl);
+    });
+
+    animate(handCards.scrollLeft, handCards.scrollWidth - handCards.clientWidth, {  // TODO: animation gets heavy when you draw 40+ cards in hand. we can probably use a compressed image
+      duration: 0.3,
+      ease: 'easeOut',
+      onUpdate(value) {
+        handCards.scrollLeft = value;
+      }
     });
   }
 

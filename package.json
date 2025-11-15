@@ -18,6 +18,7 @@
     "@sentry/vite-plugin": "^4.6.0",
     "idb": "^8.0.3",
     "marked": "^17.0.0",
+    "motion": "^12.23.24",
     "p-queue": "^9.0.0",
     "p-retry": "^7.1.0",
     "react": "^19.2.0",
