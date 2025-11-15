@@ -4,6 +4,7 @@
 - Hide deck cards
 - Add interactive tooltips when inside deck viewer
 - Drawing a card will scroll hand to end
+- Life total is now editable: click and type!
 
 ### Bug fixes
 - Ignore system keys when capturing hotkeys
