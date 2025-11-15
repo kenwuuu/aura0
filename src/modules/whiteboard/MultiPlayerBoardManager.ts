@@ -547,6 +547,9 @@ export class MultiPlayerBoardManager {
       offsetY: e.clientY - card.y,
     };
 
+    // Hide tooltip
+    this.tooltipManager.hide();
+
     // Bring card to front
     const updatedCard = { ...card, zIndex: ++this.maxZIndex };
     this.yCards.set(cardId, updatedCard);
