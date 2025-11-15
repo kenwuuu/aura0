@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, {useState, useRef, useLayoutEffect} from 'react';
 import { HotkeyContext, getHotkeysForContext, HotkeyDefinition } from '../data/hotkeys';
 
 interface HotkeyTooltipProps {
@@ -8,8 +8,6 @@ interface HotkeyTooltipProps {
   isMouseDown?: boolean;
   onHotkeyClick?: (hotkey: HotkeyDefinition) => void;
 }
-
-const TOOLTIP_DELAY = 500;
 
 const styles = {
   tooltip: {
@@ -61,7 +59,7 @@ export const HotkeyTooltip: React.FC<HotkeyTooltipProps> = ({ context, mouseX, m
   const tooltipRef = useRef<HTMLDivElement>(null);
   const hotkeys = getHotkeysForContext(context);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     // Wait for tooltip to be rendered so we can get its actual dimensions
     if (!tooltipRef.current) return;
 

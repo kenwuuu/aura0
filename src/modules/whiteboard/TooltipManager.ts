@@ -106,9 +106,7 @@ export class TooltipManager {
   showOnHover(cardId: string, context: HotkeyContext, mouseX: number, mouseY: number): void {
     this.clearTimeouts();
 
-    this.hoverTimeout = window.setTimeout(() => {
-      this.show(cardId, context, mouseX, mouseY, false);
-    }, 500);
+    this.show(cardId, context, mouseX, mouseY, false);
   }
 
   /**
@@ -160,13 +158,6 @@ export class TooltipManager {
     if (!this.tooltipRoot) return;
     this.clickedCardId = null;
     this.tooltipRoot.render(null);
-  }
-
-  /**
-   * Check if tooltip is currently showing for a card
-   */
-  isShowingForCard(cardId: string): boolean {
-    return this.clickedCardId === cardId;
   }
 
   /**

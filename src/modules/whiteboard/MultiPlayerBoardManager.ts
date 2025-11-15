@@ -29,7 +29,7 @@ export class MultiPlayerBoardManager {
   private localPlayerId: string;
   private tooltipManager: TooltipManager;
   // Track mouse movement to distinguish clicks from drags
-  private mouseDownPosition: { x: number; y: number; cardId: string } | null = null;
+  private mousePosition: { x: number; y: number; } | null = null;
   private readonly DRAG_THRESHOLD = 5; // pixels
   private isDragging: boolean = false;
 
@@ -423,7 +423,7 @@ export class MultiPlayerBoardManager {
       cardElement.appendChild(countersContainer);
     }
 
-    // Enable hover for card preview (still works on hover)
+    // Enable hover for card preview
     cardElement.addEventListener('mouseenter', (e: MouseEvent) => {
       this.keyboardHandler.setHoveredCard(card.id);
       // Get latest card state from Yjs to avoid stale closures
@@ -432,12 +432,16 @@ export class MultiPlayerBoardManager {
 
       // Show tooltip menu on hover for local player's cards (delayed)
       if (card.ownerId === this.localPlayerId) {
-        this.tooltipManager.showOnHover(card.id, HotkeyContext.Battlefield, e.clientX, e.clientY);
+        window.setTimeout(() => {
+          if (!this.mousePosition) return;
+          this.tooltipManager.showOnHover(card.id, HotkeyContext.Battlefield, this.mousePosition.x, this.mousePosition.y);
+        }, 500);
       }
     });
 
     cardElement.addEventListener('mousemove', (e: MouseEvent) => {
       this.cardPreview.updatePosition(e);
+      this.mousePosition = { x: e.clientX, y: e.clientY };
     });
 
     cardElement.addEventListener('mouseleave', () => {
@@ -449,11 +453,11 @@ export class MultiPlayerBoardManager {
     // Handle click for tooltip menu (distinguish from drag)
     cardElement.addEventListener('click', (e: MouseEvent) => {
       // Only show menu if this was a click (not a drag) and it's the same card
-      if (this.mouseDownPosition && this.mouseDownPosition.cardId === card.id) {
-        const dx = Math.abs(e.clientX - this.mouseDownPosition.x);
-        const dy = Math.abs(e.clientY - this.mouseDownPosition.y);
+      if (this.mousePosition) {
+        const dx = Math.abs(e.clientX - this.mousePosition.x);
+        const dy = Math.abs(e.clientY - this.mousePosition.y);
         const distance = Math.sqrt(dx * dx + dy * dy);
-        
+
         // If mouse moved less than threshold and wasn't dragging, treat as click
         if (distance < this.DRAG_THRESHOLD && !this.isDragging && card.ownerId === this.localPlayerId) {
           // Show tooltip menu
@@ -461,13 +465,13 @@ export class MultiPlayerBoardManager {
         }
       }
       // Always clear drag state after click handler
-      this.mouseDownPosition = null;
+      this.mousePosition = null;
       this.isDragging = false;
     });
 
     cardElement.addEventListener('mousedown', (e) => {
       // Store mouse down position to detect drags
-      this.mouseDownPosition = { x: e.clientX, y: e.clientY, cardId: card.id };
+      this.mousePosition = { x: e.clientX, y: e.clientY };
       this.isDragging = false;
       this.onMouseDown(e, card.id);
     });
@@ -596,9 +600,9 @@ export class MultiPlayerBoardManager {
     if (!card || card.ownerId !== this.localPlayerId) return;
 
     // Check if we've moved enough to consider this a drag
-    if (this.mouseDownPosition && !this.isDragging) {
-      const dx = Math.abs(e.clientX - this.mouseDownPosition.x);
-      const dy = Math.abs(e.clientY - this.mouseDownPosition.y);
+    if (this.mousePosition && !this.isDragging) {
+      const dx = Math.abs(e.clientX - this.mousePosition.x);
+      const dy = Math.abs(e.clientY - this.mousePosition.y);
       const distance = Math.sqrt(dx * dx + dy * dy);
       if (distance >= this.DRAG_THRESHOLD) {
         this.isDragging = true;
@@ -633,7 +637,7 @@ export class MultiPlayerBoardManager {
 
             // Clear drag state and return early (card will be removed from battlefield)
             this.dragState = { cardId: null, offsetX: 0, offsetY: 0 };
-            this.mouseDownPosition = null;
+            this.mousePosition = null;
             this.isDragging = false;
             return;
           }
@@ -654,13 +658,13 @@ export class MultiPlayerBoardManager {
 
     this.dragState = { cardId: null, offsetX: 0, offsetY: 0 };
     
-    // If we were dragging, clear the mouseDownPosition immediately
+    // If we were dragging, clear the mousePosition immediately
     // Otherwise, let the click handler clear it (so it can detect clicks)
-    if (this.isDragging || !this.mouseDownPosition) {
-      this.mouseDownPosition = null;
+    if (this.isDragging || !this.mousePosition) {
+      this.mousePosition = null;
       this.isDragging = false;
     }
-    // If not dragging and mouseDownPosition exists, the click handler will clear it
+    // If not dragging and mousePosition exists, the click handler will clear it
   }
 
   private attachEventListeners(): void {
