@@ -2,6 +2,16 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+# Most important - "Did Someone Already Do This?"
+
+One of the most important skills in programming is knowing when NOT to write code. Before implementing any functionality, ask yourself two critical questions:
+The Two Golden Questions
+1. "Has someone else already done this?" - Check for existing libraries and tools in our package.json
+2. "Have I already done this?" - Look for code duplication in your codebase using keywords, but do not expend too many tokens
+reading files. Search smartly.
+
+Do not be afraid to install popular libraries to reduce the need to write new code.
+
 ## Essential Commands
 
 ```bash
@@ -23,12 +33,11 @@ Aura is a **peer-to-peer Magic: The Gathering collaboration app** using WebRTC (
 - **TypeScript** - Type-safe code throughout
 - **Yjs** - CRDT-based state synchronization library
 - **y-webrtc** - WebRTC provider for Yjs (peer-to-peer networking)
-- **React** - No UI framework (React, Vue, etc.)
+- **React**
 
 **Love Libraries:** Whenever possible, we like to use popular and well supported libraries. For example, UI
 component libraries like shadcn, or helpful libraries like Tailwind CSS and GSAP. Or GitHub hotkeys.
 
-See `LIBRARY_RECOMMENDATIONS.md` for future migration plans.
 
 ## ⚠️ IMPORTANT: Prefer React for New Code
 
@@ -37,7 +46,6 @@ See `LIBRARY_RECOMMENDATIONS.md` for future migration plans.
 - React provides better state management and reactivity
 - Eliminates manual DOM manipulation bugs
 - Makes code more maintainable and testable
-- The codebase is planned for React migration (see `LIBRARY_RECOMMENDATIONS.md`)
 
 **Migration Strategy:**
 1. New features should be written as React components
