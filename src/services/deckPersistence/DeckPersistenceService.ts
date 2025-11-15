@@ -6,7 +6,7 @@ import { Deck } from '../../modules/deck';
  */
 export class DeckPersistenceService {
   private static readonly STORAGE_PREFIX = 'aura-deck-state-';
-  private static readonly MAX_AGE_MS = 60 * 60 * 1000; // 1 hour
+  private static readonly MAX_AGE_MS = 12 * 60 * 60 * 1000; // 12 hours
 
   /**
    * Restore deck state for a specific room
@@ -15,6 +15,8 @@ export class DeckPersistenceService {
    */
   static restoreDeckForRoom(roomName: string): Deck | null {
     try {
+      this.clearExpiredDecks()
+
       const key = `${this.STORAGE_PREFIX}${roomName}`;
       const savedState = localStorage.getItem(key);
 
