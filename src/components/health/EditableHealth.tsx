@@ -20,7 +20,7 @@ export const EditableHealth: React.FC<EditableHealthProps> = ({
   }, [health]);
 
   const handleChange = (e: any) => {
-    const text = e.target.innerText.replace(/[^0-9\-]/g, '');
+    const text = e.target.value.replace(/[^0-9\-]/g, '');
     setEditableHealth(text);
   };
 
