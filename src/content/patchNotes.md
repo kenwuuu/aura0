@@ -1,3 +1,18 @@
+## 2025 November 14
+
+### Features
+- Hide deck cards
+- Add interactive tooltips to deck viewer
+- Scroll to end when drawing a card overflows hand container
+
+### Bug fixes
+- Ignore system keys when capturing hotkeys
+- Fix 'delete card' tooltip spacing
+- Correctly display deck viewer hotkeys
+- Turn cursor into hand when hovering card piles
+
+---
+
 ## 2025 November 13 - Night
 
 ### Features
