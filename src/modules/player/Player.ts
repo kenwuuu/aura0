@@ -238,4 +238,8 @@ export class Player {
     const updatedCounters = counters.filter((counter: CustomCounter) => counter.id !== counterId);
     this.yPlayerState.set('customCounters', updatedCounters);
   }
+
+  public reorderHand(newOrder: Card[]): void {
+    this.yPlayerState.set('hand', newOrder);
+  }
 }
