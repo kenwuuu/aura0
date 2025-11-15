@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { CustomCounter } from '../modules/player/types';
-import { PlayerCounterModal } from './PlayerCounterModal';
+import { CustomCounter } from '../../modules/player/types';
+import { PlayerCounterModal } from '../PlayerCounterModal';
 import styles from './HealthDisplay.module.css';
+import {EditableHealth} from "./EditableHealth";
 
 interface HealthDisplayProps {
   label: string;
@@ -42,6 +43,12 @@ export const HealthDisplay: React.FC<HealthDisplayProps> = ({
 }) => {
   const [isHovered, setIsHovered] = useState(false);
   const [showModal, setShowModal] = useState(false);
+  const [editableHealth, setEditableHealth] = useState(String(health));
+
+  React.useEffect(() => {
+    // Keep editable field in sync with external health changes
+    setEditableHealth(String(health));
+  }, [health]);
 
   // Emit modal open/close event. Used for hiding hotkey tooltip
   React.useEffect(() => {
@@ -104,9 +111,11 @@ export const HealthDisplay: React.FC<HealthDisplayProps> = ({
           <div className={variant === 'local' ? styles.healthLabel : styles.opponentHealthLabel}>
             {label}
           </div>
-          <div className={variant === 'local' ? styles.healthValue : styles.opponentHealthValue}>
-            {health}
-          </div>
+          <EditableHealth
+            health={health}
+            onModifyHealth={onModifyHealth}
+            className={variant === 'local' ? styles.healthValue : styles.opponentHealthValue}
+          />
           <div className={variant === 'local' ? styles.healthControls : styles.opponentHealthControls}>
             <button onClick={() => onModifyHealth(-1)}>-</button>
             <button onClick={() => onModifyHealth(1)}>+</button>

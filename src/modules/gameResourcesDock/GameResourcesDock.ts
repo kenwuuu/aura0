@@ -5,7 +5,7 @@ import { DeckPileViewer } from './components';
 import { CardPreview } from '../cardPreview';
 import React from 'react';
 import { createRoot, Root } from 'react-dom/client';
-import { HealthDisplay } from '../../components/HealthDisplay';
+import { HealthDisplay } from '../../components/health/HealthDisplay';
 import { HotkeyTooltip } from '../../components/HotkeyTooltip';
 import { HotkeyContext } from '../../data/hotkeys';
 import { DEFAULT_CARD_BACK } from '../../constants';

@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import * as Y from 'yjs';
 import { HealthDisplay } from './HealthDisplay';
-import { CustomCounter } from '../modules/player/types';
-import { Card } from '../modules/deck';
-import { DeckPileViewer } from '../modules/gameResourcesDock/components';
+import { CustomCounter } from '../../modules/player/types';
+import { Card } from '../../modules/deck';
+import { DeckPileViewer } from '../../modules/gameResourcesDock/components';
 
 interface OpponentHealthListProps {
   yDoc: Y.Doc;

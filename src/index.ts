@@ -8,7 +8,7 @@ import { getOrCreatePlayerId, getOrCreatePeerId } from './modules/webrtc/persist
 import { Player } from './modules/player';
 import { GameResourcesDock } from './modules/gameResourcesDock';
 import { DeckManager, WelcomeModal, HotkeysModal, HelpModal, AddCardManager, PatchNotesModal } from './components';
-import { OpponentHealthList } from './components/OpponentHealthList';
+import { OpponentHealthList } from './components/health/OpponentHealthList';
 import { SavedDeck } from './modules/deck/types';
 import { TokenService } from './services/scryfall';
 import { ScryfallApiService } from './services/scryfall/ScryfallApiService';
