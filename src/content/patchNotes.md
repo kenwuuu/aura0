@@ -2,13 +2,13 @@
 
 ### Features
 - Hide deck cards
-- Add interactive tooltips to deck viewer
-- Scroll to end when drawing a card overflows hand container
+- Add interactive tooltips when inside deck viewer
+- Drawing a card will scroll hand to end
 
 ### Bug fixes
 - Ignore system keys when capturing hotkeys
-- Fix 'delete card' tooltip spacing
-- Correctly display deck viewer hotkeys
+- Fix 'Delete card' tooltip spacing
+- Display correct deck viewer hotkeys
 - Turn cursor into hand when hovering card piles
 
 ---
