@@ -1,3 +1,5 @@
+import {ROOM_PREFIX} from "../../constants";
+
 /**
  * Service for managing room state and tracking
  * Handles room ID generation, URL management, and visit tracking
@@ -30,7 +32,7 @@ export class RoomManager {
    * Generate a random room ID
    */
   private generateRoomId(): string {
-    return `mtg-${Math.random().toString(36).substring(2, 9)}`;
+    return ROOM_PREFIX + Math.random().toString(36).substring(2, 9);
   }
 
   /**
