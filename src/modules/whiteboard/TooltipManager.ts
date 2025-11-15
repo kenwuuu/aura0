@@ -9,12 +9,13 @@ import { HotkeyContext, HotkeyDefinition } from '../../data/hotkeys';
 export class TooltipManager {
   private tooltipRoot: Root | null = null;
   private tooltipContainer: HTMLElement | null = null;
-  private mouseMoveHandler: ((e: MouseEvent) => void) | null = null;
   private clickedCardId: string | null = null;
   private onHotkeyClick: ((hotkey: HotkeyDefinition, cardId: string) => void) | null = null;
   private hoverTimeout: number | null = null;
   private hideTimeout: number | null = null;
   private isTooltipHovered: boolean = false;
+  private latestMouseX = 0;
+  private latestMouseY = 0;
 
   /**
    * Initialize tooltip container and event listeners
@@ -39,7 +40,6 @@ export class TooltipManager {
       this.isTooltipHovered = false;
       this.scheduleHide();
     });
-
 
     // Setup click outside handler
     document.addEventListener('click', this.handleClickOutside.bind(this), true);
@@ -103,10 +103,13 @@ export class TooltipManager {
   /**
    * Show tooltip on hover (delayed)
    */
-  showOnHover(cardId: string, context: HotkeyContext, mouseX: number, mouseY: number): void {
+  showOnHover(cardId: string, context: HotkeyContext): void {
     this.clearTimeouts();
 
-    this.show(cardId, context, mouseX, mouseY, false);
+    this.hoverTimeout = window.setTimeout(() => {
+      // Use the latest mouse coordinates, not the ones captured at mouseenter
+      this.show(cardId, context, this.latestMouseX, this.latestMouseY, false);
+    }, 500);
   }
 
   /**
@@ -170,6 +173,11 @@ export class TooltipManager {
     // The new click-based system uses show() and hide() instead
   }
 
+  setMouseLocation(x: number, y:number) {
+    this.latestMouseX = x;
+    this.latestMouseY = y;
+  }
+
   /**
    * Clean up tooltip resources
    */
@@ -181,10 +189,6 @@ export class TooltipManager {
     if (this.tooltipContainer) {
       this.tooltipContainer.remove();
       this.tooltipContainer = null;
-    }
-    if (this.mouseMoveHandler) {
-      document.removeEventListener('mousemove', this.mouseMoveHandler);
-      this.mouseMoveHandler = null;
     }
     document.removeEventListener('click', this.handleClickOutside.bind(this), true);
   }

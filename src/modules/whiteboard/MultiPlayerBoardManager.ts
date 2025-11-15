@@ -432,14 +432,12 @@ export class MultiPlayerBoardManager {
 
       // Show tooltip menu on hover for local player's cards (delayed)
       if (card.ownerId === this.localPlayerId) {
-        window.setTimeout(() => {
-          if (!this.mousePosition) return;
-          this.tooltipManager.showOnHover(card.id, HotkeyContext.Battlefield, this.mousePosition.x, this.mousePosition.y);
-        }, 500);
+        this.tooltipManager.showOnHover(card.id, HotkeyContext.Battlefield);
       }
     });
 
     cardElement.addEventListener('mousemove', (e: MouseEvent) => {
+      this.tooltipManager.setMouseLocation(e.clientX, e.clientY);
       this.cardPreview.updatePosition(e);
       this.mousePosition = { x: e.clientX, y: e.clientY };
     });
