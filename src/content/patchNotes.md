@@ -1,7 +1,26 @@
+## 2025 November 16
+
+### Features
+- Add scry and surveil
+- Add ability to rearrange hand by dragging and dropping
+
+### Bug fixes
+- Fixed functional reprint imports. Cards like `Doric, Nature's Warden` which are reprints of another card, `Casal, 
+Lurkwood Pathfinder`, are now imported correctly
+
+---
+
 ## 2025 November 15
 
 ### Features
-- Added scry and surveil 
+
+### Changes
+- Clear rooms and hands that are older than 12 hours from storage
+
+### Bug fixes
+- Fix battlefield card tooltip rendering to not jump around.
+- Make battlefield card tooltip show up in a more predictable location when hovering a card.
+- Hide battlefield card tooltip when dragging card 
 
 ---
 
@@ -9,7 +28,7 @@
 
 ### Features
 - Cards are now hidden by default when viewing your deck
-- Added interactive tooltips when inside deck viewer
+- Add interactive tooltips when inside deck viewer
 - Drawing a card will scroll hand to end
 - Life total is now editable: click and type!
 
