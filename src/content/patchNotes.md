@@ -5,14 +5,12 @@
 - Add ability to rearrange hand by dragging and dropping
 
 ### Bug fixes
-- Fixed functional reprint imports. Cards like `Doric, Nature's Warden` which are reprints of another card, `Casal, 
+- Fix functional reprint imports. Cards like `Doric, Nature's Warden` which are reprints of another card, `Casal, 
 Lurkwood Pathfinder`, are now imported correctly
 
 ---
 
 ## 2025 November 15
-
-### Features
 
 ### Changes
 - Clear rooms and hands that are older than 12 hours from storage
