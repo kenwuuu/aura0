@@ -240,10 +240,10 @@ class AuraApp {
     this.webrtcProvider.onStatusChange((status) => {
       if (statusElement) {
         if (status.isConnected) {
-          statusElement.textContent = `Connected (${status.peersCount} peer${status.peersCount !== 1 ? 's' : ''})`;
+          statusElement.textContent = `Connected (${status.peersCount} player${status.peersCount !== 1 ? 's' : ''})`;
           statusElement.style.color = '#4ade80';
         } else {
-          statusElement.textContent = 'Waiting for peers...';
+          statusElement.textContent = 'Waiting for players...';
           statusElement.style.color = '#facc15';
         }
       }
