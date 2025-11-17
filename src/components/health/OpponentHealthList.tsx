@@ -167,7 +167,7 @@ export const OpponentHealthList: React.FC<OpponentHealthListProps> = ({
       {opponents.map((opponent) => (
         <HealthDisplay
           key={opponent.playerId}
-          label="Opponent"
+          label={opponent.playerId.slice(0, 9)}
           health={opponent.health}
           onModifyHealth={(delta) => modifyOpponentHealth(opponent.playerId, delta)}
           variant="opponent"

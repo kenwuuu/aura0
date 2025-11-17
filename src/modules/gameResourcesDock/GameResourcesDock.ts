@@ -310,7 +310,7 @@ export class GameResourcesDock {
     const state = this.player.getState();
     this.healthRoot.render(
       React.createElement(HealthDisplay, {
-        label: 'Life',
+        label: this.player.getId().slice(0, 9),
         health: state.health,
         onModifyHealth: (delta: number) => this.player.modifyHealth(delta),
         variant: 'local',
