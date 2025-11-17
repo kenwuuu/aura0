@@ -50,6 +50,7 @@ export class GameResourcesDock {
     placeholder: HTMLElement | null;
   } | null = null;
   private _dragState: { mode: string; draggedElement: HTMLDivElement; startIndex: number; } | undefined;
+  private requestAnimationFrameId: number | null = null;
 
   constructor(
     container: HTMLElement,
@@ -518,69 +519,81 @@ export class GameResourcesDock {
 
     handCards.addEventListener('dragover', (e: DragEvent) => {
       if (!this._dragState) return;
-      const { draggedElement, mode, startIndex } = this._dragState;
-
-      if (!draggedElement) return;
       e.preventDefault();
 
-      const handRect = handCards.getBoundingClientRect();
+      // Throttle with requestAnimationFrame to prevent layout thrashing
+      if (this.requestAnimationFrameId !== null) return;
 
-      const outOfBounds =
-        e.clientY < handRect.top - buffer ||
-        e.clientY > handRect.bottom + buffer;
+      this.requestAnimationFrameId = requestAnimationFrame(() => {
+        this.requestAnimationFrameId = null;
 
-      //
-      // ───────────────────────────────────────────────────────────────
-      // MODE SWITCHING LOGIC (Option B)
-      // ───────────────────────────────────────────────────────────────
-      //
-      if (outOfBounds) {
-        // Switch to PLAY MODE
-        if (mode !== 'play') {
-          this._dragState.mode = 'play';
+        if (!this._dragState) return;
+        const { draggedElement, mode } = this._dragState;
+        if (!draggedElement) return;
 
-          // Switch BACK to your full-size centered drag image
-          try {
-            this.setCardDragPoint(draggedElement, e);
-          } catch {}
+        // Read phase: batch all layout reads together
+        const handRect = handCards.getBoundingClientRect();
+        const outOfBounds =
+          e.clientY < handRect.top - buffer ||
+          e.clientY > handRect.bottom + buffer;
 
-          // Stop reordering but keep dragging for board play
-        }
+        //
+        // ───────────────────────────────────────────────────────────────
+        // MODE SWITCHING LOGIC
+        // ───────────────────────────────────────────────────────────────
+        //
+        if (outOfBounds) {
+          // Switch to PLAY MODE
+          if (mode !== 'play') {
+            this._dragState.mode = 'play';
 
-        return;
-      } else {
-        // Switch into REORDER MODE
-        if (mode !== 'reorder') {
-          this._dragState.mode = 'reorder';
-
-          // Use transparent drag image so reorder looks clean
-          try {
-            e.dataTransfer?.setDragImage(transparentDragImage, 0, 0);
-          } catch {}
-        }
-      }
-
-      //
-      // ───────────────────────────────────────────────────────────────
-      // REORDER MODE BEHAVIOR
-      // ───────────────────────────────────────────────────────────────
-      //
-      if (this._dragState.mode === 'reorder') {
-        const target = (e.target as HTMLElement).closest('.hand-card') as HTMLElement | null;
-        if (!target || target === draggedElement) return;
-
-        const rect = target.getBoundingClientRect();
-        const midpoint = rect.left + rect.width / 2;
-
-        if (e.clientX < midpoint) {
-          handCards.insertBefore(draggedElement, target);
+            // Switch BACK to your full-size centered drag image
+            try {
+              this.setCardDragPoint(draggedElement, e);
+            } catch {}
+          }
+          return;
         } else {
-          handCards.insertBefore(draggedElement, target.nextSibling);
+          // Switch into REORDER MODE
+          if (mode !== 'reorder') {
+            this._dragState.mode = 'reorder';
+
+            // Use transparent drag image so reorder looks clean
+            try {
+              e.dataTransfer?.setDragImage(transparentDragImage, 0, 0);
+            } catch {}
+          }
         }
-      }
+
+        //
+        // ───────────────────────────────────────────────────────────────
+        // REORDER MODE BEHAVIOR
+        // ───────────────────────────────────────────────────────────────
+        //
+        if (this._dragState.mode === 'reorder') {
+          const target = (e.target as HTMLElement).closest('.hand-card') as HTMLElement | null;
+          if (!target || target === draggedElement) return;
+
+          const rect = target.getBoundingClientRect();
+          const midpoint = rect.left + rect.width / 2;
+
+          // Write phase: batch all DOM mutations together
+          if (e.clientX < midpoint) {
+            handCards.insertBefore(draggedElement, target);
+          } else {
+            handCards.insertBefore(draggedElement, target.nextSibling);
+          }
+        }
+      });
     });
 
     handCards.addEventListener('dragend', () => {
+      // Cancel any pending animation frame
+      if (this.requestAnimationFrameId !== null) {
+        cancelAnimationFrame(this.requestAnimationFrameId);
+        this.requestAnimationFrameId = null;
+      }
+
       if (!this._dragState) return;
       const { draggedElement, startIndex, mode } = this._dragState;
 

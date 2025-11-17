@@ -1,4 +1,4 @@
-## 2025 November 17
+## 2025 November 17 - Daily patch 3
 
 ### Feature
 - Language support: Add ability to import cards in any language that Scryfall supports. Import as usual, e.g.: 
@@ -7,6 +7,9 @@
 ### Major bug fix
 - Fix network issue where users would see 'Connected' but not see opponent HP or cards
     - People who turned off VPNs and firewalls and ad blockers should be able to turn them back on now
+
+### Bug fixes
+- Make rearranging hand less laggy by throttling animation kenwu A minute ago
 
 ---
 
