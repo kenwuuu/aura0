@@ -1,3 +1,11 @@
+## 2025 November 17
+
+### Major bug fix
+- Fix network issue where users would see 'Connected' but not see opponent HP or cards
+    - People who turned off VPNs and firewalls and ad blockers should be able to turn them back on now
+
+---
+
 ## 2025 November 16
 
 ### Features
