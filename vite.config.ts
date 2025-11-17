@@ -1,3 +1,4 @@
+import path from "path";
 import { sentryVitePlugin } from "@sentry/vite-plugin";
 
 import { defineConfig } from 'vite';
@@ -20,5 +21,10 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     sourcemap: true,
+  },
+  resolve: {
+    alias: {
+      "@": path.resolve(__dirname, "./src"),
+    },
   },
 });
