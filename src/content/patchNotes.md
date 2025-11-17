@@ -1,5 +1,9 @@
 ## 2025 November 17
 
+### Feature
+- Language support: Add ability to import cards in any language that Scryfall supports. Import as usual, e.g.: 
+`1 Anillo solar`, `1 Sonnenring`, `1 Anneau solaire`
+
 ### Major bug fix
 - Fix network issue where users would see 'Connected' but not see opponent HP or cards
     - People who turned off VPNs and firewalls and ad blockers should be able to turn them back on now
