@@ -70,7 +70,7 @@ export class GameResourcesDock {
       onMoveToExile: (card) => this.handlePileCardToExile(card, 'deck'),
       onMoveToDeckTop: (card) => this.handlePileCardToDeckTop(card, 'deck'),
       onMoveToDeckBottom: (card) => this.handlePileCardToDeckBottom(card, 'deck'),
-    });
+    }, this.player.getYPlayerState());
 
     this.scryViewer = new DeckPileViewer({
       onMoveToDiscard: (card) => this.handlePileCardToDiscard(card, 'scry'),

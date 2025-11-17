@@ -34,6 +34,7 @@ export class Player {
       this.yPlayerState.set('discardPile', []);
       this.yPlayerState.set('deckCardCount', this.deck.getCardCount());
       this.yPlayerState.set('customCounters', []);
+      this.yPlayerState.set('deckRevealCount', 0); // 0=hidden, -1=all, N>0=top N cards
     }
   }
 
@@ -241,5 +242,9 @@ export class Player {
 
   public reorderHand(newOrder: Card[]): void {
     this.yPlayerState.set('hand', newOrder);
+  }
+
+  public getYPlayerState(): Y.Map<any> {
+    return this.yPlayerState;
   }
 }
