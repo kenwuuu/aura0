@@ -48,15 +48,15 @@ Sentry.init({
 
 class AuraApp {
   private yDoc: Y.Doc;
-  private webrtcProvider: WebRTCProvider;
-  private whiteboard: MultiPlayerBoardManager;
-  private localPlayer: Player;
-  private localDock: GameResourcesDock;
+  private webrtcProvider!: WebRTCProvider;
+  private whiteboard!: MultiPlayerBoardManager;
+  private localPlayer!: Player;
+  private localDock!: GameResourcesDock;
   private opponentHealthRoot: Root | null = null;
-  private tokenService: TokenService;
-  private cardPreview: CardPreview;
+  private tokenService!: TokenService;
+  private cardPreview!: CardPreview;
   private playerId: string;
-  private scryfallApiService: ScryfallApiService;
+  private scryfallApiService!: ScryfallApiService;
   private roomManager: RoomManager;
   private eventHandlers: WhiteboardEventHandlers | null = null;
 
@@ -69,12 +69,14 @@ class AuraApp {
 
     // Initialize room manager (handles room ID and URL)
     this.roomManager = new RoomManager();
+  }
 
+  async initialize() {
     // Get or create persistent peer ID for WebRTC
     const peerId = getOrCreatePeerId();
 
-    // Initialize WebRTC provider with persistence
-    this.webrtcProvider = new WebRTCProvider(this.yDoc, {
+    // Initialize WebRTC provider with CloudFlare TURN servers
+    this.webrtcProvider = await WebRTCProvider.create(this.yDoc, {
       roomName: this.roomManager.getRoomName(),
       peerId, // Pass persistent peer ID
     });
@@ -518,6 +520,10 @@ class AuraApp {
 
 // Initialize the app
 const app = new AuraApp();
+app.initialize().catch(error => {
+  console.error('Failed to initialize app:', error);
+  Sentry.captureException(error);
+});
 
 // Clean up on page unload
 window.addEventListener('beforeunload', () => {
