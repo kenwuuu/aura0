@@ -21,6 +21,7 @@ import { PatchNotesService } from './services/patchNotes';
 import { DEFAULT_DECK } from './data/defaultDeck';
 import './style.css';
 import * as Sentry from "@sentry/react";
+import {ReactToasterRoot} from "../ReactToasterRoot";
 
 Sentry.init({
   environment: process.env.NODE_ENV || "development",
@@ -119,6 +120,15 @@ class AuraApp {
       position: 'bottom',
       playerId: this.playerId,
     }, this.cardPreview);
+
+    // init toaster for alerts like "Opponent revealed deck"
+    const toasterContainer = document.getElementById("toaster-root");
+    if (toasterContainer) {
+      const toasterRoot = createRoot(toasterContainer);
+      toasterRoot.render(
+        React.createElement(ReactToasterRoot)
+      );
+    }
 
     // Initialize opponent health display with React
     const opponentHealthContainer = document.getElementById('opponent-health-container');

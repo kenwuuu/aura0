@@ -1,8 +1,12 @@
-## 2025 November 17 - Daily patch 3
+## 2025 November 17 - Daily patch 4
 
 ### Feature
 - Language support: Add ability to import cards in any language that Scryfall supports. Import as usual, e.g.: 
 `1 Anillo solar`, `1 Sonnenring`, `1 Anneau solaire`
+- Alert opponents when players reveal any cards in their deck
+
+### Change
+- Put player ID on health displays
 
 ### Major bug fix
 - Fix network issue where users would see 'Connected' but not see opponent HP or cards
