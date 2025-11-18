@@ -13,7 +13,7 @@
     - People who turned off VPNs and firewalls and ad blockers should be able to turn them back on now
 
 ### Bug fixes
-- Make rearranging hand less laggy by throttling animation kenwu A minute ago
+- Make rearranging hand less laggy by throttling animation
 
 ---
 
