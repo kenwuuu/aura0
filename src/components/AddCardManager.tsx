@@ -19,7 +19,7 @@ export const AddCardManager: React.FC<AddCardManagerProps> = ({
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       try {
-        if (e.key.toLowerCase() === 'a' && !e.repeat) {
+        if (e.key?.toLowerCase() === 'a' && !e.repeat) {
           // Only trigger if not focused on an input element
           if (
             document.activeElement?.tagName !== 'INPUT' &&
