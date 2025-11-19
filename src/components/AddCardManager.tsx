@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { AddCardModal } from './AddCardModal';
-import { ScryfallApiService } from '../services/scryfall/ScryfallApiService';
-import { toCard } from '../services/scryfall/ScryfallCardAdapter';
-import { Card } from '../modules/deck/types';
+import { ScryfallApiService } from '@/services/scryfall';
+import { toCard } from '@/services/scryfall/ScryfallCardAdapter';
+import { Card } from '@/modules/deck';
 import * as Sentry from '@sentry/react';
 
 interface AddCardManagerProps {
