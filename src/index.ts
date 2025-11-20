@@ -48,6 +48,8 @@ Sentry.init({
   enableLogs: true,
 });
 
+const baseUrl = "https://aura-dqp.pages.dev/?room=";
+
 class AuraApp {
   private yDoc: Y.Doc;
   private webrtcProvider!: WebRTCProvider;
@@ -253,7 +255,7 @@ class AuraApp {
       roomElement.addEventListener("click", (event) => {
         event.preventDefault();
         navigator.clipboard
-          .writeText(this.webrtcProvider.getRoomName())
+          .writeText(baseUrl + this.webrtcProvider.getRoomName())
           .then(() => {
             roomElement.innerHTML = `COPIED! ${checkSVG}`;
             roomElement.style.color = '#4ade80';
