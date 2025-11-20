@@ -120,7 +120,7 @@ class AuraApp {
     this.localDock = new GameResourcesDock(dockContainer, this.localPlayer, {
       position: 'bottom',
       playerId: this.playerId,
-    }, this.cardPreview);
+    }, this.cardPreview, this.whiteboard.getTooltipManager());
 
     // init toaster for alerts like "Opponent revealed deck"
     const toasterContainer = document.getElementById("toaster-root");

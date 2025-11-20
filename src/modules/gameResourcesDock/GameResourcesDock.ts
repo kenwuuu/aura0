@@ -5,12 +5,16 @@ import { DeckPileViewer } from './components';
 import { CardPreview } from '../cardPreview';
 import React from 'react';
 import { createRoot, Root } from 'react-dom/client';
-import { HealthDisplay } from '../../components/health/HealthDisplay';
-import { HotkeyTooltip } from '../../components/HotkeyTooltip';
-import { HotkeyContext } from '../../data/hotkeys';
-import { DEFAULT_CARD_BACK } from '../../constants';
+import { HealthDisplay } from '@/components/health/HealthDisplay';
+import { HotkeyTooltip } from '@/components';
+import { HotkeyContext } from '@/data/hotkeys';
+import { DEFAULT_CARD_BACK } from '@/constants';
 import {animate} from "motion";
-import { ScryModal } from '../../components/ScryModal';
+import { ScryModal } from '@/components/ScryModal';
+import { ControlsMenu } from '@/components/controls/ControlsMenu';
+import { setElementDragPoint } from "@/utils/centerHtmlElementOnDrag";
+import { TooltipManager } from '../whiteboard/TooltipManager';
+import { TooltipProvider } from '@/contexts/TooltipContext';
 
 export class GameResourcesDock {
   private container: HTMLElement;
@@ -24,6 +28,7 @@ export class GameResourcesDock {
     exile: HTMLElement;
     discard: HTMLElement;
     hand: HTMLElement;
+    controls: HTMLElement;
     deck: HTMLElement;
     health: HTMLElement;
   } | null = null;
@@ -34,6 +39,8 @@ export class GameResourcesDock {
   private zoomControls?: HTMLElement;
   private cardPreview: CardPreview;
   private healthRoot: Root | null = null;
+  private controlsRoot: Root | null = null;
+  private controlsTooltipManager: TooltipManager | undefined;
   private tooltipRoot: Root | null = null;
   private tooltipContainer: HTMLElement | null = null;
   private scryModalRoot: Root | null = null;
@@ -44,11 +51,6 @@ export class GameResourcesDock {
   private currentMouseY: number = 0;
   private isMouseDown: boolean = false;
   private isModalOpen: boolean = false;
-  private handDragState: {
-    draggedIndex: number;
-    draggedElement: HTMLElement;
-    placeholder: HTMLElement | null;
-  } | null = null;
   private _dragState: { mode: string; draggedElement: HTMLDivElement; startIndex: number; } | undefined;
   private requestAnimationFrameId: number | null = null;
 
@@ -56,11 +58,13 @@ export class GameResourcesDock {
     container: HTMLElement,
     player: Player,
     config: GameResourcesDockConfig,
-    cardPreview: CardPreview
+    cardPreview: CardPreview,
+    controlsTooltipManager?: TooltipManager
   ) {
     this.container = container;
     this.player = player;
     this.config = config;
+    this.controlsTooltipManager = controlsTooltipManager;
 
     // Initialize all pile viewers with appropriate callbacks
     this.deckViewer = new DeckPileViewer({
@@ -170,16 +174,18 @@ export class GameResourcesDock {
     const exile = this.createPileElement('exile', 'Exile');
     const discard = this.createPileElement('discard', 'Discard');
     const hand = this.createHandElement();
+    const controls = this.createControlsElement();
     const deck = this.createDeckElement();
     const health = this.createHealthElement();
 
     this.container.appendChild(exile);
     this.container.appendChild(discard);
     this.container.appendChild(hand);
+    this.container.appendChild(controls);
     this.container.appendChild(deck);
     this.container.appendChild(health);
 
-    this.elements = { exile, discard, hand, deck, health };
+    this.elements = { exile, discard, hand, controls, deck, health };
   }
 
   private createPileElement(type: string, label: string): HTMLElement {
@@ -244,14 +250,6 @@ export class GameResourcesDock {
     count.dataset.pile = 'deck';
     count.textContent = '60';
 
-    const scryButton = document.createElement('button');
-    scryButton.className = 'draw-button';
-    scryButton.textContent = 'Scry';
-    scryButton.onclick = (e) => {
-      e.stopPropagation();
-      this.openScryModal();
-    };
-
     const drawButton = document.createElement('button');
     drawButton.className = 'draw-button';
     drawButton.textContent = 'Draw';
@@ -262,7 +260,6 @@ export class GameResourcesDock {
 
     deck.appendChild(labelEl);
     deck.appendChild(count);
-    deck.appendChild(scryButton);
     deck.appendChild(drawButton);
 
     // Add hover event listeners for keyboard shortcuts
@@ -277,12 +274,40 @@ export class GameResourcesDock {
 
     // Click deck to view it (with search and sort)
     deck.onclick = (e) => {
-      if (e.target !== drawButton && e.target !== scryButton) {
+      if (e.target !== drawButton) {
         this.viewDeck();
       }
     };
 
     return deck;
+  }
+
+  private createControlsElement(): HTMLElement {
+    const controlsElement = document.createElement('div');
+
+    this.controlsRoot = createRoot(controlsElement);
+    this.renderControlsComponent();
+
+    return controlsElement;
+  }
+
+  private renderControlsComponent(): void {
+    if (!this.controlsRoot) return;
+
+    this.controlsRoot.render(
+      React.createElement(
+        TooltipProvider,
+        { value: this.controlsTooltipManager ?? null },
+        React.createElement(ControlsMenu, {
+          onScry: () => this.openScryModal(),
+          onAddCard: () => {
+            // Trigger the AddCardManager by simulating the 'a' key press
+            const event = new KeyboardEvent('keydown', { key: 'a' });
+            document.dispatchEvent(event);
+          }
+        })
+      )
+    );
   }
 
   private createHealthElement(): HTMLElement {
@@ -486,7 +511,7 @@ export class GameResourcesDock {
         cardEl.classList.remove('hover');
 
         // Use your normal card-centered drag image first
-        this.setCardDragPoint(cardEl, e);
+        setElementDragPoint(cardEl, e, 'card');
 
         e.dataTransfer!.effectAllowed = 'move';
         e.dataTransfer!.setData('text/plain', card.id);
@@ -549,7 +574,7 @@ export class GameResourcesDock {
 
             // Switch BACK to your full-size centered drag image
             try {
-              this.setCardDragPoint(draggedElement, e);
+              setElementDragPoint(draggedElement, e, 'card');
             } catch {}
           }
           return;
@@ -615,27 +640,6 @@ export class GameResourcesDock {
 
       this._dragState.mode = 'none';
     });
-  }
-
-  private setCardDragPoint(cardEl: HTMLDivElement, e: DragEvent) {
-    const userAgent = navigator.userAgent.toLowerCase();
-    const rect = cardEl.getBoundingClientRect();
-    let offsetX;
-    let offsetY;
-
-    // these magic numbers came from dragging a card out of dock and checking that it placed on the board as expected
-    if (userAgent.includes("safari") && !userAgent.includes("chrome")) {  // Safari
-      offsetX = rect.width / 2;
-      offsetY = rect.height / 2;
-    } else if (userAgent.includes("firefox")) {  // Firefox
-      offsetX = rect.width / 1.3;
-      offsetY = rect.height / 1.3;
-    } else {  // Chrome and other browsers
-      offsetX = rect.width / 1.5;
-      offsetY = rect.height / 2;
-    }
-
-    e.dataTransfer!.setDragImage(cardEl, offsetX, offsetY);
   }
 
   private onDrawCard(): void {
@@ -1119,6 +1123,10 @@ export class GameResourcesDock {
     if (this.healthRoot) {
       this.healthRoot.unmount();
       this.healthRoot = null;
+    }
+    if (this.controlsRoot) {
+      this.controlsRoot.unmount();
+      this.controlsRoot = null;
     }
     if (this.tooltipRoot) {
       this.tooltipRoot.unmount();
