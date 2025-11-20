@@ -391,6 +391,20 @@ SIDEBOARD:
         expect(result[7]).toEqual({ count: 1, name: 'Aegis of the Legion', setCode: 'CLU', collectorNumber: '22' });
         expect(result[8]).toEqual({ count: 1, name: 'Arcane Signet', setCode: 'BLC', collectorNumber: '127' });
       });
+
+      it('should handle letters in collector number', () => {
+        const deckText = `
+1 Taiga (OLGC) 2017EU
+1 Windswept Heath (WC04) jn328
+1 Zuran Orb (PTC) et350
+`
+        const result = parseDecklist(deckText);
+
+        expect(result).toHaveLength(3);
+        expect(result[0]).toEqual({ count: 1, name: 'Taiga', setCode: 'OLGC', collectorNumber: '2017EU' });
+        expect(result[1]).toEqual({ count: 1, name: 'Windswept Heath', setCode: 'WC04', collectorNumber: 'jn328' });
+        expect(result[2]).toEqual({ count: 1, name: 'Zuran Orb', setCode: 'PTC', collectorNumber: 'et350' });
+      });
     });
   });
 });
