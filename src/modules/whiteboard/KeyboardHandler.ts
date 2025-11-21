@@ -307,11 +307,6 @@ export class KeyboardHandler {
       if (!card) return;
 
       switch (key) {
-        case 'z': // Z - Play from hand to battlefield  TODO: Doesn't play when you press z on card
-          e.preventDefault();
-          dockState.playHandCardToBattlefield(dockState.hoveredHandCardId);
-          break;
-
         case 'd': // D - Move to graveyard
           e.preventDefault();
           dockState.moveHandCardToDiscard(dockState.hoveredHandCardId);
@@ -345,21 +340,16 @@ export class KeyboardHandler {
       const pileType = dockState.hoveredPileType;
 
       switch (key) {
-        case 'z': // Z - Play top card to battlefield
-          e.preventDefault();
-          dockState.movePileCardToBattlefield(topCard, pileType);
-          break;
-
         case 'h': // H - Move top card to hand
           e.preventDefault();
-          dockState.movePileCardToHand(topCard, pileType);
+          dockState.movePileCardToHand(pileType);
           break;
 
         case 's': // S - Move top card to exile
           // Skip if already in exile
           if (pileType !== 'exile') {
             e.preventDefault();
-            dockState.movePileCardToExile(topCard, pileType);
+            dockState.movePileCardToPile(pileType, 'exile');
           }
           break;
 
@@ -367,7 +357,7 @@ export class KeyboardHandler {
           // Skip if already in discard
           if (pileType !== 'discard') {
             e.preventDefault();
-            dockState.movePileCardToDiscard(topCard, pileType);
+            dockState.movePileCardToPile(pileType, 'discard');
           }
           break;
 
@@ -375,7 +365,7 @@ export class KeyboardHandler {
           // Skip if already in deck (would be redundant)
           if (pileType !== 'deck') {
             e.preventDefault();
-            dockState.movePileCardToDeckTop(topCard, pileType);
+            dockState.movePileCardToPile(pileType, 'deck');
           }
           break;
 
@@ -383,7 +373,8 @@ export class KeyboardHandler {
           // Skip if already in deck
           if (pileType !== 'deck') {
             e.preventDefault();
-            dockState.movePileCardToDeckBottom(topCard, pileType);
+            const bottomIndex = 0;
+            dockState.movePileCardToPile(pileType, 'deck', bottomIndex);
           }
           break;
       }

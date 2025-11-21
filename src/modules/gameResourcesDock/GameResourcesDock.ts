@@ -1,20 +1,21 @@
-import { Player, PlayerState } from '../player';
-import { GameResourcesDockConfig } from './types';
+import {Player, PlayerState} from '../player';
+import {GameResourcesDockConfig} from './types';
 import {Card, Deck} from '../deck';
-import { PileViewer } from './components';
+import { PileViewer, PileType } from './components';
 import { CardPreview } from '../cardPreview';
 import React from 'react';
-import { createRoot, Root } from 'react-dom/client';
-import { HealthDisplay } from '@/components/health/HealthDisplay';
-import { HotkeyTooltip } from '@/components';
-import { HotkeyContext } from '@/data/hotkeys';
-import { DEFAULT_CARD_BACK } from '@/constants';
+import {createRoot, Root} from 'react-dom/client';
+import {HealthDisplay} from '@/components/health/HealthDisplay';
+import {HotkeyTooltip} from '@/components';
+import {HotkeyContext} from '@/data/hotkeys';
+import {DEFAULT_CARD_BACK} from '@/constants';
 import {animate} from "motion";
-import { ScryModal } from '@/components/ScryModal';
+import {ScryModal} from '@/components/ScryModal';
 import { ControlsMenu } from '@/components/controls/ControlsMenu';
 import { setElementDragPoint } from "@/utils/centerHtmlElementOnDrag";
 import { TooltipManager } from '../whiteboard/TooltipManager';
 import { TooltipProvider } from '@/contexts/TooltipContext';
+import { HandCardsContainer } from './HandCardsContainer';
 
 export class GameResourcesDock {
   private container: HTMLElement;
@@ -40,13 +41,14 @@ export class GameResourcesDock {
   private cardPreview: CardPreview;
   private healthRoot: Root | null = null;
   private controlsRoot: Root | null = null;
+  private handRoot: Root | null = null;
   private controlsTooltipManager: TooltipManager | undefined;
   private tooltipRoot: Root | null = null;
   private tooltipContainer: HTMLElement | null = null;
   private scryModalRoot: Root | null = null;
   private scryModalContainer: HTMLElement | null = null;
   private isScryModalOpen: boolean = false;
-  private scriedCards: Deck = new Deck({initialCardCount: 0}, []);
+  private scriedCards: Deck = new Deck([]);
   private currentMouseX: number = 0;
   private currentMouseY: number = 0;
   private isMouseDown: boolean = false;
@@ -69,34 +71,34 @@ export class GameResourcesDock {
 
     // Initialize all pile viewers with appropriate callbacks
     this.deckViewer = new PileViewer({
-      onPlayToBattlefield: (card) => this.handlePileCardToBattlefield(card, 'deck'),
-      onMoveToHand: (card) => this.handlePileCardToHand(card, 'deck'),
-      onMoveToDiscard: (card) => this.handlePileCardToDiscard(card, 'deck'),
-      onMoveToExile: (card) => this.handlePileCardToExile(card, 'deck'),
-      onMoveToDeckTop: (card) => this.handlePileCardToDeckTop(card, 'deck'),
-      onMoveToDeckBottom: (card) => this.handlePileCardToDeckBottom(card, 'deck'),
-    }, this.player.getYPlayerState());
+      onPlayToBattlefield: (card) => this.handlePileViewerCardToBattlefield(card, 'deck'),
+      onMoveToHand: (card) => this.handlePileViewerCardToHand(card, 'deck'),
+      onMoveToDiscard: (card) => this.handlePileViewerCardToDiscard(card, 'deck'),
+      onMoveToExile: (card) => this.handlePileViewerCardToExile(card, 'deck'),
+      onMoveToDeckTop: (card) => this.handlePileViewerCardToDeckTop(card, 'deck'),
+      onMoveToDeckBottom: (card) => this.handlePileViewerCardToDeckBottom(card, 'deck'),
+    });
 
     this.scryViewer = new PileViewer({
-      onMoveToDiscard: (card) => this.handlePileCardToDiscard(card, 'scry'),
-      onMoveToDeckTop: (card) => this.handlePileCardToDeckTop(card, 'scry'),
-      onMoveToDeckBottom: (card) => this.handlePileCardToDeckBottom(card, 'scry'),
+      onMoveToDiscard: (card) => this.handlePileViewerCardToDiscard(card, 'scry'),
+      onMoveToDeckTop: (card) => this.handlePileViewerCardToDeckTop(card, 'scry'),
+      onMoveToDeckBottom: (card) => this.handlePileViewerCardToDeckBottom(card, 'scry'),
     });
 
     this.exileViewer = new PileViewer({
-      onPlayToBattlefield: (card) => this.handlePileCardToBattlefield(card, 'exile'),
-      onMoveToHand: (card) => this.handlePileCardToHand(card, 'exile'),
-      onMoveToDiscard: (card) => this.handlePileCardToDiscard(card, 'exile'),
-      onMoveToDeckTop: (card) => this.handlePileCardToDeckTop(card, 'exile'),
-      onMoveToDeckBottom: (card) => this.handlePileCardToDeckBottom(card, 'exile'),
+      onPlayToBattlefield: (card) => this.handlePileViewerCardToBattlefield(card, 'exile'),
+      onMoveToHand: (card) => this.handlePileViewerCardToHand(card, 'exile'),
+      onMoveToDiscard: (card) => this.handlePileViewerCardToDiscard(card, 'exile'),
+      onMoveToDeckTop: (card) => this.handlePileViewerCardToDeckTop(card, 'exile'),
+      onMoveToDeckBottom: (card) => this.handlePileViewerCardToDeckBottom(card, 'exile'),
     });
 
     this.discardViewer = new PileViewer({
-      onPlayToBattlefield: (card) => this.handlePileCardToBattlefield(card, 'discard'),
-      onMoveToHand: (card) => this.handlePileCardToHand(card, 'discard'),
-      onMoveToExile: (card) => this.handlePileCardToExile(card, 'discard'),
-      onMoveToDeckTop: (card) => this.handlePileCardToDeckTop(card, 'discard'),
-      onMoveToDeckBottom: (card) => this.handlePileCardToDeckBottom(card, 'discard'),
+      onPlayToBattlefield: (card) => this.handlePileViewerCardToBattlefield(card, 'discard'),
+      onMoveToHand: (card) => this.handlePileViewerCardToHand(card, 'discard'),
+      onMoveToExile: (card) => this.handlePileViewerCardToExile(card, 'discard'),
+      onMoveToDeckTop: (card) => this.handlePileViewerCardToDeckTop(card, 'discard'),
+      onMoveToDeckBottom: (card) => this.handlePileViewerCardToDeckBottom(card, 'discard'),
     });
 
     this.handZoomLevel = parseFloat(localStorage.getItem('hand-zoom') || '1');
@@ -228,15 +230,41 @@ export class GameResourcesDock {
 
   private createHandElement(): HTMLElement {
     const hand = document.createElement('div');
-    hand.className = 'hand-container';
 
-    const cards = document.createElement('div');
-    cards.className = 'hand-cards';
-    cards.dataset.hand = this.config.playerId;
-
-    hand.appendChild(cards);
+    // Mount React component for hand cards
+    this.handRoot = createRoot(hand);
+    this.renderHandComponent();
 
     return hand;
+  }
+
+  private renderHandComponent(): void {
+    if (!this.handRoot) return;
+
+    this.handRoot.render(
+      React.createElement(HandCardsContainer, {
+        yPlayerState: this.player.getYPlayerState(),
+        playerId: this.config.playerId,
+        zoomLevel: this.handZoomLevel,
+        cardPreview: this.cardPreview,
+        onHoveredCardChange: (cardId) => {
+          this.hoveredHandCardId = cardId;
+          if (cardId) {
+            this.hoveredResource = null;
+          }
+          this.updateHotkeyTooltip();
+        },
+        onDraggedCardChange: (draggedCard) => {
+          this.draggedCard = draggedCard;
+        },
+        onDragStateChange: (dragState) => {
+          this._dragState = dragState;
+        },
+        onHandReorder: (reorderedHand) => {
+          this.player.reorderHand(reorderedHand);
+        }
+      })
+    );
   }
 
   private createDeckElement(): HTMLElement {
@@ -258,7 +286,7 @@ export class GameResourcesDock {
     drawButton.textContent = 'Draw';
     drawButton.onclick = (e) => {
       e.stopPropagation();
-      this.onDrawCard();
+      this.player.drawCard();
     };
 
     deck.appendChild(labelEl);
@@ -280,7 +308,7 @@ export class GameResourcesDock {
     // Click deck to view it (with search and sort)
     deck.onclick = (e) => {
       if (e.target !== drawButton) {
-        this.viewDeck();
+        this.viewPile('deck');
       }
     };
 
@@ -396,14 +424,12 @@ export class GameResourcesDock {
 
         if (!this.draggedCard) return;
 
-        const pileType = pile.dataset.pileType;
-        if (pileType === 'exile') {
-          this.player.moveCardToExile(this.draggedCard.card);
-        } else if (pileType === 'discard') {
-          this.player.moveCardToDiscard(this.draggedCard.card);
-        } else if (pileType === 'deck') {
-          this.player.moveCardToDeckTop(this.draggedCard.card);
+        function isPileType(value: string): value is PileType {
+          return ['deck', 'exile', 'discard', 'hand', 'scry'].includes(value);
         }
+
+        const pileType = pile.dataset.pileType;
+        if (pileType && isPileType(pileType)) this.player.placeCardInPile(this.draggedCard.card, pileType);
 
         this.player.removeCardFromHand(this.draggedCard.card.id);
         this.draggedCard = null;
@@ -422,229 +448,12 @@ export class GameResourcesDock {
     if (discardCount) discardCount.textContent = state.discardPile.length.toString();
 
     const deckCount = this.elements.deck.querySelector('.pile-count');
-    if (deckCount) deckCount.textContent = state.deckCardCount.toString();
+    if (deckCount) deckCount.textContent = state.deck.length.toString();
 
     // Update health React component
     this.renderHealthComponent();
 
-    // Update hand
-    this.updateHandDisplay(state.hand);
-  }
-
-  private updateHandDisplay(hand: Card[]): void {
-    if (!this.elements) return;
-
-    const handCards = this.elements.hand.querySelector('.hand-cards');
-    if (!handCards) return;
-
-    handCards.innerHTML = '';
-
-    hand.forEach((card) => {
-      const cardEl = document.createElement('div');
-      cardEl.className = 'hand-card';
-      cardEl.dataset.cardId = card.id;
-      cardEl.draggable = true;
-
-      // Apply zoom level to card
-      this.applyHandZoomToCard(cardEl);
-
-      // Determine which image to show based on flip state
-      const shouldHaveImage = card.isFlipped
-        ? (card.images?.back?.normal || DEFAULT_CARD_BACK)
-        : card.images?.front?.normal;
-
-      if (shouldHaveImage) {
-        const img = document.createElement('img');
-        img.src = shouldHaveImage;
-        img.alt = card.isFlipped ? 'Card Back' : (card.name || `Card #${card.cardNumber}`);
-        img.style.width = '100%';
-        img.style.height = '100%';
-        img.style.objectFit = 'cover';
-        img.style.borderRadius = '8px';
-        img.style.pointerEvents = 'none';
-        cardEl.appendChild(img);
-
-        // Add card number badge
-        const badge = document.createElement('div');
-        badge.className = 'card-number-badge';
-        badge.textContent = `#${card.cardNumber}`;
-        cardEl.appendChild(badge);
-      } else {
-        // Fallback: Display card number only (no image available)
-        const cardNumber = document.createElement('div');
-        cardNumber.className = 'card-number-badge';
-        cardNumber.textContent = `#${card.cardNumber}`;
-        cardEl.appendChild(cardNumber);
-      }
-
-      // Add hover event listeners for keyboard shortcuts, card preview, and tooltip
-      cardEl.addEventListener('mouseenter', () => {
-        this.hoveredHandCardId = card.id;
-        this.hoveredResource = null;
-        this.cardPreview.show(card);
-        this.updateHotkeyTooltip();
-      });
-
-      cardEl.addEventListener('mousemove', (e: MouseEvent) => {
-        this.cardPreview.updatePosition(e);
-      });
-
-      cardEl.addEventListener('mouseleave', () => {
-        this.hoveredHandCardId = null;
-        this.cardPreview.hide();
-        this.updateHotkeyTooltip();
-      });
-
-      // Drag events
-      cardEl.addEventListener('dragstart', (e) => {
-        this.cardPreview.hide();
-        this.hoveredHandCardId = null;
-        this.hoveredResource = null;
-        this.updateHotkeyTooltip();
-
-        // Track the card globally for board drop logic
-        this.draggedCard = { card, element: cardEl };
-
-        // Starting state: we assume play mode, not reorder mode
-        this._dragState = {
-          mode: 'play',   // 'play' or 'reorder'
-          draggedElement: cardEl,
-          startIndex: Array.from(handCards.children).indexOf(cardEl)
-        };
-
-        cardEl.classList.add('dragging');
-        cardEl.classList.remove('hover');
-
-        // Use your normal card-centered drag image first
-        setElementDragPoint(cardEl, e, 'card');
-
-        e.dataTransfer!.effectAllowed = 'move';
-        e.dataTransfer!.setData('text/plain', card.id);
-      });
-
-      cardEl.addEventListener('dragend', () => {
-        cardEl.classList.remove('dragging');
-      });
-
-      handCards.appendChild(cardEl);
-    });
-
-    animate(handCards.scrollLeft, handCards.scrollWidth - handCards.clientWidth, {  // TODO: animation gets heavy when you draw 40+ cards in hand. we can probably use a compressed image
-      duration: 0.3,
-      ease: 'easeOut',
-      onUpdate(value) {
-        handCards.scrollLeft = value;
-      }
-    });
-
-    // Setup hand reordering with vanilla drag and drop
-    this.setupHandReordering(handCards as HTMLElement);
-  }
-
-  private setupHandReordering(handCards: HTMLElement): void {
-    const buffer = 60; // px allowed above/below hand before switching to play mode
-    const transparentDragImage = new Image();
-    transparentDragImage.src =
-      'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=';
-
-    handCards.addEventListener('dragover', (e: DragEvent) => {
-      if (!this._dragState) return;
-      e.preventDefault();
-
-      // Throttle with requestAnimationFrame to prevent layout thrashing
-      if (this.requestAnimationFrameId !== null) return;
-
-      this.requestAnimationFrameId = requestAnimationFrame(() => {
-        this.requestAnimationFrameId = null;
-
-        if (!this._dragState) return;
-        const { draggedElement, mode } = this._dragState;
-        if (!draggedElement) return;
-
-        // Read phase: batch all layout reads together
-        const handRect = handCards.getBoundingClientRect();
-        const outOfBounds =
-          e.clientY < handRect.top - buffer ||
-          e.clientY > handRect.bottom + buffer;
-
-        //
-        // ───────────────────────────────────────────────────────────────
-        // MODE SWITCHING LOGIC
-        // ───────────────────────────────────────────────────────────────
-        //
-        if (outOfBounds) {
-          // Switch to PLAY MODE
-          if (mode !== 'play') {
-            this._dragState.mode = 'play';
-
-            // Switch BACK to your full-size centered drag image
-            try {
-              setElementDragPoint(draggedElement, e, 'card');
-            } catch {}
-          }
-          return;
-        } else {
-          // Switch into REORDER MODE
-          if (mode !== 'reorder') {
-            this._dragState.mode = 'reorder';
-
-            // Use transparent drag image so reorder looks clean
-            try {
-              e.dataTransfer?.setDragImage(transparentDragImage, 0, 0);
-            } catch {}
-          }
-        }
-
-        //
-        // ───────────────────────────────────────────────────────────────
-        // REORDER MODE BEHAVIOR
-        // ───────────────────────────────────────────────────────────────
-        //
-        if (this._dragState.mode === 'reorder') {
-          const target = (e.target as HTMLElement).closest('.hand-card') as HTMLElement | null;
-          if (!target || target === draggedElement) return;
-
-          const rect = target.getBoundingClientRect();
-          const midpoint = rect.left + rect.width / 2;
-
-          // Write phase: batch all DOM mutations together
-          if (e.clientX < midpoint) {
-            handCards.insertBefore(draggedElement, target);
-          } else {
-            handCards.insertBefore(draggedElement, target.nextSibling);
-          }
-        }
-      });
-    });
-
-    handCards.addEventListener('dragend', () => {
-      // Cancel any pending animation frame
-      if (this.requestAnimationFrameId !== null) {
-        cancelAnimationFrame(this.requestAnimationFrameId);
-        this.requestAnimationFrameId = null;
-      }
-
-      if (!this._dragState) return;
-      const { draggedElement, startIndex, mode } = this._dragState;
-
-      if (mode === 'reorder') {
-        //
-        // Apply Yjs reorder
-        //
-        const newIndex = Array.from(handCards.children).indexOf(draggedElement);
-
-        if (newIndex !== startIndex) {
-          const currentHand = this.player.getState().hand;
-          const reordered = [...currentHand];
-          const movedCard = reordered.splice(startIndex, 1)[0];
-          reordered.splice(newIndex, 0, movedCard);
-
-          this.player.reorderHand(reordered);
-        }
-      }
-
-      this._dragState.mode = 'none';
-    });
+    // Hand updates are now handled automatically by React via Yjs observation
   }
 
   private onDrawCard(): void {
@@ -652,7 +461,7 @@ export class GameResourcesDock {
   }
 
   private openScryModal(): void {
-    const deckCount = this.player.getState().deckCardCount;
+    const deckCount = this.player.getDeck().getCardCount();
 
     // Setup scry modal container if not already created
     if (!this.scryModalContainer) {
@@ -687,56 +496,55 @@ export class GameResourcesDock {
 
   private replaceRemainingScriedCards(): void {
     // returns any remaining cards in scryViewer on top of deck, in order
-    const newDeck = [...this.player['deck'].getCards(), ...this.scriedCards.getCards()]
-    this.player['deck'].setCards(newDeck);
+    // Add remaining scried cards back to the top of the deck
+    this.scriedCards.getCards().forEach((card) => {
+      this.player.getDeck().addCardToTop(card);
+    });
+    this.scriedCards.clearDeck();
   }
 
   private scryCards(count: number): void {
     // Get the top N cards from the deck
     const deckCards = this.player.getDeckCards();
     // Cards are stored bottom-to-top, so we need to slice from the end
-    this.scriedCards.setCards(deckCards.slice(-count));
+    this.scriedCards.setCardsDO_NOT_USE(deckCards.slice(-count));
     this.scriedCards.getCards().forEach((card) => {
-      this.player['deck'].removeCard(card.id);
+      this.player.getDeck().removeCardById(card.id);
     });
 
     // Show them in the deck viewer
     this.scryViewer.show(this.scriedCards.getCards(), 'scry');
   }
 
-  private viewPile(pileType: 'exile' | 'discard'): void {
-    const state = this.player.getState();
-    const cards = pileType === 'exile' ? state.exilePile : state.discardPile;
-    const viewer = pileType === 'exile' ? this.exileViewer : this.discardViewer;
+  private viewPile(pileType: 'exile' | 'discard' | 'deck'): void {    let result = null;
+    let cards;
+    let pileViewer;
+    switch (pileType) {
+      case "deck":
+        cards = this.player.getDeck().getCards();
+        pileViewer = this.deckViewer;
+        break;
+      case "discard":
+        cards = this.player.getDiscardPile().getCards();
+        pileViewer = this.discardViewer;
+        break;
+      case "exile":
+        cards = this.player.getExilePile().getCards();
+        pileViewer = this.exileViewer;
+        break;
+    }
 
-    viewer.show(cards, pileType);
-  }
-
-  private viewDeck(): void {
-    const cards = this.player.getDeckCards();
-    this.deckViewer.show(cards, 'deck');
+    pileViewer.show(cards, pileType);
   }
 
   // Handler methods for pile viewer callbacks
-  private handlePileCardToBattlefield(card: Card, pileType: 'deck' | 'exile' | 'discard'): void {
-    if (pileType === 'deck') {
-      // Remove card from deck
-      this.player['deck'].removeCard(card.id);
-      this.player['yPlayerState'].set('deckCardCount', this.player['deck'].getCardCount());
-    } else {
-      // Remove from exile or discard pile
-      const state = this.player.getState();
-      const pile = pileType === 'exile' ? state.exilePile : state.discardPile;
-      const index = pile.findIndex(c => c.id === card.id);
-      if (index !== -1) {
-        pile.splice(index, 1);
-        this.player['yPlayerState'].set(pileType === 'exile' ? 'exilePile' : 'discardPile', pile);
-      }
-    }
+  private handlePileViewerCardToBattlefield(card: Card, pileType: 'deck' | 'exile' | 'discard'): void {
+    // Remove card from the appropriate pile
+    this.player.removeCardFromPileById(card.id, pileType);
 
     // Dispatch event to play card to battlefield
     const event = new CustomEvent('playCard', {
-      detail: { card, playerId: this.player['playerId'] }
+      detail: { card, playerId: this.player.getId() }
     });
     window.dispatchEvent(event);
 
@@ -744,118 +552,41 @@ export class GameResourcesDock {
     this.updatePileViewer(pileType);
   }
 
-  private handlePileCardToHand(card: Card, pileType: 'deck' | 'exile' | 'discard'): void {
-    if (pileType === 'deck') {
-      // Remove card from deck
-      this.player['deck'].removeCard(card.id);
-      this.player['yPlayerState'].set('deckCardCount', this.player['deck'].getCardCount());
-    } else {
-      // Remove from exile or discard pile
-      const state = this.player.getState();
-      const pile = pileType === 'exile' ? state.exilePile : state.discardPile;
-      const index = pile.findIndex(c => c.id === card.id);
-      if (index !== -1) {
-        pile.splice(index, 1);
-        // TODO: add remove from top/bottom functions to PileViewer or whatever class this is
-        this.player['yPlayerState'].set(pileType === 'exile' ? 'exilePile' : 'discardPile', pile);
-      }
-    }
-
-    this.player.putCardInHand(card);
+  private handlePileViewerCardToHand(card: Card, pileType: 'deck' | 'exile' | 'discard'): void {
+    this.player.removeCardFromPileById(card.id, pileType)
+    this.player.placeCardInPile(card, 'hand');
 
     // Update viewer with new card list
     this.updatePileViewer(pileType);
   }
 
-  private handlePileCardToExile(card: Card, pileType: 'discard' | 'deck'): void {
-    const state = this.player.getState();
-
-    if (pileType === 'deck') {
-      // Remove from deck (local)
-      this.player['deck'].removeCard(card.id);
-    } else if (pileType === 'discard') {
-      // Remove from discard pile
-      const pile = state.discardPile;
-      const index = pile.findIndex(c => c.id === card.id);
-      if (index !== -1) {
-        pile.splice(index, 1);
-        this.player['yPlayerState'].set('discardPile', pile);
-      }
-    }
-
-    this.player.moveCardToExile(card);
+  private handlePileViewerCardToExile(card: Card, pileType: 'discard' | 'deck'): void {
+    this.player.removeCardFromPileById(card.id, pileType)
+    this.player.placeCardInPile(card, 'exile');
 
     // Update viewer with new card list
     this.updatePileViewer(pileType);
   }
 
-  private handlePileCardToDiscard(card: Card, pileType: 'exile' | 'deck' | 'scry'): void {
-    const state = this.player.getState();
-
-    if (pileType === 'deck') {
-      // Remove from deck (local)
-      this.player['deck'].removeCard(card.id);
-    } else if (pileType === 'scry') {
-      this.scriedCards.removeCard(card.id);
-    } else if (pileType === 'exile') {
-      // Remove from exile pile
-      const pile = state.exilePile;
-      const index = pile.findIndex(c => c.id === card.id);
-      if (index !== -1) {
-        pile.splice(index, 1);
-        this.player['yPlayerState'].set('exilePile', pile);
-      }
-    }
-
-    this.player.moveCardToDiscard(card);
+  private handlePileViewerCardToDiscard(card: Card, pileType: 'exile' | 'deck' | 'scry'): void {
+    this.player.removeCardFromPileById(card.id, pileType)
+    this.player.placeCardInPile(card, 'discard');
 
     // Update viewer with new card list
     this.updatePileViewer(pileType);
   }
 
-  private handlePileCardToDeckTop(card: Card, pileType: 'exile' | 'discard' | 'deck' | 'scry'): void {
-    const state = this.player.getState();
-
-    if (pileType === 'deck') {
-      // Remove from deck (local) and add back to top
-      this.player['deck'].removeCard(card.id);
-    } else if (pileType === 'scry') {
-      this.scriedCards.removeCard(card.id);
-    } else {
-      // Remove from exile or discard pile
-      const pile = pileType === 'exile' ? state.exilePile : state.discardPile;
-      const index = pile.findIndex(c => c.id === card.id);
-      if (index !== -1) {
-        pile.splice(index, 1);
-        this.player['yPlayerState'].set(pileType === 'exile' ? 'exilePile' : 'discardPile', pile);
-      }
-    }
-
-    this.player.moveCardToDeckTop(card);
+  private handlePileViewerCardToDeckTop(card: Card, pileType: 'exile' | 'discard' | 'deck' | 'scry'): void {
+    this.player.removeCardFromPileById(card.id, pileType)
+    this.player.placeCardInPile(card, 'deck');
 
     // Update viewer with new card list
     this.updatePileViewer(pileType);
   }
 
-  private handlePileCardToDeckBottom(card: Card, pileType: 'exile' | 'discard' | 'deck' | 'scry'): void {
-    const state = this.player.getState();
-
-    if (pileType === 'deck') {
-      // Remove from deck (local) and add back to bottom
-      this.player['deck'].removeCard(card.id);
-    } else if (pileType === 'scry') {
-      this.scriedCards.removeCard(card.id);
-    } else {
-      // Remove from exile or discard pile
-      const pile = pileType === 'exile' ? state.exilePile : state.discardPile;
-      const index = pile.findIndex(c => c.id === card.id);
-      if (index !== -1) {
-        pile.splice(index, 1);
-        this.player['yPlayerState'].set(pileType === 'exile' ? 'exilePile' : 'discardPile', pile);
-      }
-    }
-
-    this.player.moveCardToDeckBottom(card);
+  private handlePileViewerCardToDeckBottom(card: Card, pileType: 'exile' | 'discard' | 'deck' | 'scry'): void {
+    this.player.removeCardFromPileById(card.id, pileType)
+    this.player.placeCardInPile(card, 'deck', 0);
 
     // Update viewer with new card list
     this.updatePileViewer(pileType);
@@ -884,7 +615,7 @@ export class GameResourcesDock {
         hoveredHandCardId: this.hoveredHandCardId,
         hoveredPileType: this.hoveredResource,
         getHandCard: (cardId: string) => {
-          const hand = this.player.getState().hand;
+          const hand = this.player.getHand().getCards();
           return hand.find(c => c.id === cardId) || null;
         },
         getTopPileCard: (pileType: 'deck' | 'exile' | 'discard') => {
@@ -897,160 +628,61 @@ export class GameResourcesDock {
           } else if (pileType === 'discard') {
             cards = state.discardPile;
           }
+          this.player.syncToYState();
+
           return cards.length > 0 ? cards[cards.length - 1] : null;
         },
-        playHandCardToBattlefield: (cardId: string) => {
-          const hand = this.player.getState().hand;
-          const card = hand.find(c => c.id === cardId);
-          if (card) {
-            this.player.removeCardFromHand(cardId);
-          }
-        },
         moveHandCardToDiscard: (cardId: string) => {
-          const hand = this.player.getState().hand;
+          const hand = this.player.getHand().getCards();
           const card = hand.find(c => c.id === cardId);
           if (card) {
-            this.player.moveCardToDiscard(card);
-            this.player.removeCardFromHand(cardId);
+            this.player.removeCardFromPileById(cardId, 'hand');
+            this.player.placeCardInPile(card, 'discard');
           }
+          this.player.syncToYState();
         },
         moveHandCardToExile: (cardId: string) => {
-          const hand = this.player.getState().hand;
+          const hand = this.player.getHand().getCards();
           const card = hand.find(c => c.id === cardId);
           if (card) {
-            this.player.moveCardToExile(card);
-            this.player.removeCardFromHand(cardId);
+            this.player.removeCardFromPileById(cardId, 'hand');
+            this.player.placeCardInPile(card, 'exile');
           }
+          this.player.syncToYState();
         },
         moveHandCardToDeckTop: (cardId: string) => {
-          const hand = this.player.getState().hand;
+          const hand = this.player.getHand().getCards();
           const card = hand.find(c => c.id === cardId);
           if (card) {
-            this.player.moveCardToDeckTop(card);
-            this.player.removeCardFromHand(cardId);
+            this.player.removeCardFromPileById(cardId, 'hand');
+            this.player.placeCardInPile(card, 'deck');
           }
+          this.player.syncToYState();
         },
         moveHandCardToDeckBottom: (cardId: string) => {
-          const hand = this.player.getState().hand;
+          const hand = this.player.getHand().getCards();
           const card = hand.find(c => c.id === cardId);
           if (card) {
-            this.player.moveCardToDeckBottom(card);
-            this.player.removeCardFromHand(cardId);
+            this.player.removeCardFromPileById(cardId, 'hand');
+            this.player.placeCardInPile(card, 'deck', 0);
           }
+          this.player.syncToYState();
         },
         flipHandCard: (cardId: string) => {
-          const hand = this.player.getState().hand;
-          const card = hand.find(c => c.id === cardId);
-          if (card) {
-            // Toggle flip state
-            const updatedCard = { ...card, isFlipped: !card.isFlipped };
-            const updatedHand = hand.map(c => c.id === cardId ? updatedCard : c);
-            this.player['yPlayerState'].set('hand', updatedHand);
-          }
+          this.player.flipHandCard(cardId);
+          this.player.syncToYState();
         },
-        movePileCardToBattlefield: (card: Card, pileType: 'deck' | 'exile' | 'discard') => {
-          if (pileType === 'deck') {
-            const drawnCard = this.player.drawCard();
-            if (drawnCard) {
-              const event = new CustomEvent('playCard', {
-                detail: { card: drawnCard, playerId: this.player['playerId'] }
-              });
-              window.dispatchEvent(event);
-            }
-          } else {
-            // Remove from pile and play
-            const state = this.player.getState();
-            let pile: Card[] = pileType === 'exile' ? state.exilePile : state.discardPile;
-            const index = pile.findIndex(c => c.id === card.id);
-            if (index !== -1) {
-              pile.splice(index, 1);
-              this.player['yPlayerState'].set(pileType === 'exile' ? 'exilePile' : 'discardPile', pile);
-
-              const event = new CustomEvent('playCard', {
-                detail: { card, playerId: this.player['playerId'] }
-              });
-              window.dispatchEvent(event);
-            }
-          }
+        movePileCardToPile: (originPileType: 'deck' | 'discard' | 'exile', destinationPileType: PileType, position?: number) => {
+          const card = this.player.drawCardFromPile(originPileType);
+          if (card) this.player.placeCardInPile(card, destinationPileType, position);
+          this.player.syncToYState();
         },
-        movePileCardToHand: (card: Card, pileType: 'deck' | 'exile' | 'discard') => {
-          if (pileType === 'deck') {
-            this.player.drawCard();
-          } else {
-            const state = this.player.getState();
-            let pile: Card[] = pileType === 'exile' ? state.exilePile : state.discardPile;
-            const index = pile.findIndex(c => c.id === card.id);
-            if (index !== -1) {
-              pile.splice(index, 1);
-              this.player['yPlayerState'].set(pileType === 'exile' ? 'exilePile' : 'discardPile', pile);
-
-              const hand = this.player.getState().hand;
-              this.player['yPlayerState'].set('hand', [...hand, card]);
-            }
-          }
+        movePileCardToHand: (pileType: 'deck' | 'exile' | 'discard') => {
+          // todo: refactor this into movePileCardToPile
+          const card = this.player.drawCardFromPile(pileType);
+          if (card) this.player.placeCardInPile(card, 'hand');
+          this.player.syncToYState();
         },
-        movePileCardToExile: (card: Card, pileType: 'deck' | 'exile' | 'discard') => {
-          if (pileType === 'exile') return; // Already in exile
-
-          if (pileType === 'deck') {
-            // Remove from deck and move to exile directly (don't draw to hand first)
-            this.player['deck'].removeCard(card.id);
-            this.player['yPlayerState'].set('deckCardCount', this.player['deck'].getCardCount());
-            this.player.moveCardToExile(card);
-          } else {
-            const state = this.player.getState();
-            let pile: Card[] = state.discardPile;
-            const index = pile.findIndex(c => c.id === card.id);
-            if (index !== -1) {
-              pile.splice(index, 1);
-              this.player['yPlayerState'].set('discardPile', pile);
-              this.player.moveCardToExile(card);
-            }
-          }
-        },
-        movePileCardToDiscard: (card: Card, pileType: 'deck' | 'exile' | 'discard') => {
-          if (pileType === 'discard') return; // Already in discard
-
-          if (pileType === 'deck') {
-            // Remove from deck and move to discard directly (don't draw to hand first)
-            this.player['deck'].removeCard(card.id);
-            this.player['yPlayerState'].set('deckCardCount', this.player['deck'].getCardCount());
-            this.player.moveCardToDiscard(card);
-          } else {
-            const state = this.player.getState();
-            let pile: Card[] = state.exilePile;
-            const index = pile.findIndex(c => c.id === card.id);
-            if (index !== -1) {
-              pile.splice(index, 1);
-              this.player['yPlayerState'].set('exilePile', pile);
-              this.player.moveCardToDiscard(card);
-            }
-          }
-        },
-        movePileCardToDeckTop: (card: Card, pileType: 'deck' | 'exile' | 'discard') => {
-          if (pileType === 'deck') return; // Already in deck
-
-          const state = this.player.getState();
-          let pile: Card[] = pileType === 'exile' ? state.exilePile : state.discardPile;
-          const index = pile.findIndex(c => c.id === card.id);
-          if (index !== -1) {
-            pile.splice(index, 1);
-            this.player['yPlayerState'].set(pileType === 'exile' ? 'exilePile' : 'discardPile', pile);
-            this.player.moveCardToDeckTop(card);
-          }
-        },
-        movePileCardToDeckBottom: (card: Card, pileType: 'deck' | 'exile' | 'discard') => {
-          if (pileType === 'deck') return; // Already in deck
-
-          const state = this.player.getState();
-          let pile: Card[] = pileType === 'exile' ? state.exilePile : state.discardPile;
-          const index = pile.findIndex(c => c.id === card.id);
-          if (index !== -1) {
-            pile.splice(index, 1);
-            this.player['yPlayerState'].set(pileType === 'exile' ? 'exilePile' : 'discardPile', pile);
-            this.player.moveCardToDeckBottom(card);
-          }
-        }
       };
     };
   }
@@ -1093,8 +725,16 @@ export class GameResourcesDock {
   }
 
   private adjustHandZoom(delta: number): void {
+    function alignCardsBasedOnSize() {
+      const container: HTMLElement | null = document.querySelector('.hand-cards') as HTMLElement;
+      if (!container) return;
+      const isOverflowing = container.scrollHeight > container.clientHeight;
+      container.style.alignItems = isOverflowing ? "flex-start" : "center";
+    }
+
     const newZoom = Math.max(0.5, Math.min(2.5, this.handZoomLevel + delta));
     this.setHandZoom(newZoom);
+    alignCardsBasedOnSize();
   }
 
   private setHandZoom(zoom: number): void {
@@ -1109,19 +749,8 @@ export class GameResourcesDock {
       }
     }
 
-    // Re-render hand with new zoom
-    const state = this.player.getState();
-    this.updateHandDisplay(state.hand);
-  }
-
-  private applyHandZoomToCard(cardEl: HTMLElement): void {
-    const baseWidth = 63;
-    const baseHeight = 88;
-    const width = baseWidth * this.handZoomLevel;
-    const height = baseHeight * this.handZoomLevel;
-
-    cardEl.style.width = `${width}px`;
-    cardEl.style.height = `${height}px`;
+    // Re-render React component with new zoom
+    this.renderHandComponent();
   }
 
   private preloadPileImages(pileType: 'deck' | 'exile' | 'discard'): void {
@@ -1157,6 +786,10 @@ export class GameResourcesDock {
     if (this.controlsRoot) {
       this.controlsRoot.unmount();
       this.controlsRoot = null;
+    }
+    if (this.handRoot) {
+      this.handRoot.unmount();
+      this.handRoot = null;
     }
     if (this.tooltipRoot) {
       this.tooltipRoot.unmount();

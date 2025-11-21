@@ -22,6 +22,7 @@ import { PatchNotesService } from './services/patchNotes';
 import { DEFAULT_DECK } from './data/defaultDeck';
 import './style.css';
 import * as Sentry from "@sentry/react";
+import {YSTATE_DECK_CARD_COUNT} from "./constants";
 import {ReactToasterRoot} from "../ReactToasterRoot";
 
 Sentry.init({
@@ -87,9 +88,7 @@ class AuraApp {
 
     // Initialize local player deck - restore from localStorage if available for this room
     const restoredDeck = DeckPersistenceService.restoreDeckForRoom(this.roomManager.getRoomName());
-    const localDeck = restoredDeck ?? new Deck({
-      initialCardCount: 60,
-    });
+    const localDeck = restoredDeck ?? new Deck();
 
     // Initialize local player
     this.localPlayer = new Player(this.playerId, this.yDoc, localDeck, {
@@ -182,10 +181,10 @@ class AuraApp {
         DeckPersistenceService.saveDeckForRoom(this.roomManager.getRoomName(), this.localPlayer.getDeck());
       },
       onMoveToGraveyard: (card) => {
-        this.localPlayer.moveCardToDiscard(card);
+        this.localPlayer.placeCardInPile(card, 'discard');
       },
       onMoveToExile: (card) => {
-        this.localPlayer.moveCardToExile(card);
+        this.localPlayer.placeCardInPile(card, 'exile');
       },
       onDeleteCard: (_card) => {
         // Card deletion is handled directly in KeyboardHandler via removeCard
@@ -381,14 +380,12 @@ class AuraApp {
     this.localPlayer.reset();
 
     // Create a new deck with the imported cards
-    const newDeck = new Deck({
-      initialCardCount: savedDeck.cards.length,
-    }, savedDeck.cards);
+    const newDeck = new Deck(savedDeck.cards);
 
     // Update the player state with deck
     this.localPlayer.loadNewDeck(newDeck).then(() => {
       // Update deck count in Yjs state
-      this.localPlayer['yPlayerState'].set('deckCardCount', newDeck.getCardCount());
+      this.localPlayer['yPlayerState'].set(YSTATE_DECK_CARD_COUNT, newDeck.getCardCount());
 
       // Save this as the last loaded deck for auto-loading on next visit
       localStorage.setItem('aura-last-loaded-deck', savedDeck.metadata.id);
@@ -499,7 +496,7 @@ class AuraApp {
     root.render(
       React.createElement(AddCardManager, {
         scryfallApiService: this.scryfallApiService,
-        onAddCard: (card) => this.localPlayer.putCardInHand(card),
+        onAddCard: (card) => this.localPlayer.placeCardInPile(card, 'hand'),
       })
     );
   }

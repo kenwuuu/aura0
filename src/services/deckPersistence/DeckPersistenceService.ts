@@ -1,4 +1,5 @@
 import { Deck } from '../../modules/deck';
+import { CardPile } from '../../modules/player';
 
 /**
  * Service for persisting deck state per room to localStorage
@@ -25,7 +26,7 @@ export class DeckPersistenceService {
         return null;
       }
 
-      const { cards, config, timestamp } = JSON.parse(savedState);
+      const { cards, timestamp } = JSON.parse(savedState);
 
       // Only restore if the session is recent (within 1 hour)
       // This prevents collisions when re-entering a room after a long time
@@ -40,7 +41,7 @@ export class DeckPersistenceService {
       }
 
       console.log(`Restored deck with ${cards.length} cards for room ${roomName}`);
-      return new Deck(config, cards);
+      return new Deck(cards);
     } catch (error) {
       console.error('Error restoring deck state:', error);
       return null;
@@ -50,14 +51,13 @@ export class DeckPersistenceService {
   /**
    * Save deck state for a specific room
    * @param roomName The room identifier
-   * @param deck The deck instance to save
+   * @param deck The deck or card pile instance to save
    */
-  static saveDeckForRoom(roomName: string, deck: Deck): void {
+  static saveDeckForRoom(roomName: string, deck: Deck | CardPile): void {
     try {
       const key = `${this.STORAGE_PREFIX}${roomName}`;
       const state = {
         cards: deck.getCards(),
-        config: deck.getConfig(),
         timestamp: Date.now(), // Add timestamp to track session age
       };
       localStorage.setItem(key, JSON.stringify(state));

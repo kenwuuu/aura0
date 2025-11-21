@@ -2,8 +2,9 @@ import * as Y from 'yjs';
 import { Player } from '@/modules/player';
 import { MultiPlayerBoardManager } from '@/modules/whiteboard';
 import { TokenService } from '../scryfall';
-import { CARD_HEIGHT, CARD_WIDTH } from '@/constants';
+import {CARD_HEIGHT, CARD_WIDTH, YDOC_CARDS_ON_BOARD} from '@/constants';
 import {getBoardLeftOffset, getBoardTopOffset} from "@/modules/whiteboard/BoardContainerManager";
+import {PileType} from "@/modules/gameResourcesDock/components";
 import {tokenDiameter} from "@/modules/keywordTokens/KeywordTokenFactory";
 
 /**
@@ -143,33 +144,36 @@ export class WhiteboardEventHandlers {
    */
   private setupBattlefieldToDockDrag(): void {
     window.addEventListener('moveCardFromBattlefield', ((event: CustomEvent) => {
-      const { cardId, destination } = event.detail;
-
-      // Get the card from battlefield (yCards)
-      const yCards = this.yDoc.getMap('cards');
-      const card = yCards.get(cardId) as any;
-
-      if (!card || card.ownerId !== this.playerId) return;
-
-      // Remove WhiteboardCard-specific properties (zIndex, ownerId) to get base Card
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const { zIndex, ownerId, ...baseCard } = card;
-
-      // Add card to the appropriate pile
-      if (destination === 'hand') {
-        this.localPlayer.putCardInHand(baseCard as any);
-      } else if (destination === 'exile') {
-        this.localPlayer.moveCardToExile(baseCard as any);
-      } else if (destination === 'discard') {
-        this.localPlayer.moveCardToDiscard(baseCard as any);
-      } else if (destination === 'deck') {
-        this.localPlayer.moveCardToDeckTop(baseCard as any);
-        this.onDeckChange(); // Notify that deck changed
-      }
-
-      // Remove card from battlefield
-      yCards.delete(cardId);
+      const {cardId, destination} = event.detail
+      this.moveCardFromBattlefieldToPile(cardId, destination);
     }) as EventListener);
+  }
+
+  public moveCardFromBattlefieldToPile(cardId: string, destination: PileType) {
+    // Get the card from battlefield (yCards)
+    const yCards = this.yDoc.getMap(YDOC_CARDS_ON_BOARD);
+    const card = yCards.get(cardId) as any;
+
+    if (!card || card.ownerId !== this.playerId) return;
+
+    // Remove WhiteboardCard-specific properties (zIndex, ownerId) to get base Card
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const {zIndex, ownerId, ...baseCard} = card;
+
+    // Add card to the appropriate pile
+    if (destination === 'hand') {
+      this.localPlayer.placeCardInPile(baseCard, 'hand');
+    } else if (destination === 'exile') {
+      this.localPlayer.placeCardInPile(baseCard as any, 'exile');
+    } else if (destination === 'discard') {
+      this.localPlayer.placeCardInPile(baseCard as any, 'discard');
+    } else if (destination === 'deck') {
+      this.localPlayer.moveCardToDeckTop(baseCard as any);
+      this.onDeckChange(); // Notify that deck changed
+    }
+
+    // Remove card from battlefield
+    yCards.delete(cardId);
   }
 
   /**

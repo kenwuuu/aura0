@@ -2,6 +2,7 @@ import {describe, it, expect, beforeEach, vi, afterEach} from 'vitest';
 import * as Y from 'yjs';
 import { KeyboardHandler, KeyboardHandlerCallbacks } from './KeyboardHandler';
 import { WhiteboardCard } from './types';
+import {YDOC_CARDS_ON_BOARD} from "../../constants";
 
 describe('KeyboardHandler - Copy Offset Logic', () => {
   let yDoc: Y.Doc;
@@ -12,7 +13,7 @@ describe('KeyboardHandler - Copy Offset Logic', () => {
 
   beforeEach(() => {
     yDoc = new Y.Doc();
-    yCards = yDoc.getMap('cards');
+    yCards = yDoc.getMap(YDOC_CARDS_ON_BOARD);
 
     mockCallbacks = {
       onMoveToHand: vi.fn(),

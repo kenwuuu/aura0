@@ -201,7 +201,6 @@ User Action (keyboard, mouse)
 ```typescript
 export class Deck {
   private cards: Card[] = [];
-  private config: DeckConfig;
 
   // Draw from top (LIFO - last in, first out)
   public drawCard(): Card | null {
@@ -238,10 +237,6 @@ export interface Card {
   isTapped: boolean;    // Tap state
   isFlipped: boolean;   // Face-down state
   counters: number[];   // Array of counter values [1, 1, 3, ...]
-}
-
-export interface DeckConfig {
-  initialCardCount: number;  // Usually 60
 }
 ```
 
@@ -298,7 +293,7 @@ export class Player {
 
     const hand = this.yPlayerState.get('hand') ?? [];
     this.yPlayerState.set('hand', [...hand, card]);  // Syncs to all players!
-    this.yPlayerState.set('deckCardCount', this.deck.getCardCount());
+    this.yPlayerState.set(YDOC_DECK_CARD_COUNT, this.deck.getCardCount());
 
     return card;
   }
@@ -335,7 +330,6 @@ export interface PlayerState {
 
 export interface PlayerConfig {
   playerId: string;
-  deckConfig: DeckConfig;
   yDoc: Y.Doc;  // Shared Yjs document
 }
 ```
@@ -380,8 +374,8 @@ player.modifyHealth(5);   // Gain 5 life
 player.playCardFromHand(cardId);  // Removes from hand, dispatches event
 
 // Move cards to piles
-player.moveCardToDiscard(card);
-player.moveCardToExile(card);
+player.placeCardInPile(card, 'discard');
+player.placeCardInPile(card, 'exile');
 player.moveCardToDeckTop(card);
 player.moveCardToDeckBottom(card);
 
@@ -642,7 +636,7 @@ export class OpponentHealthDisplay {
 // User drags hand card → drop on whiteboard → playCardFromHand()
 
 // Drag from hand to pile
-// User drags hand card → drop on exile/discard → moveCardToExile()
+// User drags hand card → drop on exile/discard → placeCardInPile()
 ```
 
 ---
@@ -730,7 +724,7 @@ const DEFAULT_ICE_SERVERS = [
 
 | Data | Storage | Synced? | Why |
 |------|---------|---------|-----|
-| **Battlefield cards** | `yDoc.getMap('cards')` | ✓ Yes | All players see all cards |
+| **Battlefield cards** | `yDoc.getMap(YDOC_CARDS_ON_BOARD)` | ✓ Yes | All players see all cards |
 | **Your hand** | `yDoc.getMap('player-{id}').hand` | ✓ Yes | *Trust-based privacy* |
 | **Your deck** | `Deck` class (local) | ✗ No | **Private** to you |
 | **Deck count** | `yDoc.getMap('player-{id}').deckCardCount` | ✓ Yes | Opponents see your deck size |
@@ -755,7 +749,7 @@ const DEFAULT_ICE_SERVERS = [
 
 ```typescript
 // Listen for changes to any Yjs map
-const yCards = yDoc.getMap('cards');
+const yCards = yDoc.getMap(YDOC_CARDS_ON_BOARD);
 
 yCards.observe((event) => {
   event.changes.keys.forEach((change, key) => {
@@ -776,7 +770,7 @@ yCards.observe((event) => {
 
 ```typescript
 // Get a map from the document
-const yCards = yDoc.getMap('cards');
+const yCards = yDoc.getMap(YDOC_CARDS_ON_BOARD);
 const yPlayerState = yDoc.getMap(`player-${playerId}`);
 
 // Set a value (triggers sync to all peers)
@@ -1364,7 +1358,7 @@ yDoc.on('update', (update) => {
 3. **Inspect Yjs state:**
 ```typescript
 // In browser console
-const yCards = window.yDoc.getMap('cards');
+const yCards = window.yDoc.getMap(YDOC_CARDS_ON_BOARD);
 console.log('All cards:', Array.from(yCards.entries()));
 ```
 
@@ -1397,25 +1391,26 @@ yCards.observe((event) => {
 ### Inspecting Yjs State
 
 **Browser Console Utilities:**
+
 ```javascript
 // Get the Yjs document (if exposed globally)
 const yDoc = window.yDoc;
 
 // View all cards on battlefield
-const yCards = yDoc.getMap('cards');
+const yCards = yDoc.getMap(YDOC_CARDS_ON_BOARD);
 console.table(Array.from(yCards.values()));
 
 // View player state
 const yPlayer = yDoc.getMap('player-abc123');  // Replace with actual ID
 console.log('Health:', yPlayer.get('health'));
 console.log('Hand:', yPlayer.get('hand'));
-console.log('Deck count:', yPlayer.get('deckCardCount'));
+console.log('Deck count:', yPlayer.get(YSTATE_DECK_CARD_COUNT));
 
 // View all players
 yDoc.share.forEach((value, key) => {
-  if (key.startsWith('player-')) {
-    console.log(key, value.toJSON());
-  }
+   if (key.startsWith('player-')) {
+      console.log(key, value.toJSON());
+   }
 });
 ```
 

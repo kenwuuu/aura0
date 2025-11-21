@@ -1,23 +1,39 @@
 import * as Y from 'yjs';
 import { Card, Deck } from '../deck';
 import { PlayerState, PlayerConfig, CustomCounter } from './types';
+import {
+  YDOC_CARDS_ON_BOARD,
+  YSTATE_DISCARD_PILE,
+  YSTATE_HEALTH,
+  YSTATE_HAND,
+  YSTATE_EXILE_PILE,
+  YDOC_PLAYER,
+  YSTATE_CUSTOM_COUNTERS,
+  YSTATE_DECK
+} from "../../constants";
+import {PileType} from "../gameResourcesDock/components";
+import { CardPile } from './CardPile';
 
 export class Player {
   private playerId: string;
   private yPlayerState: Y.Map<any>;
   private yCardsOnBoard: Y.Map<any>; // Battlefield cards
   private yTokens: Y.Map<any>; // Keyword tokens on battlefield
-  private deck: Deck;
   private config: PlayerConfig;
+  private deck: CardPile;
+  private hand: CardPile;
+  private exile: CardPile;
+  private discard: CardPile;
+  private scry: CardPile;
+  private piles: Record<PileType, CardPile>;
 
   constructor(
     playerId: string,
     yDoc: Y.Doc,
-    deck: Deck,
+    initialDeckCards: Deck,
     config: Partial<PlayerConfig> = {}
   ) {
     this.playerId = playerId;
-    this.deck = deck;
     this.config = {
       initialHealth: config.initialHealth ?? 40,
     };
@@ -25,48 +41,73 @@ export class Player {
     this.yPlayerState = yDoc.getMap(`player-${playerId}`);
     this.yCardsOnBoard = yDoc.getMap('cards'); // Store reference to battlefield
     this.yTokens = yDoc.getMap('tokens'); // Store reference to keyword tokens
-    this.initializeState();
+
+    // Initialize state first so yPlayerState has the arrays
+    this.initializeState(initialDeckCards);
+
+    // Create CardPile instances that reference yPlayerState
+    this.deck = new CardPile(this.yPlayerState, YSTATE_DECK);
+    this.hand = new CardPile(this.yPlayerState, YSTATE_HAND);
+    this.exile = new CardPile(this.yPlayerState, YSTATE_EXILE_PILE);
+    this.discard = new CardPile(this.yPlayerState, YSTATE_DISCARD_PILE);
+    this.scry = new CardPile(this.yPlayerState, 'scry');
+
+    this.piles = {
+      hand: this.hand,
+      deck: this.deck,
+      discard: this.discard,
+      exile: this.exile,
+      scry: this.scry,
+    };
   }
 
-  private initializeState(): void {
-    if (!this.yPlayerState.has('health')) {
-      this.yPlayerState.set('health', this.config.initialHealth);
-      this.yPlayerState.set('hand', []);
-      this.yPlayerState.set('exilePile', []);
-      this.yPlayerState.set('discardPile', []);
-      this.yPlayerState.set('deckCardCount', this.deck.getCardCount());
-      this.yPlayerState.set('customCounters', []);
+  private initializeState(initialDeckCards: Deck): void {
+    if (!this.yPlayerState.has(YSTATE_HEALTH)) {
+      this.yPlayerState.set(YSTATE_HEALTH, this.config.initialHealth);
+      this.yPlayerState.set(YSTATE_DECK, initialDeckCards.getCards());
+      this.yPlayerState.set(YSTATE_HAND, []);
+      this.yPlayerState.set(YSTATE_EXILE_PILE, []);
+      this.yPlayerState.set(YSTATE_DISCARD_PILE, []);
+      this.yPlayerState.set('scry', []);
+      this.yPlayerState.set(YSTATE_CUSTOM_COUNTERS, []);
       this.yPlayerState.set('deckRevealCount', 0); // 0=hidden, -1=all, N>0=top N cards
     }
+  }
+
+  // Deprecated: CardPile now syncs directly to yPlayerState
+  // Keeping for backward compatibility but it's a no-op
+  public syncToYState(): void {
+    // CardPile instances now sync automatically to yPlayerState
+    // This method is kept for backward compatibility but does nothing
   }
 
   public getState(): PlayerState {
     return {
       id: this.playerId,
-      health: this.yPlayerState.get('health') ?? this.config.initialHealth,
-      hand: this.yPlayerState.get('hand') ?? [],
-      exilePile: this.yPlayerState.get('exilePile') ?? [],
-      discardPile: this.yPlayerState.get('discardPile') ?? [],
-      deckCardCount: this.yPlayerState.get('deckCardCount') ?? 0,
-      customCounters: this.yPlayerState.get('customCounters') ?? [],
+      health: this.yPlayerState.get(YSTATE_HEALTH) ?? this.config.initialHealth,
+      hand: this.yPlayerState.get(YSTATE_HAND) ?? [],
+      exilePile: this.yPlayerState.get(YSTATE_EXILE_PILE) ?? [],
+      discardPile: this.yPlayerState.get(YSTATE_DISCARD_PILE) ?? [],
+      deck: this.yPlayerState.get(YSTATE_DECK) ?? [],
+      customCounters: this.yPlayerState.get(YSTATE_CUSTOM_COUNTERS) ?? [],
     };
   }
 
   public async loadNewDeck(newDeck: Deck): Promise<void> {
-    // assign deck
-    this.deck = newDeck;
+    // Replace deck cards with new deck
+    this.deck.setCards(newDeck.getCards());
 
     // get cards
-    const deckCards = this.deck.getCards();
+    const deckCards: Card[] = this.deck.getCards();
 
     if (deckCards.length > 0) {  // TODO: change logic based on if deck is commander or not
       // move commander to hand
-      const commander = deckCards[deckCards.length - 1];
-      this.deck.removeCard(commander.id);
+      const commander: Card = deckCards[deckCards.length - 1];
+      this.deck.removeCardById(commander.id);
       this.deck.addCardToTop(commander);
       this.drawCard();
 
-      this.deck.shuffleDeck();
+      this.deck.shuffle();
 
       // draw 7
       for (let i = 0; i < 7; i++) {
@@ -77,11 +118,11 @@ export class Player {
   }
 
   public drawCard(): Card | null {
-    const card = this.deck.drawCard();
+    const card: Card | null = this.deck.drawCard();
     if (!card) return null;
 
-    this.putCardInHand(card);
-    this.yPlayerState.set('deckCardCount', this.deck.getCardCount());
+    this.hand.addCardToTop(card);
+    this.syncToYState();
 
     return card;
   }
@@ -89,7 +130,7 @@ export class Player {
   // move board to hand. move hand, discard, and exile to deck. keep deck loaded. reset health
   // equivalent to resetting in IRL game
   public reset() {
-    // Step 1: Move all battlefield cards owned by this player to hand
+    // Step 1: Move all battlefield cards owned by this player back to deck
     const battlefieldCards: Card[] = [];
     this.yCardsOnBoard.forEach((card: any, cardId: string) => {
       if (card.ownerId === this.playerId) {
@@ -108,88 +149,75 @@ export class Player {
       }
     });
 
-    // Step 2: Get all cards from hand, discard, and exile
-    const hand = this.yPlayerState.get('hand') ?? [];
-    const discardPile = this.yPlayerState.get('discardPile') ?? [];
-    const exilePile = this.yPlayerState.get('exilePile') ?? [];
-
-    // Step 3: Move all cards (battlefield + hand + discard + exile) back to deck
-    [...battlefieldCards, ...hand, ...discardPile, ...exilePile].forEach(card => {
+    // Step 2: Move all cards from hand, discard, and exile back to deck
+    [...battlefieldCards, ...this.hand.getCards(), ...this.discard.getCards(), ...this.exile.getCards()].forEach(card => {
       this.deck.addCardToBottom(card);
     });
 
-    // Step 4: Clear all piles in synced state
-    this.yPlayerState.set('hand', []);
-    this.yPlayerState.set('discardPile', []);
-    this.yPlayerState.set('exilePile', []);
+    // Step 3: Clear all piles
+    this.hand.clear();
+    this.discard.clear();
+    this.exile.clear();
 
-    // Step 5: Reset health to initial value
-    this.yPlayerState.set('health', this.config.initialHealth);
+    // Step 4: Reset health to initial value
+    this.yPlayerState.set(YSTATE_HEALTH, this.config.initialHealth);
 
-    // Step 6: Update deck count and shuffle
-    this.yPlayerState.set('deckCardCount', this.deck.getCardCount());
-    this.deck.shuffleDeck();
+    // Step 5: Shuffle deck and sync
+    this.deck.shuffle();
+    this.syncToYState();
   }
 
   public removeCardFromHand(cardId: string): Card | null {
-    const hand = this.yPlayerState.get('hand') ?? [];
-    const cardIndex = hand.findIndex((c: Card) => c.id === cardId);
-
-    if (cardIndex === -1) return null;
-
-    const card = hand[cardIndex];
-    const newHand = [...hand.slice(0, cardIndex), ...hand.slice(cardIndex + 1)];
-    this.yPlayerState.set('hand', newHand);
-
+    const card: Card | null = this.hand.removeCardById(cardId);
+    this.syncToYState();
     return card;
   }
 
-  public putCardInHand(card: Card) {
-    const hand = this.yPlayerState.get('hand') ?? [];
-    this.yPlayerState.set('hand', [...hand, card]);
+  public removeCardFromPileById(cardId: string, pileType: PileType): Card | null {
+    let result: Card | null = this.piles[pileType].removeCardById(cardId);
+    this.syncToYState();
+    return result;
   }
 
-  public moveCardToDiscard(card: Card): void {
-    const discardPile = this.yPlayerState.get('discardPile') ?? [];
-    this.yPlayerState.set('discardPile', [...discardPile, card]);
+  public drawCardFromPile(pileType: 'deck' | 'discard' | 'exile'): Card | null {
+    let result: Card | null = this.piles[pileType].drawCard();
+    this.syncToYState();
+    return result;
   }
 
-  public moveCardToExile(card: Card): void {
-    const exilePile = this.yPlayerState.get('exilePile') ?? [];
-    this.yPlayerState.set('exilePile', [...exilePile, card]);
+  public placeCardInPile(card: Card, pileType: PileType, position: number = Infinity): void {
+    // Places card on top of pile by default
+    this.piles[pileType].placeCardAtPosition(card, position);
+    this.syncToYState();
   }
 
   public setHealth(health: number): void {
-    this.yPlayerState.set('health', health);
+    this.yPlayerState.set(YSTATE_HEALTH, health);
   }
 
   public modifyHealth(delta: number): void {
-    const currentHealth = this.yPlayerState.get('health') ?? this.config.initialHealth;
-    this.yPlayerState.set('health', currentHealth + delta);
+    const currentHealth = this.yPlayerState.get(YSTATE_HEALTH) ?? this.config.initialHealth;
+    this.yPlayerState.set(YSTATE_HEALTH, currentHealth + delta);
   }
 
   public shuffleDeck(): void {
-    this.deck.shuffleDeck();
+    this.deck.shuffle();
   }
 
   public mulligan(cardsToDraw: number = 7): void {
     // Move all cards from hand back to deck
-    const hand = this.yPlayerState.get('hand') ?? [];
-    hand.forEach((card: Card) => {
+    this.hand.getCards().forEach((card: Card) => {
       this.deck.addCardToBottom(card);
     });
 
-    // Clear hand in synced state
-    this.yPlayerState.set('hand', []);
+    // Clear hand
+    this.hand.clear();
 
     // Shuffle deck
-    this.deck.shuffleDeck();
-
-    // Update deck count
-    this.yPlayerState.set('deckCardCount', this.deck.getCardCount());
+    this.deck.shuffle();
 
     // Draw new hand
-    for (let i = 0; i < cardsToDraw; i++) {
+    for (let i: number = 0; i < cardsToDraw; i++) {
       this.drawCard();
     }
   }
@@ -202,18 +230,30 @@ export class Player {
     return this.deck.getCards();
   }
 
-  public getDeck(): Deck {
+  public getDeck(): CardPile {
     return this.deck;
   }
-  
+
+  public getHand(): CardPile {
+    return this.hand;
+  }
+
+  public getExilePile(): CardPile {
+    return this.exile;
+  }
+
+  public getDiscardPile(): CardPile {
+    return this.discard;
+  }
+
   public moveCardToDeckTop(card: Card): void {
     this.deck.addCardToTop(card);
-    this.yPlayerState.set('deckCardCount', this.deck.getCardCount());
+    this.syncToYState();
   }
 
   public moveCardToDeckBottom(card: Card): void {
     this.deck.addCardToBottom(card);
-    this.yPlayerState.set('deckCardCount', this.deck.getCardCount());
+    this.syncToYState();
   }
 
   public onStateChange(callback: (state: PlayerState) => void): void {
@@ -223,34 +263,44 @@ export class Player {
   }
 
   public addCustomCounter(title: string, icon: string): void {
-    const counters = this.yPlayerState.get('customCounters') ?? [];
+    const counters = this.yPlayerState.get(YSTATE_CUSTOM_COUNTERS) ?? [];
     const newCounter: CustomCounter = {
       id: `counter-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
       title,
       icon,
       value: 0,
     };
-    this.yPlayerState.set('customCounters', [...counters, newCounter]);
+    this.yPlayerState.set(YSTATE_CUSTOM_COUNTERS, [...counters, newCounter]);
   }
 
   public modifyCustomCounter(counterId: string, delta: number): void {
-    const counters = this.yPlayerState.get('customCounters') ?? [];
+    const counters = this.yPlayerState.get(YSTATE_CUSTOM_COUNTERS) ?? [];
     const updatedCounters = counters.map((counter: CustomCounter) =>
       counter.id === counterId
         ? { ...counter, value: counter.value + delta }
         : counter
     );
-    this.yPlayerState.set('customCounters', updatedCounters);
+    this.yPlayerState.set(YSTATE_CUSTOM_COUNTERS, updatedCounters);
   }
 
   public removeCustomCounter(counterId: string): void {
-    const counters = this.yPlayerState.get('customCounters') ?? [];
+    const counters = this.yPlayerState.get(YSTATE_CUSTOM_COUNTERS) ?? [];
     const updatedCounters = counters.filter((counter: CustomCounter) => counter.id !== counterId);
-    this.yPlayerState.set('customCounters', updatedCounters);
+    this.yPlayerState.set(YSTATE_CUSTOM_COUNTERS, updatedCounters);
   }
 
   public reorderHand(newOrder: Card[]): void {
     this.yPlayerState.set('hand', newOrder);
+  }
+
+  public flipHandCard(cardId: string): void {
+    const hand = this.hand.getCards();
+    const card = hand.find(c => c.id === cardId);
+    if (card) {
+      const updatedCard = { ...card, isFlipped: !card.isFlipped };
+      const updatedHand = hand.map(c => c.id === cardId ? updatedCard : c);
+      this.yPlayerState.set('hand', updatedHand);
+    }
   }
 
   public getYPlayerState(): Y.Map<any> {

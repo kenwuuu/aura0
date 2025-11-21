@@ -188,6 +188,7 @@ player.onStateChange(state => updateUI(state))
 ### Hand Reordering
 
 ```typescript
+// @ts-nocheck
 // 1. User starts dragging card #2 in hand
 dragstart event
   └── set draggedHandCardIndex = 2
@@ -230,8 +231,8 @@ drop event on #whiteboard
 
 // 3. Drop on exile/discard pile
 drop event on pile
-  └── if pile === 'exile': player.moveCardToExile(card)
-  └── if pile === 'discard': player.moveCardToDiscard(card)
+  └── if pile === 'exile': player.placeCardInPile(card, 'exile')
+  └── if pile === 'discard': player.placeCardInPile(card, 'discard')
   └── player.playCardFromHand(card.id)  // Remove from hand
 ```
 
@@ -290,7 +291,7 @@ callbacks.onDrawCard() (defined in index.ts)
 player.drawCard()
   ├── deck.drawCard() → removes card from local Deck
   ├── yPlayerState.set('hand', [...hand, drawnCard])
-  └── yPlayerState.set('deckCardCount', deck.getCardCount())
+  └── yPlayerState.set(YDOC_DECK_CARD_COUNT, deck.getCardCount())
   ↓
 player.onStateChange fires
   ↓
@@ -316,7 +317,7 @@ KeyboardHandler checks hover state
   ↓
 dockState.moveHandCardToExile('card-abc123')
   ├── card = hand.find(c => c.id === 'card-abc123')
-  ├── player.moveCardToExile(card)
+  ├── player.placeCardInPile(card, 'exile')
   │   └── yPlayerState.set('exilePile', [...exilePile, card])
   └── player.playCardFromHand('card-abc123')
       └── yPlayerState.set('hand', hand.filter(c => c.id !== id))
@@ -389,7 +390,7 @@ yPlayerState = {
 1. **Add method to `getGameResourcesDockHoverState()`:**
 ```typescript
 moveHandCardToCustomZone: (cardId: string) => {
-  const hand = this.player.getState().hand;
+  const hand = this.player.getHand().getCards();
   const card = hand.find(c => c.id === cardId);
   if (card) {
     // Your custom logic here
