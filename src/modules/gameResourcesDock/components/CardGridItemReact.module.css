@@ -38,17 +38,30 @@
   flex-shrink: 0;
 }
 
+.cardImageContainer {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
 .cardGridItemImg {
   width: 100%;
   height: 100%;
   object-fit: contain; /* Changed from cover to contain to show full height */
   display: block;
   opacity: 0;
-  transition: opacity 0.8s ease;
+  transition: opacity 0.4s ease;
+  position: absolute;
+  top: 0;
+  left: 0;
 }
 
-.cardGridItemImage.loaded .cardGridItemImg {
+.cardGridItemImg.loaded {
   opacity: 1;
+}
+
+.cardGridItemImg.hidden {
+  opacity: 0 !important;
 }
 
 .cardGridItemFallback {

@@ -37,13 +37,14 @@ export const CardGridItemReact = React.memo(function CardGridItemReact({
   tooltipManager,
   hotkeyContext,
 }: CardGridItemReactProps) {
-  const [imageLoaded, setImageLoaded] = React.useState(false);
-  const [imageError, setImageError] = React.useState(false);
+  const [frontImageLoaded, setFrontImageLoaded] = React.useState(false);
+  const [backImageLoaded, setBackImageLoaded] = React.useState(false);
+  const [frontImageError, setFrontImageError] = React.useState(false);
+  const [backImageError, setBackImageError] = React.useState(false);
   const cardRef = React.useRef<HTMLDivElement>(null);
 
-  const imageUrl = showFaceDown
-    ? DEFAULT_CARD_BACK
-    : card.images?.front?.normal || card.images?.front?.small;
+  const frontImageUrl = card.images?.front?.normal || card.images?.front?.small;
+  const backImageUrl = DEFAULT_CARD_BACK;
 
   const handleMouseEnter = (e: React.MouseEvent) => {
     onHover(card);
@@ -59,6 +60,10 @@ export const CardGridItemReact = React.memo(function CardGridItemReact({
     tooltipManager?.show(card.id, hotkeyContext, e.clientX, e.clientY);
   };
 
+  const hasFrontImage = frontImageUrl && !frontImageError;
+  const hasBackImage = backImageUrl && !backImageError;
+  const hasAnyImage = hasFrontImage || hasBackImage;
+
   return (
     <div
       ref={cardRef}
@@ -70,16 +75,37 @@ export const CardGridItemReact = React.memo(function CardGridItemReact({
       onClick={handleClick}
     >
       {/* Card Image */}
-      <div className={`${styles.cardGridItemImage} ${imageLoaded ? styles.loaded : ''}`}>
-        {imageUrl && !imageError ? (
-          <img
-            src={imageUrl}
-            alt={showFaceDown ? 'Card Back' : card.name || `Card #${card.cardNumber}`}
-            className={styles.cardGridItemImg}
-            loading="lazy"
-            onLoad={() => setImageLoaded(true)}
-            onError={() => setImageError(true)}
-          />
+      <div className={styles.cardGridItemImage}>
+        {hasAnyImage ? (
+          <div className={styles.cardImageContainer}>
+            {/* Front Image */}
+            {hasFrontImage && (
+              <img
+                src={frontImageUrl}
+                alt={card.name || `Card #${card.cardNumber}`}
+                className={`${styles.cardGridItemImg} ${styles.cardFrontImage} ${
+                  frontImageLoaded ? styles.loaded : ''
+                } ${showFaceDown ? styles.hidden : ''}`}
+                loading="lazy"
+                onLoad={() => setFrontImageLoaded(true)}
+                onError={() => setFrontImageError(true)}
+              />
+            )}
+
+            {/* Back Image */}
+            {hasBackImage && (
+              <img
+                src={backImageUrl}
+                alt="Card Back"
+                className={`${styles.cardGridItemImg} ${styles.cardBackImage} ${
+                  backImageLoaded ? styles.loaded : ''
+                } ${!showFaceDown ? styles.hidden : ''}`}
+                loading="lazy"
+                onLoad={() => setBackImageLoaded(true)}
+                onError={() => setBackImageError(true)}
+              />
+            )}
+          </div>
         ) : (
           <div className={styles.cardGridItemFallback}>#{card.cardNumber}</div>
         )}
