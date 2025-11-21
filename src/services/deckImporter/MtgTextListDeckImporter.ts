@@ -2,6 +2,7 @@ import { DeckImporter, DeckImportResult } from './DeckImporter';
 import {DeckLineItem, parseDecklist} from "@/services/deckImporter/DeckListParser";
 import {CardDataResult, ScryfallApiService} from '../scryfall';
 import { Card } from '@/modules/deck';
+import * as Sentry from "@sentry/browser";
 
 export class MtgTextListDeckImporter extends DeckImporter {
   private scryfallApi: ScryfallApiService;
@@ -36,20 +37,39 @@ export class MtgTextListDeckImporter extends DeckImporter {
     }
 
     // call Scryfall API
-    const entries: DeckLineItem[] = parseDecklist(text);
-    const results: CardDataResult[] = await this.scryfallApi.fetchImagesForList(entries, this.onProgress);
+    try {
+      const entries: DeckLineItem[] = parseDecklist(text);
+      const results: CardDataResult[] = await this.scryfallApi.fetchImagesForList(entries, this.onProgress);
 
-    // Create cards from CardDataResult
-    this.parseResultsIntoDeck(deck, results);
+      // Create cards from CardDataResult
+      this.parseResultsIntoDeck(deck, results);
 
-    // set import metadata
-    deck.metadata = {
-      source: 'scryfall',
-      cardCount: deck.cards.length,
-      importedAt: new Date(),
-      lastModified: new Date(),
+      // set import metadata
+      deck.metadata = {
+        source: 'scryfall',
+        cardCount: deck.cards.length,
+        importedAt: new Date(),
+        lastModified: new Date(),
+      }
+
+      if (deck.errors.length > 0) {
+        Sentry.captureMessage("Error when importing deck. ", {
+          level: "error",
+          extra: {
+            deck: deck
+          }
+      });
+      }
+
+      return deck;
+    } catch (e) {
+      Sentry.captureMessage("Error when importing deck. Full text import:", {
+        level: "error",
+        extra: {
+          text: text
+        }
+      });
     }
-
     return deck;
   }
 
