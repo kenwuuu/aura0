@@ -215,6 +215,7 @@ export function PileViewerReact({
     }
     searchTimeoutRef.current = setTimeout(() => {
       setSearchQuery(value);
+      setRevealAll(true);
     }, 150);
   };
 

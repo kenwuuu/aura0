@@ -1,3 +1,14 @@
+## 2025 November 21
+
+### Features
+- Typing to search deck now automatically reveals all
+
+### Changes
+- Made deck import a little more resilient when entering bad set codes
+- Changed how decks are handled in the code. Moving cards should be faster
+
+---
+
 ## 2025 November 20
 
 ### Features
