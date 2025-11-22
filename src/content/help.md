@@ -13,6 +13,7 @@ To play with friends, simply **copy your browser's URL** and send it to them. Wh
 Example: `https://aura-dqp.pages.dev/?room=mtg-abc123`
 
 ---
+## Cards
 
 ## Importing Decks
 We support importing in the following formats: 
@@ -21,9 +22,12 @@ We support importing in the following formats:
 
 [quantity] [card name] [set code] [collector number] [foil], e.g. 1 Steam Vents (RVR) 412z *F*
 
-### Commander and Command Zone
+## Commander and Command Zone
 To have your commander drawn into your hand automatically, place your commander as the last card in your import list.
 We plan to support deck editing in the near future.
+
+## Token Cards
+Cards will automatically bring out their related tokens when played. Don't worry about importing them!
 
 ---
 
@@ -36,19 +40,10 @@ Hover an opponent and click the **+** on the left side of their health box.
 ## Zoom Controls
 
 The app has three separate zoom controls located around the screen:
+- Card Preview Zoom (Left)
+- Battlefield Card Zoom (Right)
+- Hand Zoom (Bottom Left)
 
-### Card Preview Zoom (Middle Left)
-- Controls the size of the enlarged card preview that appears when hovering over cards
-- **+** to zoom in, **−** to zoom out
-- Click the zoom level to reset to 1.0×
-
-### Hand Card Zoom (Bottom Left)
-- Controls the size of cards in your hand at the bottom of the screen
-- **+** to zoom in, **−** to zoom out
-- Click the zoom level to reset to 1.0×
-
-### Battlefield Card Zoom (Middle Right)
-- Controls the size of all cards on the battlefield
 - **+** to zoom in, **−** to zoom out
 - Click the zoom level to reset to 1.0×
 
