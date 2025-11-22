@@ -445,7 +445,7 @@ export function PileViewerReact({
               onHover={setHoveredCard}
               tooltipManager={tooltipManagerRef.current}
               hotkeyContext={getHotkeyContext()}
-              enableReordering={pileType === 'deck' || pileType === 'exile' || pileType === 'discard'}
+              enableReordering={pileType === 'scry'}
             />
           )}
         </div>
