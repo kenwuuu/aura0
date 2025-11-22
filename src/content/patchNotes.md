@@ -1,3 +1,11 @@
+## 2025 November 22
+
+### Features
+- Cards can be rearranged when scrying. Remaining cards will be put in order
+onto top of deck when window is closed. First card will be on top.
+
+---
+
 ## 2025 November 21
 
 ### Features
