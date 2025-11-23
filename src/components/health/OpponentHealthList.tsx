@@ -5,7 +5,14 @@ import { HealthDisplay } from './HealthDisplay';
 import { CustomCounter } from '@/modules/player/types';
 import { Card } from '@/modules/deck';
 import { PileViewer } from '@/modules/gameResourcesDock/components';
-import {YSTATE_CUSTOM_COUNTERS, YSTATE_DISCARD_PILE} from "../../constants";
+import {
+  YDOC_PLAYER,
+  YSTATE_CAN_VIEW_HAND,
+  YSTATE_CUSTOM_COUNTERS,
+  YSTATE_DISCARD_PILE,
+  YSTATE_EXILE_PILE,
+  YSTATE_HAND, YSTATE_HEALTH
+} from "../../constants";
 
 interface OpponentHealthListProps {
   yDoc: Y.Doc;
@@ -41,15 +48,15 @@ export const OpponentHealthList: React.FC<OpponentHealthListProps> = ({
       const opponentsList: OpponentData[] = [];
 
       yDoc.share.forEach((_, key) => {
-        if (key.startsWith('player-') && key !== `player-${localPlayerId}`) {
+        if (key.startsWith('player-') && key !== YDOC_PLAYER(localPlayerId)) {
           const playerId = key.replace('player-', '');
           const yPlayerState = yDoc.getMap(key);
-          const health = (yPlayerState.get('health') as number | undefined) ?? 20;
+          const health = (yPlayerState.get(YSTATE_HEALTH) as number | undefined) ?? 20;
           const customCounters = (yPlayerState.get(YSTATE_CUSTOM_COUNTERS) as CustomCounter[] | undefined) ?? [];
-          const exilePile = (yPlayerState.get('exilePile') as Card[] | undefined) ?? [];
+          const exilePile = (yPlayerState.get(YSTATE_EXILE_PILE) as Card[] | undefined) ?? [];
           const discardPile = (yPlayerState.get(YSTATE_DISCARD_PILE) as Card[] | undefined) ?? [];
-          const hand = (yPlayerState.get('hand') as Card[] | undefined) ?? [];
-          const allowViewHand = (yPlayerState.get('allowViewHand') as boolean | undefined) ?? false;
+          const hand = (yPlayerState.get(YSTATE_HAND) as Card[] | undefined) ?? [];
+          const allowViewHand = (yPlayerState.get(YSTATE_CAN_VIEW_HAND) as boolean | undefined) ?? false;
 
           opponentsList.push({ playerId, health, customCounters, exilePile, discardPile, hand, allowViewHand });
         }
@@ -127,8 +134,8 @@ export const OpponentHealthList: React.FC<OpponentHealthListProps> = ({
 
   const modifyOpponentHealth = (playerId: string, delta: number) => {
     const yPlayerState = yDoc.getMap(`player-${playerId}`);
-    const currentHealth = (yPlayerState.get('health') as number | undefined) ?? 20;
-    yPlayerState.set('health', currentHealth + delta);
+    const currentHealth = (yPlayerState.get(YSTATE_HEALTH) as number | undefined) ?? 20;
+    yPlayerState.set(YSTATE_HEALTH, currentHealth + delta);
   };
 
   const addOpponentCounter = (playerId: string, title: string, icon: string) => {

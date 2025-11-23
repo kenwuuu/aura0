@@ -17,3 +17,4 @@ export const YSTATE_EXILE_PILE = 'exile-pile';
 export const YSTATE_DISCARD_PILE = 'discard-pile';
 export const YSTATE_DECK_CARD_COUNT = 'deck-card-count';
 export const YSTATE_CUSTOM_COUNTERS = 'custom-counters';
+export const YSTATE_CAN_VIEW_HAND = 'allowViewHand';

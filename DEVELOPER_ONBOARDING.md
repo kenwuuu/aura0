@@ -1402,7 +1402,7 @@ console.table(Array.from(yCards.values()));
 
 // View player state
 const yPlayer = yDoc.getMap('player-abc123');  // Replace with actual ID
-console.log('Health:', yPlayer.get('health'));
+console.log('Health:', yPlayer.get(YSTATE_HEALTH));
 console.log('Hand:', yPlayer.get('hand'));
 console.log('Deck count:', yPlayer.get(YSTATE_DECK_CARD_COUNT));
 

@@ -261,7 +261,7 @@ const yCards = yDoc.getMap(YDOC_CARDS_ON_BOARD);
 console.table(Array.from(yCards.values()));
 
 const yPlayer = yDoc.getMap(`player-${playerId}`);
-console.log('Health:', yPlayer.get('health'));
+console.log('Health:', yPlayer.get(YSTATE_HEALTH));
 console.log('Hand:', yPlayer.get('hand'));
 ```
 
