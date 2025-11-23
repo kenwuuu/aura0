@@ -1,4 +1,4 @@
-import { test as setup } from '@playwright/test';
+import { expect, test as setup } from '@playwright/test';
 import path from 'path';
 
 const __dirname = import.meta.dirname;
@@ -6,7 +6,7 @@ const authFile = path.join(__dirname, '../../playwright/.auth/user.json');
 
 setup('authenticate and save storage state', async ({ page }) => {
   // Navigate to the app with a specific room
-  await page.goto('http://localhost:5173/?room=mtg-playwright');
+  await page.goto('http://localhost:5173/?room=playwright');
 
   // Close any initial dialogs/modals
   await page.getByRole('button', { name: '×', exact: true }).click();
