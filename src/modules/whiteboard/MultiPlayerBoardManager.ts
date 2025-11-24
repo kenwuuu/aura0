@@ -14,7 +14,6 @@ import {OpponentCoordinateTransformer} from "./OpponentCoordinateTransformer";
 import {HotkeyContext} from "../../data/hotkeys";
 import { KeywordToken } from '@/modules/keywordTokens/types';
 import { KeywordTokenFactory } from '@/modules/keywordTokens/KeywordTokenFactory';
-import { useHotkeyStore } from '@/stores/hotkeyStore';
 
 const DEFAULT_OPPONENT_OPACITY = 1.0;
 const FOCUSED_OPACITY = 1.0;
@@ -468,10 +467,7 @@ export class MultiPlayerBoardManager {
 
     // Enable hover for card preview
     cardElement.addEventListener('mouseenter', (e: MouseEvent) => {
-      // Update both old KeyboardHandler and new Zustand store (for gradual migration)
       this.keyboardHandler.setHoveredCard(card.id);
-      useHotkeyStore.getState().setHoveredBattlefieldCard(card.id);
-
       // Get latest card state from Yjs to avoid stale closures
       const latestCard = this.yCards.get(card.id) || card;
       this.cardPreview.show(latestCard);
@@ -488,10 +484,7 @@ export class MultiPlayerBoardManager {
     });
 
     cardElement.addEventListener('mouseleave', () => {
-      // Update both old KeyboardHandler and new Zustand store (for gradual migration)
       this.keyboardHandler.setHoveredCard(null);
-      useHotkeyStore.getState().setHoveredBattlefieldCard(null);
-
       this.cardPreview.hide();
       this.tooltipManager.hideOnLeave();
     });
@@ -623,8 +616,6 @@ export class MultiPlayerBoardManager {
       mode: 'board',
       onMouseEnter: (e: MouseEvent, tokenId: string) => {
         this.hoveredTokenId = tokenId;
-        // Update Zustand store for new hotkey system
-        useHotkeyStore.getState().setHoveredToken(tokenId);
         this.tooltipManager.show(tokenId, HotkeyContext.KeywordToken, e.clientX, e.clientY, false, token.title);
       },
       onMouseMove: (e: MouseEvent, tokenId: string) => {
@@ -646,8 +637,6 @@ export class MultiPlayerBoardManager {
       onMouseLeave: (tokenId: string) => {
         if (this.hoveredTokenId === tokenId) {
           this.hoveredTokenId = null;
-          // Update Zustand store for new hotkey system
-          useHotkeyStore.getState().setHoveredToken(null);
           this.tooltipManager.hide();
         }
       },

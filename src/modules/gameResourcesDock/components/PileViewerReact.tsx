@@ -33,7 +33,6 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { CardGrid } from './CardGrid';
 import { YSTATE_DECK, YSTATE_EXILE_PILE, YSTATE_DISCARD_PILE } from '@/constants';
 import { usePlayerStore } from '@/stores/playerStore';
-import { useHotkeyStore } from '@/stores/hotkeyStore';
 
 export type PileType = 'deck' | 'exile' | 'discard' | 'hand' | 'scry';
 
@@ -64,8 +63,6 @@ export function PileViewerReact({
   callbacks = {},
 }: PileViewerReactProps) {
   const yPlayerState = usePlayerStore((state) => state.yPlayerState);
-  const setModalOpen = useHotkeyStore((state) => state.setModalOpen);
-
   // State
   const [searchQuery, setSearchQuery] = React.useState('');
   const [sortOrder, setSortOrder] = useSortOrder('top-to-bottom');
@@ -90,11 +87,6 @@ export function PileViewerReact({
 
     return [sortOrder, setSortOrder];
   }
-
-  // Update hotkey store when modal opens/closes
-  React.useEffect(() => {
-    setModalOpen(isOpen);
-  }, [isOpen, setModalOpen]);
 
   // Reset state when dialog opens or closes
   React.useEffect(() => {
