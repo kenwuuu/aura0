@@ -505,29 +505,14 @@ class AuraApp {
     }
 
     const patchNotesModalRoot = document.createElement('div');
-    patchNotesModalRoot.id = 'patch-notes-modal-root';
     document.body.appendChild(patchNotesModalRoot);
 
-    // Create a component that auto-opens on mount
-    const PatchNotesContainer: React.FC = () => {
-      const [isOpen, setIsOpen] = React.useState(true);
-
-      const handleOpenChange = (open: boolean) => {
-        setIsOpen(open);
-        // Mark patch notes as seen when user closes the modal
-        if (!open) {
-          PatchNotesService.markPatchNotesAsSeen();
-        }
-      };
-
-      return React.createElement(PatchNotesModal, {
-        isOpen,
-        onClose: handleOpenChange,
-      });
-    };
-
     const root = createRoot(patchNotesModalRoot);
-    root.render(React.createElement(PatchNotesContainer));
+    root.render(
+      React.createElement(PatchNotesModal, {
+        onClose: () => PatchNotesService.markPatchNotesAsSeen(),
+      })
+    );
   }
 
   public destroy(): void {
