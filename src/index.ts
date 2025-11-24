@@ -512,15 +512,17 @@ class AuraApp {
     const PatchNotesContainer: React.FC = () => {
       const [isOpen, setIsOpen] = React.useState(true);
 
-      const handleClose = () => {
-        setIsOpen(false);
+      const handleOpenChange = (open: boolean) => {
+        setIsOpen(open);
         // Mark patch notes as seen when user closes the modal
-        PatchNotesService.markPatchNotesAsSeen();
+        if (!open) {
+          PatchNotesService.markPatchNotesAsSeen();
+        }
       };
 
       return React.createElement(PatchNotesModal, {
         isOpen,
-        onClose: handleClose,
+        onClose: handleOpenChange,
       });
     };
 

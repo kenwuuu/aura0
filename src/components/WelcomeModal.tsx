@@ -35,21 +35,17 @@ export const WelcomeModal: React.FC = () => {
     setIsVisible(true);
   }, []);
 
-  const handleClose = () => {
-    setIsVisible(false);
-  };
-
   const handleDontShowAgain = () => {
     localStorage.setItem(DISMISSED_KEY, 'true');
     setIsVisible(false);
   };
 
   return (
-    <Dialog open={isVisible} onOpenChange={handleClose}>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
+    <Dialog open={isVisible} onOpenChange={setIsVisible}>
+      <DialogContent className="max-w-md border-1">
+        <DialogHeader className="border-none px-8 pt-8">
           <DialogTitle>Welcome to Aura</DialogTitle>
-          <DialogDescription className="space-y-3 pt-2">
+          <DialogDescription className="space-y-3 pt-2 text-md text-gray-200">
             <p>
               Import a new deck using the <strong className="text-white">Choose Deck</strong> button in the top left.
             </p>
@@ -58,13 +54,19 @@ export const WelcomeModal: React.FC = () => {
             </p>
           </DialogDescription>
         </DialogHeader>
-        <DialogFooter className="gap-3 sm:gap-3">
+        <DialogFooter className="gap-3 sm:gap-6 pb-8 px-8 border-none">
           {showDontShowAgain && (
-            <Button variant="outline" onClick={handleDontShowAgain} className="flex-1">
+            <Button
+              onClick={handleDontShowAgain}
+              className="flex-1 h-12 text-md font-semibold rounded-lg border border-[#4a4a4a] bg-[#2d2d2d] text-white hover:bg-[#3a3a3a]"
+            >
               Don't show again
             </Button>
           )}
-          <Button onClick={handleClose} className="flex-1">
+          <Button
+            onClick={() => setIsVisible(false)}
+            className="flex-1 h-12 text-md font-semibold rounded-xl border border-[#3d3d3d] bg-blue-500 text-white hover:bg-blue-600"
+          >
             Got it
           </Button>
         </DialogFooter>
