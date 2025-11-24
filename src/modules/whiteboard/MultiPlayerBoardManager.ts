@@ -1,7 +1,6 @@
 import { Card } from '../deck';
 import {CARD_HEIGHT, CARD_WIDTH, DEFAULT_CARD_BACK, YDOC_CARDS_ON_BOARD, YDOC_KEYWORD_TOKENS} from '../../constants';
 import { WhiteboardCard, DragState } from './types';
-import { KeyboardHandler, KeyboardHandlerCallbacks } from './KeyboardHandler';
 import { CardPreview } from '../cardPreview';
 import { TooltipManager } from './TooltipManager';
 import { ZoomController } from './ZoomController';
@@ -9,7 +8,7 @@ import { BoardContainerManager, BOARD_HEIGHT } from './BoardContainerManager';
 import * as Y from 'yjs';
 import React from 'react';
 import { createRoot, Root } from 'react-dom/client';
-import { CardCounter } from '../../components';
+import { CardCounter, BattlefieldHotkeysManager, TokenHotkeysManager } from '../../components';
 import {OpponentCoordinateTransformer} from "./OpponentCoordinateTransformer";
 import {HotkeyContext} from "../../data/hotkeys";
 import { KeywordToken } from '@/modules/keywordTokens/types';
@@ -28,11 +27,12 @@ export class MultiPlayerBoardManager {
   private yTokens: Y.Map<KeywordToken>;
   private yDoc: Y.Doc;
   private maxZIndex: number = 0;
-  private keyboardHandler: KeyboardHandler;
   private zoomController: ZoomController;
   private cardPreview: CardPreview;
   private localPlayerId: string;
   private tooltipManager: TooltipManager;
+  private battlefieldHotkeysRoot: Root | null = null;
+  private tokenHotkeysRoot: Root | null = null;
   // Track mouse movement to distinguish clicks from drags
   private mousePosition: { x: number; y: number; } | null = null;
   private readonly DRAG_THRESHOLD = 5; // pixels
@@ -80,48 +80,167 @@ export class MultiPlayerBoardManager {
     this.attachEventListeners();
     this.setupOpponentHoverListener();
 
-    // Initialize keyboard handler with empty callbacks (will be set by app)
-    this.keyboardHandler = new KeyboardHandler(
-      this.yCards,
-      {
-        onMoveToHand: () => {},
-        onMoveToDeckTop: () => {},
-        onMoveToDeckBottom: () => {},
-        onMoveToGraveyard: () => {},
-        onMoveToExile: () => {},
-        onDeleteCard: () => {},
-        onDrawCard: () => {},
-        onShuffleDeck: () => {},
-        onUntapAll: () => {},
-        onEndTurn: () => {},
-        onHideCardPreview: () => this.cardPreview.hide(),
-        onHideCardTooltip: () => this.tooltipManager.hide(),
-        onMulligan: () => {},
-        loseHealth: () => {},
-        gainHealth: () => {},
-      },
-      this.localPlayerId
-    );
-
-    // Initialize tooltip manager with hotkey click handler
+    // Initialize tooltip manager
     this.tooltipManager = new TooltipManager();
     this.tooltipManager.setup((hotkey, cardId) => {
-      // Execute the hotkey action for the specified card
-      this.keyboardHandler.executeHotkey(hotkey.key, cardId);
+      // Simulate hotkey press by temporarily setting hovered card and triggering event
+      const originalHoveredCard = useHotkeyStore.getState().hoveredBattlefieldCardId;
+      useHotkeyStore.getState().setHoveredBattlefieldCard(cardId);
+
+      // Create and dispatch a keyboard event
+      const key = hotkey.keys?.[0] || hotkey.key.toLowerCase();
+      const event = new KeyboardEvent('keydown', { key });
+      document.dispatchEvent(event);
+
+      // Restore original hover state
+      setTimeout(() => {
+        useHotkeyStore.getState().setHoveredBattlefieldCard(originalHoveredCard);
+      }, 0);
     });
+
+    // Setup React-based hotkey managers
+    this.setupHotkeyManagers();
   }
 
-  public setKeyboardCallbacks(callbacks: KeyboardHandlerCallbacks): void {
-    // Clean up old keyboard handler before creating new one
-    this.keyboardHandler.destroy();
-    this.keyboardHandler = new KeyboardHandler(
-      this.yCards,
-      {
-        ...callbacks,
-        onHideCardPreview: () => this.cardPreview.hide(),
-        onHideCardTooltip: () => this.tooltipManager.hide(),
-      },
-      this.localPlayerId
+  private setupHotkeyManagers(): void {
+    // Create containers for hotkey managers (invisible React components)
+    const battlefieldHotkeysContainer = document.createElement('div');
+    battlefieldHotkeysContainer.id = 'battlefield-hotkeys-manager';
+    document.body.appendChild(battlefieldHotkeysContainer);
+
+    const tokenHotkeysContainer = document.createElement('div');
+    tokenHotkeysContainer.id = 'token-hotkeys-manager';
+    document.body.appendChild(tokenHotkeysContainer);
+
+    // Mount BattlefieldHotkeysManager
+    this.battlefieldHotkeysRoot = createRoot(battlefieldHotkeysContainer);
+    this.battlefieldHotkeysRoot.render(
+      React.createElement(BattlefieldHotkeysManager, {
+        onTap: (cardId) => {
+          const card = this.yCards.get(cardId);
+          if (card && card.ownerId === this.localPlayerId) {
+            this.yCards.set(cardId, { ...card, isTapped: !card.isTapped });
+          }
+        },
+        onFlip: (cardId) => {
+          const card = this.yCards.get(cardId);
+          if (card && card.ownerId === this.localPlayerId) {
+            this.yCards.set(cardId, { ...card, isFlipped: !card.isFlipped });
+          }
+        },
+        onAddCounter: (cardId) => {
+          const card = this.yCards.get(cardId);
+          if (card && card.ownerId === this.localPlayerId) {
+            this.yCards.set(cardId, { ...card, counters: [...card.counters, 1] });
+          }
+        },
+        onRemoveCounter: (cardId) => {
+          const card = this.yCards.get(cardId);
+          if (card && card.ownerId === this.localPlayerId) {
+            this.yCards.set(cardId, { ...card, counters: [...card.counters, -1] });
+          }
+        },
+        onCopy: (cardId) => {
+          const card = this.yCards.get(cardId);
+          if (card) {
+            // Create copy with slight offset
+            const newCard: WhiteboardCard = {
+              ...card,
+              id: `card-${Math.random().toString(36).substring(2, 11)}`,
+              ownerId: this.localPlayerId,
+              x: card.x + 20,
+              y: card.y + 20,
+              zIndex: ++this.maxZIndex,
+              counters: [...card.counters],
+            };
+            this.yCards.set(newCard.id, newCard);
+          }
+        },
+        onDelete: (cardId) => {
+          const card = this.yCards.get(cardId);
+          if (card && card.ownerId === this.localPlayerId) {
+            this.cardPreview.hide();
+            this.tooltipManager.hide();
+            this.yCards.delete(cardId);
+          }
+        },
+        onMoveToHand: (cardId) => {
+          const card = this.yCards.get(cardId);
+          if (card && card.ownerId === this.localPlayerId) {
+            this.cardPreview.hide();
+            this.tooltipManager.hide();
+            // Dispatch event to move to hand (handled by index.ts)
+            window.dispatchEvent(new CustomEvent('moveCardToHand', { detail: { card } }));
+            this.yCards.delete(cardId);
+          }
+        },
+        onMoveToDiscard: (cardId) => {
+          const card = this.yCards.get(cardId);
+          if (card && card.ownerId === this.localPlayerId) {
+            this.cardPreview.hide();
+            this.tooltipManager.hide();
+            window.dispatchEvent(new CustomEvent('moveCardToDiscard', { detail: { card } }));
+            this.yCards.delete(cardId);
+          }
+        },
+        onMoveToExile: (cardId) => {
+          const card = this.yCards.get(cardId);
+          if (card && card.ownerId === this.localPlayerId) {
+            this.cardPreview.hide();
+            this.tooltipManager.hide();
+            window.dispatchEvent(new CustomEvent('moveCardToExile', { detail: { card } }));
+            this.yCards.delete(cardId);
+          }
+        },
+        onMoveToDeckTop: (cardId) => {
+          const card = this.yCards.get(cardId);
+          if (card && card.ownerId === this.localPlayerId) {
+            this.cardPreview.hide();
+            this.tooltipManager.hide();
+            window.dispatchEvent(new CustomEvent('moveCardToDeckTop', { detail: { card } }));
+            this.yCards.delete(cardId);
+          }
+        },
+        onMoveToDeckBottom: (cardId) => {
+          const card = this.yCards.get(cardId);
+          if (card && card.ownerId === this.localPlayerId) {
+            this.cardPreview.hide();
+            this.tooltipManager.hide();
+            window.dispatchEvent(new CustomEvent('moveCardToDeckBottom', { detail: { card } }));
+            this.yCards.delete(cardId);
+          }
+        },
+      })
+    );
+
+    // Mount TokenHotkeysManager
+    this.tokenHotkeysRoot = createRoot(tokenHotkeysContainer);
+    this.tokenHotkeysRoot.render(
+      React.createElement(TokenHotkeysManager, {
+        onIncrement: (tokenId) => {
+          const token = this.yTokens.get(tokenId);
+          if (token && token.ownerId === this.localPlayerId) {
+            this.yTokens.set(tokenId, { ...token, count: (token.count ?? 0) + 1 });
+          }
+        },
+        onDecrement: (tokenId) => {
+          const token = this.yTokens.get(tokenId);
+          if (token && token.ownerId === this.localPlayerId) {
+            const newCount = (token.count ?? 0) - 1;
+            if (newCount <= 0) {
+              this.yTokens.delete(tokenId);
+            } else {
+              this.yTokens.set(tokenId, { ...token, count: newCount });
+            }
+          }
+        },
+        onDelete: (tokenId) => {
+          const token = this.yTokens.get(tokenId);
+          if (token && token.ownerId === this.localPlayerId) {
+            this.yTokens.delete(tokenId);
+          }
+        },
+      })
     );
   }
 
@@ -468,8 +587,7 @@ export class MultiPlayerBoardManager {
 
     // Enable hover for card preview
     cardElement.addEventListener('mouseenter', (e: MouseEvent) => {
-      // Update both old KeyboardHandler and new Zustand store (for gradual migration)
-      this.keyboardHandler.setHoveredCard(card.id);
+      // Update Zustand store for new hotkey system
       useHotkeyStore.getState().setHoveredBattlefieldCard(card.id);
 
       // Get latest card state from Yjs to avoid stale closures
@@ -488,8 +606,7 @@ export class MultiPlayerBoardManager {
     });
 
     cardElement.addEventListener('mouseleave', () => {
-      // Update both old KeyboardHandler and new Zustand store (for gradual migration)
-      this.keyboardHandler.setHoveredCard(null);
+      // Update Zustand store for new hotkey system
       useHotkeyStore.getState().setHoveredBattlefieldCard(null);
 
       this.cardPreview.hide();
@@ -982,5 +1099,13 @@ export class MultiPlayerBoardManager {
     this.boardContainerManager.destroy();
     this.zoomController.destroy();
     this.tooltipManager.destroy();
+
+    // Unmount React hotkey managers
+    if (this.battlefieldHotkeysRoot) {
+      this.battlefieldHotkeysRoot.unmount();
+    }
+    if (this.tokenHotkeysRoot) {
+      this.tokenHotkeysRoot.unmount();
+    }
   }
 }
