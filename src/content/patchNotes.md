@@ -3,6 +3,7 @@
 ### Features
 - Card text is now searchable when searching a card pile.
 - Hand cards now align to top of card when zooming in.
+- Enemy cards now show copy/clone tooltip.
 
 ### Changes
 - Moved blue label on hand cards down to show mana cost when zoomed in.

@@ -15,6 +15,7 @@ export const HotkeyContext = {
   Health: 'health',
   KeywordToken: 'kwToken',
   KeywordTokenStack: 'kwTokenStack',
+  EnemyBattlefieldCard: 'EnemyBattlefieldCard',
 } as const;
 
 export type HotkeyContext = typeof HotkeyContext[keyof typeof HotkeyContext];
@@ -98,7 +99,7 @@ export const HOTKEYS: HotkeyDefinition[] = [
   },
   {
     key: 'K',
-    context: ['battlefield'],
+    context: ['battlefield', 'EnemyBattlefieldCard'],
     shortDescription: 'Copy/clone',
     longDescription: 'Create copy of card',
   },
