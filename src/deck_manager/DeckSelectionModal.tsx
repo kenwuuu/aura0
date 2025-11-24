@@ -1,6 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { DeckStorageService } from '../services/deckStorage';
-import { DeckMetadata, SavedDeck } from '../modules/deck/types';
+import { DeckStorageService } from '@/services/deckStorage';
+import { DeckMetadata, SavedDeck } from '@/modules/deck/types';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
 interface DeckSelectionModalProps {
   isOpen: boolean;
@@ -16,17 +26,20 @@ export function DeckSelectionModal({
   onImportNewDeck,
 }: DeckSelectionModalProps) {
   const [decks, setDecks] = useState<DeckMetadata[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    loadDecks().then(r => {});
+  }, []);
+
+  useEffect(() => {
+    // Reload decks when modal opens to ensure fresh data
     if (isOpen) {
-      loadDecks();
+      loadDecks().then(r => {});
     }
   }, [isOpen]);
 
   const loadDecks = async () => {
-    setIsLoading(true);
     setError(null);
 
     try {
@@ -42,8 +55,6 @@ export function DeckSelectionModal({
     } catch (err) {
       console.error('Error loading decks:', err);
       setError('Failed to load decks');
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -91,52 +102,56 @@ export function DeckSelectionModal({
     return d.toLocaleDateString() + ' ' + d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
-  if (!isOpen) return null;
+  const handleOpenChange = (open: boolean) => {
+    if (!open) {
+      onClose();
+    }
+  };
 
   return (
-    <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal-content deck-selection-modal" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-header">
-          <h2>Select a Deck</h2>
-          <button className="modal-close" onClick={onClose}>×</button>
-        </div>
+    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
+      <DialogContent className="w-[90%] xl:min-w-[700px] data-[state=open]:animate-none data-[state=closed]:animate-none">
+        <DialogHeader>
+          <DialogTitle>Select a Deck</DialogTitle>
+          <DialogDescription>
+            Choose a deck to load or import a new one
+          </DialogDescription>
+        </DialogHeader>
 
-        <div className="modal-body">
-          {isLoading && <p>Loading decks...</p>}
-
+        <div>
           {error && (
-            <div className="error-container">
-              <p>{error}</p>
-            </div>
+            <Alert variant="destructive" className="mb-4">
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
           )}
 
-          {!isLoading && decks.length === 0 && (
-            <div className="empty-state">
+          {decks.length === 0 && (
+            <div className="text-center py-8 text-gray-400">
               <p>No decks found. Import your first deck to get started!</p>
             </div>
           )}
 
-          {!isLoading && decks.length > 0 && (
-            <div className="deck-list">
+          {decks.length > 0 && (
+            <div className="space-y-2 py-2 max-h-[400px] overflow-y-auto">
               {decks.map((deck) => (
                 <div
                   key={deck.id}
-                  className="deck-item"
+                  className="mx-6 border-2 flex items-center justify-between p-4 bg-[#2a2a2a] border-[#3d3d3d] rounded-lg hover:bg-[#1a1a1a] hover:border-[#3b82f6] hover:scale-[1.02] ease transition-all duration-200 cursor-pointer"
                   onClick={() => handleSelectDeck(deck.id)}
                 >
-                  <div className="deck-info">
-                    <h3>{deck.name}</h3>
-                    <div className="deck-meta">
-                      <span className="deck-card-count">{deck.cardCount} cards</span>
-                      {deck.format && <span className="deck-format">{deck.format}</span>}
-                      <span className="deck-source">{deck.source}</span>
+                  <div className="flex-1">
+                    <h3 className="text-white font-semibold mb-1">{deck.name}</h3>
+                    <div className="flex gap-3 text-sm text-gray-400 mb-1">
+                      <span>{deck.cardCount} cards</span>
+                      {deck.format && <span>{deck.format}</span>}
+                      <span>{deck.source}</span>
                     </div>
-                    <p className="deck-date">
+                    <p className="text-xs text-gray-500">
                       Last modified: {formatDate(deck.lastModified)}
                     </p>
                   </div>
                   <button
-                    className="deck-delete"
+                    className="ml-4 px-3 py-2 text-gray-400 hover:text-red-400 hover:bg-[#2a2a2a] rounded transition-colors"
                     onClick={(e) => handleDeleteDeck(deck.id, e)}
                     title="Delete deck"
                   >
@@ -148,13 +163,23 @@ export function DeckSelectionModal({
           )}
         </div>
 
-        <div className="modal-footer">
-          <button onClick={onClose}>Cancel</button>
-          <button onClick={handleImportNew} className="primary">
+        <DialogFooter className="px-6 pb-6">
+          <Button
+            type="button"
+            onClick={onClose}
+            className="bg-[#2a2a2a] border border-[#3d3d3d] text-gray-400 hover:bg-[#3d3d3d] hover:text-white"
+          >
+            Cancel
+          </Button>
+          <Button
+            type="button"
+            onClick={handleImportNew}
+            className="bg-blue-500 text-white hover:bg-blue-600"
+          >
             Import New Deck
-          </button>
-        </div>
-      </div>
-    </div>
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

@@ -65,7 +65,7 @@ export function PileViewerReact({
   const yPlayerState = usePlayerStore((state) => state.yPlayerState);
   // State
   const [searchQuery, setSearchQuery] = React.useState('');
-  const [sortOrder, setSortOrder] = React.useState<SortOrder>('top-to-bottom');
+  const [sortOrder, setSortOrder] = useSortOrder('top-to-bottom');
   const [hoveredCard, setHoveredCard] = React.useState<Card | null>(null);
   const [revealAll, setRevealAll] = React.useState(false);
   const [revealCount, setRevealCount] = React.useState(0);
@@ -74,6 +74,19 @@ export function PileViewerReact({
   // Refs
   const tooltipManagerRef = React.useRef<TooltipManager | null>(null);
   const searchTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
+
+  // Custom hooks
+  function useSortOrder(initial: SortOrder): [SortOrder, (newSortOrder: SortOrder) => void] {
+    const [sortOrder, setSort] = React.useState<SortOrder>(initial);
+
+    const setSortOrder = (newSortOrder: SortOrder)  => {
+      setSort(newSortOrder);
+      setRevealCount(0);
+      setRevealAll(false);
+    };
+
+    return [sortOrder, setSortOrder];
+  }
 
   // Reset state when dialog opens or closes
   React.useEffect(() => {
@@ -216,7 +229,7 @@ export function PileViewerReact({
     searchTimeoutRef.current = setTimeout(() => {
       setSearchQuery(value);
       setRevealAll(true);
-    }, 150);
+    }, 250);
   };
 
   // Cleanup timeout on unmount
@@ -261,20 +274,22 @@ export function PileViewerReact({
   };
 
   // Filter and sort cards
-  const filteredAndSortedCards = React.useMemo(() => {
-    let filtered = cards;
+  const filteredAndSortedCards: Card[] = React.useMemo(() => {
+    let filtered: Card[] = cards;
 
     // Filter by search query
     if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase().trim();
-      filtered = cards.filter((card) => {
-        const name = card.name?.toLowerCase() || '';
-        const typeLine = card.type_line?.toLowerCase() || '';
-        const cardNumber = card.cardNumber.toString();
+      const query: string = searchQuery.toLowerCase().trim();
+      filtered = cards.filter((card: Card) => {
+        const name: string = card.name?.toLowerCase() || '';
+        const typeLine: string = card.type_line?.toLowerCase() || '';
+        const cardNumber: string = card.cardNumber.toString();
+        const oracleText: string = card.oracleText?.toLowerCase() || '';
         return (
           name.includes(query) ||
           cardNumber.includes(query) ||
-          typeLine.includes(query)
+          typeLine.includes(query) ||
+          oracleText.includes(query)
         );
       });
     }
@@ -365,7 +380,7 @@ export function PileViewerReact({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="deck-pile-viewer-content max-w-[90vw] max-h-[90vh] p-0">
+        <DialogContent className="deck-pile-viewer-content min-w-[80vw] max-h-[70vh] p-0">
         <DialogHeader className="px-6 pt-6 pb-4 border-b">
           <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-4">
             <DialogTitle className="text-2xl font-bold">{getTitle()}</DialogTitle>
@@ -391,7 +406,7 @@ export function PileViewerReact({
           {/* Sort */}
           <div className="flex items-center gap-2">
             <span className="text-sm font-medium">Sort:</span>
-            <Select value={sortOrder} onValueChange={(value) => setSortOrder(value as SortOrder)}>
+            <Select value={sortOrder} onValueChange={(value: string): void => setSortOrder(value as SortOrder)}>
               <SelectTrigger className="w-[180px]">
                 <SelectValue />
               </SelectTrigger>
