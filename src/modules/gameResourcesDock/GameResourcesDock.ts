@@ -6,7 +6,7 @@ import { CardPreview } from '../cardPreview';
 import React from 'react';
 import {createRoot, Root} from 'react-dom/client';
 import {HealthDisplay} from '@/components/health/HealthDisplay';
-import {HotkeyTooltip, HandHotkeysManager, PileHotkeysManager} from '@/components';
+import {HotkeyTooltip} from '@/components';
 import {HotkeyContext} from '@/data/hotkeys';
 import {ScryModal} from '@/components/ScryModal';
 import { ControlsMenu } from '@/components/controls/ControlsMenu';
@@ -53,10 +53,6 @@ export class GameResourcesDock {
   private isModalOpen: boolean = false;
   private _dragState: { mode: string; draggedElement: HTMLDivElement; startIndex: number; } | undefined;
   private preloadedPiles: Set<'deck' | 'exile' | 'discard'> = new Set();
-  private handHotkeysRoot: Root | null = null;
-  private deckHotkeysRoot: Root | null = null;
-  private exileHotkeysRoot: Root | null = null;
-  private discardHotkeysRoot: Root | null = null;
 
   constructor(
     container: HTMLElement,
@@ -110,7 +106,7 @@ export class GameResourcesDock {
     this.setupZoomControls();
     this.setupEventListeners();
     this.setupDragDropZones();
-    this.setupHotkeyManagers();
+    this.setupKeyboardShortcuts();
     this.setupTooltip();
   }
 
@@ -629,34 +625,31 @@ export class GameResourcesDock {
     }
   }
 
-  private setupHotkeyManagers(): void {
-    // Create containers for hotkey managers (invisible React components)
-    const handHotkeysContainer = document.createElement('div');
-    handHotkeysContainer.id = 'hand-hotkeys-manager';
-    document.body.appendChild(handHotkeysContainer);
-
-    const deckHotkeysContainer = document.createElement('div');
-    deckHotkeysContainer.id = 'deck-hotkeys-manager';
-    document.body.appendChild(deckHotkeysContainer);
-
-    const exileHotkeysContainer = document.createElement('div');
-    exileHotkeysContainer.id = 'exile-hotkeys-manager';
-    document.body.appendChild(exileHotkeysContainer);
-
-    const discardHotkeysContainer = document.createElement('div');
-    discardHotkeysContainer.id = 'discard-hotkeys-manager';
-    document.body.appendChild(discardHotkeysContainer);
-
-    // Mount HandHotkeysManager
-    this.handHotkeysRoot = createRoot(handHotkeysContainer);
-    this.handHotkeysRoot.render(
-      React.createElement(HandHotkeysManager, {
-        onFlip: (cardId) => {
-          this.player.flipHandCard(cardId);
-          this.player.syncToYState();
-          this.cardPreview.hide();
+  private setupKeyboardShortcuts(): void {
+    // Expose hover state for external keyboard handlers
+    (window as any).getGameResourcesDockHoverState = () => {
+      return {
+        hoveredHandCardId: this.hoveredHandCardId,
+        hoveredPileType: this.hoveredResource,
+        getHandCard: (cardId: string) => {
+          const hand = this.player.getHand().getCards();
+          return hand.find(c => c.id === cardId) || null;
         },
-        onMoveToDiscard: (cardId) => {
+        getTopPileCard: (pileType: 'deck' | 'exile' | 'discard') => {
+          const state = this.player.getState();
+          let cards: Card[] = [];
+          if (pileType === 'deck') {
+            cards = this.player.getDeckCards();
+          } else if (pileType === 'exile') {
+            cards = state.exilePile;
+          } else if (pileType === 'discard') {
+            cards = state.discardPile;
+          }
+          this.player.syncToYState();
+
+          return cards.length > 0 ? cards[cards.length - 1] : null;
+        },
+        moveHandCardToDiscard: (cardId: string) => {
           const hand = this.player.getHand().getCards();
           const card = hand.find(c => c.id === cardId);
           if (card) {
@@ -666,7 +659,7 @@ export class GameResourcesDock {
           }
           this.player.syncToYState();
         },
-        onMoveToExile: (cardId) => {
+        moveHandCardToExile: (cardId: string) => {
           const hand = this.player.getHand().getCards();
           const card = hand.find(c => c.id === cardId);
           if (card) {
@@ -676,7 +669,7 @@ export class GameResourcesDock {
           }
           this.player.syncToYState();
         },
-        onMoveToDeckTop: (cardId) => {
+        moveHandCardToDeckTop: (cardId: string) => {
           const hand = this.player.getHand().getCards();
           const card = hand.find(c => c.id === cardId);
           if (card) {
@@ -686,7 +679,7 @@ export class GameResourcesDock {
           }
           this.player.syncToYState();
         },
-        onMoveToDeckBottom: (cardId) => {
+        moveHandCardToDeckBottom: (cardId: string) => {
           const hand = this.player.getHand().getCards();
           const card = hand.find(c => c.id === cardId);
           if (card) {
@@ -696,78 +689,24 @@ export class GameResourcesDock {
           }
           this.player.syncToYState();
         },
-      })
-    );
-
-    // Mount PileHotkeysManagers (one for each pile type)
-    // Deck pile
-    this.deckHotkeysRoot = createRoot(deckHotkeysContainer);
-    this.deckHotkeysRoot.render(
-      React.createElement(PileHotkeysManager, {
-        pileType: 'deck',
-        onMoveToHand: (pileType) => {
-          const card = this.player.drawCardFromPile(pileType as 'deck');
+        flipHandCard: (cardId: string) => {
+          this.player.flipHandCard(cardId);
+          this.player.syncToYState();
+          this.cardPreview.hide();
+        },
+        movePileCardToPile: (originPileType: 'deck' | 'discard' | 'exile', destinationPileType: PileType, position?: number) => {
+          const card = this.player.drawCardFromPile(originPileType);
+          if (card) this.player.placeCardInPile(card, destinationPileType, position);
+          this.player.syncToYState();
+        },
+        movePileCardToHand: (pileType: 'deck' | 'exile' | 'discard') => {
+          // todo: refactor this into movePileCardToPile
+          const card = this.player.drawCardFromPile(pileType);
           if (card) this.player.placeCardInPile(card, 'hand');
           this.player.syncToYState();
         },
-      })
-    );
-
-    // Exile pile
-    this.exileHotkeysRoot = createRoot(exileHotkeysContainer);
-    this.exileHotkeysRoot.render(
-      React.createElement(PileHotkeysManager, {
-        pileType: 'exile',
-        onMoveToHand: (pileType) => {
-          const card = this.player.drawCardFromPile(pileType as 'exile');
-          if (card) this.player.placeCardInPile(card, 'hand');
-          this.player.syncToYState();
-        },
-        onMoveToDiscard: (pileType) => {
-          const card = this.player.drawCardFromPile(pileType as 'exile');
-          if (card) this.player.placeCardInPile(card, 'discard');
-          this.player.syncToYState();
-        },
-        onMoveToDeckTop: (pileType) => {
-          const card = this.player.drawCardFromPile(pileType as 'exile');
-          if (card) this.player.placeCardInPile(card, 'deck');
-          this.player.syncToYState();
-        },
-        onMoveToDeckBottom: (pileType) => {
-          const card = this.player.drawCardFromPile(pileType as 'exile');
-          if (card) this.player.placeCardInPile(card, 'deck', 0);
-          this.player.syncToYState();
-        },
-      })
-    );
-
-    // Discard pile
-    this.discardHotkeysRoot = createRoot(discardHotkeysContainer);
-    this.discardHotkeysRoot.render(
-      React.createElement(PileHotkeysManager, {
-        pileType: 'discard',
-        onMoveToHand: (pileType) => {
-          const card = this.player.drawCardFromPile(pileType as 'discard');
-          if (card) this.player.placeCardInPile(card, 'hand');
-          this.player.syncToYState();
-        },
-        onMoveToExile: (pileType) => {
-          const card = this.player.drawCardFromPile(pileType as 'discard');
-          if (card) this.player.placeCardInPile(card, 'exile');
-          this.player.syncToYState();
-        },
-        onMoveToDeckTop: (pileType) => {
-          const card = this.player.drawCardFromPile(pileType as 'discard');
-          if (card) this.player.placeCardInPile(card, 'deck');
-          this.player.syncToYState();
-        },
-        onMoveToDeckBottom: (pileType) => {
-          const card = this.player.drawCardFromPile(pileType as 'discard');
-          if (card) this.player.placeCardInPile(card, 'deck', 0);
-          this.player.syncToYState();
-        },
-      })
-    );
+      };
+    };
   }
 
   private setupZoomControls(): void {
@@ -893,22 +832,6 @@ export class GameResourcesDock {
     if (this.scryModalContainer) {
       this.scryModalContainer.remove();
       this.scryModalContainer = null;
-    }
-    if (this.handHotkeysRoot) {
-      this.handHotkeysRoot.unmount();
-      this.handHotkeysRoot = null;
-    }
-    if (this.deckHotkeysRoot) {
-      this.deckHotkeysRoot.unmount();
-      this.deckHotkeysRoot = null;
-    }
-    if (this.exileHotkeysRoot) {
-      this.exileHotkeysRoot.unmount();
-      this.exileHotkeysRoot = null;
-    }
-    if (this.discardHotkeysRoot) {
-      this.discardHotkeysRoot.unmount();
-      this.discardHotkeysRoot = null;
     }
     if (this.elements) {
       this.container.innerHTML = '';

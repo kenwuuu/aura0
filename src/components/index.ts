@@ -6,7 +6,3 @@ export * from './HotkeyTooltip';
 export * from './AddCardManager';
 export * from './PatchNotesModal';
 export * from './GlobalHotkeysManager';
-export * from './BattlefieldHotkeysManager';
-export * from './HandHotkeysManager';
-export * from './PileHotkeysManager';
-export * from './TokenHotkeysManager';
