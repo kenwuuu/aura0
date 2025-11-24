@@ -5,6 +5,7 @@
 - Hand cards now align to top of card when zooming in.
 
 ### Changes
+- Moved blue label on hand cards down to show mana cost when zoomed in.
 - Consolidate popup/modal window styling.
 - Fix windows that were clipping under the dock.
 - Simplify deck logic.

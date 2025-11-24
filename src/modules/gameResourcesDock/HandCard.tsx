@@ -86,7 +86,7 @@ export const HandCard: React.FC<HandCardProps> = ({
               pointerEvents: 'none',
             }}
           />
-          <div className="card-number-badge">
+          <div className="card-number-badge top-[10%]">
             #{card.cardNumber}
           </div>
         </>

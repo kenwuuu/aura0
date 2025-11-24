@@ -297,7 +297,6 @@ body {
 /* Card Number Badge */
 .card-number-badge {
   position: absolute;
-  top: 4px;
   right: 4px;
   background-color: rgba(59, 130, 246, 0.9);
   color: white;
