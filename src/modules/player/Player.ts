@@ -9,10 +9,11 @@ import {
   YSTATE_EXILE_PILE,
   YDOC_PLAYER,
   YSTATE_CUSTOM_COUNTERS,
-  YSTATE_DECK
+  YSTATE_DECK, YDOC_KEYWORD_TOKENS
 } from "../../constants";
 import {PileType} from "../gameResourcesDock/components";
 import { CardPile } from './CardPile';
+import {SavedDeck} from "@/modules/deck/types";
 
 export class Player {
   private playerId: string;
@@ -30,7 +31,7 @@ export class Player {
   constructor(
     playerId: string,
     yDoc: Y.Doc,
-    initialDeckCards: Deck,
+    initialDeckCards: Deck | null = null,
     config: Partial<PlayerConfig> = {}
   ) {
     this.playerId = playerId;
@@ -38,12 +39,13 @@ export class Player {
       initialHealth: config.initialHealth ?? 40,
     };
 
-    this.yPlayerState = yDoc.getMap(`player-${playerId}`);
-    this.yCardsOnBoard = yDoc.getMap('cards'); // Store reference to battlefield
-    this.yTokens = yDoc.getMap('tokens'); // Store reference to keyword tokens
+    this.yPlayerState = yDoc.getMap(YDOC_PLAYER(playerId));
+    this.yCardsOnBoard = yDoc.getMap(YDOC_CARDS_ON_BOARD); // Store reference to battlefield
+    this.yTokens = yDoc.getMap(YDOC_KEYWORD_TOKENS); // Store reference to keyword tokens
 
     // Initialize state first so yPlayerState has the arrays
-    this.initializeState(initialDeckCards);
+    const deck = initialDeckCards ?? new Deck();
+    this.initializeState(deck);
 
     // Create CardPile instances that reference yPlayerState
     this.deck = new CardPile(this.yPlayerState, YSTATE_DECK);
@@ -93,9 +95,9 @@ export class Player {
     };
   }
 
-  public async loadNewDeck(newDeck: Deck): Promise<void> {
+  public async loadNewDeck(newDeck: SavedDeck): Promise<void> {
     // Replace deck cards with new deck
-    this.deck.setCards(newDeck.getCards());
+    this.deck.setCards(newDeck.cards);
 
     // get cards
     const deckCards: Card[] = this.deck.getCards();

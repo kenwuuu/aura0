@@ -8,11 +8,8 @@ import {createRoot, Root} from 'react-dom/client';
 import {HealthDisplay} from '@/components/health/HealthDisplay';
 import {HotkeyTooltip} from '@/components';
 import {HotkeyContext} from '@/data/hotkeys';
-import {DEFAULT_CARD_BACK} from '@/constants';
-import {animate} from "motion";
 import {ScryModal} from '@/components/ScryModal';
 import { ControlsMenu } from '@/components/controls/ControlsMenu';
-import { setElementDragPoint } from "@/utils/centerHtmlElementOnDrag";
 import { TooltipManager } from '../whiteboard/TooltipManager';
 import { TooltipProvider } from '@/contexts/TooltipContext';
 import { HandCardsContainer } from './HandCardsContainer';
@@ -54,7 +51,6 @@ export class GameResourcesDock {
   private isMouseDown: boolean = false;
   private isModalOpen: boolean = false;
   private _dragState: { mode: string; draggedElement: HTMLDivElement; startIndex: number; } | undefined;
-  private requestAnimationFrameId: number | null = null;
   private preloadedPiles: Set<'deck' | 'exile' | 'discard'> = new Set();
 
   constructor(
@@ -263,6 +259,9 @@ export class GameResourcesDock {
         },
         onHandReorder: (reorderedHand) => {
           this.player.reorderHand(reorderedHand);
+        },
+        adjustHandZoom: (delta: number): void => {
+          this.adjustHandZoom(delta)
         }
       })
     );
@@ -508,7 +507,9 @@ export class GameResourcesDock {
     // Get the top N cards from the deck
     const deckCards = this.player.getDeckCards();
     // Cards are stored bottom-to-top, so we need to slice from the end
-    this.scriedCards.setCardsDO_NOT_USE(deckCards.slice(-count));
+
+    const scryCards: Card[] = deckCards.slice(-count);
+    this.scriedCards = new Deck(scryCards);
     this.scriedCards.getCards().forEach((card) => {
       this.player.getDeck().removeCardById(card.id);
     });
@@ -639,6 +640,7 @@ export class GameResourcesDock {
           if (card) {
             this.player.removeCardFromPileById(cardId, 'hand');
             this.player.placeCardInPile(card, 'discard');
+            this.cardPreview.hide();
           }
           this.player.syncToYState();
         },
@@ -648,6 +650,7 @@ export class GameResourcesDock {
           if (card) {
             this.player.removeCardFromPileById(cardId, 'hand');
             this.player.placeCardInPile(card, 'exile');
+            this.cardPreview.hide();
           }
           this.player.syncToYState();
         },
@@ -657,6 +660,7 @@ export class GameResourcesDock {
           if (card) {
             this.player.removeCardFromPileById(cardId, 'hand');
             this.player.placeCardInPile(card, 'deck');
+            this.cardPreview.hide();
           }
           this.player.syncToYState();
         },
@@ -666,12 +670,14 @@ export class GameResourcesDock {
           if (card) {
             this.player.removeCardFromPileById(cardId, 'hand');
             this.player.placeCardInPile(card, 'deck', 0);
+            this.cardPreview.hide();
           }
           this.player.syncToYState();
         },
         flipHandCard: (cardId: string) => {
           this.player.flipHandCard(cardId);
           this.player.syncToYState();
+          this.cardPreview.hide();
         },
         movePileCardToPile: (originPileType: 'deck' | 'discard' | 'exile', destinationPileType: PileType, position?: number) => {
           const card = this.player.drawCardFromPile(originPileType);
@@ -726,19 +732,19 @@ export class GameResourcesDock {
   }
 
   private adjustHandZoom(delta: number): void {
+    const newZoom = Math.max(0.5, Math.min(2.5, this.handZoomLevel + delta));
+    this.setHandZoom(newZoom);
+  }
+
+  private setHandZoom(zoom: number): void {
     function alignCardsBasedOnSize() {
       const container: HTMLElement | null = document.querySelector('.hand-cards') as HTMLElement;
       if (!container) return;
+      console.log('adjusting')
       const isOverflowing = container.scrollHeight > container.clientHeight;
       container.style.alignItems = isOverflowing ? "flex-start" : "center";
     }
 
-    const newZoom = Math.max(0.5, Math.min(2.5, this.handZoomLevel + delta));
-    this.setHandZoom(newZoom);
-    alignCardsBasedOnSize();
-  }
-
-  private setHandZoom(zoom: number): void {
     this.handZoomLevel = zoom;
     localStorage.setItem('hand-zoom', zoom.toString());
 
@@ -752,6 +758,10 @@ export class GameResourcesDock {
 
     // Re-render React component with new zoom
     this.renderHandComponent();
+
+    setTimeout(() => {
+      alignCardsBasedOnSize();
+    }, 150);
   }
 
   private preloadPileImages(pileType: 'deck' | 'exile' | 'discard'): void {
