@@ -9,7 +9,7 @@ setup('authenticate and save storage state', async ({ page }) => {
   await page.goto('http://localhost:5173/?room=playwright');
 
   // Close any initial dialogs/modals
-  await page.getByRole('button', { name: '×', exact: true }).click();
+  await page.getByRole('button', { name: '× Close' }).click();
   await page.getByRole('button', { name: 'Got it' }).click();
 
   // Wait for the app to be fully initialized
