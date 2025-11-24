@@ -8,6 +8,7 @@ import { getOrCreatePlayerId, getOrCreatePeerId } from './modules/webrtc/persist
 import { Player } from './modules/player';
 import { GameResourcesDock } from './modules/gameResourcesDock';
 import { WelcomeModal, HotkeysModal, HelpModal, AddCardManager, PatchNotesModal } from './components';
+import { GlobalHotkeysManager } from './components/GlobalHotkeysManager';
 import { DeckManager } from './deck_manager';
 import { OpponentHealthList } from './components/health/OpponentHealthList';
 import { SavedDeck } from './modules/deck/types';
@@ -60,6 +61,7 @@ class AuraApp {
   private localPlayer!: Player;
   private localDock!: GameResourcesDock;
   private opponentHealthRoot: Root | null = null;
+  private globalHotkeysRoot: Root | null = null;
   private tokenService!: TokenService;
   private cardPreview!: CardPreview;
   private playerId: string;
@@ -163,6 +165,7 @@ class AuraApp {
     this.setupEventListeners();
     this.setupConnectionStatus();
     this.setupKeyboardCallbacks();
+    this.setupGlobalHotkeys(); // New hotkey system using react-hotkeys-hook
     this.setupDeckManager();
     this.setupHelpModal();
     this.setupDiscordButton();
@@ -233,6 +236,50 @@ class AuraApp {
     };
 
     this.whiteboard.setKeyboardCallbacks(callbacks);
+  }
+
+  private setupGlobalHotkeys(): void {
+    // Create a container for the GlobalHotkeysManager component
+    const globalHotkeysContainer = document.createElement('div');
+    globalHotkeysContainer.id = 'global-hotkeys-manager';
+    document.body.appendChild(globalHotkeysContainer);
+
+    this.globalHotkeysRoot = createRoot(globalHotkeysContainer);
+    this.globalHotkeysRoot.render(
+      React.createElement(GlobalHotkeysManager, {
+        onDraw: () => {
+          this.localPlayer.drawCard();
+          DeckPersistenceService.saveDeckForRoom(this.roomManager.getRoomName(), this.localPlayer.getDeck());
+        },
+        onShuffle: () => {
+          this.localPlayer.shuffleDeck();
+          DeckPersistenceService.saveDeckForRoom(this.roomManager.getRoomName(), this.localPlayer.getDeck());
+        },
+        onMulligan: () => {
+          const confirmed = window.confirm("Mulligan? Draws 7 new cards.");
+          if (confirmed) {
+            this.localPlayer.mulligan(7);
+            DeckPersistenceService.saveDeckForRoom(this.roomManager.getRoomName(), this.localPlayer.getDeck());
+          }
+        },
+        onGainHealth: () => {
+          this.localPlayer.modifyHealth(1);
+        },
+        onLoseHealth: () => {
+          this.localPlayer.modifyHealth(-1);
+        },
+        onUntapAll: () => {
+          // Untap all cards logic will be handled by the whiteboard
+          // For now, we'll need to implement this in the KeyboardHandler or here
+          const yCards = this.whiteboard['yCards'];
+          yCards.forEach((card, cardId) => {
+            if (card.ownerId === this.playerId && card.isTapped) {
+              yCards.set(cardId, { ...card, isTapped: false });
+            }
+          });
+        },
+      })
+    );
   }
 
   private setupEventListeners(): void {
@@ -517,6 +564,9 @@ class AuraApp {
     this.localDock.destroy();
     if (this.opponentHealthRoot) {
       this.opponentHealthRoot.unmount();
+    }
+    if (this.globalHotkeysRoot) {
+      this.globalHotkeysRoot.unmount();
     }
     this.webrtcProvider.destroy();
     this.cardPreview.destroy();

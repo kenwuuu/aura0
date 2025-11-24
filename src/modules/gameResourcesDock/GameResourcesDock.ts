@@ -13,6 +13,7 @@ import { ControlsMenu } from '@/components/controls/ControlsMenu';
 import { TooltipManager } from '../whiteboard/TooltipManager';
 import { TooltipProvider } from '@/contexts/TooltipContext';
 import { HandCardsContainer } from './HandCardsContainer';
+import { useHotkeyStore } from '@/stores/hotkeyStore';
 
 export class GameResourcesDock {
   private container: HTMLElement;
@@ -209,6 +210,10 @@ export class GameResourcesDock {
     pile.addEventListener('mouseenter', () => {
       this.hoveredResource = type as 'deck' | 'exile' | 'discard' | 'health';
       this.hoveredHandCardId = null;
+      // Update Zustand store for new hotkey system (only for deck/exile/discard, not health)
+      if (type === 'deck' || type === 'exile' || type === 'discard') {
+        useHotkeyStore.getState().setHoveredPile(type);
+      }
       this.updateHotkeyTooltip();
       // Pre-load images on hover
       this.preloadPileImages(type as 'deck' | 'exile' | 'discard');
@@ -216,6 +221,10 @@ export class GameResourcesDock {
 
     pile.addEventListener('mouseleave', () => {
       this.hoveredResource = null;
+      // Update Zustand store for new hotkey system
+      if (type === 'deck' || type === 'exile' || type === 'discard') {
+        useHotkeyStore.getState().setHoveredPile(null);
+      }
       this.updateHotkeyTooltip();
     });
 
@@ -246,6 +255,8 @@ export class GameResourcesDock {
         cardPreview: this.cardPreview,
         onHoveredCardChange: (cardId) => {
           this.hoveredHandCardId = cardId;
+          // Update Zustand store for new hotkey system
+          useHotkeyStore.getState().setHoveredHandCard(cardId);
           if (cardId) {
             this.hoveredResource = null;
           }
@@ -297,12 +308,16 @@ export class GameResourcesDock {
     deck.addEventListener('mouseenter', () => {
       this.hoveredResource = 'deck';
       this.hoveredHandCardId = null;
+      // Update Zustand store for new hotkey system
+      useHotkeyStore.getState().setHoveredPile('deck');
       // Pre-load images on hover
       // this.preloadPileImages('deck');
     });
 
     deck.addEventListener('mouseleave', () => {
       this.hoveredResource = null;
+      // Update Zustand store for new hotkey system
+      useHotkeyStore.getState().setHoveredPile(null);
     });
 
     // Click deck to view it (with search and sort)
