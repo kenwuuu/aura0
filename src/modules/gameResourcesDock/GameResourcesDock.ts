@@ -740,7 +740,6 @@ export class GameResourcesDock {
     function alignCardsBasedOnSize() {
       const container: HTMLElement | null = document.querySelector('.hand-cards') as HTMLElement;
       if (!container) return;
-      console.log('adjusting')
       const isOverflowing = container.scrollHeight > container.clientHeight;
       container.style.alignItems = isOverflowing ? "flex-start" : "center";
     }
