@@ -1,4 +1,4 @@
-import {Player, PlayerState} from '../player';
+import {CardPile, Player, PlayerState} from '../player';
 import {GameResourcesDockConfig} from './types';
 import {Card, Deck} from '../deck';
 import { PileViewer, PileType } from './components';
@@ -505,10 +505,15 @@ export class GameResourcesDock {
 
   private scryCards(count: number): void {
     // Get the top N cards from the deck
-    const deckCards = this.player.getDeckCards();
+    const deck: CardPile = this.player.getDeck();
     // Cards are stored bottom-to-top, so we need to slice from the end
 
-    const scryCards: Card[] = deckCards.slice(-count);
+    const scryCards: Card[] = [];
+    for (let i = 0; i < count; i++) {
+      let card = deck.drawCard();
+      if (card) scryCards.unshift(card);
+    }
+
     this.scriedCards = new Deck(scryCards);
     this.scriedCards.getCards().forEach((card) => {
       this.player.getDeck().removeCardById(card.id);
