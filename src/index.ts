@@ -51,7 +51,7 @@ Sentry.init({
   enableLogs: true,
 });
 
-const baseUrl = "https://aura0.dev/?room=";
+const baseUrl = "https://aura0.app/?room=";
 
 class AuraApp {
   private yDoc: Y.Doc;
