@@ -31,7 +31,6 @@ import {
 } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { CardGrid } from './CardGrid';
-import { YSTATE_DECK, YSTATE_EXILE_PILE, YSTATE_DISCARD_PILE } from '@/constants';
 import { usePlayerStore } from '@/stores/playerStore';
 
 export type PileType = 'deck' | 'exile' | 'discard' | 'hand' | 'scry';
@@ -208,6 +207,8 @@ export function PileViewerReact({
         e.preventDefault();
         callbacks.onMoveToDeckBottom(hoveredCard);
       }
+
+      setHoveredCard(null);
     };
 
     document.addEventListener('keydown', handleKeyDown);

@@ -45,7 +45,6 @@ export class GameResourcesDock {
   private scryModalRoot: Root | null = null;
   private scryModalContainer: HTMLElement | null = null;
   private isScryModalOpen: boolean = false;
-  private scriedCards: Deck = new Deck([]);
   private currentMouseX: number = 0;
   private currentMouseY: number = 0;
   private isMouseDown: boolean = false;
@@ -497,30 +496,33 @@ export class GameResourcesDock {
   private replaceRemainingScriedCards(): void {
     // returns any remaining cards in scryViewer on top of deck, in order
     // Add remaining scried cards back to the top of the deck
-    this.scriedCards.getCards().forEach((card) => {
+    const scryPile = this.player.getScryPile();
+    scryPile.getCards().forEach((card) => {
       this.player.getDeck().addCardToTop(card);
     });
-    this.scriedCards.clearDeck();
+    scryPile.clear();
   }
 
   private scryCards(count: number): void {
     // Get the top N cards from the deck
     const deck: CardPile = this.player.getDeck();
-    // Cards are stored bottom-to-top, so we need to slice from the end
+    const scryPile: CardPile = this.player.getScryPile();
 
+    // Clear scry pile first
+    scryPile.clear();
+
+    // Move cards from deck to scry pile
     const scryCards: Card[] = [];
     for (let i = 0; i < count; i++) {
       let card = deck.drawCard();
       if (card) scryCards.unshift(card);
     }
 
-    this.scriedCards = new Deck(scryCards);
-    this.scriedCards.getCards().forEach((card) => {
-      this.player.getDeck().removeCardById(card.id);
-    });
+    // Add all cards to scry pile (reversed so they're in top-to-bottom order)
+    scryCards.forEach(card => scryPile.addCardToTop(card));
 
-    // Show them in the deck viewer
-    this.scryViewer.show(this.scriedCards.getCards(), 'scry');
+    // Show them in the scry viewer
+    this.scryViewer.show(scryPile.getCards(), 'scry');
   }
 
   private viewPile(pileType: 'exile' | 'discard' | 'deck'): void {    let result = null;
@@ -610,7 +612,7 @@ export class GameResourcesDock {
       const state = this.player.getState();
       this.discardViewer.updateCards(state.discardPile);
     } else if (pileType === 'scry') {
-      const updatedCards = this.scriedCards.getCards();
+      const updatedCards = this.player.getScryPile().getCards();
       this.scryViewer.updateCards(updatedCards);
     }
   }
