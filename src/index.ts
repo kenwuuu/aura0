@@ -509,19 +509,6 @@ class AuraApp {
       })
     );
   }
-
-  public destroy(): void {
-    this.whiteboard.destroy();
-    this.localDock.destroy();
-    if (this.opponentHealthRoot) {
-      this.opponentHealthRoot.unmount();
-    }
-    if (this.gameHotkeysRoot) {
-      this.gameHotkeysRoot.unmount();
-    }
-    this.webrtcProvider.destroy();
-    this.cardPreview.destroy();
-  }
 }
 
 // Initialize the app
@@ -529,9 +516,4 @@ const app = new AuraApp();
 app.initialize().catch(error => {
   console.error('Failed to initialize app:', error);
   Sentry.captureException(error);
-});
-
-// Clean up on page unload
-window.addEventListener('beforeunload', () => {
-  app.destroy();
 });
