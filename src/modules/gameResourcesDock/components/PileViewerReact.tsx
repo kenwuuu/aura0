@@ -12,7 +12,6 @@
 
 import * as React from 'react';
 import { Card } from '../../deck';
-import { TooltipManager } from '../../whiteboard/TooltipManager';
 import { HotkeyContext, Hotkey } from '@/data/hotkeys';
 import {
   Dialog,
@@ -32,6 +31,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { CardGrid } from './CardGrid';
 import { usePlayerStore } from '@/stores/playerStore';
 import { useHotkeyStore } from '@/stores/hotkeyStore';
+import {useTooltipStore} from "@/stores/uiStore";
 
 export type PileType = 'deck' | 'exile' | 'discard' | 'hand' | 'scry';
 
@@ -64,6 +64,7 @@ export function PileViewerReact({
   const yPlayerState = usePlayerStore((state) => state.yPlayerState);
   const setModalOpen = useHotkeyStore((state) => state.setModalOpen);
   const setHoveredPileViewerCard = useHotkeyStore((state) => state.setHoveredPileViewerCard);
+  const tooltipManager = useTooltipStore((state) => state.tooltipManager);
 
   // State
   const [searchQuery, setSearchQuery] = React.useState('');
@@ -74,7 +75,6 @@ export function PileViewerReact({
   const [visibleCardCount, setVisibleCardCount] = React.useState(0);
 
   // Refs
-  const tooltipManagerRef = React.useRef<TooltipManager | null>(null);
   const searchTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
 
   // Custom hooks
@@ -154,9 +154,7 @@ export function PileViewerReact({
   // Setup tooltip manager when modal opens
   React.useEffect(() => {
     if (!isOpen) return;
-
-    tooltipManagerRef.current = new TooltipManager();
-    tooltipManagerRef.current.setup((hotkey: Hotkey, cardId: string) => {
+    tooltipManager.setup((hotkey: Hotkey, cardId: string) => {
       const card = cards.find((c) => c.id === cardId);
       if (!card) return;
 
@@ -175,16 +173,6 @@ export function PileViewerReact({
       }
     });
   }, [isOpen, cards, callbacks, pileType]);
-
-  // Cleanup tooltip manager when modal closes
-  React.useEffect(() => {
-    return () => {
-      if (!isOpen) {
-        tooltipManagerRef.current?.destroy();
-        tooltipManagerRef.current = null;
-      }
-    };
-  }, [isOpen]);
 
   // Listen for centralized hotkey events
   React.useEffect(() => {
@@ -473,7 +461,6 @@ export function PileViewerReact({
               revealAll={revealAll}
               revealCount={revealCount}
               onHover={handleCardHover}
-              tooltipManager={tooltipManagerRef.current}
               hotkeyContext={getHotkeyContext()}
               enableReordering={pileType === 'scry'}
             />

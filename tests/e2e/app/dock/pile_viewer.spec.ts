@@ -1,7 +1,7 @@
 import {expect, test} from "../../fixtures";
 import {Locator, Page} from "@playwright/test";
 
-function secondCardInGrid(page) {
+function secondCardInGrid(page: Page) {
   const secondCardInGrid: Locator = page.getByRole('img', {name: 'Card Back'}).nth(1);
   return secondCardInGrid;
 }

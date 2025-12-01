@@ -3,7 +3,7 @@ import { KeywordTokenTemplate } from '@/modules/keywordTokens/types';
 import { KeywordTokenFactory } from '@/modules/keywordTokens/KeywordTokenFactory';
 import { setElementDragPoint } from "@/utils/centerHtmlElementOnDrag";
 import { HotkeyContext } from '@/data/hotkeys';
-import { useTooltipManager } from '@/contexts/TooltipContext';
+import {useTooltipStore} from "@/stores/uiStore";
 
 interface KeywordTokenGridProps {
   templates: KeywordTokenTemplate[];
@@ -21,7 +21,7 @@ export const KeywordTokenGrid: React.FC<KeywordTokenGridProps> = ({
   onDragStart,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
-  const tooltipManager = useTooltipManager();
+  const tooltipManager = useTooltipStore((state) => state.tooltipManager);
 
   useEffect(() => {
     if (!containerRef.current) return;

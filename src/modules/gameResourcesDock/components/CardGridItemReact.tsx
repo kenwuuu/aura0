@@ -11,10 +11,10 @@
 
 import * as React from 'react';
 import { Card } from '../../deck';
-import { TooltipManager } from '../../whiteboard/TooltipManager';
 import { HotkeyContext } from '@/data/hotkeys';
 import { DEFAULT_CARD_BACK } from '@/constants';
 import styles from './CardGridItemReact.module.css';
+import {useTooltipStore} from "@/stores/uiStore";
 
 export interface CardGridItemReactProps {
   card: Card;
@@ -23,7 +23,6 @@ export interface CardGridItemReactProps {
   positionPrefix: string;
   showFaceDown: boolean;
   onHover: (card: Card | null) => void;
-  tooltipManager: TooltipManager | null;
   hotkeyContext: HotkeyContext;
 }
 
@@ -34,7 +33,6 @@ export const CardGridItemReact = React.memo(function CardGridItemReact({
   positionPrefix,
   showFaceDown,
   onHover,
-  tooltipManager,
   hotkeyContext,
 }: CardGridItemReactProps) {
   const [frontImageLoaded, setFrontImageLoaded] = React.useState(false);
@@ -45,6 +43,8 @@ export const CardGridItemReact = React.memo(function CardGridItemReact({
 
   const frontImageUrl = card.images?.front?.normal || card.images?.front?.small;
   const backImageUrl = DEFAULT_CARD_BACK;
+
+  const tooltipManager = useTooltipStore((state) => state.tooltipManager);
 
   const handleMouseEnter = (e: React.MouseEvent) => {
     onHover(card);

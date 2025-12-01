@@ -28,7 +28,6 @@ import {
   rectSortingStrategy,
 } from '@dnd-kit/sortable';
 import { Card } from '../../deck';
-import { TooltipManager } from '../../whiteboard/TooltipManager';
 import { HotkeyContext } from '@/data/hotkeys';
 import { CardGridItemReact } from './CardGridItemReact';
 import { SortableCardGridItem } from './SortableCardGridItem';
@@ -43,7 +42,6 @@ export interface CardGridProps {
   revealCount: number;
   onCardReorder?: (reorderedCards: Card[]) => void;
   onHover: (card: Card | null) => void;
-  tooltipManager: TooltipManager | null;
   hotkeyContext: HotkeyContext;
   enableReordering?: boolean;
 }
@@ -66,7 +64,6 @@ export const CardGrid = React.memo(function CardGrid({
   revealCount,
   onCardReorder,
   onHover,
-  tooltipManager,
   hotkeyContext,
   enableReordering = false,
 }: CardGridProps) {
@@ -155,7 +152,6 @@ export const CardGrid = React.memo(function CardGrid({
                 positionPrefix="Top"
                 showFaceDown={shouldShowFaceDown}
                 onHover={onHover}
-                tooltipManager={tooltipManager}
                 hotkeyContext={hotkeyContext}
               />
             );
@@ -201,7 +197,6 @@ export const CardGrid = React.memo(function CardGrid({
                   positionPrefix="Top"
                   showFaceDown={shouldShowFaceDown}
                   onHover={onHover}
-                  tooltipManager={tooltipManager}
                   hotkeyContext={hotkeyContext}
                 />
               );

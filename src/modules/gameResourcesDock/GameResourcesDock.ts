@@ -11,7 +11,6 @@ import {HotkeyContext} from '@/data/hotkeys';
 import {ScryModal} from '@/components/ScryModal';
 import { ControlsMenu } from '@/components/controls/ControlsMenu';
 import { TooltipManager } from '../whiteboard/TooltipManager';
-import { TooltipProvider } from '@/contexts/TooltipContext';
 import { HandCardsContainer } from './HandCardsContainer';
 import { useHotkeyStore } from '@/stores/hotkeyStore';
 
@@ -341,16 +340,12 @@ export class GameResourcesDock {
     if (!this.controlsRoot) return;
 
     this.controlsRoot.render(
-      React.createElement(
-        TooltipProvider,
-        { value: this.controlsTooltipManager ?? null },
-        React.createElement(ControlsMenu, {
-          onScry: () => this.openScryModal(),
-          onAddCard: () => {
-            useHotkeyStore.getState().setAddCardModalOpen(true);
-          }
-        })
-      )
+      React.createElement(ControlsMenu, {
+        onScry: () => this.openScryModal(),
+        onAddCard: () => {
+          useHotkeyStore.getState().setAddCardModalOpen(true);
+        }
+      })
     );
   }
 
