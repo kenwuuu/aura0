@@ -11,7 +11,6 @@
  */
 
 import * as React from 'react';
-import * as Y from 'yjs';
 import { Card } from '../../deck';
 import { TooltipManager } from '../../whiteboard/TooltipManager';
 import { HotkeyContext, Hotkey } from '@/data/hotkeys';
@@ -31,7 +30,6 @@ import {
 } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { CardGrid } from './CardGrid';
-import { YSTATE_DECK, YSTATE_EXILE_PILE, YSTATE_DISCARD_PILE } from '@/constants';
 import { usePlayerStore } from '@/stores/playerStore';
 import { useHotkeyStore } from '@/stores/hotkeyStore';
 
@@ -388,7 +386,16 @@ export function PileViewerReact({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="deck-pile-viewer-content w-[80vw] h-[70vh] p-0">
+      <DialogContent
+        className="deck-pile-viewer-content w-[80vw] h-[70vh] p-0"
+        onPointerDownOutside={(e) => {
+          // If the user clicks inside the tooltip, don’t close the modal
+          if (e.target instanceof HTMLElement && e.target.closest('.hotkey-tooltip-container-battlefield')) {
+            e.preventDefault();
+          }
+        }}
+      >
+
         <DialogHeader className="px-6 pt-6 pb-4 border-b">
           <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-4">
             <DialogTitle className="text-2xl font-bold">{getTitle()}</DialogTitle>

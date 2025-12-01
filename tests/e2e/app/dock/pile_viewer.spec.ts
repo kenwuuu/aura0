@@ -42,7 +42,7 @@ test('testDeckViewerCardToDiscard', async ({ page }) => {
   await expect(page.getByText('Discard1')).toBeVisible();
 });
 
-test('testDeckViewerCardToHand', async ({ page }) => {
+test('testDeckViewerCardToHandHotkey', async ({ page }) => {
   await page.getByText('Deck', { exact: true }).click();
 
   // move card to hand
@@ -53,6 +53,20 @@ test('testDeckViewerCardToHand', async ({ page }) => {
   await expect(ninthBoardCard).toBeHidden();
   await page.keyboard.press('h');
   await expect(ninthBoardCard).toBeVisible();
+});
+
+test('testDeckViewerCardToHandTooltip', async ({ page }) => {
+  await expect(page.getByRole('dialog', { name: 'Search Deck' })).toBeHidden();
+  await page.getByText('Deck', { exact: true }).click();
+  const ninthHandCard = page.locator('.hand-cards .hand-card').nth(8);
+
+  // move card to hand
+  await page.getByRole('img', { name: 'Card Back' }).nth(3).click();
+  await expect(ninthHandCard).toBeHidden();
+  await page.getByText('HHand').click();
+  await expect(ninthHandCard).toBeVisible();
+
+  await expect(page.getByRole('dialog', { name: 'Search Deck' })).toBeVisible();
 });
 
 test('testDeckViewerCardToDeckTop', async ({ page }) => {
@@ -764,4 +778,12 @@ test.skip('testScryViewerDragCardToDeck', async ({ page }) => {
 
   // Verify deck pile count increased
   await expect(page.getByText('Deck88Draw')).toBeVisible();
+});
+
+test('testPileViewerDoesNotCloseAfterClickingTooltip', async ({ page }) => {
+  await expect(page.getByRole('dialog', { name: 'Search Deck' })).toBeHidden();
+  await page.getByText('Deck92Draw').click();
+  await page.getByRole('img', { name: 'Card Back' }).nth(3).click();
+  await page.getByText('HHand').click();
+  await expect(page.getByRole('dialog', { name: 'Search Deck' })).toBeVisible();
 });
