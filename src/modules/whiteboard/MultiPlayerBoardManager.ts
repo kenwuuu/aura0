@@ -1,19 +1,20 @@
 import { Card } from '../deck';
-import {CARD_HEIGHT, CARD_WIDTH, DEFAULT_CARD_BACK, YDOC_CARDS_ON_BOARD, YDOC_KEYWORD_TOKENS} from '../../constants';
+import { DEFAULT_CARD_BACK, YDOC_CARDS_ON_BOARD, YDOC_KEYWORD_TOKENS } from '@/constants';
 import { WhiteboardCard, DragState } from './types';
-import { KeyboardHandler, KeyboardHandlerCallbacks } from './KeyboardHandler';
 import { CardPreview } from '../cardPreview';
 import { TooltipManager } from './TooltipManager';
 import { ZoomController } from './ZoomController';
 import { BoardContainerManager, BOARD_HEIGHT } from './BoardContainerManager';
 import * as Y from 'yjs';
 import React from 'react';
-import { createRoot, Root } from 'react-dom/client';
-import { CardCounter } from '../../components';
-import {OpponentCoordinateTransformer} from "./OpponentCoordinateTransformer";
-import {HotkeyContext} from "../../data/hotkeys";
+import { createRoot } from 'react-dom/client';
+import { CardCounter } from '@/components';
+import { OpponentCoordinateTransformer } from "./OpponentCoordinateTransformer";
+import { HotkeyContext } from "@/data/hotkeys";
 import { KeywordToken } from '@/modules/keywordTokens/types';
 import { KeywordTokenFactory } from '@/modules/keywordTokens/KeywordTokenFactory';
+import { useHotkeyStore } from '@/stores/hotkeyStore';
+import { executeBattlefieldCardAction } from '@/actions/battlefieldCardActions';
 
 const DEFAULT_OPPONENT_OPACITY = 1.0;
 const FOCUSED_OPACITY = 1.0;
@@ -27,7 +28,6 @@ export class MultiPlayerBoardManager {
   private yTokens: Y.Map<KeywordToken>;
   private yDoc: Y.Doc;
   private maxZIndex: number = 0;
-  private keyboardHandler: KeyboardHandler;
   private zoomController: ZoomController;
   private cardPreview: CardPreview;
   private localPlayerId: string;
@@ -79,49 +79,11 @@ export class MultiPlayerBoardManager {
     this.attachEventListeners();
     this.setupOpponentHoverListener();
 
-    // Initialize keyboard handler with empty callbacks (will be set by app)
-    this.keyboardHandler = new KeyboardHandler(
-      this.yCards,
-      {
-        onMoveToHand: () => {},
-        onMoveToDeckTop: () => {},
-        onMoveToDeckBottom: () => {},
-        onMoveToGraveyard: () => {},
-        onMoveToExile: () => {},
-        onDeleteCard: () => {},
-        onDrawCard: () => {},
-        onShuffleDeck: () => {},
-        onUntapAll: () => {},
-        onEndTurn: () => {},
-        onHideCardPreview: () => this.cardPreview.hide(),
-        onHideCardTooltip: () => this.tooltipManager.hide(),
-        onMulligan: () => {},
-        loseHealth: () => {},
-        gainHealth: () => {},
-      },
-      this.localPlayerId
-    );
-
-    // Initialize tooltip manager with hotkey click handler
+    // Initialize tooltip manager
     this.tooltipManager = new TooltipManager();
     this.tooltipManager.setup((hotkey, cardId) => {
-      // Execute the hotkey action for the specified card
-      this.keyboardHandler.executeHotkey(hotkey.key, cardId);
+      executeBattlefieldCardAction(hotkey.action, cardId, this, this.localPlayerId, this.cardPreview);
     });
-  }
-
-  public setKeyboardCallbacks(callbacks: KeyboardHandlerCallbacks): void {
-    // Clean up old keyboard handler before creating new one
-    this.keyboardHandler.destroy();
-    this.keyboardHandler = new KeyboardHandler(
-      this.yCards,
-      {
-        ...callbacks,
-        onHideCardPreview: () => this.cardPreview.hide(),
-        onHideCardTooltip: () => this.tooltipManager.hide(),
-      },
-      this.localPlayerId
-    );
   }
 
   private setupYjsSync(): void {
@@ -467,7 +429,9 @@ export class MultiPlayerBoardManager {
 
     // Enable hover for card preview
     cardElement.addEventListener('mouseenter', (e: MouseEvent) => {
-      this.keyboardHandler.setHoveredCard(card.id);
+      // Update Zustand store for new hotkey system
+      useHotkeyStore.getState().setHoveredBattlefieldCard(card.id);
+
       // Get latest card state from Yjs to avoid stale closures
       const latestCard = this.yCards.get(card.id) || card;
       this.cardPreview.show(latestCard);
@@ -484,7 +448,9 @@ export class MultiPlayerBoardManager {
     });
 
     cardElement.addEventListener('mouseleave', () => {
-      this.keyboardHandler.setHoveredCard(null);
+      // Update Zustand store for new hotkey system
+      useHotkeyStore.getState().setHoveredBattlefieldCard(null);
+
       this.cardPreview.hide();
       this.tooltipManager.hideOnLeave();
     });
@@ -616,6 +582,8 @@ export class MultiPlayerBoardManager {
       mode: 'board',
       onMouseEnter: (e: MouseEvent, tokenId: string) => {
         this.hoveredTokenId = tokenId;
+        // Update Zustand store for new hotkey system
+        useHotkeyStore.getState().setHoveredToken(tokenId);
         this.tooltipManager.show(tokenId, HotkeyContext.KeywordToken, e.clientX, e.clientY, false, token.title);
       },
       onMouseMove: (e: MouseEvent, tokenId: string) => {
@@ -637,6 +605,8 @@ export class MultiPlayerBoardManager {
       onMouseLeave: (tokenId: string) => {
         if (this.hoveredTokenId === tokenId) {
           this.hoveredTokenId = null;
+          // Update Zustand store for new hotkey system
+          useHotkeyStore.getState().setHoveredToken(null);
           this.tooltipManager.hide();
         }
       },

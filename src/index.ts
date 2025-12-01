@@ -7,7 +7,7 @@ import { WebRTCProvider } from './modules/webrtc';
 import { getOrCreatePlayerId, getOrCreatePeerId } from './modules/webrtc/persistence';
 import { Player } from './modules/player';
 import { GameResourcesDock } from './modules/gameResourcesDock';
-import { WelcomeModal, HotkeysModal, HelpModal, AddCardManager, PatchNotesModal } from './components';
+import { WelcomeModal, HotkeysModal, HelpModal, AddCardManager, PatchNotesModal, GameHotkeysManager } from './components';
 import { DeckManager } from './deck_manager';
 import { OpponentHealthList } from './components/health/OpponentHealthList';
 import { SavedDeck } from './modules/deck/types';
@@ -26,6 +26,7 @@ import {YSTATE_DECK_CARD_COUNT} from "./constants";
 import {ReactToasterRoot} from "../ReactToasterRoot";
 import {usePlayerStore} from "./stores/playerStore";
 import {RoomConnectionStatus} from "@/components/RoomConnectionStatus";
+import {useGameInstance} from "./stores/gameInstanceStore";
 
 Sentry.init({
   environment: process.env.NODE_ENV || "development",
@@ -62,6 +63,7 @@ class AuraApp {
   private localPlayer!: Player;
   private localDock!: GameResourcesDock;
   private opponentHealthRoot: Root | null = null;
+  private gameHotkeysRoot: Root | null = null;
   private tokenService!: TokenService;
   private cardPreview!: CardPreview;
   private playerId: string;
@@ -164,7 +166,7 @@ class AuraApp {
 
     this.setupEventListeners();
     this.setupConnectionStatus();
-    this.setupKeyboardCallbacks();
+    this.setupAllHotkeys();
     this.setupDeckManager();
     this.setupHelpModal();
     this.setupDiscordButton();
@@ -172,69 +174,22 @@ class AuraApp {
     this.setupAddCardModal();
   }
 
-  private setupKeyboardCallbacks(): void {
-    const callbacks: KeyboardHandlerCallbacks = {
-      onMoveToHand: (card) => {
-        // Remove from battlefield and add to hand
-        const hand = this.localPlayer.getState().hand;
-        this.localPlayer['yPlayerState'].set('hand', [...hand, card]);
-      },
-      onMoveToDeckTop: (card) => {
-        this.localPlayer.moveCardToDeckTop(card);
-        DeckPersistenceService.saveDeckForRoom(this.roomManager.getRoomName(), this.localPlayer.getDeck());
-      },
-      onMoveToDeckBottom: (card) => {
-        this.localPlayer.moveCardToDeckBottom(card);
-        DeckPersistenceService.saveDeckForRoom(this.roomManager.getRoomName(), this.localPlayer.getDeck());
-      },
-      onMoveToGraveyard: (card) => {
-        this.localPlayer.placeCardInPile(card, 'discard');
-      },
-      onMoveToExile: (card) => {
-        this.localPlayer.placeCardInPile(card, 'exile');
-      },
-      onDeleteCard: (_card) => {
-        // Card deletion is handled directly in KeyboardHandler via removeCard
-        // This callback exists for potential future use
-      },
-      onDrawCard: () => {
-        this.localPlayer.drawCard();
-        DeckPersistenceService.saveDeckForRoom(this.roomManager.getRoomName(), this.localPlayer.getDeck());
-      },
-      onShuffleDeck: () => {
-        this.localPlayer.shuffleDeck();
-        DeckPersistenceService.saveDeckForRoom(this.roomManager.getRoomName(), this.localPlayer.getDeck());
-      },
-      onUntapAll: () => {
-        console.log('Untapping all cards');
-      },
-      onEndTurn: () => {
-        console.log('End turn - not yet implemented');
-      },
-      onHideCardPreview: () => {
-        // Handled by Whiteboard internally
-      },
-      onHideCardTooltip: () => {
-        // Handled by Whiteboard internally
-      },
-      onMulligan: () => {
-        const confirmed = window.confirm(
-          "Mulligan? Draws 7 new cards."
-        );
-        if (confirmed) {
-          this.localPlayer.mulligan(7);
-          DeckPersistenceService.saveDeckForRoom(this.roomManager.getRoomName(), this.localPlayer.getDeck());
-        }
-      },
-      loseHealth: () => {
-        this.localPlayer.modifyHealth(-1);
-      },
-      gainHealth: () => {
-        this.localPlayer.modifyHealth(1);
-      },
-    };
 
-    this.whiteboard.setKeyboardCallbacks(callbacks);
+  private setupAllHotkeys(): void {
+    // Populate the game instance store for the hotkeys hook
+    useGameInstance.getState().setPlayer(this.localPlayer);
+    useGameInstance.getState().setWhiteboard(this.whiteboard);
+    useGameInstance.getState().setCardPreview(this.cardPreview);
+    useGameInstance.getState().setPlayerId(this.playerId);
+    useGameInstance.getState().setRoomManager(this.roomManager);
+
+    // Create a container for the GameHotkeysManager component
+    const gameHotkeysContainer = document.createElement('div');
+    gameHotkeysContainer.id = 'game-hotkeys-manager';
+    document.body.appendChild(gameHotkeysContainer);
+
+    this.gameHotkeysRoot = createRoot(gameHotkeysContainer);
+    this.gameHotkeysRoot.render(React.createElement(GameHotkeysManager));
   }
 
   private setupEventListeners(): void {
@@ -248,6 +203,40 @@ class AuraApp {
       () => DeckPersistenceService.saveDeckForRoom(this.roomManager.getRoomName(), this.localPlayer.getDeck())
     );
     this.eventHandlers.setupEventListeners();
+
+    // Setup event listeners for battlefield card movements (from hotkeys)
+    window.addEventListener('moveCardToHand', (e: Event) => {
+      const customEvent = e as CustomEvent;
+      const card = customEvent.detail.card;
+      const hand = this.localPlayer.getState().hand;
+      this.localPlayer['yPlayerState'].set('hand', [...hand, card]);
+    });
+
+    window.addEventListener('moveCardToDiscard', (e: Event) => {
+      const customEvent = e as CustomEvent;
+      const card = customEvent.detail.card;
+      this.localPlayer.placeCardInPile(card, 'discard');
+    });
+
+    window.addEventListener('moveCardToExile', (e: Event) => {
+      const customEvent = e as CustomEvent;
+      const card = customEvent.detail.card;
+      this.localPlayer.placeCardInPile(card, 'exile');
+    });
+
+    window.addEventListener('moveCardToDeckTop', (e: Event) => {
+      const customEvent = e as CustomEvent;
+      const card = customEvent.detail.card;
+      this.localPlayer.moveCardToDeckTop(card);
+      DeckPersistenceService.saveDeckForRoom(this.roomManager.getRoomName(), this.localPlayer.getDeck());
+    });
+
+    window.addEventListener('moveCardToDeckBottom', (e: Event) => {
+      const customEvent = e as CustomEvent;
+      const card = customEvent.detail.card;
+      this.localPlayer.moveCardToDeckBottom(card);
+      DeckPersistenceService.saveDeckForRoom(this.roomManager.getRoomName(), this.localPlayer.getDeck());
+    });
   }
 
   private setupConnectionStatus(): void {
@@ -324,6 +313,7 @@ class AuraApp {
 
     if (isDevEnv) return;  // don't show modals, for Playwright testing
     welcomeRoot.render(React.createElement(WelcomeModal));
+
     // Setup patch notes modal (shows after welcome modal if there are new notes)
     this.setupPatchNotesModal();
   }
@@ -525,6 +515,9 @@ class AuraApp {
     this.localDock.destroy();
     if (this.opponentHealthRoot) {
       this.opponentHealthRoot.unmount();
+    }
+    if (this.gameHotkeysRoot) {
+      this.gameHotkeysRoot.unmount();
     }
     this.webrtcProvider.destroy();
     this.cardPreview.destroy();

@@ -14,7 +14,7 @@ import * as React from 'react';
 import * as Y from 'yjs';
 import { Card } from '../../deck';
 import { TooltipManager } from '../../whiteboard/TooltipManager';
-import { HotkeyContext, HotkeyDefinition } from '@/data/hotkeys';
+import { HotkeyContext, Hotkey } from '@/data/hotkeys';
 import {
   Dialog,
   DialogContent,
@@ -31,7 +31,9 @@ import {
 } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { CardGrid } from './CardGrid';
+import { YSTATE_DECK, YSTATE_EXILE_PILE, YSTATE_DISCARD_PILE } from '@/constants';
 import { usePlayerStore } from '@/stores/playerStore';
+import { useHotkeyStore } from '@/stores/hotkeyStore';
 
 export type PileType = 'deck' | 'exile' | 'discard' | 'hand' | 'scry';
 
@@ -62,6 +64,9 @@ export function PileViewerReact({
   callbacks = {},
 }: PileViewerReactProps) {
   const yPlayerState = usePlayerStore((state) => state.yPlayerState);
+  const setModalOpen = useHotkeyStore((state) => state.setModalOpen);
+  const setHoveredPileViewerCard = useHotkeyStore((state) => state.setHoveredPileViewerCard);
+
   // State
   const [searchQuery, setSearchQuery] = React.useState('');
   const [sortOrder, setSortOrder] = useSortOrder('top-to-bottom');
@@ -86,6 +91,28 @@ export function PileViewerReact({
 
     return [sortOrder, setSortOrder];
   }
+
+  // Map pile type to hotkey context
+  const getPileViewerContext = (): HotkeyContext => {
+    switch (pileType) {
+      case 'deck': return HotkeyContext.DeckCard;
+      case 'discard': return HotkeyContext.Discard;
+      case 'exile': return HotkeyContext.Exile;
+      case 'scry': return HotkeyContext.Scry;
+      default: return HotkeyContext.DeckCard;
+    }
+  };
+
+  // Update hover handler to use hotkeyStore
+  const handleCardHover = (card: Card | null) => {
+    setHoveredCard(card);  // Keep for local tooltip use
+    setHoveredPileViewerCard(card?.id ?? null, card ? getPileViewerContext() : null);
+  };
+
+  // Update hotkey store when modal opens/closes
+  React.useEffect(() => {
+    setModalOpen(isOpen);
+  }, [isOpen, setModalOpen]);
 
   // Reset state when dialog opens or closes
   React.useEffect(() => {
@@ -131,7 +158,7 @@ export function PileViewerReact({
     if (!isOpen) return;
 
     tooltipManagerRef.current = new TooltipManager();
-    tooltipManagerRef.current.setup((hotkey: HotkeyDefinition, cardId: string) => {
+    tooltipManagerRef.current.setup((hotkey: Hotkey, cardId: string) => {
       const card = cards.find((c) => c.id === cardId);
       if (!card) return;
 
@@ -156,64 +183,39 @@ export function PileViewerReact({
     };
   }, [isOpen, cards, callbacks, pileType]);
 
-  // Keyboard shortcuts
+  // Listen for centralized hotkey events
   React.useEffect(() => {
     if (!isOpen) return;
 
-    const handleKeyDown = (e: KeyboardEvent) => {
-      const key = e.key.toLowerCase();
+    const handlePileViewerAction = (e: Event) => {
+      const { action, cardId } = (e as CustomEvent).detail;
+      const card = cards.find(c => c.id === cardId);
+      if (!card) return;
 
-      // Escape always closes
-      if (key === 'escape') {
-        e.preventDefault();
-        onClose();
-        return;
-      }
-
-      // Don't handle shortcuts if typing in input
-      if (e.target instanceof HTMLInputElement) {
-        return;
-      }
-
-      // All other shortcuts require hovered card
-      if (!hoveredCard) return;
-
-      // H - Move to hand
-      if (key === 'h' && callbacks.onMoveToHand) {
-        e.preventDefault();
-        callbacks.onMoveToHand(hoveredCard);
-      }
-
-      // D - Move to discard
-      if (key === 'd' && callbacks.onMoveToDiscard && pileType !== 'discard') {
-        e.preventDefault();
-        callbacks.onMoveToDiscard(hoveredCard);
-      }
-
-      // S - Move to exile
-      if (key === 's' && callbacks.onMoveToExile && pileType !== 'exile') {
-        e.preventDefault();
-        callbacks.onMoveToExile(hoveredCard);
-      }
-
-      // T - Move to deck top
-      if (key === 't' && callbacks.onMoveToDeckTop && pileType !== 'deck') {
-        e.preventDefault();
-        callbacks.onMoveToDeckTop(hoveredCard);
-      }
-
-      // Y - Move to deck bottom
-      if (key === 'y' && callbacks.onMoveToDeckBottom && pileType !== 'deck') {
-        e.preventDefault();
-        callbacks.onMoveToDeckBottom(hoveredCard);
+      switch (action) {
+        case 'moveToHand':
+          callbacks.onMoveToHand?.(card);
+          break;
+        case 'moveToDiscard':
+          callbacks.onMoveToDiscard?.(card);
+          break;
+        case 'moveToExile':
+          callbacks.onMoveToExile?.(card);
+          break;
+        case 'moveToDeckTop':
+          callbacks.onMoveToDeckTop?.(card);
+          break;
+        case 'moveToDeckBottom':
+          callbacks.onMoveToDeckBottom?.(card);
+          break;
       }
 
       setHoveredCard(null);
     };
 
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, hoveredCard, callbacks, pileType, onClose]);
+    window.addEventListener('pileViewerCardAction', handlePileViewerAction);
+    return () => window.removeEventListener('pileViewerCardAction', handlePileViewerAction);
+  }, [isOpen, cards, callbacks]);
 
   // Emit scry viewer closing event
   React.useEffect(() => {
@@ -458,7 +460,7 @@ export function PileViewerReact({
               visibleCardCount={visibleCardCount}
               revealAll={revealAll}
               revealCount={revealCount}
-              onHover={setHoveredCard}
+              onHover={handleCardHover}
               tooltipManager={tooltipManagerRef.current}
               hotkeyContext={getHotkeyContext()}
               enableReordering={pileType === 'scry'}
