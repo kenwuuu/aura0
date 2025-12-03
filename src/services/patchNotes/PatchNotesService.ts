@@ -5,11 +5,11 @@
  * Users will see the patch notes modal on their first visit after a version update.
  */
 export class PatchNotesService {
-  private static readonly STORAGE_KEY = 'aura-last-seen-patch-notes-v2';
+  private static readonly STORAGE_KEY = 'aura-last-seen-patch-notes-v3';
 
   // Update this version whenever you add new patch notes
   // Format: YYYYMMDD for easy comparison
-  private static readonly CURRENT_VERSION = 20251130;
+  private static readonly CURRENT_VERSION = 20251202;
 
   /**
    * Check if the user should see the patch notes modal

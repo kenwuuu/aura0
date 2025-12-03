@@ -39,8 +39,8 @@ export const PatchNotesModal: React.FC<PatchNotesModalProps> = ({ onClose }) => 
           <ReactMarkdown
             remarkPlugins={[remarkGfm]}
             components={{
-              h1: ({ children }) => <h1 className="text-[28px] font-bold mb-4 mt-6 text-gray-50 border-b border-gray-700 pb-2">{children}</h1>,
-              h2: ({ children }) => <h2 className="text-[22px] font-bold mb-3 text-blue-400">{children}</h2>,
+              h1: ({ children }) => <h1 className="text-[28px] font-bold mb-4 mt-6 text-blue-400 border-b border-gray-700 pb-2">{children}</h1>,
+              h2: ({ children }) => <h2 className="text-[22px] font-bold mb-3 text-gray-50">{children}</h2>,
               h3: ({ children }) => <h3 className="text-lg font-bold mb-2 mt-5 text-gray-100">{children}</h3>,
               p: ({ children }) => <p className="mb-3">{children}</p>,
               ul: ({ children }) => <ul className="mb-4 pl-6 list-disc">{children}</ul>,
