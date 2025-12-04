@@ -128,3 +128,30 @@ test('testInteractiveTooltip', async ({ page }) => {
   await page.getByText('HHand').click();
   await expect(secondBoardCard).toBeHidden();
 });
+
+// this test always passes regardless if we expect Visible or Hidden
+// we want to get this working eventually
+test.skip('testTooltipDoesNotAppearAfterDrag', async ({ page }) => {
+  expect(page.getByText('Deck92'));
+
+  const tooltipText = page.getByText('SpaceTap/Untap');
+
+  // Drag card to board. Click card and check for tooltip text
+  await dragHandCardToLocator(page.locator('#whiteboard'), page);
+  const boardCard: Locator = page.locator('div').filter({ hasText: '#' }).nth(3);
+
+  const box = await boardCard.boundingBox();
+
+  // Drag card
+  await page.mouse.move(box!.x + box!.width / 2, box!.y + box!.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(box!.x + 100, box!.y + 100); // drag to new position
+  await page.mouse.move(box!.x - 100, box!.y - 100); // drag to new position
+  await expect(tooltipText).toBeHidden();
+  await page.mouse.up();
+
+  // Confirm that tooltip text doesn't show up. Wait for visible because if
+  // we don't, Playwright expect resolves faster than the tooltip can render
+  await page.waitForTimeout(200);
+  await expect(tooltipText).toBeVisible();
+});
