@@ -69,13 +69,6 @@ export const CardGrid = React.memo(function CardGrid({
 }: CardGridProps) {
   const [localCards, setLocalCards] = React.useState(cards);
 
-  console.log('🎨 CardGrid render:', {
-    pileType,
-    enableReordering,
-    hasOnCardReorder: !!onCardReorder,
-    cardCount: cards.length,
-  });
-
   // Sync local cards when prop changes
   React.useEffect(() => {
     setLocalCards(cards);

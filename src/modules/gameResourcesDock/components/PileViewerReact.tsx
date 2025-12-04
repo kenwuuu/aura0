@@ -183,6 +183,8 @@ export function PileViewerReact({
       const card = cards.find(c => c.id === cardId);
       if (!card) return;
 
+      tooltipManager?.hide();
+
       switch (action) {
         case 'moveToHand':
           callbacks.onMoveToHand?.(card);
