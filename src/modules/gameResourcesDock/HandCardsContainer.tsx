@@ -2,14 +2,13 @@ import React, { useEffect, useRef, useState, useCallback } from 'react';
 import * as Y from 'yjs';
 import { HandCard } from './HandCard';
 import { Card } from '../deck';
-import { CardPreview } from '../cardPreview';
 import { animate } from 'motion';
+import {useGameInstance} from "@/stores/gameInstanceStore";
 
 interface HandCardsContainerProps {
   yPlayerState: Y.Map<any>;
   playerId: string;
   zoomLevel: number;
-  cardPreview: CardPreview;
   onHoveredCardChange: (cardId: string | null) => void;
   onDraggedCardChange: (draggedCard: { card: Card; element: HTMLElement } | null) => void;
   onDragStateChange: (dragState: { mode: string; draggedElement: HTMLDivElement; startIndex: number } | undefined) => void;
@@ -44,7 +43,6 @@ export const HandCardsContainer: React.FC<HandCardsContainerProps> = ({
   yPlayerState,
   playerId,
   zoomLevel,
-  cardPreview,
   onHoveredCardChange,
   onDraggedCardChange,
   onDragStateChange,
@@ -56,6 +54,7 @@ export const HandCardsContainer: React.FC<HandCardsContainerProps> = ({
   const dragStateRef = useRef<{ mode: string; draggedElement: HTMLDivElement; startIndex: number } | undefined>(undefined);
   const requestAnimationFrameIdRef = useRef<number | null>(null);
   const scrollAnimationRef = useRef<any>(null);
+  const cardPreview = useGameInstance.getState().cardPreview!;
 
   useEffect(() => {  // useEffect: on load
     adjustHandZoom(0.0);

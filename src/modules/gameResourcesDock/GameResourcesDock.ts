@@ -36,7 +36,6 @@ export class GameResourcesDock {
   private hoveredResource: 'deck' | 'exile' | 'discard' | 'health' | null = null;
   private handZoomLevel: number = 1;
   private zoomControls?: HTMLElement;
-  private cardPreview: CardPreview;
   private healthRoot: Root | null = null;
   private controlsRoot: Root | null = null;
   private handRoot: Root | null = null;
@@ -57,7 +56,6 @@ export class GameResourcesDock {
     container: HTMLElement,
     player: Player,
     config: GameResourcesDockConfig,
-    cardPreview: CardPreview,
     controlsTooltipManager?: TooltipManager
   ) {
     this.container = container;
@@ -99,7 +97,6 @@ export class GameResourcesDock {
     });
 
     this.handZoomLevel = parseFloat(localStorage.getItem('hand-zoom') || '1');
-    this.cardPreview = cardPreview;
 
     this.render();
     this.setupZoomControls();
@@ -254,7 +251,6 @@ export class GameResourcesDock {
         yPlayerState: this.player.getYPlayerState(),
         playerId: this.config.playerId,
         zoomLevel: this.handZoomLevel,
-        cardPreview: this.cardPreview,
         onHoveredCardChange: (cardId) => {
           this.hoveredHandCardId = cardId;
           // Update Zustand store for new hotkey system
