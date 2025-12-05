@@ -1,3 +1,17 @@
+## 2025 December 4
+
+### Changes
+- Began testing network fix for large groups
+- Improve help/patch notes text formatting
+
+### Bug Fixes
+- Cards in hand now align to the top of the card when zoomed all the way in.
+- Tooltips no longer show up after dragging a card.
+- Card language now defaults English when importing by set code & collector number. Fixes French issue 🇫🇷🥖
+- Hide tooltip after using a hotkey in a card pile window
+
+---
+
 ## 2025 December 2
 
 ### Beta Test
