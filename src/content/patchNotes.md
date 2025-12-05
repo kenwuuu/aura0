@@ -1,5 +1,8 @@
 ## 2025 December 4
 
+### Features
+- Add hand count to dock
+
 ### Changes
 - Began testing network fix for large groups
 - Improve help/patch notes text formatting
