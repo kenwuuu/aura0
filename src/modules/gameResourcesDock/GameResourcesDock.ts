@@ -639,13 +639,13 @@ export class GameResourcesDock {
     zoomInBtn.className = 'zoom-button';
     zoomInBtn.textContent = '+';
     zoomInBtn.title = 'Zoom In Hand Cards';
-    zoomInBtn.onclick = () => this.adjustHandZoom(0.1);
+    zoomInBtn.onclick = () => this.adjustHandZoom(0.2);
 
     const zoomOutBtn = document.createElement('button');
     zoomOutBtn.className = 'zoom-button';
     zoomOutBtn.textContent = '−';
     zoomOutBtn.title = 'Zoom Out Hand Cards';
-    zoomOutBtn.onclick = () => this.adjustHandZoom(-0.1);
+    zoomOutBtn.onclick = () => this.adjustHandZoom(-0.2);
 
     const resetBtn = document.createElement('button');
     resetBtn.className = 'zoom-button zoom-display';
@@ -662,7 +662,7 @@ export class GameResourcesDock {
   }
 
   private adjustHandZoom(delta: number): void {
-    const newZoom = Math.max(0.5, Math.min(2.5, this.handZoomLevel + delta));
+    const newZoom = Math.max(0.5, Math.min(3.5, this.handZoomLevel + delta));
     this.setHandZoom(newZoom);
   }
 
