@@ -1,6 +1,6 @@
 import {CardPile, Player, PlayerState} from '../player';
 import {GameResourcesDockConfig} from './types';
-import {Card, Deck} from '../deck';
+import {Card} from '../deck';
 import { PileViewer, PileType } from './components';
 import { CardPreview } from '../cardPreview';
 import React from 'react';
@@ -26,6 +26,7 @@ export class GameResourcesDock {
     exile: HTMLElement;
     discard: HTMLElement;
     hand: HTMLElement;
+    handPile: HTMLElement;
     controls: HTMLElement;
     deck: HTMLElement;
     health: HTMLElement;
@@ -172,18 +173,20 @@ export class GameResourcesDock {
     const exile = this.createPileElement('exile', 'Exile');
     const discard = this.createPileElement('discard', 'Discard');
     const hand = this.createHandElement();
+    const handPile = this.createPileElement('hand', 'Hand');
     const controls = this.createControlsElement();
     const deck = this.createDeckElement();
     const health = this.createHealthElement();
 
     this.container.appendChild(exile);
     this.container.appendChild(discard);
+    this.container.appendChild(handPile);
     this.container.appendChild(hand);
     this.container.appendChild(controls);
     this.container.appendChild(deck);
     this.container.appendChild(health);
 
-    this.elements = { exile, discard, hand, controls, deck, health };
+    this.elements = { exile, discard, handPile, hand, controls, deck, health };
   }
 
   private createPileElement(type: string, label: string): HTMLElement {
@@ -202,6 +205,8 @@ export class GameResourcesDock {
 
     pile.appendChild(labelEl);
     pile.appendChild(count);
+
+    if (type === 'hand') return pile;
 
     // Hover tracking for keyboard shortcuts and tooltip
     pile.addEventListener('mouseenter', () => {
@@ -456,14 +461,13 @@ export class GameResourcesDock {
     const deckCount = this.elements.deck.querySelector('.pile-count');
     if (deckCount) deckCount.textContent = state.deck.length.toString();
 
+    const handCount = this.elements.handPile.querySelector('.pile-count');
+    if (handCount) handCount.textContent = state.hand.length.toString();
+
     // Update health React component
     this.renderHealthComponent();
 
     // Hand updates are now handled automatically by React via Yjs observation
-  }
-
-  private onDrawCard(): void {
-    this.player.drawCard();
   }
 
   private openScryModal(): void {
@@ -532,7 +536,7 @@ export class GameResourcesDock {
     this.scryViewer.show(scryPile.getCards(), 'scry');
   }
 
-  private viewPile(pileType: 'exile' | 'discard' | 'deck'): void {    let result = null;
+  private viewPile(pileType: 'exile' | 'discard' | 'deck'): void {
     let cards;
     let pileViewer;
     switch (pileType) {
