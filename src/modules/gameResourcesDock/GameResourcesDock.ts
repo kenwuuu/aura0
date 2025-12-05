@@ -667,6 +667,20 @@ export class GameResourcesDock {
   }
 
   private setHandZoom(zoom: number): void {
+    function waitForVisibleElement(selector: string, callback: (el: HTMLElement) => void): void {
+      // used to wait for hand cards to be visible before aligning cards
+      // otherwise card height check will fail if there are no cards
+      const interval = setInterval(() => {
+        const el = document.querySelector(selector) as HTMLElement | null;
+
+        // Element exists AND is visible in layout
+        if (el && el.offsetParent !== null) {
+          clearInterval(interval);
+          callback(el);
+        }
+      }, 50);
+    }
+
     function alignCardsBasedOnSize() {
       const container: HTMLElement | null = document.querySelector('.hand-cards') as HTMLElement;
       if (!container) return;
@@ -688,9 +702,7 @@ export class GameResourcesDock {
     // Re-render React component with new zoom
     this.renderHandComponent();
 
-    setTimeout(() => {
-      alignCardsBasedOnSize();
-    }, 150);
+    waitForVisibleElement('.hand-card', alignCardsBasedOnSize);
   }
 
   private preloadPileImages(pileType: 'deck' | 'exile' | 'discard'): void {
