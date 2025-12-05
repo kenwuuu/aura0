@@ -6,6 +6,7 @@ import { setElementDragPoint } from '@/utils/centerHtmlElementOnDrag';
 interface HandCardProps {
   card: Card;
   zoomLevel: number;
+  spacing: number;
   onMouseEnter: (cardId: string) => void;
   onMouseMove: (e: React.MouseEvent) => void;
   onMouseLeave: () => void;
@@ -16,6 +17,7 @@ interface HandCardProps {
 export const HandCard: React.FC<HandCardProps> = ({
   card,
   zoomLevel,
+  spacing,
   onMouseEnter,
   onMouseMove,
   onMouseLeave,
@@ -66,6 +68,7 @@ export const HandCard: React.FC<HandCardProps> = ({
       style={{
         width: `${width}px`,
         height: `${height}px`,
+        marginRight: `${spacing}px`,
       }}
       onMouseEnter={() => onMouseEnter(card.id)}
       onMouseMove={onMouseMove}

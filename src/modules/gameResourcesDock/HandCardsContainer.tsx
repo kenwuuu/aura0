@@ -55,10 +55,55 @@ export const HandCardsContainer: React.FC<HandCardsContainerProps> = ({
   const requestAnimationFrameIdRef = useRef<number | null>(null);
   const scrollAnimationRef = useRef<any>(null);
   const cardPreview = useGameInstance.getState().cardPreview!;
+  const [cardSpacing, setCardSpacing] = useState<number>(4); // default margin-right
+  const [containerWidth, setContainerWidth] = useState<number>(0);
 
   useEffect(() => {  // useEffect: on load
     adjustHandZoom(0.0);
   }, []);
+
+  // Track container width with ResizeObserver
+  useEffect(() => {
+    if (!containerRef.current) return;
+
+    const resizeObserver = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        setContainerWidth(entry.contentRect.width);
+      }
+    });
+
+    resizeObserver.observe(containerRef.current);
+    // Set initial width
+    setContainerWidth(containerRef.current.clientWidth);
+
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, []);
+
+  // Calculate card spacing based on zoom level and container width
+  useEffect(() => {
+    if (containerWidth === 0) return;
+
+    const baseCardWidth = 63;
+    const currentCardWidth = baseCardWidth * zoomLevel;
+    const threshold = containerWidth / 5; // 1/4 of container width
+
+    if (currentCardWidth >= threshold) {
+      // Calculate how much we've exceeded the threshold
+      const excessRatio = (currentCardWidth - threshold) / threshold;
+
+      // Start with 4px spacing and gradually reduce to negative values
+      // Max overlap is 80% of card width for a nice fanned effect
+      const maxOverlap = currentCardWidth * .5;
+      const spacing = 4 - (maxOverlap * Math.min(excessRatio, 1));
+
+      setCardSpacing(spacing);
+    } else {
+      // No overlap needed, use default spacing
+      setCardSpacing(4);
+    }
+  }, [zoomLevel, containerWidth]);
 
   // Scroll to end when hand changes
   useEffect(() => {
@@ -101,7 +146,7 @@ export const HandCardsContainer: React.FC<HandCardsContainerProps> = ({
     cardPreview.hide();
   }, [cardPreview, onHoveredCardChange]);
 
-  const handleCardDragStart = useCallback((card: Card, element: HTMLDivElement, e: React.DragEvent) => {
+  const handleCardDragStart = useCallback((card: Card, element: HTMLDivElement, _e: React.DragEvent) => {
     cardPreview.hide();
     onHoveredCardChange(null);
 
@@ -254,6 +299,7 @@ export const HandCardsContainer: React.FC<HandCardsContainerProps> = ({
             key={card.id}
             card={card}
             zoomLevel={zoomLevel}
+            spacing={cardSpacing}
             onMouseEnter={handleCardMouseEnter}
             onMouseMove={handleCardMouseMove}
             onMouseLeave={handleCardMouseLeave}
