@@ -48,11 +48,9 @@ import { WebrtcProvider } from 'y-webrtc';
 import { IndexeddbPersistence } from 'y-indexeddb';
 import { WebRTCConfig, ConnectionStatus } from './types';
 import { restoreAwarenessState, setupAwarenessStatePersistence, AwarenessState } from './persistence';
+import {YjsNetworkProvider} from "@/modules/yjs-networking/YjsNetworkFactory";
 
-/**
- * Fetches ICE server configuration from CloudFlare TURN service
- * Falls back to default STUN servers if fetch fails
- */
+
 async function fetchCloudFlareIceServers(): Promise<RTCIceServer[]> {
   try {
     const response = await fetch('https://cloudflare-turn-config-fetcher.kenqiwu-1b0.workers.dev/ice-servers');
@@ -75,7 +73,7 @@ async function fetchCloudFlareIceServers(): Promise<RTCIceServer[]> {
  * Main WebRTC provider class that manages peer-to-peer connections
  * and document persistence
  */
-export class WebRTCProvider {
+export class WebRTCProvider implements YjsNetworkProvider{
   private yDoc: Y.Doc;
   private provider: WebrtcProvider;
   private persistence: IndexeddbPersistence;
@@ -83,17 +81,14 @@ export class WebRTCProvider {
   private statusCallbacks: Set<(status: ConnectionStatus) => void> = new Set();
   private cleanupAwarenessPersistence?: () => void;
 
-  /**
-   * Static factory method to create a WebRTCProvider with CloudFlare ICE servers
-   * Fetches TURN configuration before initializing the provider
-   */
-  static async create(yDoc: Y.Doc, config: WebRTCConfig): Promise<WebRTCProvider> {
-    // Fetch CloudFlare ICE servers if not explicitly provided
-    const iceServers = config.iceServers ?? await fetchCloudFlareIceServers();
+  status(): string {
+    return this.provider.connected ? 'connected' : 'connecting';
+  }
 
-    return new WebRTCProvider(yDoc, {
-      ...config,
-      iceServers
+  public on(event: 'status', callback: (event: { status: string }) => void): void {
+    this.provider.on('peers', (peersEvent: { webrtcPeers: string[] }) => {
+      const status = peersEvent.webrtcPeers.length > 0 ? 'connected' : 'disconnected';
+      callback({ status });
     });
   }
 
