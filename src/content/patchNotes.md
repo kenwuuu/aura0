@@ -2,6 +2,7 @@
 
 ### Features
 - Add hand count to dock
+- Add card preview to card pile windows
 
 ### Changes
 - Began testing network fix for large groups

@@ -1,5 +1,5 @@
 import { Card } from '../deck';
-import { DEFAULT_CARD_BACK } from '../../constants';
+import { DEFAULT_CARD_BACK } from '@/constants';
 
 export class CardPreview {
   // Constants
