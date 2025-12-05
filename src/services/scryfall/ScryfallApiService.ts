@@ -88,7 +88,7 @@ export class ScryfallApiService {
     const encodedSetCode = encodeURIComponent(cardLineItem.setCode!);
     const encodedCollectorNumber = encodeURIComponent(cardLineItem.collectorNumber!);
 
-    const url = `${ScryfallApiService.BASE_URL}/cards/${encodedSetCode}/${encodedCollectorNumber}`;
+    const url = `${ScryfallApiService.BASE_URL}/cards/${encodedSetCode}/${encodedCollectorNumber}/en`;
 
     return await this.queue.add(() =>
       pRetry(
