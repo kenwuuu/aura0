@@ -67,7 +67,6 @@ class AuraApp {
   private opponentHealthRoot: Root | null = null;
   private gameHotkeysRoot: Root | null = null;
   private tokenService!: TokenService;
-  private cardPreview!: CardPreview;
   private playerId: string;
   private scryfallApiService!: ScryfallApiService;
   private roomManager: RoomManager;
@@ -113,9 +112,6 @@ class AuraApp {
     // Initialize Zustand store with yPlayerState for global access
     usePlayerStore.getState().setYPlayerState(this.localPlayer.yPlayerState);
 
-    // Create shared card preview instance (used by both Whiteboard and GameResourcesDock)
-    this.cardPreview = new CardPreview();
-
     // Initialize multi-player board manager
     const whiteboardContainer = document.getElementById('whiteboard');
     if (!whiteboardContainer) {
@@ -127,7 +123,6 @@ class AuraApp {
       this.yDoc,
       this.playerId,
       '#1a1a1a', // backgroundColor
-      this.cardPreview
     );
 
     // Initialize local player's resource dock
@@ -188,7 +183,7 @@ class AuraApp {
     // Populate the game instance store for the hotkeys hook
     useGameInstance.getState().setPlayer(this.localPlayer);
     useGameInstance.getState().setWhiteboard(this.whiteboard);
-    useGameInstance.getState().setCardPreview(this.cardPreview);
+    useGameInstance.getState().setCardPreview(new CardPreview());
     useGameInstance.getState().setPlayerId(this.playerId);
     useGameInstance.getState().setRoomManager(this.roomManager);
 

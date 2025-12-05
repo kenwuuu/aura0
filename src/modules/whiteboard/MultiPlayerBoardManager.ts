@@ -1,7 +1,6 @@
 import { Card } from '../deck';
 import { DEFAULT_CARD_BACK, YDOC_CARDS_ON_BOARD, YDOC_KEYWORD_TOKENS } from '@/constants';
 import { WhiteboardCard, DragState } from './types';
-import { CardPreview } from '../cardPreview';
 import { TooltipManager } from './TooltipManager';
 import { ZoomController } from './ZoomController';
 import { BoardContainerManager, BOARD_HEIGHT } from './BoardContainerManager';
@@ -15,6 +14,7 @@ import { KeywordToken } from '@/modules/keywordTokens/types';
 import { KeywordTokenFactory } from '@/modules/keywordTokens/KeywordTokenFactory';
 import { useHotkeyStore } from '@/stores/hotkeyStore';
 import { executeBattlefieldCardAction } from '@/actions/battlefieldCardActions';
+import { useGameInstance } from "@/stores/gameInstanceStore";
 
 const DEFAULT_OPPONENT_OPACITY = 1.0;
 const FOCUSED_OPACITY = 1.0;
@@ -29,7 +29,6 @@ export class MultiPlayerBoardManager {
   private yDoc: Y.Doc;
   private maxZIndex: number = 0;
   private zoomController: ZoomController;
-  private cardPreview: CardPreview;
   private localPlayerId: string;
   private tooltipManager: TooltipManager;
   // Track mouse movement to distinguish clicks from drags
@@ -54,12 +53,9 @@ export class MultiPlayerBoardManager {
     yDoc: Y.Doc,
     localPlayerId: string,
     backgroundColor: string,
-    cardPreview: CardPreview
   ) {
     this.yDoc = yDoc;
     this.localPlayerId = localPlayerId;
-    this.cardPreview = cardPreview;
-
     this.yCards = yDoc.getMap(YDOC_CARDS_ON_BOARD);
     this.yTokens = yDoc.getMap(YDOC_KEYWORD_TOKENS);
 
@@ -82,7 +78,7 @@ export class MultiPlayerBoardManager {
     // Initialize tooltip manager
     this.tooltipManager = new TooltipManager();
     this.tooltipManager.setup((hotkey, cardId) => {
-      executeBattlefieldCardAction(hotkey.action, cardId, this, this.localPlayerId, this.cardPreview);
+      executeBattlefieldCardAction(hotkey.action, cardId, this, this.localPlayerId);
     });
   }
 
@@ -361,6 +357,8 @@ export class MultiPlayerBoardManager {
   }
 
   private createCardElement(card: WhiteboardCard): HTMLElement {
+    const cardPreview = useGameInstance.getState().cardPreview!;
+
     const cardElement = document.createElement('div');
     cardElement.dataset.cardId = card.id;
     cardElement.className = 'card';
@@ -434,7 +432,7 @@ export class MultiPlayerBoardManager {
 
       // Get latest card state from Yjs to avoid stale closures
       const latestCard = this.yCards.get(card.id) || card;
-      this.cardPreview.show(latestCard);
+      cardPreview.show(latestCard);
 
       // Show tooltip menu on hover (delayed)
       const context = card.ownerId === this.localPlayerId ? HotkeyContext.Battlefield : HotkeyContext.EnemyBattlefieldCard;
@@ -443,14 +441,14 @@ export class MultiPlayerBoardManager {
 
     cardElement.addEventListener('mousemove', (e: MouseEvent) => {
       this.tooltipManager.setMouseLocation(e.clientX, e.clientY);
-      this.cardPreview.updatePosition(e);
+      cardPreview.updatePosition(e);
     });
 
     cardElement.addEventListener('mouseleave', () => {
       // Update Zustand store for new hotkey system
       useHotkeyStore.getState().setHoveredBattlefieldCard(null);
 
-      this.cardPreview.hide();
+      cardPreview.hide();
       this.tooltipManager.hideOnLeave();
     });
 
