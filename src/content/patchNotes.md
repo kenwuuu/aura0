@@ -1,8 +1,9 @@
 ## 2025 December 4
 
 ### Features
-- Add hand count to dock
+- Increase max zoom for hand. Cards now overlap at higher zoom levels 
 - Add card preview to card pile windows
+- Add hand count to dock, will make it clickable in the future
 
 ### Changes
 - Began testing network fix for large groups
