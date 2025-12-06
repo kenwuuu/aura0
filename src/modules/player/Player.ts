@@ -76,13 +76,6 @@ export class Player {
     }
   }
 
-  // Deprecated: CardPile now syncs directly to yPlayerState
-  // Keeping for backward compatibility but it's a no-op
-  public syncToYState(): void {
-    // CardPile instances now sync automatically to yPlayerState
-    // This method is kept for backward compatibility but does nothing
-  }
-
   public getState(): PlayerState {
     return {
       id: this.playerId,
@@ -124,7 +117,6 @@ export class Player {
     if (!card) return null;
 
     this.hand.addCardToTop(card);
-    this.syncToYState();
 
     return card;
   }
@@ -166,31 +158,26 @@ export class Player {
 
     // Step 5: Shuffle deck and sync
     this.deck.shuffle();
-    this.syncToYState();
   }
 
   public removeCardFromHand(cardId: string): Card | null {
     const card: Card | null = this.hand.removeCardById(cardId);
-    this.syncToYState();
     return card;
   }
 
   public removeCardFromPileById(cardId: string, pileType: PileType): Card | null {
     let result: Card | null = this.piles[pileType].removeCardById(cardId);
-    this.syncToYState();
     return result;
   }
 
   public drawCardFromPile(pileType: 'deck' | 'discard' | 'exile'): Card | null {
     let result: Card | null = this.piles[pileType].drawCard();
-    this.syncToYState();
     return result;
   }
 
   public placeCardInPile(card: Card, pileType: PileType, position: number = Infinity): void {
     // Places card on top of pile by default
     this.piles[pileType].placeCardAtPosition(card, position);
-    this.syncToYState();
   }
 
   public setHealth(health: number): void {
@@ -254,12 +241,10 @@ export class Player {
 
   public moveCardToDeckTop(card: Card): void {
     this.deck.addCardToTop(card);
-    this.syncToYState();
   }
 
   public moveCardToDeckBottom(card: Card): void {
     this.deck.addCardToBottom(card);
-    this.syncToYState();
   }
 
   public onStateChange(callback: (state: PlayerState) => void): void {
