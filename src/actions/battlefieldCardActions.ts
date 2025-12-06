@@ -28,7 +28,7 @@ export function executeBattlefieldCardAction(
     return;
   }
 
-  if (!card) return;
+  if (!card || card.ownerId !== playerId) return;
 
   switch (action) {
     case 'tap':

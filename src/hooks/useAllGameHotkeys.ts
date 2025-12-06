@@ -172,7 +172,7 @@ export function useAllGameHotkeys() {
     getKeyBindingsForAction('delete'),
     () => {
       if (whiteboard && playerId && hoveredBattlefieldCardId) {
-        executeBattlefieldCardAction('delete', hoveredBattlefieldCardId, whiteboard, playerId);
+        executeBattlefieldCardAction('delete', hoveredBattlefieldCardId, whiteboard, playerId, cardPreview);
       }
     },
     { enabled: battlefieldEnabled, preventDefault: true }
@@ -182,7 +182,7 @@ export function useAllGameHotkeys() {
     getKeyBindingsForAction('moveToHand'),
     () => {
       if (whiteboard && playerId && hoveredBattlefieldCardId) {
-        executeBattlefieldCardAction('moveToHand', hoveredBattlefieldCardId, whiteboard, playerId);
+        executeBattlefieldCardAction('moveToHand', hoveredBattlefieldCardId, whiteboard, playerId, cardPreview);
       }
     },
     { enabled: battlefieldEnabled, preventDefault: true }
@@ -192,7 +192,7 @@ export function useAllGameHotkeys() {
     getKeyBindingsForAction('moveToDiscard'),
     () => {
       if (whiteboard && playerId && hoveredBattlefieldCardId) {
-        executeBattlefieldCardAction('moveToDiscard', hoveredBattlefieldCardId, whiteboard, playerId);
+        executeBattlefieldCardAction('moveToDiscard', hoveredBattlefieldCardId, whiteboard, playerId, cardPreview);
       }
     },
     { enabled: battlefieldEnabled, preventDefault: true }
@@ -202,7 +202,7 @@ export function useAllGameHotkeys() {
     getKeyBindingsForAction('moveToExile'),
     () => {
       if (whiteboard && playerId && hoveredBattlefieldCardId) {
-        executeBattlefieldCardAction('moveToExile', hoveredBattlefieldCardId, whiteboard, playerId);
+        executeBattlefieldCardAction('moveToExile', hoveredBattlefieldCardId, whiteboard, playerId, cardPreview);
       }
     },
     { enabled: battlefieldEnabled, preventDefault: true }
@@ -212,7 +212,7 @@ export function useAllGameHotkeys() {
     getKeyBindingsForAction('moveToDeckTop'),
     () => {
       if (whiteboard && playerId && hoveredBattlefieldCardId) {
-        executeBattlefieldCardAction('moveToDeckTop', hoveredBattlefieldCardId, whiteboard, playerId);
+        executeBattlefieldCardAction('moveToDeckTop', hoveredBattlefieldCardId, whiteboard, playerId, cardPreview);
       }
     },
     { enabled: battlefieldEnabled, preventDefault: true }
@@ -222,7 +222,7 @@ export function useAllGameHotkeys() {
     getKeyBindingsForAction('moveToDeckBottom'),
     () => {
       if (whiteboard && playerId && hoveredBattlefieldCardId) {
-        executeBattlefieldCardAction('moveToDeckBottom', hoveredBattlefieldCardId, whiteboard, playerId);
+        executeBattlefieldCardAction('moveToDeckBottom', hoveredBattlefieldCardId, whiteboard, playerId, cardPreview);
       }
     },
     { enabled: battlefieldEnabled, preventDefault: true }
@@ -237,6 +237,7 @@ export function useAllGameHotkeys() {
     () => {
       if (player && cardPreview && hoveredHandCardId) {
         player.flipHandCard(hoveredHandCardId);
+        player.syncToYState();
         cardPreview.hide();
       }
     },
@@ -254,6 +255,7 @@ export function useAllGameHotkeys() {
           player.placeCardInPile(card, 'discard');
           cardPreview.hide();
         }
+        player.syncToYState();
       }
     },
     { enabled: handEnabled, preventDefault: true }
@@ -270,6 +272,7 @@ export function useAllGameHotkeys() {
           player.placeCardInPile(card, 'exile');
           cardPreview.hide();
         }
+        player.syncToYState();
       }
     },
     { enabled: handEnabled, preventDefault: true }
@@ -286,6 +289,7 @@ export function useAllGameHotkeys() {
           player.placeCardInPile(card, 'deck');
           cardPreview.hide();
         }
+        player.syncToYState();
       }
     },
     { enabled: handEnabled, preventDefault: true }
@@ -302,6 +306,7 @@ export function useAllGameHotkeys() {
           player.placeCardInPile(card, 'deck', 0);
           cardPreview.hide();
         }
+        player.syncToYState();
       }
     },
     { enabled: handEnabled, preventDefault: true }
@@ -317,6 +322,7 @@ export function useAllGameHotkeys() {
       if (player && hoveredPileType) {
         const card = player.drawCardFromPile(hoveredPileType as 'deck' | 'exile' | 'discard');
         if (card) player.placeCardInPile(card, 'hand');
+        player.syncToYState();
       }
     },
     { enabled: pileEnabled, preventDefault: true }
@@ -328,6 +334,7 @@ export function useAllGameHotkeys() {
       if (player && hoveredPileType && hoveredPileType !== 'discard') {
         const card = player.drawCardFromPile(hoveredPileType as 'deck' | 'exile' | 'discard');
         if (card) player.placeCardInPile(card, 'discard');
+        player.syncToYState();
       }
     },
     { enabled: pileEnabled && hoveredPileType !== 'discard', preventDefault: true }
@@ -339,6 +346,7 @@ export function useAllGameHotkeys() {
       if (player && hoveredPileType && hoveredPileType !== 'exile') {
         const card = player.drawCardFromPile(hoveredPileType as 'deck' | 'exile' | 'discard');
         if (card) player.placeCardInPile(card, 'exile');
+        player.syncToYState();
       }
     },
     { enabled: pileEnabled && hoveredPileType !== 'exile', preventDefault: true }
@@ -350,6 +358,7 @@ export function useAllGameHotkeys() {
       if (player && hoveredPileType && hoveredPileType !== 'deck') {
         const card = player.drawCardFromPile(hoveredPileType as 'deck' | 'exile' | 'discard');
         if (card) player.placeCardInPile(card, 'deck');
+        player.syncToYState();
       }
     },
     { enabled: pileEnabled && hoveredPileType !== 'deck', preventDefault: true }
@@ -361,6 +370,7 @@ export function useAllGameHotkeys() {
       if (player && hoveredPileType && hoveredPileType !== 'deck') {
         const card = player.drawCardFromPile(hoveredPileType as 'deck' | 'exile' | 'discard');
         if (card) player.placeCardInPile(card, 'deck', 0);
+        player.syncToYState();
       }
     },
     { enabled: pileEnabled && hoveredPileType !== 'deck', preventDefault: true }

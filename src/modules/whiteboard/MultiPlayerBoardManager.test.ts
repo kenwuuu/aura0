@@ -81,7 +81,8 @@ describe.skip('MultiPlayerBoardManager - Container Management', () => {
       container,
       yDoc,
       localPlayerId,
-      '#1a1a1a'
+      '#1a1a1a',
+      cardPreview
     );
   });
 

@@ -77,10 +77,16 @@ body {
 }
 
 .player-board-local {
+  /* Local player's board - full opacity, normal rendering */
+  opacity: 1;
   z-index: 10;
 }
 
 .player-board-opponent {
+  /* Opponent boards - low opacity by default */
+  opacity: 0.25;
+  pointer-events: none; /* Opponents' cards are not interactive */
+  transition: opacity 0.3s ease;
 }
 
 .card {

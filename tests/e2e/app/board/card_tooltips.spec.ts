@@ -77,9 +77,9 @@ test('testHandTooltip', async ({ page }) => {
 });
 
 test('testInteractiveTooltip', async ({ page }) => {
-  const firstBoardCard = page.locator('.card').nth(0);
-  const secondBoardCard = page.locator('.card').nth(1);
-  const thirdBoardCard = page.locator('.card').nth(2);
+  const firstBoardCard = page.locator('.player-board .card').nth(0);
+  const secondBoardCard = page.locator('.player-board .card').nth(1);
+  const thirdBoardCard = page.locator('.player-board .card').nth(2);
   
   await dragHandCardToLocator(page.locator('#whiteboard'), page);
   

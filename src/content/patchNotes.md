@@ -1,12 +1,3 @@
-## 2025 December 5
-
-### Changes
-- Remove restrictions on manipulating opponent cards. We want to provide just a 
-smooth, fast tabletop, not a rules engine.
-- Remove transparent cards from when boards used to be overlaid 
-
----
-
 ## 2025 December 4
 
 ### Features
