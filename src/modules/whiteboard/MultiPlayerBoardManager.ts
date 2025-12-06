@@ -16,9 +16,6 @@ import { useHotkeyStore } from '@/stores/hotkeyStore';
 import { executeBattlefieldCardAction } from '@/actions/battlefieldCardActions';
 import { useGameInstance } from "@/stores/gameInstanceStore";
 
-const DEFAULT_OPPONENT_OPACITY = 1.0;
-const FOCUSED_OPACITY = 1.0;
-
 export class MultiPlayerBoardManager {
   private boardContainerManager: BoardContainerManager;
   private cards: Map<string, WhiteboardCard> = new Map();
@@ -39,11 +36,6 @@ export class MultiPlayerBoardManager {
 
   // Token hover tracking
   private hoveredTokenId: string | null = null;
-
-  // Opponent opacity state management
-  private pinnedOpponentId: string | null = null;
-  private hoveredOpponentId: string | null = null;
-  private opponentCount: number = 0;
 
   // Configuration for overlay vs underlay (easy to debug/change)
   private useOverlay: boolean = true; // true = overlay, false = underlay
@@ -73,7 +65,6 @@ export class MultiPlayerBoardManager {
     this.setupZoomControls();
     this.setupYjsSync();
     this.attachEventListeners();
-    this.setupOpponentHoverListener();
 
     // Initialize tooltip manager
     this.tooltipManager = new TooltipManager();
@@ -174,88 +165,6 @@ export class MultiPlayerBoardManager {
 
     // Check periodically for new players
     setInterval(checkForNewPlayers, 1000);
-  }
-
-  private setupOpponentHoverListener(): void {
-    // Listen for hover events from HealthDisplay components
-    window.addEventListener('opponentBoardHover', ((event: CustomEvent) => {
-      const { playerId, isHovered } = event.detail;
-
-      if (isHovered) {
-        this.hoveredOpponentId = playerId;
-      } else {
-        // Only clear if this was the hovered opponent
-        if (this.hoveredOpponentId === playerId) {
-          this.hoveredOpponentId = null;
-        }
-      }
-
-      this.updateOpponentOpacity();
-    }) as EventListener);
-
-    // Listen for pin/click events from HealthDisplay components
-    window.addEventListener('opponentBoardPin', ((event: CustomEvent) => {
-      const { playerId } = event.detail;
-
-      // Toggle pin: if already pinned, unpin; otherwise pin this opponent
-      if (this.pinnedOpponentId === playerId) {
-        this.pinnedOpponentId = null;
-      } else {
-        this.pinnedOpponentId = playerId;
-      }
-
-      this.updateOpponentOpacity();
-    }) as EventListener);
-
-    // Listen for opponent count changes from OpponentHealthList
-    window.addEventListener('opponentCountChanged', ((event: CustomEvent) => {
-      const { opponentCount } = event.detail;
-      this.opponentCount = opponentCount;
-      this.updateOpponentOpacity();
-    }) as EventListener);
-  }
-
-  /**
-   * Update opacity for all opponent boards based on current state
-   * Priority: hover > pinned > single opponent default > all dimmed
-   */
-  private updateOpponentOpacity(): void {
-    // Determine which opponent should be shown with full opacity
-    let opaqueOpponentId: string | null = null;
-
-    // Priority 1: Hovering someone gets temporary opacity
-    if (this.hoveredOpponentId) {
-      opaqueOpponentId = this.hoveredOpponentId;
-    }
-    // Priority 2: Pinned opponent stays opaque
-    else if (this.pinnedOpponentId) {
-      opaqueOpponentId = this.pinnedOpponentId;
-    }
-    // Priority 3: If there's only one opponent, show them by default
-    else if (this.opponentCount === 1) {
-      // Find the single opponent ID
-      for (const [playerId] of this.boardContainerManager.getAllContainers()) {
-        if (playerId !== this.localPlayerId) {
-          opaqueOpponentId = playerId;
-          break;
-        }
-      }
-    }
-
-    // Apply opacity to all opponent containers
-    this.boardContainerManager.getAllContainers().forEach((container, playerId) => {
-      if (playerId === this.localPlayerId) {
-        // Local player always at full opacity
-        container.style.opacity = FOCUSED_OPACITY.toString();
-      } else {
-        // Opponent opacity based on whether they should be visible
-        if (playerId === opaqueOpponentId) {
-          container.style.opacity = FOCUSED_OPACITY.toString();
-        } else {
-          container.style.opacity = DEFAULT_OPPONENT_OPACITY.toString();
-        }
-      }
-    });
   }
 
   public addCard(card: Card, ownerId: string): void {

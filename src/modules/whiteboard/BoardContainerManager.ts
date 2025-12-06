@@ -1,4 +1,4 @@
-import { CARD_WIDTH, CARD_HEIGHT } from '../../constants';
+import { CARD_WIDTH, CARD_HEIGHT } from '@/constants';
 import { BoardCanvasRenderer } from './BoardCanvasRenderer';
 
 // Board Layout Constants
@@ -8,8 +8,6 @@ const BOARD_HEIGHT_IN_CARDS = 6.5;
 export const DOCK_HEIGHT = 160; // Height of bottom UI dock
 export const BOARD_WIDTH = BOARD_WIDTH_IN_CARDS * CARD_WIDTH;
 export const BOARD_HEIGHT = BOARD_HEIGHT_IN_CARDS * CARD_HEIGHT;
-export const DEFAULT_OPPONENT_OPACITY = 0.25;
-export const FOCUSED_OPACITY = 1.0;
 
 /**
  * Calculate the left offset to center the board horizontally
@@ -80,15 +78,10 @@ export class BoardContainerManager {
     }
 
     const container = document.createElement('div');
-    container.className = isLocal ? 'player-board player-board-local' : 'player-board player-board-opponent';
     container.dataset.playerId = playerId;
     container.style.position = 'absolute';
     container.style.width = `${BOARD_WIDTH}px`;
     container.style.height = `${BOARD_HEIGHT}px`;
-    // Opponent containers: pointer-events none on container, but will enable on cards
-    // Local container: pointer-events auto for full interaction
-    container.style.pointerEvents = isLocal ? 'auto' : 'none';
-    container.style.transition = 'opacity 0.3s ease';
 
     // Calculate centered position (same for all boards)
     const left = getBoardLeftOffset();
@@ -97,15 +90,7 @@ export class BoardContainerManager {
     container.style.left = `${left}px`;
     container.style.top = `${top}px`;
 
-    if (isLocal) {
-      // Local player: full opacity, normal z-index
-      container.style.opacity = FOCUSED_OPACITY.toString();
-      container.style.zIndex = '10';
-    } else {
-      // Opponent: low opacity by default
-      container.style.opacity = DEFAULT_OPPONENT_OPACITY.toString();
-
-      // Set z-index based on overlay/underlay preference
+    if (!isLocal) {
       container.style.zIndex = this.useOverlay ? '15' : '5';
     }
 
