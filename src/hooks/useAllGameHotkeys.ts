@@ -172,7 +172,7 @@ export function useAllGameHotkeys() {
     getKeyBindingsForAction('delete'),
     () => {
       if (whiteboard && playerId && hoveredBattlefieldCardId) {
-        executeBattlefieldCardAction('delete', hoveredBattlefieldCardId, whiteboard, playerId, cardPreview);
+        executeBattlefieldCardAction('delete', hoveredBattlefieldCardId, whiteboard, playerId);
       }
     },
     { enabled: battlefieldEnabled, preventDefault: true }
@@ -182,7 +182,7 @@ export function useAllGameHotkeys() {
     getKeyBindingsForAction('moveToHand'),
     () => {
       if (whiteboard && playerId && hoveredBattlefieldCardId) {
-        executeBattlefieldCardAction('moveToHand', hoveredBattlefieldCardId, whiteboard, playerId, cardPreview);
+        executeBattlefieldCardAction('moveToHand', hoveredBattlefieldCardId, whiteboard, playerId);
       }
     },
     { enabled: battlefieldEnabled, preventDefault: true }
@@ -192,7 +192,7 @@ export function useAllGameHotkeys() {
     getKeyBindingsForAction('moveToDiscard'),
     () => {
       if (whiteboard && playerId && hoveredBattlefieldCardId) {
-        executeBattlefieldCardAction('moveToDiscard', hoveredBattlefieldCardId, whiteboard, playerId, cardPreview);
+        executeBattlefieldCardAction('moveToDiscard', hoveredBattlefieldCardId, whiteboard, playerId);
       }
     },
     { enabled: battlefieldEnabled, preventDefault: true }
@@ -202,7 +202,7 @@ export function useAllGameHotkeys() {
     getKeyBindingsForAction('moveToExile'),
     () => {
       if (whiteboard && playerId && hoveredBattlefieldCardId) {
-        executeBattlefieldCardAction('moveToExile', hoveredBattlefieldCardId, whiteboard, playerId, cardPreview);
+        executeBattlefieldCardAction('moveToExile', hoveredBattlefieldCardId, whiteboard, playerId);
       }
     },
     { enabled: battlefieldEnabled, preventDefault: true }
@@ -212,7 +212,7 @@ export function useAllGameHotkeys() {
     getKeyBindingsForAction('moveToDeckTop'),
     () => {
       if (whiteboard && playerId && hoveredBattlefieldCardId) {
-        executeBattlefieldCardAction('moveToDeckTop', hoveredBattlefieldCardId, whiteboard, playerId, cardPreview);
+        executeBattlefieldCardAction('moveToDeckTop', hoveredBattlefieldCardId, whiteboard, playerId);
       }
     },
     { enabled: battlefieldEnabled, preventDefault: true }
@@ -222,7 +222,7 @@ export function useAllGameHotkeys() {
     getKeyBindingsForAction('moveToDeckBottom'),
     () => {
       if (whiteboard && playerId && hoveredBattlefieldCardId) {
-        executeBattlefieldCardAction('moveToDeckBottom', hoveredBattlefieldCardId, whiteboard, playerId, cardPreview);
+        executeBattlefieldCardAction('moveToDeckBottom', hoveredBattlefieldCardId, whiteboard, playerId);
       }
     },
     { enabled: battlefieldEnabled, preventDefault: true }
