@@ -69,5 +69,11 @@ npm run build
 npm run preview
 ```
 
+### Websocket server
+
+Clone this repo to any stateful server and run `pm2 start networking/websocket/ecosystem.config.cjs`.
+
+PM2 handles websocket server restarts on crashes
+
 ## Thanks To...
 Andrew Gioia's [Mana](https://github.com/andrewgioia/mana) project on GitHub for icons and symbol SVGs.
