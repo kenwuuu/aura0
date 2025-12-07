@@ -69,11 +69,32 @@ npm run build
 npm run preview
 ```
 
-### Websocket server
+#### Websocket server
 
-Clone this repo to any stateful server and run `pm2 start networking/websocket/ecosystem.config.cjs`.
+##### Pinging websockets to test connection
+```bash
+wscat -c ws://3.151.83.118:47964
+wscat -c wss://ws.aura.app
+```
 
-PM2 handles websocket server restarts on crashes
+##### Setting up websocket server
+
+We use PM2 to handle websocket server restarts on crashes.
+
+For EC2:
+
+```bash
+# clone this repo
+git clone https
+cd aura
+
+# install nvm, check their github for latest version
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash
+source ~/.bashrc  # load nvm into current shell session
+nvm install --lts  # install latest lts version of node
+npm i
+pm2 start networking/websocket/ecosystem.config.cjs  # run server with pm2
+```
 
 ## Thanks To...
 Andrew Gioia's [Mana](https://github.com/andrewgioia/mana) project on GitHub for icons and symbol SVGs.
