@@ -57,6 +57,7 @@ export const HandCardsContainer: React.FC<HandCardsContainerProps> = ({
   const cardPreview = useGameInstance.getState().cardPreview!;
   const [cardSpacing, setCardSpacing] = useState<number>(4); // default margin-right
   const [containerWidth, setContainerWidth] = useState<number>(0);
+  const isReorderingRef = useRef<boolean>(false);
 
   useEffect(() => {  // useEffect: on load
     adjustHandZoom(0.0);
@@ -107,7 +108,7 @@ export const HandCardsContainer: React.FC<HandCardsContainerProps> = ({
 
   // Scroll to end when hand changes
   useEffect(() => {
-    if (containerRef.current) {
+    if (containerRef.current && !isReorderingRef.current) {
       const container = containerRef.current;
 
       // Cancel any existing scroll animation
@@ -260,7 +261,13 @@ export const HandCardsContainer: React.FC<HandCardsContainerProps> = ({
           const movedCard = reordered.splice(startIndex, 1)[0];
           reordered.splice(newIndex, 0, movedCard);
 
+          // Set flag to prevent scroll animation during reorder
+          isReorderingRef.current = true;
           onHandReorder(reordered);
+          // Reset flag after a short delay to allow the reorder to complete
+          setTimeout(() => {
+            isReorderingRef.current = false;
+          }, 100);
         }
       }
 
