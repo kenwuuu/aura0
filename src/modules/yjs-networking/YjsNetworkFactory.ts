@@ -44,15 +44,15 @@ export class yjsNetworkFactory {
       'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i',
       'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r'
     ];
-    if (firstEighteenLetters.includes(lastChar)) {
-      console.log('Using Websockets')
-      return new WebsocketProvider(yDoc, config);
-    } else {
-      console.log('Using WebRTC')
-      return new WebRTCProvider(yDoc, {
-        ...config,
-        iceServers
-      });
-    }
+    // if (firstEighteenLetters.includes(lastChar)) {
+    //   console.log('Using Websockets')
+    //   return new WebsocketProvider(yDoc, config);
+    // } else {
+    console.log('Using WebRTC')
+    return new WebRTCProvider(yDoc, {
+      ...config,
+      iceServers
+    });
+    // }
   }
 }
