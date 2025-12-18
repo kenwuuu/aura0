@@ -93,6 +93,7 @@ curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash
 source ~/.bashrc  # load nvm into current shell session
 nvm install --lts  # install latest lts version of node
 npm i
+npm install pm2 -g
 pm2 start networking/websocket/ecosystem.config.cjs  # run server with pm2
 ```
 
