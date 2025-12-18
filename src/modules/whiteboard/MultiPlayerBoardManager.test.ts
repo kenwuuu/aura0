@@ -56,6 +56,23 @@ vi.mock('../../components', () => ({
   CardCounter: vi.fn(),
 }));
 
+vi.mock('../../stores/uiStore', () => ({
+  useTooltipStore: vi.fn(() => ({
+    tooltipManager: {
+      setup: vi.fn(),
+      update: vi.fn(),
+      destroy: vi.fn(),
+    },
+    isTooltipOpen: false,
+    setIsTooltipOpen: vi.fn(),
+  })),
+  useBoardInversionStore: vi.fn(() => ({
+    invertedBoards: new Set<string>(),
+    setInvertedBoards: vi.fn(),
+    isBoardInverted: vi.fn(() => false),
+  })),
+}));
+
 describe.skip('MultiPlayerBoardManager - Container Management', () => {
   let manager: MultiPlayerBoardManager;
   let container: HTMLElement;
