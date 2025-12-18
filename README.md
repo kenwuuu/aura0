@@ -85,7 +85,7 @@ For EC2:
 
 ```bash
 # clone this repo
-git clone https
+git clone https://github.com/kenwuuu/aura.git
 cd aura
 
 # install nvm, check their github for latest version
