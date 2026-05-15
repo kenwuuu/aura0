@@ -9,7 +9,7 @@ export class AnnouncementsService {
 
   // Update this version whenever you add new announcements
   // Format: YYYYMMDD for easy comparison
-  private static readonly CURRENT_VERSION = 20260319.2;
+  private static readonly CURRENT_VERSION = 20260515;
 
   /**
    * Check if the user should see the announcements modal
@@ -17,9 +17,11 @@ export class AnnouncementsService {
    */
   static shouldShowAnnouncement(): boolean {
     const lastSeenVersion = parseFloat(<string>localStorage.getItem(this.STORAGE_KEY));
+    const VISIT_COUNT_KEY = 'aura-visit-count';
+    const visitCount = parseInt(localStorage.getItem(VISIT_COUNT_KEY) || '0', 10);
 
     // First time user or new version available
-    return !lastSeenVersion || lastSeenVersion < this.CURRENT_VERSION;
+    return (!lastSeenVersion || lastSeenVersion < this.CURRENT_VERSION) && visitCount >= 10;
   }
 
   /**

@@ -28,7 +28,7 @@ import {usePlayerStore} from "./stores/playerStore";
 import {useGameInstance} from "./stores/gameInstanceStore";
 import {RoomConnectionStatus} from "@/components/RoomConnectionStatus";
 import {YjsNetworkProvider} from "@/modules/yjs-networking/YjsNetworkFactory";
-import {AnnouncementsService} from "@/services/announcements/PatchNotesService";
+import {AnnouncementsService} from "@/services/announcements/AnnouncementsService";
 
 
 Sentry.init({
@@ -58,6 +58,8 @@ Sentry.init({
 const baseUrl = "https://aura0.app/?room=";
 
 const isDevEnv = import.meta.env.MODE === 'development';
+
+const VISIT_COUNT_KEY = 'aura-visit-count';
 
 class AuraApp {
   private yDoc: Y.Doc;
@@ -177,6 +179,7 @@ class AuraApp {
     this.setupDiscordButton();
     this.setupHotkeyHintsModal();
     this.setupAddCardModal();
+    this.trackVisitCount();
   }
 
 
@@ -524,7 +527,7 @@ class AuraApp {
       return;
     }
 
-    console.log('Rnnouncements to show');
+    console.log('Announcements to show');
 
     const announcementsModalRoot = document.createElement('div');
     document.body.appendChild(announcementsModalRoot);
@@ -535,6 +538,13 @@ class AuraApp {
         onClose: () => AnnouncementsService.markAnnouncementAsSeen(),
       })
     );
+  }
+
+  private trackVisitCount(): void {
+    // Track visit count
+    const visitCount = parseInt(localStorage.getItem(VISIT_COUNT_KEY) || '0', 10);
+    const newVisitCount = visitCount + 1;
+    localStorage.setItem(VISIT_COUNT_KEY, newVisitCount.toString());
   }
 }
 
