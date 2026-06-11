@@ -1,15 +1,18 @@
 import { DeckImporter, DeckImportResult } from './DeckImporter';
 import { DeckLineItem, parseDecklist, validateFormat } from "@/services/deckImporter/DeckListParser";
 import { CardDataResult, ScryfallApiService } from '../scryfall';
+import {AuraApiService} from "@/services/aura_card_search/AuraApiService";
 import { Card } from '@/modules/deck';
 import * as Sentry from "@sentry/browser";
 
 export class MtgTextListDeckImporter extends DeckImporter {
+  private auraApi: AuraApiService;
   private scryfallApi: ScryfallApiService;
   private readonly onProgress?: (current: number, total: number) => void;
 
   constructor(onProgress?: (current: number, total: number) => void) {
     super();
+    this.auraApi = new AuraApiService();
     this.scryfallApi = new ScryfallApiService();
     this.onProgress = onProgress;
   }
@@ -55,8 +58,15 @@ export class MtgTextListDeckImporter extends DeckImporter {
     }
 
     let results: CardDataResult[];
+    let failedLineItems: DeckLineItem[];
     try {
-      results = await this.scryfallApi.fetchImagesForList(entries, this.onProgress);
+      ({ results, failedLineItems } = await this.auraApi.fetchImagesForList(entries, this.onProgress));
+      if (failedLineItems.length > 0) {
+        // remove existing errors because scryfall will report its own errors
+        results = results.filter(card => card.error === undefined);
+        const fallbackCards: CardDataResult[] = await this.scryfallApi.fetchImagesForList(failedLineItems, this.onProgress);
+        results.unshift(...fallbackCards);
+      }
     } catch (e) {
       // Unexpected throw from fetchImagesForList itself (not per-card errors,
       // which are returned as CardDataResult.error — this is a catastrophic failure)
