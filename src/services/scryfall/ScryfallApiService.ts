@@ -36,7 +36,7 @@ export class ScryfallApiService {
   private queue: PQueue;
   private static readonly BASE_URL = 'https://api.scryfall.com';
   private static readonly RATE_LIMIT_INTERVAL = 1000; // 1 second
-  private static readonly RATE_LIMIT_CAP = 10; // 10 requests per interval
+  private static readonly RATE_LIMIT_CAP = 2; // 10 requests per interval
 
   constructor() {
     this.queue = new PQueue({
