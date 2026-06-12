@@ -323,8 +323,9 @@ class AuraApp {
     if (isDevEnv) return;  // don't show modals, for Playwright testing
     welcomeRoot.render(React.createElement(WelcomeModal));
 
-    // Setup patch notes modal (shows after welcome modal if there are new notes)
-    this.setupPatchNotesModal();
+    // we haven't been making many changes, disabling patch notes because
+    // there's some weird bug where patch notes keep showing in prod
+    // this.setupPatchNotesModal();
     this.setupAnnouncementsModal();
   }
 

@@ -20,11 +20,7 @@ export class PatchNotesService {
 
     // !!lastSeenVersion prevents new users from seeing patch notes because we have a lot of popups, don't want to inundate
     // second comparison returns true if new version is available
-    // return !!lastSeenVersion || lastSeenVersion < this.CURRENT_VERSION;
-
-    // we haven't been making many changes, setting this to false because there's some weird bug where
-    // patch notes keep showing in prod
-    return false
+    return !!lastSeenVersion || lastSeenVersion < this.CURRENT_VERSION;
   }
 
   /**
