@@ -5,7 +5,7 @@
  * Users will see the patch notes modal on their first visit after a version update.
  */
 export class PatchNotesService {
-  private static readonly STORAGE_KEY = 'aura-last-seen-patch-notes-v3';
+  private static readonly STORAGE_KEY = 'aura-last-seen-patch-notes-version';
 
   // Update this version whenever you add new patch notes
   // Format: YYYYMMDD for easy comparison
@@ -20,7 +20,11 @@ export class PatchNotesService {
 
     // !!lastSeenVersion prevents new users from seeing patch notes because we have a lot of popups, don't want to inundate
     // second comparison returns true if new version is available
-    return !!lastSeenVersion || lastSeenVersion < this.CURRENT_VERSION;
+    // return !!lastSeenVersion || lastSeenVersion < this.CURRENT_VERSION;
+
+    // we haven't been making many changes, setting this to false because there's some weird bug where
+    // patch notes keep showing in prod
+    return false
   }
 
   /**
