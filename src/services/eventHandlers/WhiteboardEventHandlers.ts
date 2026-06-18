@@ -1,4 +1,5 @@
 import * as Y from 'yjs';
+import posthog from 'posthog-js';
 import { Player } from '@/modules/player';
 import { MultiPlayerBoardManager } from '@/modules/whiteboard';
 import {TokenCreationResult, TokenService} from '../scryfall';
@@ -118,6 +119,10 @@ export class WhiteboardEventHandlers {
         card.x = e.clientX - boardLeft - ((CARD_WIDTH / 2) * this.whiteboard.getZoomLevel());
         card.y = e.clientY - boardTop - ((CARD_HEIGHT / 2) * this.whiteboard.getZoomLevel()) - 60;
         this.whiteboard.addCard(card, this.playerId);
+        posthog.capture('card_played_to_battlefield', {
+          card_name: card.name,
+          is_flipped: card.isFlipped,
+        });
 
         // Search for and create any tokens related to card
         await this.createRelatedTokens(card);

@@ -22,6 +22,7 @@ import { PatchNotesService } from './services/patchNotes';
 import { DEFAULT_DECK } from './data/defaultDeck';
 import './style.css';
 import * as Sentry from "@sentry/react";
+import posthog from 'posthog-js';
 import {YSTATE_DECK_CARD_COUNT} from "./constants";
 import {ReactToasterRoot} from "../ReactToasterRoot";
 import {usePlayerStore} from "./stores/playerStore";
@@ -30,6 +31,11 @@ import {RoomConnectionStatus} from "@/components/RoomConnectionStatus";
 import {YjsNetworkProvider} from "@/modules/yjs-networking/YjsNetworkFactory";
 import {AnnouncementsService} from "@/services/announcements/AnnouncementsService";
 
+
+posthog.init(import.meta.env.VITE_POSTHOG_PROJECT_TOKEN, {
+  api_host: import.meta.env.VITE_POSTHOG_HOST,
+  defaults: '2026-01-30',
+});
 
 Sentry.init({
   environment: process.env.NODE_ENV || "development",
@@ -260,6 +266,7 @@ class AuraApp {
         navigator.clipboard
           .writeText(window.location.href)
           .then(() => {
+            posthog.capture('room_link_copied', { room: this.roomManager.getRoomName() });
             roomElement.innerHTML = `COPIED! ${checkSVG}`;
             roomElement.style.color = '#4ade80';
             setTimeout(() => {
@@ -340,6 +347,7 @@ class AuraApp {
 
     // Mark this room as visited
     this.roomManager.markRoomAsVisited();
+    posthog.capture('game_session_started', { room: this.roomManager.getRoomName() });
     console.log('New room detected - will auto-load deck');
 
     // Auto-load the first available deck on entering a new room
@@ -395,6 +403,12 @@ class AuraApp {
       // Save the deck state for this room so it persists on refresh
       DeckPersistenceService.saveDeckForRoom(this.roomManager.getRoomName(), this.localPlayer.getDeck());
 
+      posthog.capture('deck_loaded', {
+        deck_name: savedDeck.metadata.name,
+        card_count: savedDeck.cards.length,
+        deck_format: savedDeck.metadata.format,
+        room: this.roomManager.getRoomName(),
+      });
       console.log(`Deck "${savedDeck.metadata.name}" loaded successfully!`);
     });
   }
