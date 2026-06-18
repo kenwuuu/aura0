@@ -32,8 +32,8 @@ import {YjsNetworkProvider} from "@/modules/yjs-networking/YjsNetworkFactory";
 import {AnnouncementsService} from "@/services/announcements/AnnouncementsService";
 
 
-posthog.init(import.meta.env.VITE_POSTHOG_PROJECT_TOKEN, {
-  api_host: import.meta.env.VITE_POSTHOG_HOST,
+posthog.init('phc_yVFqMSYG88kEXYf4vcMJgS7YuHpjRyYCD4aWicRXuJtF', {
+  api_host: 'https://us.i.posthog.com',
   defaults: '2026-01-30',
 });
 
