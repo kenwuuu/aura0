@@ -4,6 +4,13 @@ import { CardDataResult, ScryfallApiService } from '../scryfall';
 import {AuraApiService} from "@/services/aura_card_search/AuraApiService";
 import { Card } from '@/modules/deck';
 import * as Sentry from "@sentry/browser";
+import {
+  trackImportStarted,
+  trackImportFailed,
+  trackFallbackTriggered,
+  trackImportSucceeded,
+  trackImportPartialFailure,
+} from "@/services/analytics/PosthogFunctions";
 
 export class MtgTextListDeckImporter extends DeckImporter {
   private auraApi: AuraApiService;
@@ -21,6 +28,9 @@ export class MtgTextListDeckImporter extends DeckImporter {
    * Import deck from Scryfall-formatted text
    */
   public async importFromText(text: string): Promise<DeckImportResult> {
+    const startTime = Date.now();
+    trackImportStarted(text);
+
     let deck: DeckImportResult = {
       cards: [],
       metadata: {},
@@ -28,6 +38,7 @@ export class MtgTextListDeckImporter extends DeckImporter {
 
     if (!validateFormat(text)) {
       deck.errors = ["Invalid deck format. Expected format: \"[count] [card name]\" per line"];
+      trackImportFailed('invalid_format');
       return deck;
     }
 
@@ -35,6 +46,10 @@ export class MtgTextListDeckImporter extends DeckImporter {
     const sectionHeaders = this.detectSectionHeaders(text);
     if (sectionHeaders.length > 0) {
       this.setSectionHeaderErrors(deck, sectionHeaders);
+      trackImportFailed('section_headers_detected', {
+        headers: sectionHeaders.slice(0, 5),
+        header_count: sectionHeaders.length,
+      });
       return deck;
     }
 
@@ -45,6 +60,7 @@ export class MtgTextListDeckImporter extends DeckImporter {
     } catch (e) {
       const message = e instanceof Error ? e.message : String(e);
       deck.errors = [`Failed to parse decklist: ${message}`];
+      trackImportFailed('parse_error', { message });
       Sentry.captureException(e, {
         level: "error",
         extra: { stage: "parseDecklist", text },
@@ -54,6 +70,7 @@ export class MtgTextListDeckImporter extends DeckImporter {
 
     if (entries.length === 0) {
       deck.errors = ["No valid card entries found. Make sure each line starts with a quantity, e.g. \"4 Lightning Bolt\"."];
+      trackImportFailed('no_valid_entries');
       return deck;
     }
 
@@ -62,6 +79,7 @@ export class MtgTextListDeckImporter extends DeckImporter {
     try {
       ({ results, failedLineItems } = await this.auraApi.fetchImagesForList(entries, this.onProgress));
       if (failedLineItems.length > 0) {
+        trackFallbackTriggered(failedLineItems.length, entries.length);
         // remove existing errors because scryfall will report its own errors
         results = results.filter(card => card.error === undefined);
         const fallbackCards: CardDataResult[] = await this.scryfallApi.fetchImagesForList(failedLineItems, this.onProgress);
@@ -72,6 +90,7 @@ export class MtgTextListDeckImporter extends DeckImporter {
       // which are returned as CardDataResult.error — this is a catastrophic failure)
       const message = e instanceof Error ? e.message : String(e);
       deck.errors = [`Card data fetch failed: ${message}. Please try again.`];
+      trackImportFailed('fetch_catastrophic_failure', { message });
       Sentry.captureException(e, {
         level: "error",
         extra: { stage: "fetchImagesForList", entries },
@@ -89,11 +108,20 @@ export class MtgTextListDeckImporter extends DeckImporter {
       lastModified: new Date(),
     };
 
+    const durationMs = Date.now() - startTime;
+
     // Report partial failures to Sentry with structured context
     if (deck.errors && deck.errors.length > 0) {
       const failedCards = results
         .filter(r => r.error)
         .map(r => ({ name: r.name, error: r.error }));
+
+      trackImportPartialFailure({
+        totalRequested: entries.length,
+        totalImported: deck.cards.length,
+        totalFailed: failedCards.length,
+        durationMs,
+      });
 
       Sentry.captureMessage("Partial deck import failure", {
         level: "warning",
@@ -104,6 +132,12 @@ export class MtgTextListDeckImporter extends DeckImporter {
           totalFailed: failedCards.length,
           failedCards,
         },
+      });
+    } else {
+      trackImportSucceeded({
+        cardCount: deck.cards.length,
+        uniqueCardCount: results.length,
+        durationMs,
       });
     }
 

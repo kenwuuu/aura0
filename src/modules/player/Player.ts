@@ -15,6 +15,7 @@ import {
 import {PileType} from "../gameResourcesDock/components";
 import { CardPile } from './CardPile';
 import {SavedDeck} from "@/modules/deck/types";
+import {trackHealthChange} from "@/services/analytics/PosthogFunctions"
 
 export class Player {
   private playerId: string;
@@ -28,6 +29,9 @@ export class Player {
   private discard: CardPile;
   private scry: CardPile;
   private piles: Record<PileType, CardPile>;
+
+  // posthog
+  private healthEventTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor(
     playerId: string,
@@ -205,8 +209,14 @@ export class Player {
   }
 
   public modifyHealth(delta: number): void {
-    const currentHealth = this.yPlayerState.get(YSTATE_HEALTH) ?? this.config.initialHealth;
+    const currentHealth: number = this.yPlayerState.get(YSTATE_HEALTH) ?? this.config.initialHealth;
     this.yPlayerState.set(YSTATE_HEALTH, currentHealth + delta);
+
+    if (this.healthEventTimer) clearTimeout(this.healthEventTimer);
+    this.healthEventTimer = setTimeout(() => {
+      trackHealthChange(this.yPlayerState.get(YSTATE_HEALTH))
+      this.healthEventTimer = null;
+    }, 1000);
   }
 
   public shuffleDeck(): void {
