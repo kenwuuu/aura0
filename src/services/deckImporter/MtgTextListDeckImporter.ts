@@ -126,6 +126,7 @@ export class MtgTextListDeckImporter extends DeckImporter {
       Sentry.captureMessage("Partial deck import failure", {
         level: "warning",
         extra: {
+          deckListRawString: text,
           stage: "parseResultsIntoDeck",
           totalRequested: entries.length,
           totalImported: deck.cards.length,
