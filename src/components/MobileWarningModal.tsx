@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import posthog from 'posthog-js';
 
 export const MobileWarningModal: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -10,7 +11,14 @@ export const MobileWarningModal: React.FC = () => {
       const isNarrowScreen = window.innerWidth < 768;
       const hasMobileUA = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
-      if (hasMobileUA || (hasTouchScreen && isNarrowScreen)) setIsOpen(true);
+      if (hasMobileUA || (hasTouchScreen && isNarrowScreen)) {
+        setIsOpen(true);
+
+        posthog.capture('mobile_warning_modal_shown', {
+          screen_width: window.innerWidth,
+          user_agent: navigator.userAgent,
+        });
+      }
     };
 
     check();
@@ -37,6 +45,8 @@ export const MobileWarningModal: React.FC = () => {
       document.execCommand('copy');
       document.body.removeChild(el);
     }
+
+    posthog.capture('mobile_warning_link_copied');
 
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
