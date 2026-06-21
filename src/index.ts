@@ -30,6 +30,7 @@ import {useGameInstance} from "./stores/gameInstanceStore";
 import {RoomConnectionStatus} from "@/components/RoomConnectionStatus";
 import {YjsNetworkProvider} from "@/modules/yjs-networking/YjsNetworkFactory";
 import {AnnouncementsService} from "@/services/announcements/AnnouncementsService";
+import {MobileWarningModal} from "@/components/MobileWarningModal";
 
 
 posthog.init('phc_yVFqMSYG88kEXYf4vcMJgS7YuHpjRyYCD4aWicRXuJtF', {
@@ -321,6 +322,13 @@ class AuraApp {
     );
 
     // Setup welcome modal
+    const mobileWarningDiv = document.createElement('div');
+    mobileWarningDiv.id = 'mobile-warning-root';
+    document.body.appendChild(mobileWarningDiv);
+    const mobileWarningRoot = createRoot(mobileWarningDiv);
+    mobileWarningRoot.render(React.createElement(MobileWarningModal));
+
+    // Setup welcome modal
     const welcomeModalRoot = document.createElement('div');
     welcomeModalRoot.id = 'welcome-modal-root';
     document.body.appendChild(welcomeModalRoot);
@@ -339,7 +347,6 @@ class AuraApp {
   private async loadDeckOnStart(storage: DeckStorageService) {
     // Only auto-load deck when entering a NEW room, not when reconnecting
     const isRecentRoom = this.roomManager.isRecentRoom();
-
     if (isRecentRoom) {
       console.log('Reconnecting to recent room - skipping auto-load to preserve game state');
       return;
