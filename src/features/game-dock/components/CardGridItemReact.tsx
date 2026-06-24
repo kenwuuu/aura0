@@ -15,7 +15,7 @@ import {HotkeyContext} from '@/features/hotkeys/hotkeys';
 import {DEFAULT_CARD_BACK} from '@/constants';
 import styles from './CardGridItemReact.module.css';
 import {useTooltipStore} from "@/stores/uiStore";
-import {useGameInstance} from "@/stores/gameInstanceStore";
+import {useCardPreviewStore} from "@/features/card-preview/cardPreviewStore";
 
 export interface CardGridItemReactProps {
   card: Card;
@@ -42,8 +42,6 @@ export const CardGridItemReact = React.memo(function CardGridItemReact({
   const [backImageError, setBackImageError] = React.useState(false);
   const cardRef = React.useRef<HTMLDivElement>(null);
 
-  const cardPreview = useGameInstance.getState().cardPreview!;
-
   const frontImageUrl = card.images?.front?.normal || card.images?.front?.small;
   const backImageUrl = DEFAULT_CARD_BACK;
 
@@ -53,13 +51,13 @@ export const CardGridItemReact = React.memo(function CardGridItemReact({
     onHover(card);
     tooltipManager?.showOnHover(card.id, hotkeyContext);
 
-    if (!showFaceDown) cardPreview.show(card);
+    if (!showFaceDown) useCardPreviewStore.getState().show(card);
   };
 
   const handleMouseLeave = () => {
     onHover(null);
     tooltipManager?.hideOnLeave();
-    cardPreview.hide();
+    useCardPreviewStore.getState().hide();
   };
 
   const handleMouseMove = (e: React.MouseEvent) => {

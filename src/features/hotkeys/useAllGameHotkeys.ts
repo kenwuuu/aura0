@@ -14,10 +14,12 @@ import { useGameInstance } from '@/stores/gameInstanceStore';
 import { getKeyBindingsForAction, HotkeyContext } from '@/features/hotkeys/hotkeys';
 import { DeckPersistenceService } from '@/infrastructure/persistence';
 import { executeBattlefieldCardAction } from '@/features/battlefield/battlefieldCardActions';
+import { triggerConfirmation } from '@/shared/utils/confirmation';
+import { useCardPreviewStore } from '@/features/card-preview/cardPreviewStore';
 
 export function useAllGameHotkeys() {
   // Get game instances from store
-  const { player, whiteboard, cardPreview, playerId, roomManager } = useGameInstance();
+  const { player, whiteboard, playerId, roomManager } = useGameInstance();
 
   // Get hover states from hotkey store
   const {
@@ -66,11 +68,12 @@ export function useAllGameHotkeys() {
     getKeyBindingsForAction('mulligan'),
     () => {
       if (player) {
-        const confirmed = window.confirm("Mulligan? Draws 7 new cards.");
-        if (confirmed) {
-          player.mulligan(7);
-          saveDeck();
-        }
+        triggerConfirmation("Mulligan? Draws 7 new cards.", "m").then((confirmed) => {
+          if (confirmed) {
+            player.mulligan(7);
+            saveDeck();
+          }
+        });
       }
     },
     { enabled: !isModalOpen, preventDefault: true }
@@ -235,10 +238,10 @@ export function useAllGameHotkeys() {
   useHotkeys(
     getKeyBindingsForAction('flip'),
     () => {
-      if (player && cardPreview && hoveredHandCardId) {
+      if (player && hoveredHandCardId) {
         player.flipHandCard(hoveredHandCardId);
         player.syncToYState();
-        cardPreview.hide();
+        useCardPreviewStore.getState().hide();
       }
     },
     { enabled: handEnabled, preventDefault: true }
@@ -247,13 +250,13 @@ export function useAllGameHotkeys() {
   useHotkeys(
     getKeyBindingsForAction('moveToDiscard'),
     () => {
-      if (player && cardPreview && hoveredHandCardId) {
+      if (player && hoveredHandCardId) {
         const hand = player.getState().hand;
         const card = hand.find(c => c.id === hoveredHandCardId);
         if (card) {
           player.removeCardFromPileById(hoveredHandCardId, 'hand');
           player.placeCardInPile(card, 'discard');
-          cardPreview.hide();
+          useCardPreviewStore.getState().hide();
         }
         player.syncToYState();
       }
@@ -264,13 +267,13 @@ export function useAllGameHotkeys() {
   useHotkeys(
     getKeyBindingsForAction('moveToExile'),
     () => {
-      if (player && cardPreview && hoveredHandCardId) {
+      if (player && hoveredHandCardId) {
         const hand = player.getState().hand;
         const card = hand.find(c => c.id === hoveredHandCardId);
         if (card) {
           player.removeCardFromPileById(hoveredHandCardId, 'hand');
           player.placeCardInPile(card, 'exile');
-          cardPreview.hide();
+          useCardPreviewStore.getState().hide();
         }
         player.syncToYState();
       }
@@ -281,13 +284,13 @@ export function useAllGameHotkeys() {
   useHotkeys(
     getKeyBindingsForAction('moveToDeckTop'),
     () => {
-      if (player && cardPreview && hoveredHandCardId) {
+      if (player && hoveredHandCardId) {
         const hand = player.getState().hand;
         const card = hand.find(c => c.id === hoveredHandCardId);
         if (card) {
           player.removeCardFromPileById(hoveredHandCardId, 'hand');
           player.placeCardInPile(card, 'deck');
-          cardPreview.hide();
+          useCardPreviewStore.getState().hide();
         }
         player.syncToYState();
       }
@@ -298,13 +301,13 @@ export function useAllGameHotkeys() {
   useHotkeys(
     getKeyBindingsForAction('moveToDeckBottom'),
     () => {
-      if (player && cardPreview && hoveredHandCardId) {
+      if (player && hoveredHandCardId) {
         const hand = player.getState().hand;
         const card = hand.find(c => c.id === hoveredHandCardId);
         if (card) {
           player.removeCardFromPileById(hoveredHandCardId, 'hand');
           player.placeCardInPile(card, 'deck', 0);
-          cardPreview.hide();
+          useCardPreviewStore.getState().hide();
         }
         player.syncToYState();
       }

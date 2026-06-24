@@ -3,7 +3,7 @@ import * as Y from 'yjs';
 import { HandCard } from './HandCard';
 import { Card } from '@/features/player';
 import { animate } from 'motion';
-import {useGameInstance} from "@/stores/gameInstanceStore";
+import {useCardPreviewStore} from "@/features/card-preview/cardPreviewStore";
 
 interface HandCardsContainerProps {
   yPlayerState: Y.Map<any>;
@@ -54,7 +54,6 @@ export const HandCardsContainer: React.FC<HandCardsContainerProps> = ({
   const dragStateRef = useRef<{ mode: string; draggedElement: HTMLDivElement; startIndex: number } | undefined>(undefined);
   const requestAnimationFrameIdRef = useRef<number | null>(null);
   const scrollAnimationRef = useRef<any>(null);
-  const cardPreview = useGameInstance.getState().cardPreview!;
   const [cardSpacing, setCardSpacing] = useState<number>(4); // default margin-right
   const [containerWidth, setContainerWidth] = useState<number>(0);
   const isReorderingRef = useRef<boolean>(false);
@@ -134,21 +133,21 @@ export const HandCardsContainer: React.FC<HandCardsContainerProps> = ({
     onHoveredCardChange(cardId);
     const card = hand.find(c => c.id === cardId);
     if (card) {
-      cardPreview.show(card);
+      useCardPreviewStore.getState().show(card);
     }
-  }, [hand, cardPreview, onHoveredCardChange]);
+  }, [hand, onHoveredCardChange]);
 
   const handleCardMouseMove = useCallback((e: React.MouseEvent) => {
-    cardPreview.updatePosition(e.nativeEvent);
-  }, [cardPreview]);
+    useCardPreviewStore.getState().updatePosition(e.clientX, e.clientY);
+  }, []);
 
   const handleCardMouseLeave = useCallback(() => {
     onHoveredCardChange(null);
-    cardPreview.hide();
-  }, [cardPreview, onHoveredCardChange]);
+    useCardPreviewStore.getState().hide();
+  }, [onHoveredCardChange]);
 
   const handleCardDragStart = useCallback((card: Card, element: HTMLDivElement, _e: React.DragEvent) => {
-    cardPreview.hide();
+    useCardPreviewStore.getState().hide();
     onHoveredCardChange(null);
 
     // Track the card globally for board drop logic
@@ -163,7 +162,7 @@ export const HandCardsContainer: React.FC<HandCardsContainerProps> = ({
     };
     dragStateRef.current = dragState;
     onDragStateChange(dragState);
-  }, [hand, cardPreview, onHoveredCardChange, onDraggedCardChange, onDragStateChange]);
+  }, [hand, onHoveredCardChange, onDraggedCardChange, onDragStateChange]);
 
   const handleCardDragEnd = useCallback(() => {
     // Handled by container dragend

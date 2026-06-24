@@ -3,6 +3,7 @@ import React from 'react';
 import { createRoot, Root } from 'react-dom/client';
 import { Deck } from './features/player';
 import { MultiPlayerBoardManager } from './features/battlefield';
+import { ZoomControls } from './features/battlefield/ZoomControls';
 import { yjsNetworkFactory } from './infrastructure/networking';
 import { getOrCreatePlayerId, getOrCreatePeerId } from './infrastructure/networking';
 import { Player } from './features/player';
@@ -139,6 +140,18 @@ class AuraApp {
       '#1a1a1a', // backgroundColor
     );
 
+    // Card zoom controls (React; reads/writes the zoom store the board subscribes to)
+    const zoomControlsContainer = document.createElement('div');
+    zoomControlsContainer.id = 'zoom-controls-root';
+    document.body.appendChild(zoomControlsContainer);
+    createRoot(zoomControlsContainer).render(React.createElement(ZoomControls));
+
+    // Card preview popup + its zoom controls (React; driven via the card-preview store)
+    const cardPreviewContainer = document.createElement('div');
+    cardPreviewContainer.id = 'card-preview-root';
+    document.body.appendChild(cardPreviewContainer);
+    createRoot(cardPreviewContainer).render(React.createElement(CardPreview));
+
     // Initialize local player's resource dock
     const dockContainer = document.getElementById('local-dock');
     if (!dockContainer) {
@@ -198,7 +211,6 @@ class AuraApp {
     // Populate the game instance store for the hotkeys hook
     useGameInstance.getState().setPlayer(this.localPlayer);
     useGameInstance.getState().setWhiteboard(this.whiteboard);
-    useGameInstance.getState().setCardPreview(new CardPreview());
     useGameInstance.getState().setPlayerId(this.playerId);
     useGameInstance.getState().setRoomManager(this.roomManager);
 

@@ -1,32 +1,13 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { MultiPlayerBoardManager } from './MultiPlayerBoardManager';
 import * as Y from 'yjs';
-import { CardPreview } from '@/features/card-preview';
 import {YDOC_CARDS_ON_BOARD} from "../../constants";
 
 // Mock dependencies
-vi.mock('../cardPreview', () => ({
-  CardPreview: vi.fn().mockImplementation(() => ({
-    show: vi.fn(),
-    hide: vi.fn(),
-    updatePosition: vi.fn(),
-  })),
-}));
-
 vi.mock('./TooltipManager', () => ({
   TooltipManager: vi.fn().mockImplementation(() => ({
     setup: vi.fn(),
     update: vi.fn(),
-    destroy: vi.fn(),
-  })),
-}));
-
-vi.mock('./ZoomController', () => ({
-  ZoomController: vi.fn().mockImplementation(() => ({
-    setupControls: vi.fn(),
-    onZoomChange: vi.fn(),
-    applyZoomToCard: vi.fn(),
-    getZoomLevel: vi.fn(() => 1),
     destroy: vi.fn(),
   })),
 }));
@@ -70,7 +51,6 @@ describe.skip('MultiPlayerBoardManager - Container Management', () => {
   let manager: MultiPlayerBoardManager;
   let container: HTMLElement;
   let yDoc: Y.Doc;
-  let cardPreview: CardPreview;
   const localPlayerId = 'player-local-123';
   const opponentPlayerId1 = 'player-opponent-456';
   const opponentPlayerId2 = 'player-opponent-789';
@@ -84,7 +64,6 @@ describe.skip('MultiPlayerBoardManager - Container Management', () => {
 
     // Create Yjs doc
     yDoc = new Y.Doc();
-    cardPreview = new CardPreview();
 
     // Create manager instance
     manager = new MultiPlayerBoardManager(

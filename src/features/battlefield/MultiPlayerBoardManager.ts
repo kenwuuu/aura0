@@ -1,8 +1,8 @@
 import { Card } from '@/features/player';
-import { DEFAULT_CARD_BACK, YDOC_CARDS_ON_BOARD, YDOC_KEYWORD_TOKENS } from '@/constants';
+import { DEFAULT_CARD_BACK, YDOC_CARDS_ON_BOARD, YDOC_KEYWORD_TOKENS, CARD_WIDTH, CARD_HEIGHT } from '@/constants';
 import { WhiteboardCard, DragState } from './types';
 import { TooltipManager } from './TooltipManager';
-import { ZoomController } from './ZoomController';
+import { useZoomStore } from './zoomStore';
 import { BoardContainerManager, BOARD_HEIGHT } from './BoardContainerManager';
 import * as Y from 'yjs';
 import React from 'react';
@@ -14,7 +14,7 @@ import { KeywordToken } from '@/features/keyword-tokens/types';
 import { KeywordTokenFactory } from '@/features/keyword-tokens/KeywordTokenFactory';
 import { useHotkeyStore } from '@/stores/hotkeyStore';
 import { executeBattlefieldCardAction } from '@/features/battlefield/battlefieldCardActions';
-import { useGameInstance } from "@/stores/gameInstanceStore";
+import { useCardPreviewStore } from '@/features/card-preview/cardPreviewStore';
 
 const DEFAULT_OPPONENT_OPACITY = 1.0;
 const FOCUSED_OPACITY = 1.0;
@@ -28,7 +28,7 @@ export class MultiPlayerBoardManager {
   private yTokens: Y.Map<KeywordToken>;
   private yDoc: Y.Doc;
   private maxZIndex: number = 0;
-  private zoomController: ZoomController;
+  private zoomUnsubscribe: (() => void) | null = null;
   private localPlayerId: string;
   private tooltipManager: TooltipManager;
   // Track mouse movement to distinguish clicks from drags
@@ -66,9 +66,6 @@ export class MultiPlayerBoardManager {
       backgroundColor,
       this.useOverlay
     );
-
-    // Initialize zoom controller
-    this.zoomController = new ZoomController();
 
     this.setupZoomControls();
     this.setupYjsSync();
@@ -357,14 +354,12 @@ export class MultiPlayerBoardManager {
   }
 
   private createCardElement(card: WhiteboardCard): HTMLElement {
-    const cardPreview = useGameInstance.getState().cardPreview!;
-
     const cardElement = document.createElement('div');
     cardElement.dataset.cardId = card.id;
     cardElement.className = 'card';
     cardElement.style.position = 'absolute';
     // Apply zoom to set initial size
-    this.zoomController.applyZoomToCard(cardElement);
+    this.applyZoomToCard(cardElement);
     cardElement.style.cursor = 'grab';
     cardElement.style.userSelect = 'none';
     cardElement.style.overflow = 'hidden';
@@ -432,7 +427,7 @@ export class MultiPlayerBoardManager {
 
       // Get latest card state from Yjs to avoid stale closures
       const latestCard = this.yCards.get(card.id) || card;
-      cardPreview.show(latestCard);
+      useCardPreviewStore.getState().show(latestCard);
 
       // Show tooltip menu on hover (delayed)
       this.tooltipManager.showOnHover(card.id, HotkeyContext.Battlefield);
@@ -440,14 +435,14 @@ export class MultiPlayerBoardManager {
 
     cardElement.addEventListener('mousemove', (e: MouseEvent) => {
       this.tooltipManager.setMouseLocation(e.clientX, e.clientY);
-      cardPreview.updatePosition(e);
+      useCardPreviewStore.getState().updatePosition(e.clientX, e.clientY);
     });
 
     cardElement.addEventListener('mouseleave', () => {
       // Update Zustand store for new hotkey system
       useHotkeyStore.getState().setHoveredBattlefieldCard(null);
 
-      cardPreview.hide();
+      useCardPreviewStore.getState().hide();
       this.tooltipManager.hideOnLeave();
     });
 
@@ -519,7 +514,7 @@ export class MultiPlayerBoardManager {
   }
 
   private updateCardPosition(element: HTMLElement, card: WhiteboardCard): void {
-    const { x, y } = OpponentCoordinateTransformer.transform(card, this.localPlayerId, BOARD_HEIGHT, this.zoomController.getZoomLevel());
+    const { x, y } = OpponentCoordinateTransformer.transform(card, this.localPlayerId, BOARD_HEIGHT, useZoomStore.getState().zoomLevel);
     element.style.left = `${x}px`;
     element.style.top = `${y}px`;
     element.style.transform = `rotate(${card.rotation}deg) ${card.isTapped ? 'rotate(90deg)' : ''}`;
@@ -650,7 +645,7 @@ export class MultiPlayerBoardManager {
       isFlipped: false,
       counters: []
     };
-    const { x, y } = OpponentCoordinateTransformer.transform(transformable, this.localPlayerId, BOARD_HEIGHT, this.zoomController.getZoomLevel());
+    const { x, y } = OpponentCoordinateTransformer.transform(transformable, this.localPlayerId, BOARD_HEIGHT, useZoomStore.getState().zoomLevel);
     element.style.left = `${x}px`;
     element.style.top = `${y}px`;
     element.style.zIndex = token.zIndex.toString();
@@ -903,11 +898,9 @@ export class MultiPlayerBoardManager {
   }
 
   private setupZoomControls(): void {
-    // Setup zoom controller UI
-    this.zoomController.setupControls();
-
-    // Register callback to update all card sizes when zoom changes
-    this.zoomController.onZoomChange(() => {
+    // The zoom control UI is rendered by the React <ZoomControls /> component.
+    // Re-apply card sizes whenever the zoom level changes in the store.
+    this.zoomUnsubscribe = useZoomStore.subscribe(() => {
       this.cards.forEach((card) => {
         const container = this.boardContainerManager.getContainer(card.ownerId);
         if (!container) return;
@@ -916,14 +909,20 @@ export class MultiPlayerBoardManager {
           `[data-card-id="${card.id}"]`
         ) as HTMLElement;
         if (cardElement) {
-          this.zoomController.applyZoomToCard(cardElement);
+          this.applyZoomToCard(cardElement);
         }
       });
     });
   }
 
+  private applyZoomToCard(cardElement: HTMLElement): void {
+    const zoom = useZoomStore.getState().zoomLevel;
+    cardElement.style.width = `${CARD_WIDTH * zoom}px`;
+    cardElement.style.height = `${CARD_HEIGHT * zoom}px`;
+  }
+
   public getZoomLevel() {
-    return this.zoomController.getZoomLevel();
+    return useZoomStore.getState().zoomLevel;
   }
 
   public getTooltipManager(): TooltipManager {
@@ -934,7 +933,7 @@ export class MultiPlayerBoardManager {
     this.cards.clear();
     this.tokens.clear();
     this.boardContainerManager.destroy();
-    this.zoomController.destroy();
+    this.zoomUnsubscribe?.();
     this.tooltipManager.destroy();
   }
 }

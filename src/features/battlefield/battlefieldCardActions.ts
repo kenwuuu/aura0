@@ -6,8 +6,7 @@
  */
 
 import { MultiPlayerBoardManager } from '@/features/battlefield/MultiPlayerBoardManager';
-import { CardPreview } from '@/features/card-preview';
-import {useGameInstance} from "@/stores/gameInstanceStore";
+import { useCardPreviewStore } from '@/features/card-preview/cardPreviewStore';
 
 export function executeBattlefieldCardAction(
   action: string,
@@ -17,7 +16,6 @@ export function executeBattlefieldCardAction(
 ) {
   const yCards = whiteboard['yCards'];
   const card = yCards.get(cardId);
-  const cardPreview = useGameInstance.getState().cardPreview!;
 
   if (action === 'untapAll') {
     yCards.forEach((c, cId) => {
@@ -56,36 +54,36 @@ export function executeBattlefieldCardAction(
       yCards.set(newCard.id, newCard);
       break;
     case 'delete':
-      cardPreview.hide();
+      useCardPreviewStore.getState().hide();
       whiteboard.getTooltipManager().hide();
       yCards.delete(cardId);
       break;
     case 'moveToHand':
-      cardPreview.hide();
+      useCardPreviewStore.getState().hide();
       whiteboard.getTooltipManager().hide();
       window.dispatchEvent(new CustomEvent('moveCardToHand', { detail: { card } }));
       yCards.delete(cardId);
       break;
     case 'moveToDiscard':
-      cardPreview.hide();
+      useCardPreviewStore.getState().hide();
       whiteboard.getTooltipManager().hide();
       window.dispatchEvent(new CustomEvent('moveCardToDiscard', { detail: { card } }));
       yCards.delete(cardId);
       break;
     case 'moveToExile':
-      cardPreview.hide();
+      useCardPreviewStore.getState().hide();
       whiteboard.getTooltipManager().hide();
       window.dispatchEvent(new CustomEvent('moveCardToExile', { detail: { card } }));
       yCards.delete(cardId);
       break;
     case 'moveToDeckTop':
-      cardPreview.hide();
+      useCardPreviewStore.getState().hide();
       whiteboard.getTooltipManager().hide();
       window.dispatchEvent(new CustomEvent('moveCardToDeckTop', { detail: { card } }));
       yCards.delete(cardId);
       break;
     case 'moveToDeckBottom':
-      cardPreview.hide();
+      useCardPreviewStore.getState().hide();
       whiteboard.getTooltipManager().hide();
       window.dispatchEvent(new CustomEvent('moveCardToDeckBottom', { detail: { card } }));
       yCards.delete(cardId);
