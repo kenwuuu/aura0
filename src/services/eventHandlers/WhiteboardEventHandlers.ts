@@ -1,13 +1,13 @@
 import * as Y from 'yjs';
 import posthog from 'posthog-js';
-import { Player } from '@/modules/player';
-import { MultiPlayerBoardManager } from '@/modules/whiteboard';
-import {TokenCreationResult, TokenService} from '../cards';
+import { Player } from '@/features/player';
+import { MultiPlayerBoardManager } from '@/features/battlefield';
+import {TokenCreationResult, TokenService} from '@/infrastructure/cards';
 import {CARD_HEIGHT, CARD_WIDTH, YDOC_CARDS_ON_BOARD, YDOC_KEYWORD_TOKENS} from '@/constants';
-import {getBoardLeftOffset, getBoardTopOffset} from "@/modules/whiteboard/BoardContainerManager";
-import {PileType} from "@/modules/gameResourcesDock/components";
-import {tokenDiameter} from "@/modules/keywordTokens/KeywordTokenFactory";
-import {Card} from "@/modules/deck";
+import {getBoardLeftOffset, getBoardTopOffset} from "@/features/battlefield/BoardContainerManager";
+import {PileType} from "@/features/game-dock/components";
+import {tokenDiameter} from "@/features/keyword-tokens/KeywordTokenFactory";
+import {Card} from "@/features/player";
 
 /**
  * Handles drag-and-drop events between the whiteboard and other game zones

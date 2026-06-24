@@ -1,4 +1,4 @@
-import { SavedDeck } from '../modules/deck/types';
+import { SavedDeck } from '@/features/player/types';
 
 export const DEFAULT_DECK: SavedDeck = {
   "metadata": {

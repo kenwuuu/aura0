@@ -6,7 +6,7 @@
  */
 
 import { create } from 'zustand';
-import { HotkeyContext } from '@/data/hotkeys';
+import { HotkeyContext } from '@/features/hotkeys/hotkeys';
 
 interface HotkeyStore {
   // Current context (what user is hovering)

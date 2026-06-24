@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Button } from '@/components/ui/button';
+import { Alert, AlertDescription, AlertTitle } from '@/shared/ui/alert';
+import { Button } from '@/shared/ui/button';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
+} from '@/shared/ui/dialog';
+import { Input } from '@/shared/ui/input';
 import { InfoIcon } from 'lucide-react';
 
 interface AddCardModalProps {

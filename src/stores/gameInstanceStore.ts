@@ -7,10 +7,10 @@
  */
 
 import { create } from 'zustand';
-import type { Player } from '@/modules/player';
-import type { MultiPlayerBoardManager } from '@/modules/whiteboard';
-import type { CardPreview } from '@/modules/cardPreview';
-import type { RoomManager } from '@/services/roomManager';
+import type { Player } from '@/features/player';
+import type { MultiPlayerBoardManager } from '@/features/battlefield';
+import type { CardPreview } from '@/features/card-preview';
+import type { RoomManager } from '@/features/room';
 
 interface GameInstanceStore {
   // Game instances

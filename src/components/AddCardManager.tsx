@@ -1,8 +1,8 @@
 import React, { useEffect } from 'react';
 import posthog from 'posthog-js';
 import { AddCardModal } from './AddCardModal';
-import { CardLookupService, toCard } from '@/services/cards';
-import { Card } from '@/modules/deck';
+import { CardLookupService, toCard } from '@/infrastructure/cards';
+import { Card } from '@/features/player';
 import { useHotkeyStore } from '@/stores/hotkeyStore';
 
 interface AddCardManagerProps {

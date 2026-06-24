@@ -2,7 +2,7 @@
 // element, e.g. modals, tooltips, etc
 
 import { create } from 'zustand';
-import {TooltipManager} from "@/modules/whiteboard/TooltipManager";
+import {TooltipManager} from "@/features/battlefield/TooltipManager";
 
 interface TooltipStore {
   tooltipManager: TooltipManager;

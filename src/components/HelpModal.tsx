@@ -7,7 +7,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
+} from '@/shared/ui/dialog';
 
 interface HelpModalProps {
   isOpen: boolean;

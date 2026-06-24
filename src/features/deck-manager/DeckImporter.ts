@@ -1,0 +1,16 @@
+import { Card, DeckMetadata } from '@/features/player/types';
+
+export interface DeckImportResult {
+  cards: Card[];
+  metadata: Partial<DeckMetadata>;
+  errors?: string[];
+}
+
+export abstract class DeckImporter {
+  /**
+   * Import a deck from text format
+   * @param text The deck list in the importer's expected format
+   * @returns Promise resolving to import result with cards and metadata
+   */
+  public abstract importFromText(text: string): Promise<DeckImportResult>;
+}

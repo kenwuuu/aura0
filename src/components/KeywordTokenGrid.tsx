@@ -1,8 +1,8 @@
 import React, { useEffect, useRef } from 'react';
-import { KeywordTokenTemplate } from '@/modules/keywordTokens/types';
-import { KeywordTokenFactory } from '@/modules/keywordTokens/KeywordTokenFactory';
-import { setElementDragPoint } from "@/utils/centerHtmlElementOnDrag";
-import { HotkeyContext } from '@/data/hotkeys';
+import { KeywordTokenTemplate } from '@/features/keyword-tokens/types';
+import { KeywordTokenFactory } from '@/features/keyword-tokens/KeywordTokenFactory';
+import { setElementDragPoint } from "@/shared/utils/centerHtmlElementOnDrag";
+import { HotkeyContext } from '@/features/hotkeys/hotkeys';
 import {useTooltipStore} from "@/stores/uiStore";
 
 interface KeywordTokenGridProps {

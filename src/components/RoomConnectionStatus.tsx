@@ -1,5 +1,5 @@
 import React, {useState} from 'react';
-import {YjsNetworkProvider} from "@/modules/yjs-networking/YjsNetworkFactory";
+import {YjsNetworkProvider} from "@/infrastructure/networking/YjsNetworkFactory";
 
 interface ConnectionStatusProps {
   yjsNetworkProvider: YjsNetworkProvider,

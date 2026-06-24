@@ -20,5 +20,8 @@ Use React with Yjs via `y-react` bindings
 # Testing
 Writing tests, see @tests/testing.md
 
+# Code Architecture
+Screaming (feature-based) architecture: `src/features/` (one dir per game domain), `src/infrastructure/` (networking, cards API, persistence, analytics), `src/shared/` (shadcn UI, utils). See @claude_plans/react_refactor_screaming_architecture.md for the full plan and current progress.
+
 # Card data lookup
-Architecture for fetching Scryfall-shaped card data (Aura backend → Scryfall fallback), see @src/services/cards/CLAUDE.md
+Architecture for fetching Scryfall-shaped card data (Aura backend → Scryfall fallback), see @src/infrastructure/cards/CLAUDE.md
