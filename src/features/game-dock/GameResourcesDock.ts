@@ -10,7 +10,6 @@ import {HotkeyTooltip} from '@/components';
 import {HotkeyContext} from '@/features/hotkeys/hotkeys';
 import {ScryModal} from '@/features/game-dock/ScryModal';
 import { ControlsMenu } from '@/features/game-dock/controls/ControlsMenu';
-import { TooltipManager } from '@/features/battlefield/TooltipManager';
 import { HandCardsContainer } from './HandCardsContainer';
 import { useHotkeyStore } from '@/stores/hotkeyStore';
 
@@ -39,7 +38,6 @@ export class GameResourcesDock {
   private healthRoot: Root | null = null;
   private controlsRoot: Root | null = null;
   private handRoot: Root | null = null;
-  private controlsTooltipManager: TooltipManager | undefined;
   private tooltipRoot: Root | null = null;
   private tooltipContainer: HTMLElement | null = null;
   private scryModalRoot: Root | null = null;
@@ -56,12 +54,10 @@ export class GameResourcesDock {
     container: HTMLElement,
     player: Player,
     config: GameResourcesDockConfig,
-    controlsTooltipManager?: TooltipManager
   ) {
     this.container = container;
     this.player = player;
     this.config = config;
-    this.controlsTooltipManager = controlsTooltipManager;
 
     // Initialize all pile viewers with appropriate callbacks
     // yPlayerState is now accessed via Zustand store - no prop drilling needed!

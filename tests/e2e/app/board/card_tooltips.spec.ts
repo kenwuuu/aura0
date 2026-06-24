@@ -28,7 +28,7 @@ test('testExileTooltip', async ({ page }) => {
 
   await dragHandCardToLocator(page.locator('#whiteboard'), page);
   const boardCard = page.locator('div').filter({ hasText: '#' }).nth(3);
-  await boardCard.click();
+  await boardCard.click({ button: 'right' });
   const tooltipRow = page.getByText('SExile');
   await tooltipRow.waitFor({ state: 'visible' });
   await tooltipRow.click();
@@ -40,7 +40,7 @@ test('testDiscardTooltip', async ({ page }) => {
 
   await dragHandCardToLocator(page.locator('#whiteboard'), page);
   const boardCard = page.locator('div').filter({ hasText: '#' }).nth(3);
-  await boardCard.click();
+  await boardCard.click({ button: 'right' });
   const tooltipRow = page.getByText('DDiscard');
   await tooltipRow.waitFor({ state: 'visible' });
   await tooltipRow.click();
@@ -52,7 +52,7 @@ test('testDeckTooltip', async ({ page }) => {
 
   await dragHandCardToLocator(page.locator('#whiteboard'), page);
   const boardCard = page.locator('div').filter({ hasText: '#' }).nth(3);
-  await boardCard.click();
+  await boardCard.click({ button: 'right' });
   const tooltipRow = page.getByText('TTo deck top');
   await tooltipRow.waitFor({ state: 'visible' });
   await tooltipRow.click();
@@ -68,7 +68,7 @@ test('testHandTooltip', async ({ page }) => {
   await expect(eighthHandCard).toBeHidden();
 
   const boardCard = page.locator('div').filter({ hasText: '#' }).nth(3);
-  await boardCard.click();
+  await boardCard.click({ button: 'right' });
   const tooltipRow = page.getByText('HHand');
   await tooltipRow.waitFor({ state: 'visible' });
   await tooltipRow.click();
@@ -85,46 +85,46 @@ test('testInteractiveTooltip', async ({ page }) => {
   
   expect(await getElementOrientation(firstBoardCard)).toBe('portrait');
 
-  await firstBoardCard.click();
+  await firstBoardCard.click({ button: 'right' });
   await page.getByText('Tap/Untap').click();
   expect(await getElementOrientation(firstBoardCard)).toBe('landscape');
 
-  await firstBoardCard.click();
+  await firstBoardCard.click({ button: 'right' });
   await page.getByText('XUntap all').click();
   expect(await getElementOrientation(firstBoardCard)).toBe('portrait');
 
-  await firstBoardCard.click();
+  await firstBoardCard.click({ button: 'right' });
   await page.getByText('FFlip').click();
   const cardImgSrc = await firstBoardCard.locator('img').getAttribute('src');
   expect(cardImgSrc === '/assets/card-back.png')
 
-  await firstBoardCard.click();
+  await firstBoardCard.click({ button: 'right' });
   await page.getByText('U+1 counter').click();
   await page.getByTitle('Decrease counter').waitFor({ state: 'visible' });
   await page.getByTitle('Decrease counter').click();
 
-  await firstBoardCard.click();
+  await firstBoardCard.click({ button: 'right' });
   await page.getByText('I-1 counter').click();
   await page.getByTitle('Increase counter').waitFor({ state: 'visible' });
   await page.getByTitle('Increase counter').click();
 
   // copy first card to make second card.
   // copy second card to make third card
-  await firstBoardCard.click();
+  await firstBoardCard.click({ button: 'right' });
   await page.getByText('KCopy/clone').click();
   await secondBoardCard.waitFor({ state: 'visible' });
-  await secondBoardCard.click();
+  await secondBoardCard.click({ button: 'right' });
   await page.getByText('KCopy/clone').click();
   await thirdBoardCard.waitFor({ state: 'visible' });
   await expect(thirdBoardCard).toBeVisible();
 
   // delete third card
-  await thirdBoardCard.click();
+  await thirdBoardCard.click({ button: 'right' });
   await page.getByText('BackDelete').click();
   await expect(thirdBoardCard).toBeHidden();
 
   // move second card to hand
-  await secondBoardCard.click();
+  await secondBoardCard.click({ button: 'right' });
   await page.getByText('HHand').click();
   await expect(secondBoardCard).toBeHidden();
 });

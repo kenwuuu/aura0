@@ -24,7 +24,7 @@ test('testDeckViewerCardToExileHotkey', async ({ page }) => {
 
   // move card to exile
   await waitForCardGridStable(page);
-  await secondCardInGrid(page).click();
+  await secondCardInGrid(page).click({ button: 'right' });
   await waitForCardGridStable(page);
   await page.keyboard.press('s');
   await expect(page.getByText('Exile1')).toBeVisible();
@@ -36,7 +36,7 @@ test('testDeckViewerCardToExileTooltip', async ({ page }) => {
 
   // move card to exile
   await waitForCardGridStable(page);
-  await secondCardInGrid(page).click();
+  await secondCardInGrid(page).click({ button: 'right' });
   await waitForCardGridStable(page);
   await page.getByText('SExile').click();
   await expect(page.getByText('Exile1')).toBeVisible();
@@ -48,7 +48,7 @@ test('testDeckViewerCardToDiscardHotkey', async ({ page }) => {
 
   // move card to discard
   await waitForCardGridStable(page);
-  await secondCardInGrid(page).click();
+  await secondCardInGrid(page).click({ button: 'right' });
   await waitForCardGridStable(page);
   await page.keyboard.press('d');
   await expect(page.getByText('Discard1')).toBeVisible();
@@ -60,7 +60,7 @@ test('testDeckViewerCardToDiscardTooltip', async ({ page }) => {
 
   // move card to discard
   await waitForCardGridStable(page);
-  await secondCardInGrid(page).click();
+  await secondCardInGrid(page).click({ button: 'right' });
   await waitForCardGridStable(page);
   await page.getByText('DDiscard').click();
   await expect(page.getByText('Discard1')).toBeVisible();
@@ -71,7 +71,7 @@ test('testDeckViewerCardToHandHotkey', async ({ page }) => {
 
   // move card to hand
   await waitForCardGridStable(page);
-  await secondCardInGrid(page).click();
+  await secondCardInGrid(page).click({ button: 'right' });
   await waitForCardGridStable(page);
   const ninthBoardCard = page.locator('.hand-cards .hand-card').nth(8);
   await expect(ninthBoardCard).toBeHidden();
@@ -85,7 +85,7 @@ test('testDeckViewerCardToHandTooltip', async ({ page }) => {
   const ninthHandCard = page.locator('.hand-cards .hand-card').nth(8);
 
   // move card to hand
-  await page.getByRole('img', { name: 'Card Back' }).nth(3).click();
+  await page.getByRole('img', { name: 'Card Back' }).nth(3).click({ button: 'right' });
   await expect(ninthHandCard).toBeHidden();
   await page.getByText('HHand').click();
   await expect(ninthHandCard).toBeVisible();
@@ -99,7 +99,7 @@ test('testDeckViewerCardToDeckTopHotkey', async ({ page }) => {
 
   // move card to deck top (reshuffling within deck)
   await waitForCardGridStable(page);
-  await secondCardInGrid(page).click();
+  await secondCardInGrid(page).click({ button: 'right' });
   await waitForCardGridStable(page);
   await page.keyboard.press('t');
   await waitForCardGridStable(page);
@@ -114,7 +114,7 @@ test.skip('testDeckViewerCardToDeckTopTooltip', async ({ page }) => {
 
   // move card to deck top (reshuffling within deck)
   await waitForCardGridStable(page);
-  await secondCardInGrid(page).click();
+  await secondCardInGrid(page).click({ button: 'right' });
   await waitForCardGridStable(page);
   await page.getByText('TTo deck top').click();
   await waitForCardGridStable(page);
@@ -129,7 +129,7 @@ test('testDeckViewerCardToDeckBottomHotkey', async ({ page }) => {
 
   // move card to deck bottom (reshuffling within deck)
   await waitForCardGridStable(page);
-  await secondCardInGrid(page).click();
+  await secondCardInGrid(page).click({ button: 'right' });
   await waitForCardGridStable(page);
   await page.keyboard.press('y');
   await waitForCardGridStable(page);
@@ -144,7 +144,7 @@ test.skip('testDeckViewerCardToDeckBottomTooltip', async ({ page }) => {
 
   // move card to deck bottom (reshuffling within deck)
   await waitForCardGridStable(page);
-  await secondCardInGrid(page).click();
+  await secondCardInGrid(page).click({ button: 'right' });
   await waitForCardGridStable(page);
   await page.getByText('YTo deck bottom').click();
   await waitForCardGridStable(page);
@@ -168,7 +168,7 @@ test('testDiscardViewerCardToExileHotkey', async ({ page }) => {
 
   // move card to exile
   await waitForCardGridStable(page);
-  await secondCardInGrid(page).click();
+  await secondCardInGrid(page).click({ button: 'right' });
   await waitForCardGridStable(page);
   await page.keyboard.press('s');
   const deckCounter = page.getByText('Exile1', { exact: true });
@@ -190,7 +190,7 @@ test('testDiscardViewerCardToExileTooltip', async ({ page }) => {
 
   // move card to exile
   await waitForCardGridStable(page);
-  await secondCardInGrid(page).click();
+  await secondCardInGrid(page).click({ button: 'right' });
   await waitForCardGridStable(page);
   await page.getByText('SExile').click();
   const deckCounter = page.getByText('Exile1', { exact: true });
@@ -212,11 +212,11 @@ test('testDiscardViewerCardToDeckTopHotkeys', async ({ page }) => {
 
   // move 2 cards to deck top
   await waitForCardGridStable(page);
-  await secondCardInGrid(page).click();
+  await secondCardInGrid(page).click({ button: 'right' });
   await waitForCardGridStable(page);
   await page.keyboard.press('t');
   await waitForCardGridStable(page);
-  await secondCardInGrid(page).click();
+  await secondCardInGrid(page).click({ button: 'right' });
   await waitForCardGridStable(page);
   await page.keyboard.press('t');
   const deckCounter = page.getByText('Deck87Draw', { exact: true });
@@ -238,11 +238,11 @@ test('testDiscardViewerCardToDeckTopTooltip', async ({ page }) => {
 
   // move 2 cards to deck top
   await waitForCardGridStable(page);
-  await secondCardInGrid(page).click();
+  await secondCardInGrid(page).click({ button: 'right' });
   await waitForCardGridStable(page);
   await page.getByText('TTo deck top').click();
   await waitForCardGridStable(page);
-  await secondCardInGrid(page).click();
+  await secondCardInGrid(page).click({ button: 'right' });
   await waitForCardGridStable(page);
   await page.getByText('TTo deck top').click();
   const deckCounter = page.getByText('Deck87Draw', { exact: true });
@@ -263,11 +263,11 @@ test('testDiscardViewerCardToDeckBottomHotkeys', async ({ page }) => {
 
   // move 2 cards to deck bottom
   await waitForCardGridStable(page);
-  await secondCardInGrid(page).click();
+  await secondCardInGrid(page).click({ button: 'right' });
   await waitForCardGridStable(page);
   await page.keyboard.press('y');
   await waitForCardGridStable(page);
-  await secondCardInGrid(page).click();
+  await secondCardInGrid(page).click({ button: 'right' });
   await waitForCardGridStable(page);
   await page.keyboard.press('y');
   const deckCounter = page.getByText('Deck87Draw', { exact: true });
@@ -288,11 +288,11 @@ test('testDiscardViewerCardToDeckBottomTooltip', async ({ page }) => {
 
   // move 2 cards to deck bottom
   await waitForCardGridStable(page);
-  await secondCardInGrid(page).click();
+  await secondCardInGrid(page).click({ button: 'right' });
   await waitForCardGridStable(page);
   await page.getByText('YTo deck bottom').click();
   await waitForCardGridStable(page);
-  await secondCardInGrid(page).click();
+  await secondCardInGrid(page).click({ button: 'right' });
   await waitForCardGridStable(page);
   await page.getByText('YTo deck bottom').click();
   const deckCounter = page.getByText('Deck87Draw', { exact: true });
@@ -313,7 +313,7 @@ test('testDiscardViewerCardToHandHotkey', async ({ page }) => {
 
   // move card to hand
   await waitForCardGridStable(page);
-  await secondCardInGrid(page).click();
+  await secondCardInGrid(page).click({ button: 'right' });
   await waitForCardGridStable(page);
   const ninthBoardCard = page.locator('.hand-cards .hand-card').nth(8);
   await waitForCardGridStable(page);
@@ -338,7 +338,7 @@ test('testDiscardViewerCardToHandTooltip', async ({ page }) => {
 
   // move card to hand
   await waitForCardGridStable(page);
-  await secondCardInGrid(page).click();
+  await secondCardInGrid(page).click({ button: 'right' });
   await waitForCardGridStable(page);
   const ninthBoardCard = page.locator('.hand-cards .hand-card').nth(8);
   await waitForCardGridStable(page);
@@ -364,7 +364,7 @@ test('testExileViewerCardToDiscardHotkey', async ({ page }) => {
 
   // move card to discard
   await waitForCardGridStable(page);
-  await secondCardInGrid(page).click();
+  await secondCardInGrid(page).click({ button: 'right' });
   await waitForCardGridStable(page);
   await page.keyboard.press('d');
   await waitForCardGridStable(page);
@@ -388,7 +388,7 @@ test('testExileViewerCardToDiscardTooltip', async ({ page }) => {
 
   // move card to discard
   await waitForCardGridStable(page);
-  await secondCardInGrid(page).click();
+  await secondCardInGrid(page).click({ button: 'right' });
   await waitForCardGridStable(page);
   await page.getByText('DDiscard').click();
   await waitForCardGridStable(page);
@@ -411,7 +411,7 @@ test('testExileViewerCardToDeckTopHotkey', async ({ page }) => {
 
   // move 2 cards to deck top
   await waitForCardGridStable(page);
-  await secondCardInGrid(page).click();
+  await secondCardInGrid(page).click({ button: 'right' });
   await secondCardInGrid(page).hover();
   await page.keyboard.press('t');
   const deckCounter = page.getByText('Deck86Draw', { exact: true });
@@ -432,7 +432,7 @@ test('testExileViewerCardToDeckTopTooltip', async ({ page }) => {
 
   // move 2 cards to deck top
   await waitForCardGridStable(page);
-  await secondCardInGrid(page).click();
+  await secondCardInGrid(page).click({ button: 'right' });
   await secondCardInGrid(page).hover();
   await page.getByText('TTo deck top').click();
   const deckCounter = page.getByText('Deck86Draw', { exact: true });
@@ -453,11 +453,11 @@ test('testExileViewerCardToDeckBottomHotkey', async ({ page }) => {
 
   // move 2 cards to deck bottom
   await waitForCardGridStable(page);
-  await secondCardInGrid(page).click();
+  await secondCardInGrid(page).click({ button: 'right' });
   await waitForCardGridStable(page);
   await page.keyboard.press('y');
   await waitForCardGridStable(page);
-  await secondCardInGrid(page).click();
+  await secondCardInGrid(page).click({ button: 'right' });
   await waitForCardGridStable(page);
   await page.keyboard.press('y');
   await waitForCardGridStable(page);
@@ -480,11 +480,11 @@ test('testExileViewerCardToDeckBottomTooltip', async ({ page }) => {
 
   // move 2 cards to deck bottom
   await waitForCardGridStable(page);
-  await secondCardInGrid(page).click();
+  await secondCardInGrid(page).click({ button: 'right' });
   await waitForCardGridStable(page);
   await page.getByText('YTo deck bottom').click();
   await waitForCardGridStable(page);
-  await secondCardInGrid(page).click();
+  await secondCardInGrid(page).click({ button: 'right' });
   await waitForCardGridStable(page);
   await page.getByText('YTo deck bottom').click();
   await waitForCardGridStable(page);
@@ -507,7 +507,7 @@ test('testExileViewerCardToHandHotkey', async ({ page }) => {
 
   // move card to hand
   await waitForCardGridStable(page);
-  await secondCardInGrid(page).click();
+  await secondCardInGrid(page).click({ button: 'right' });
   await waitForCardGridStable(page);
   const ninthHandCard = page.locator('.hand-cards .hand-card').nth(8);
   await waitForCardGridStable(page);
@@ -532,7 +532,7 @@ test('testExileViewerCardToHandTooltip', async ({ page }) => {
 
   // move card to hand
   await waitForCardGridStable(page);
-  await secondCardInGrid(page).click();
+  await secondCardInGrid(page).click({ button: 'right' });
   await waitForCardGridStable(page);
   const ninthHandCard = page.locator('.hand-cards .hand-card').nth(8);
   await waitForCardGridStable(page);
@@ -554,7 +554,7 @@ test('testScryViewerCardToDiscardHotkey', async ({ page }) => {
 
   // move card to discard
   await waitForCardGridStable(page);
-  await secondCardInGrid(page).click();
+  await secondCardInGrid(page).click({ button: 'right' });
   await waitForCardGridStable(page);
   await page.keyboard.press('d');
   await waitForCardGridStable(page);
@@ -573,7 +573,7 @@ test('testScryViewerCardToDiscardTooltip', async ({ page }) => {
 
   // move card to discard
   await waitForCardGridStable(page);
-  await secondCardInGrid(page).click();
+  await secondCardInGrid(page).click({ button: 'right' });
   await waitForCardGridStable(page);
   await page.getByText('DDiscard').click();
   await waitForCardGridStable(page);
@@ -594,7 +594,7 @@ test('testScryViewerCardToDeckTopHotkey', async ({ page }) => {
 
   // move card to deck top
   await waitForCardGridStable(page);
-  await secondCardInGrid(page).click();
+  await secondCardInGrid(page).click({ button: 'right' });
   await waitForCardGridStable(page);
   await page.keyboard.press('t');
   await waitForCardGridStable(page);
@@ -617,7 +617,7 @@ test('testScryViewerCardToDeckTopTooltip', async ({ page }) => {
 
   // move card to deck top
   await waitForCardGridStable(page);
-  await secondCardInGrid(page).click();
+  await secondCardInGrid(page).click({ button: 'right' });
   await waitForCardGridStable(page);
   await page.getByText('TTo deck top').click();
   await waitForCardGridStable(page);
@@ -640,7 +640,7 @@ test('testScryViewerCardToDeckBottomHotkey', async ({ page }) => {
 
   // move card to deck bottom
   await waitForCardGridStable(page);
-  await secondCardInGrid(page).click();
+  await secondCardInGrid(page).click({ button: 'right' });
   await waitForCardGridStable(page);
   await page.keyboard.press('y');
   await waitForCardGridStable(page);
@@ -1074,7 +1074,7 @@ test.skip('testScryViewerDragCardToDeck', async ({ page }) => {
 test('testPileViewerDoesNotCloseAfterClickingTooltip', async ({ page }) => {
   await expect(page.getByRole('dialog', { name: 'Search Deck' })).toBeHidden();
   await page.getByText('Deck92Draw').click();
-  await page.getByRole('img', { name: 'Card Back' }).nth(3).click();
+  await page.getByRole('img', { name: 'Card Back' }).nth(3).click({ button: 'right' });
   await page.getByText('HHand').click();
   await expect(page.getByRole('dialog', { name: 'Search Deck' })).toBeVisible();
 });

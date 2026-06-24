@@ -4,14 +4,6 @@ import * as Y from 'yjs';
 import {YDOC_CARDS_ON_BOARD} from "../../constants";
 
 // Mock dependencies
-vi.mock('./TooltipManager', () => ({
-  TooltipManager: vi.fn().mockImplementation(() => ({
-    setup: vi.fn(),
-    update: vi.fn(),
-    destroy: vi.fn(),
-  })),
-}));
-
 vi.mock('react', () => ({
   default: {
     createElement: vi.fn((type, props) => ({ type, props })),

@@ -7,6 +7,7 @@
 
 import { MultiPlayerBoardManager } from '@/features/battlefield/MultiPlayerBoardManager';
 import { useCardPreviewStore } from '@/features/card-preview/cardPreviewStore';
+import { useHotkeyMenuStore } from '@/features/hotkeys/hotkeyMenuStore';
 
 export function executeBattlefieldCardAction(
   action: string,
@@ -55,36 +56,36 @@ export function executeBattlefieldCardAction(
       break;
     case 'delete':
       useCardPreviewStore.getState().hide();
-      whiteboard.getTooltipManager().hide();
+      useHotkeyMenuStore.getState().close();
       yCards.delete(cardId);
       break;
     case 'moveToHand':
       useCardPreviewStore.getState().hide();
-      whiteboard.getTooltipManager().hide();
+      useHotkeyMenuStore.getState().close();
       window.dispatchEvent(new CustomEvent('moveCardToHand', { detail: { card } }));
       yCards.delete(cardId);
       break;
     case 'moveToDiscard':
       useCardPreviewStore.getState().hide();
-      whiteboard.getTooltipManager().hide();
+      useHotkeyMenuStore.getState().close();
       window.dispatchEvent(new CustomEvent('moveCardToDiscard', { detail: { card } }));
       yCards.delete(cardId);
       break;
     case 'moveToExile':
       useCardPreviewStore.getState().hide();
-      whiteboard.getTooltipManager().hide();
+      useHotkeyMenuStore.getState().close();
       window.dispatchEvent(new CustomEvent('moveCardToExile', { detail: { card } }));
       yCards.delete(cardId);
       break;
     case 'moveToDeckTop':
       useCardPreviewStore.getState().hide();
-      whiteboard.getTooltipManager().hide();
+      useHotkeyMenuStore.getState().close();
       window.dispatchEvent(new CustomEvent('moveCardToDeckTop', { detail: { card } }));
       yCards.delete(cardId);
       break;
     case 'moveToDeckBottom':
       useCardPreviewStore.getState().hide();
-      whiteboard.getTooltipManager().hide();
+      useHotkeyMenuStore.getState().close();
       window.dispatchEvent(new CustomEvent('moveCardToDeckBottom', { detail: { card } }));
       yCards.delete(cardId);
       break;

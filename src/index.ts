@@ -14,6 +14,7 @@ import { OpponentHealthList } from './features/opponents/OpponentHealthList';
 import { SavedDeck } from './features/player/types';
 import { CardLookupService, TokenService } from '@/infrastructure/cards';
 import { CardPreview } from './features/card-preview';
+import { HotkeyMenu } from './features/hotkeys/HotkeyMenu';
 import { DeckStorageService } from './infrastructure/persistence';
 import { DeckPersistenceService } from './infrastructure/persistence';
 import { RoomManager } from './features/room';
@@ -152,6 +153,12 @@ class AuraApp {
     document.body.appendChild(cardPreviewContainer);
     createRoot(cardPreviewContainer).render(React.createElement(CardPreview));
 
+    // Hotkey action menu (React; right-click context menu + hover hints, driven via the hotkey-menu store)
+    const hotkeyMenuContainer = document.createElement('div');
+    hotkeyMenuContainer.id = 'hotkey-menu-root';
+    document.body.appendChild(hotkeyMenuContainer);
+    createRoot(hotkeyMenuContainer).render(React.createElement(HotkeyMenu));
+
     // Initialize local player's resource dock
     const dockContainer = document.getElementById('local-dock');
     if (!dockContainer) {
@@ -161,7 +168,7 @@ class AuraApp {
     this.localDock = new GameResourcesDock(dockContainer, this.localPlayer, {
       position: 'bottom',
       playerId: this.playerId,
-    }, this.whiteboard.getTooltipManager());
+    });
 
     // init toaster for alerts like "Opponent revealed deck"
     const toasterContainer = document.getElementById("toaster-root");

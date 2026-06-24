@@ -2,16 +2,13 @@
 // element, e.g. modals, tooltips, etc
 
 import { create } from 'zustand';
-import {TooltipManager} from "@/features/battlefield/TooltipManager";
 
 interface TooltipStore {
-  tooltipManager: TooltipManager;
   isTooltipOpen: boolean;
   setIsTooltipOpen: (isOpen: boolean) => void;
 }
 
 export const useTooltipStore = create<TooltipStore>((set) => ({
-  tooltipManager: new TooltipManager(),
   isTooltipOpen: false,
   setIsTooltipOpen: (isOpen: boolean) => set({isTooltipOpen: isOpen}),
 }))

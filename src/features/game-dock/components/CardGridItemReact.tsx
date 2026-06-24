@@ -11,10 +11,10 @@
 
 import * as React from 'react';
 import {Card} from '@/features/player';
-import {HotkeyContext} from '@/features/hotkeys/hotkeys';
+import {HotkeyContext, Hotkey} from '@/features/hotkeys/hotkeys';
 import {DEFAULT_CARD_BACK} from '@/constants';
 import styles from './CardGridItemReact.module.css';
-import {useTooltipStore} from "@/stores/uiStore";
+import {useHotkeyMenuStore} from "@/features/hotkeys/hotkeyMenuStore";
 import {useCardPreviewStore} from "@/features/card-preview/cardPreviewStore";
 
 export interface CardGridItemReactProps {
@@ -25,6 +25,7 @@ export interface CardGridItemReactProps {
   showFaceDown: boolean;
   onHover: (card: Card | null) => void;
   hotkeyContext: HotkeyContext;
+  onMenuSelect: (hotkey: Hotkey, cardId: string) => void;
 }
 
 export const CardGridItemReact = React.memo(function CardGridItemReact({
@@ -35,6 +36,7 @@ export const CardGridItemReact = React.memo(function CardGridItemReact({
   showFaceDown,
   onHover,
   hotkeyContext,
+  onMenuSelect,
 }: CardGridItemReactProps) {
   const [frontImageLoaded, setFrontImageLoaded] = React.useState(false);
   const [backImageLoaded, setBackImageLoaded] = React.useState(false);
@@ -45,33 +47,25 @@ export const CardGridItemReact = React.memo(function CardGridItemReact({
   const frontImageUrl = card.images?.front?.normal || card.images?.front?.small;
   const backImageUrl = DEFAULT_CARD_BACK;
 
-  const tooltipManager = useTooltipStore((state) => state.tooltipManager);
-
   const handleMouseEnter = () => {
     onHover(card);
-    tooltipManager?.showOnHover(card.id, hotkeyContext);
-
     if (!showFaceDown) useCardPreviewStore.getState().show(card);
   };
 
   const handleMouseLeave = () => {
     onHover(null);
-    tooltipManager?.hideOnLeave();
     useCardPreviewStore.getState().hide();
   };
 
-  const handleMouseMove = (e: React.MouseEvent) => {
-    tooltipManager?.setMouseLocation(e.clientX, e.clientY);
-
-    // Purposefully do not update card preview position because
-    // cards are always in a grid and users know what's underneath.
-    // It is not like the battlefield where you have to see the board
-    // to know where to place the card.
-    // cardPreview.updatePosition(e.nativeEvent);
-  };
-
-  const handleClick = (e: React.MouseEvent) => {
-    tooltipManager?.show(card.id, hotkeyContext, e.clientX, e.clientY);
+  const handleContextMenu = (e: React.MouseEvent) => {
+    e.preventDefault();
+    useHotkeyMenuStore.getState().openMenu({
+      cardId: card.id,
+      context: hotkeyContext,
+      x: e.clientX,
+      y: e.clientY,
+      onSelect: onMenuSelect,
+    });
   };
 
   const hasFrontImage = frontImageUrl && !frontImageError;
@@ -84,10 +78,9 @@ export const CardGridItemReact = React.memo(function CardGridItemReact({
       className={styles.cardGridItem}
       data-card-id={card.id}
       tabIndex={0}
-      onMouseMove={handleMouseMove}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
-      onClick={handleClick}
+      onContextMenu={handleContextMenu}
     >
       {/* Card Image */}
       <div className={styles.cardGridItemImage}>

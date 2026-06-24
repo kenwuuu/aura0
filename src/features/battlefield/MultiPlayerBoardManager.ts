@@ -1,7 +1,6 @@
 import { Card } from '@/features/player';
 import { DEFAULT_CARD_BACK, YDOC_CARDS_ON_BOARD, YDOC_KEYWORD_TOKENS, CARD_WIDTH, CARD_HEIGHT } from '@/constants';
 import { WhiteboardCard, DragState } from './types';
-import { TooltipManager } from './TooltipManager';
 import { useZoomStore } from './zoomStore';
 import { BoardContainerManager, BOARD_HEIGHT } from './BoardContainerManager';
 import * as Y from 'yjs';
@@ -15,6 +14,7 @@ import { KeywordTokenFactory } from '@/features/keyword-tokens/KeywordTokenFacto
 import { useHotkeyStore } from '@/stores/hotkeyStore';
 import { executeBattlefieldCardAction } from '@/features/battlefield/battlefieldCardActions';
 import { useCardPreviewStore } from '@/features/card-preview/cardPreviewStore';
+import { useHotkeyMenuStore } from '@/features/hotkeys/hotkeyMenuStore';
 
 const DEFAULT_OPPONENT_OPACITY = 1.0;
 const FOCUSED_OPACITY = 1.0;
@@ -30,7 +30,6 @@ export class MultiPlayerBoardManager {
   private maxZIndex: number = 0;
   private zoomUnsubscribe: (() => void) | null = null;
   private localPlayerId: string;
-  private tooltipManager: TooltipManager;
   // Track mouse movement to distinguish clicks from drags
   private mousePosition: { x: number; y: number; } | null = null;
   private readonly DRAG_THRESHOLD = 5; // pixels
@@ -71,12 +70,6 @@ export class MultiPlayerBoardManager {
     this.setupYjsSync();
     this.attachEventListeners();
     this.setupOpponentHoverListener();
-
-    // Initialize tooltip manager
-    this.tooltipManager = new TooltipManager();
-    this.tooltipManager.setup((hotkey, cardId) => {
-      executeBattlefieldCardAction(hotkey.action, cardId, this, this.localPlayerId);
-    });
   }
 
   private setupYjsSync(): void {
@@ -421,20 +414,16 @@ export class MultiPlayerBoardManager {
     }
 
     // Enable hover for card preview
-    cardElement.addEventListener('mouseenter', (e: MouseEvent) => {
+    cardElement.addEventListener('mouseenter', () => {
       // Update Zustand store for new hotkey system
       useHotkeyStore.getState().setHoveredBattlefieldCard(card.id);
 
       // Get latest card state from Yjs to avoid stale closures
       const latestCard = this.yCards.get(card.id) || card;
       useCardPreviewStore.getState().show(latestCard);
-
-      // Show tooltip menu on hover (delayed)
-      this.tooltipManager.showOnHover(card.id, HotkeyContext.Battlefield);
     });
 
     cardElement.addEventListener('mousemove', (e: MouseEvent) => {
-      this.tooltipManager.setMouseLocation(e.clientX, e.clientY);
       useCardPreviewStore.getState().updatePosition(e.clientX, e.clientY);
     });
 
@@ -443,24 +432,23 @@ export class MultiPlayerBoardManager {
       useHotkeyStore.getState().setHoveredBattlefieldCard(null);
 
       useCardPreviewStore.getState().hide();
-      this.tooltipManager.hideOnLeave();
     });
 
-    // Handle click for tooltip menu (distinguish from drag)
-    cardElement.addEventListener('click', (e: MouseEvent) => {
-      // Only show menu if this was a click (not a drag) and it's the same card
-      if (this.mousePosition) {
-        const dx = Math.abs(e.clientX - this.mousePosition.x);
-        const dy = Math.abs(e.clientY - this.mousePosition.y);
-        const distance = Math.sqrt(dx * dx + dy * dy);
+    // Right-click opens the action context menu at the cursor.
+    cardElement.addEventListener('contextmenu', (e: MouseEvent) => {
+      e.preventDefault();
+      useHotkeyMenuStore.getState().openMenu({
+        cardId: card.id,
+        context: HotkeyContext.Battlefield,
+        x: e.clientX,
+        y: e.clientY,
+        onSelect: (hotkey) =>
+          executeBattlefieldCardAction(hotkey.action, card.id, this, this.localPlayerId),
+      });
+    });
 
-        // If mouse moved less than threshold and wasn't dragging, treat as click
-        if (distance < this.DRAG_THRESHOLD && !this.isDragging) {
-          // Show tooltip menu
-          this.tooltipManager.show(card.id, HotkeyContext.Battlefield, e.clientX, e.clientY);
-        }
-      }
-      // Always clear drag state after click handler
+    // Clear drag state after a left-click (no longer opens the menu).
+    cardElement.addEventListener('click', () => {
       this.mousePosition = null;
       this.isDragging = false;
     });
@@ -574,10 +562,15 @@ export class MultiPlayerBoardManager {
         this.hoveredTokenId = tokenId;
         // Update Zustand store for new hotkey system
         useHotkeyStore.getState().setHoveredToken(tokenId);
-        this.tooltipManager.show(tokenId, HotkeyContext.KeywordToken, e.clientX, e.clientY, false, token.title);
+        // Tokens keep their +1/-1/delete clicks; the menu is a hover hint only.
+        useHotkeyMenuStore.getState().showHint({
+          context: HotkeyContext.KeywordToken,
+          x: e.clientX,
+          y: e.clientY,
+          title: token.title,
+        });
       },
       onMouseMove: (e: MouseEvent, tokenId: string) => {
-        this.tooltipManager.setMouseLocation(e.clientX, e.clientY);
         this.mousePosition = { x: e.clientX, y: e.clientY };
 
         // Detect dragging - only start drag state once threshold is crossed
@@ -597,18 +590,13 @@ export class MultiPlayerBoardManager {
           this.hoveredTokenId = null;
           // Update Zustand store for new hotkey system
           useHotkeyStore.getState().setHoveredToken(null);
-          this.tooltipManager.hide();
+          useHotkeyMenuStore.getState().close();
         }
       },
-      onMouseDown: (e: MouseEvent, tokenId: string) => {
+      onMouseDown: (e: MouseEvent) => {
         // Record starting position for drag detection but don't start drag yet
         this.mouseDownPosition = { x: e.clientX, y: e.clientY };
         this.isDragging = false;
-
-        if (this.hoveredTokenId === tokenId) {
-          // this.hoveredTokenId = null;
-          // this.tooltipManager.hide();
-        }
       },
       onMouseUp: (e: MouseEvent, tokenId: string) => {
         if (!this.mouseDownPosition) return;
@@ -684,8 +672,8 @@ export class MultiPlayerBoardManager {
     const token = this.tokens.get(tokenId);
     if (!token || token.ownerId !== this.localPlayerId) return;
 
-    // hide tooltip
-    this.tooltipManager.hide();
+    // hide hint
+    useHotkeyMenuStore.getState().close();
 
     // set drag state
     this.dragState = {
@@ -762,7 +750,7 @@ export class MultiPlayerBoardManager {
   private onMouseMove(e: MouseEvent): void {
     if (!this.dragState.cardId) return;
 
-    this.tooltipManager.hide()
+    useHotkeyMenuStore.getState().close();
 
     // Check if dragging a card or token
     const card = this.cards.get(this.dragState.cardId);
@@ -925,15 +913,11 @@ export class MultiPlayerBoardManager {
     return useZoomStore.getState().zoomLevel;
   }
 
-  public getTooltipManager(): TooltipManager {
-    return this.tooltipManager;
-  }
-
   public destroy(): void {
     this.cards.clear();
     this.tokens.clear();
     this.boardContainerManager.destroy();
     this.zoomUnsubscribe?.();
-    this.tooltipManager.destroy();
+    useHotkeyMenuStore.getState().close();
   }
 }

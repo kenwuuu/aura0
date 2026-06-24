@@ -31,7 +31,7 @@ import { Checkbox } from '@/shared/ui/checkbox';
 import { CardGrid } from './CardGrid';
 import { usePlayerStore } from '@/stores/playerStore';
 import { useHotkeyStore } from '@/stores/hotkeyStore';
-import {useTooltipStore} from "@/stores/uiStore";
+import { useHotkeyMenuStore } from '@/features/hotkeys/hotkeyMenuStore';
 
 export type PileType = 'deck' | 'exile' | 'discard' | 'hand' | 'scry';
 
@@ -64,7 +64,6 @@ export function PileViewerReact({
   const yPlayerState = usePlayerStore((state) => state.yPlayerState);
   const setModalOpen = useHotkeyStore((state) => state.setModalOpen);
   const setHoveredPileViewerCard = useHotkeyStore((state) => state.setHoveredPileViewerCard);
-  const tooltipManager = useTooltipStore((state) => state.tooltipManager);
 
   // State
   const [searchQuery, setSearchQuery] = React.useState('');
@@ -151,28 +150,25 @@ export function PileViewerReact({
     }
   }, [isOpen, pileType, yPlayerState]);
 
-  // Setup tooltip manager when modal opens
-  React.useEffect(() => {
-    if (!isOpen) return;
-    tooltipManager.setup((hotkey: Hotkey, cardId: string) => {
-      const card = cards.find((c) => c.id === cardId);
-      if (!card) return;
+  // Right-click menu selection on a pile card → move it accordingly.
+  const handleMenuSelect = React.useCallback((hotkey: Hotkey, cardId: string) => {
+    const card = cards.find((c) => c.id === cardId);
+    if (!card) return;
 
-      const key = hotkey.key.toLowerCase();
+    const key = hotkey.key.toLowerCase();
 
-      if (key === 'h' && callbacks.onMoveToHand) {
-        callbacks.onMoveToHand(card);
-      } else if (key === 'd' && callbacks.onMoveToDiscard && pileType !== 'discard') {
-        callbacks.onMoveToDiscard(card);
-      } else if (key === 's' && callbacks.onMoveToExile && pileType !== 'exile') {
-        callbacks.onMoveToExile(card);
-      } else if (key === 't' && callbacks.onMoveToDeckTop && pileType !== 'deck') {
-        callbacks.onMoveToDeckTop(card);
-      } else if (key === 'y' && callbacks.onMoveToDeckBottom && pileType !== 'deck') {
-        callbacks.onMoveToDeckBottom(card);
-      }
-    });
-  }, [isOpen, cards, callbacks, pileType]);
+    if (key === 'h' && callbacks.onMoveToHand) {
+      callbacks.onMoveToHand(card);
+    } else if (key === 'd' && callbacks.onMoveToDiscard && pileType !== 'discard') {
+      callbacks.onMoveToDiscard(card);
+    } else if (key === 's' && callbacks.onMoveToExile && pileType !== 'exile') {
+      callbacks.onMoveToExile(card);
+    } else if (key === 't' && callbacks.onMoveToDeckTop && pileType !== 'deck') {
+      callbacks.onMoveToDeckTop(card);
+    } else if (key === 'y' && callbacks.onMoveToDeckBottom && pileType !== 'deck') {
+      callbacks.onMoveToDeckBottom(card);
+    }
+  }, [cards, callbacks, pileType]);
 
   // Listen for centralized hotkey events
   React.useEffect(() => {
@@ -183,7 +179,7 @@ export function PileViewerReact({
       const card = cards.find(c => c.id === cardId);
       if (!card) return;
 
-      tooltipManager?.hide();
+      useHotkeyMenuStore.getState().close();
 
       switch (action) {
         case 'moveToHand':
@@ -464,6 +460,7 @@ export function PileViewerReact({
               revealCount={revealCount}
               onHover={handleCardHover}
               hotkeyContext={getHotkeyContext()}
+              onMenuSelect={handleMenuSelect}
               enableReordering={pileType === 'scry'}
             />
           )}

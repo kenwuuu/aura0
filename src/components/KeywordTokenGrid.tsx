@@ -3,7 +3,7 @@ import { KeywordTokenTemplate } from '@/features/keyword-tokens/types';
 import { KeywordTokenFactory } from '@/features/keyword-tokens/KeywordTokenFactory';
 import { setElementDragPoint } from "@/shared/utils/centerHtmlElementOnDrag";
 import { HotkeyContext } from '@/features/hotkeys/hotkeys';
-import {useTooltipStore} from "@/stores/uiStore";
+import { useHotkeyMenuStore } from '@/features/hotkeys/hotkeyMenuStore';
 
 interface KeywordTokenGridProps {
   templates: KeywordTokenTemplate[];
@@ -21,7 +21,6 @@ export const KeywordTokenGrid: React.FC<KeywordTokenGridProps> = ({
   onDragStart,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
-  const tooltipManager = useTooltipStore((state) => state.tooltipManager);
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -33,18 +32,21 @@ export const KeywordTokenGrid: React.FC<KeywordTokenGridProps> = ({
     templates.forEach((template) => {
       const tokenElement = KeywordTokenFactory.createTokenElement(template, {
         mode: 'grid',
-        onMouseEnter: tooltipManager ? (e: MouseEvent, tokenId: string) => {
-          tooltipManager.show(tokenId, HotkeyContext.KeywordToken, e.clientX, e.clientY, false, template.title);
-        } : undefined,
-        onMouseMove: tooltipManager ? (e: MouseEvent) => {
-          tooltipManager.setMouseLocation(e.clientX, e.clientY);
-        } : undefined,
-        onMouseLeave: tooltipManager ? () => {
-          tooltipManager.hide();
-        } : undefined,
+        // Hover hint only: shows the token's bindings; the picker has no actions.
+        onMouseEnter: (e: MouseEvent) => {
+          useHotkeyMenuStore.getState().showHint({
+            context: HotkeyContext.KeywordToken,
+            x: e.clientX,
+            y: e.clientY,
+            title: template.title,
+          });
+        },
+        onMouseLeave: () => {
+          useHotkeyMenuStore.getState().close();
+        },
         onDragStart: (e: DragEvent, draggedTemplate: KeywordTokenTemplate) => {
-          // Hide tooltip when starting drag
-          tooltipManager?.hide();
+          // Hide hint when starting drag
+          useHotkeyMenuStore.getState().close();
 
           // Center the drag image on the mouse cursor
           setElementDragPoint(e.target as HTMLDivElement, e, 'kwToken');
@@ -60,7 +62,7 @@ export const KeywordTokenGrid: React.FC<KeywordTokenGridProps> = ({
 
       containerRef.current!.appendChild(tokenElement);
     });
-  }, [templates, onDragStart, tooltipManager]);
+  }, [templates, onDragStart]);
 
   // Calculate grid template based on columns/rows config
   const gridTemplateColumns = columns ? `repeat(${columns}, 50px)` : 'repeat(auto-fill, 50px)';

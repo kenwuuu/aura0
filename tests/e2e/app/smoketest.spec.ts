@@ -20,11 +20,12 @@ test('testImportDeck', async ({ page }) => {
   const boardCard3: Locator = page.locator('div').filter({ hasText: /^#1$/ }).nth(2);
   const boardCard4: Locator = page.locator('div').filter({ hasText: /^#1$/ }).nth(4);
 
-  // Confirm card exists. Confirm hotkey tooltip shows up
-  await boardCard1.hover()
+  // Confirm card exists. Right-click opens the action menu.
+  await boardCard1.click({ button: 'right' })
   await expect(page.getByText('+1 Counter')).toBeVisible()
 
-  // Move mouse to remove preview and tooltip
+  // Close the menu and move mouse to remove the card preview
+  await page.keyboard.press('Escape');
   await page.mouse.move(200, 200);
 
   // Confirm that the card spawned its related token
