@@ -634,4 +634,4 @@ function useHandSync(yDoc: Y.Doc, playerId: string) {
 - [React Hooks Documentation](https://react.dev/reference/react)
 - [Yjs Documentation](https://docs.yjs.dev/)
 - [CLAUDE.md](../CLAUDE.md) - Current architecture overview
-- [DEVELOPER_ONBOARDING.md](../DEVELOPER_ONBOARDING.md) - Detailed code walkthrough
+- [DEVELOPER_ONBOARDING.md](../docs/DEVELOPER_ONBOARDING.md) - Detailed code walkthrough

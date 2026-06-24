@@ -22,11 +22,6 @@ Welcome to Aura! This guide will help you understand the codebase architecture, 
 
 ## Quick Start
 
-### Prerequisites
-- Node.js 18+ and npm
-- Modern browser (Chrome, Firefox, Edge, Safari)
-- Two browser windows/tabs for testing multiplayer
-
 ### Installation
 
 ```bash
@@ -44,70 +39,7 @@ npm run dev
 npm run build
 ```
 
-### Testing Multiplayer
-
-1. Open http://localhost:5173
-2. Note the room name in the URL (e.g., `?room=abc123`)
-3. Open another browser window/tab with the same URL
-4. Both windows should connect (check "Connected" status in toolbar)
-5. Changes in one window appear in the other
-
----
-
-## Project Overview
-
-### What is Aura?
-
-Aura is a **peer-to-peer collaborative web app** for playing Magic: The Gathering online. Key features:
-
-- **Real-time synchronization**: Changes sync instantly between players
-- **No server state**: Uses WebRTC for direct peer-to-peer connections
-- **Privacy**: Your deck and hand are private (hand visible only to you)
-- **Keyboard-first**: Extensive keyboard shortcuts for fast gameplay
-
-### Technology Stack
-
-| Concern | Technology | Purpose |
-|---------|------------|---------|
-| **Language** | TypeScript 5.9 | Type safety |
-| **Build Tool** | Vite | Fast dev server and bundling |
-| **State Sync** | Yjs + y-webrtc | CRDT-based synchronization |
-| **UI** | Vanilla JavaScript | DOM manipulation (no framework) |
-| **Styling** | Plain CSS | 580 lines in `src/style.css` |
-| **Signaling** | WebSocket | For WebRTC connection setup |
-
-**Note:** Currently no UI framework (React, Vue, etc.). See `LIBRARY_RECOMMENDATIONS.md` for migration plans.
-
----
-
 ## Architecture Overview
-
-### High-Level Structure
-
-```
-┌─────────────────────────────────────────────────────────┐
-│                     Browser Window                       │
-│  ┌───────────────────────────────────────────────────┐  │
-│  │                   index.html                       │  │
-│  │  ┌─────────────────────────────────────────────┐  │  │
-│  │  │            AuraApp (index.ts)               │  │  │
-│  │  │                                             │  │  │
-│  │  │  Creates and wires up:                     │  │  │
-│  │  │  - Y.Doc (shared state)                    │  │  │
-│  │  │  - WebRTCProvider (networking)              │  │  │
-│  │  │  - Local Player (game logic)                │  │  │
-│  │  │  - Whiteboard (battlefield UI)              │  │  │
-│  │  │  - GameResourcesDock (hand/piles UI)        │  │  │
-│  │  └─────────────────────────────────────────────┘  │  │
-│  └───────────────────────────────────────────────────┘  │
-└─────────────────────────────────────────────────────────┘
-                           │
-                           │ WebRTC + Yjs
-                           ▼
-┌─────────────────────────────────────────────────────────┐
-│                  Other Player's Browser                  │
-└─────────────────────────────────────────────────────────┘
-```
 
 ### Module Organization
 
