@@ -1,2 +1,2 @@
 Source root. The app is mid-migration to screaming architecture: domain verticals in `features/`, cross-cutting tech in `infrastructure/`, generic primitives in `shared/`, with residual code still in `services/`, `components/`, and `utils/`.
-Entry point is `src/index.ts` (wires `Y.Doc`, networking, Player, board, dock); top-level React shell is `src/App.tsx`.
+Entry point is `src/index.ts` (the `AuraApp` God Object — wires `Y.Doc`, networking, Player, board, dock; slated to be broken up in Phase 5). There is no single top-level React shell yet; React trees are mounted ad-hoc via multiple `createRoot()` calls. `src/app/` exists but is empty, reserved for the future `App.tsx` root.

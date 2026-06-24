@@ -13,13 +13,6 @@ vi.mock('../cardPreview', () => ({
   })),
 }));
 
-vi.mock('./KeyboardHandler', () => ({
-  KeyboardHandler: vi.fn().mockImplementation(() => ({
-    setHoveredCard: vi.fn(),
-    destroy: vi.fn(),
-  })),
-}));
-
 vi.mock('./TooltipManager', () => ({
   TooltipManager: vi.fn().mockImplementation(() => ({
     setup: vi.fn(),

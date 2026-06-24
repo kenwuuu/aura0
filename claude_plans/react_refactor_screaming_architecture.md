@@ -137,10 +137,13 @@ Two pre-existing bugs also fixed along the way:
 - `src/index.ts` — still the God Object; target of Phase 5.
 - `src/app/` — created but empty; target of Phase 5.
 
-### Phase 2 — Delete dead code
-- Delete `src/features/battlefield/KeyboardHandler.ts` (confirmed not imported in production — `useAllGameHotkeys` fully replaced it)
-- Delete `src/features/card-preview/CardPreview.ts` + `CardPreviewWrapper.ts` (imperative versions; React version at `CardPreview.tsx` already exists)
-- Delete `src/App.tsx` placeholder ("React root mounted successfully!")
+### Phase 2 — Delete dead code ✅ DONE (partial — see note)
+- ✅ Deleted `src/features/battlefield/KeyboardHandler.ts` (not imported by production `MultiPlayerBoardManager`; `useAllGameHotkeys` fully replaced it). Also deleted its `KeyboardHandler.test.ts`, removed the `KeyboardHandlerCallbacks` re-export from `features/battlefield/index.ts`, and removed the `vi.mock('./KeyboardHandler')` block from `MultiPlayerBoardManager.test.ts`.
+- ✅ Deleted `src/features/card-preview/CardPreviewWrapper.ts` (imported by nobody — genuinely dead).
+- ✅ Deleted `src/App.tsx` placeholder ("React root mounted successfully!"), referenced by nobody.
+- ⚠️ **NOT deleted: `src/features/card-preview/CardPreview.ts`** (imperative version). It is still live in production — `card-preview/index.ts` re-exports `CardPreview` from `./CardPreview` (resolves to the `.ts`), and `src/index.ts:201` does `new CardPreview()`, while `GameResourcesDock.ts` / `battlefieldCardActions.ts` use its imperative `show`/`hide`/`updatePosition` API. The `.tsx` is a props-based functional component, not a wired-in replacement. Deleting the `.ts` belongs to **Phase 3** (finish `CardPreview.tsx` + rewire callers, then delete the `.ts`).
+
+Verified: `npm run build` ✓ and `tsc --noEmit` shows only the pre-existing `YDOC_INVERTED_BOARDS` error in `BoardInverter.tsx` (unrelated to this phase).
 
 ### Phase 3 — Replace imperative classes with React
 - `ZoomController.ts` → `ZoomControls.tsx` (React component, ~20 lines with useState + Tailwind + Zustand persist)
