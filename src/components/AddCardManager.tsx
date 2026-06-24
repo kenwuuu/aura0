@@ -1,18 +1,17 @@
 import React, { useEffect } from 'react';
 import posthog from 'posthog-js';
 import { AddCardModal } from './AddCardModal';
-import { ScryfallApiService } from '@/services/scryfall';
-import { toCard } from '@/services/scryfall/ScryfallCardAdapter';
+import { CardLookupService, toCard } from '@/services/cards';
 import { Card } from '@/modules/deck';
 import { useHotkeyStore } from '@/stores/hotkeyStore';
 
 interface AddCardManagerProps {
-  scryfallApiService: ScryfallApiService;
+  cardLookup: CardLookupService;
   onAddCard: (card: Card) => void;
 }
 
 export const AddCardManager: React.FC<AddCardManagerProps> = ({
-  scryfallApiService,
+  cardLookup,
   onAddCard,
 }) => {
   const addCardModalOpen = useHotkeyStore((state) => state.addCardModalOpen);
@@ -25,7 +24,7 @@ export const AddCardManager: React.FC<AddCardManagerProps> = ({
   }, [addCardModalOpen, setModalOpen]);
 
   const handleAddCard = async (cardName: string) => {
-    const scryfallCard = await scryfallApiService.fetchCardByName(cardName);
+    const scryfallCard = await cardLookup.fetchCardByName(cardName);
     const card = toCard(scryfallCard, -1); // -1 indicates dynamically added card
     onAddCard(card);
     posthog.capture('card_added_to_hand', { card_name: cardName });

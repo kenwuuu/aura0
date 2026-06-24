@@ -2,7 +2,7 @@ import * as Y from 'yjs';
 import posthog from 'posthog-js';
 import { Player } from '@/modules/player';
 import { MultiPlayerBoardManager } from '@/modules/whiteboard';
-import {TokenCreationResult, TokenService} from '../scryfall';
+import {TokenCreationResult, TokenService} from '../cards';
 import {CARD_HEIGHT, CARD_WIDTH, YDOC_CARDS_ON_BOARD, YDOC_KEYWORD_TOKENS} from '@/constants';
 import {getBoardLeftOffset, getBoardTopOffset} from "@/modules/whiteboard/BoardContainerManager";
 import {PileType} from "@/modules/gameResourcesDock/components";

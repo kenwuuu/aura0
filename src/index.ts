@@ -11,8 +11,7 @@ import { WelcomeModal, HotkeysModal, HelpModal, AddCardManager, PatchNotesModal,
 import { DeckManager } from './deck_manager';
 import { OpponentHealthList } from './components/health/OpponentHealthList';
 import { SavedDeck } from './modules/deck/types';
-import { TokenService } from './services/scryfall';
-import { ScryfallApiService } from '@/services/scryfall';
+import { CardLookupService, TokenService } from '@/services/cards';
 import { CardPreview } from './modules/cardPreview';
 import { DeckStorageService } from './services/deckStorage';
 import { DeckPersistenceService } from './services/deckPersistence';
@@ -37,6 +36,11 @@ posthog.init('phc_yVFqMSYG88kEXYf4vcMJgS7YuHpjRyYCD4aWicRXuJtF', {
   api_host: 'https://us.i.posthog.com',
   defaults: '2026-01-30',
 });
+
+// Opt out of Posthog if running locally
+if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+  posthog.opt_out_capturing()
+}
 
 Sentry.init({
   environment: process.env.NODE_ENV || "development",
@@ -78,7 +82,7 @@ class AuraApp {
   private gameHotkeysRoot: Root | null = null;
   private tokenService!: TokenService;
   private playerId: string;
-  private scryfallApiService!: ScryfallApiService;
+  private cardLookup!: CardLookupService;
   private roomManager: RoomManager;
   private eventHandlers: WhiteboardEventHandlers | null = null;
 
@@ -169,13 +173,13 @@ class AuraApp {
       })
     );
 
-    // Initialize Scryfall API service
-    this.scryfallApiService = new ScryfallApiService();
+    // Initialize card lookup service (Aura backend → Scryfall fallback)
+    this.cardLookup = new CardLookupService();
 
     // Initialize token service with zoom level provider
     this.tokenService = new TokenService(
-      () => this.whiteboard.getZoomLevel(), // Inject zoom level getter
-      this.scryfallApiService,
+      () => this.whiteboard.getZoomLevel(),
+      this.cardLookup,
     );
 
     this.setupEventListeners();
@@ -518,7 +522,7 @@ class AuraApp {
     const root = createRoot(addCardModalRoot);
     root.render(
       React.createElement(AddCardManager, {
-        scryfallApiService: this.scryfallApiService,
+        cardLookup: this.cardLookup,
         onAddCard: (card) => this.localPlayer.placeCardInPile(card, 'hand'),
       })
     );

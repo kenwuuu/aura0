@@ -1,7 +1,6 @@
 import { DeckImporter, DeckImportResult } from './DeckImporter';
 import { DeckLineItem, parseDecklist, validateFormat } from "@/services/deckImporter/DeckListParser";
-import { CardDataResult, ScryfallApiService } from '../scryfall';
-import {AuraApiService} from "@/services/aura_card_search/AuraApiService";
+import { CardDataResult, CardLookupService } from '@/services/cards';
 import { Card } from '@/modules/deck';
 import * as Sentry from "@sentry/browser";
 import {
@@ -13,14 +12,15 @@ import {
 } from "@/services/analytics/PosthogFunctions";
 
 export class MtgTextListDeckImporter extends DeckImporter {
-  private auraApi: AuraApiService;
-  private scryfallApi: ScryfallApiService;
+  private readonly cardLookup: CardLookupService;
   private readonly onProgress?: (current: number, total: number) => void;
 
-  constructor(onProgress?: (current: number, total: number) => void) {
+  constructor(
+    onProgress?: (current: number, total: number) => void,
+    cardLookup: CardLookupService = new CardLookupService(),
+  ) {
     super();
-    this.auraApi = new AuraApiService();
-    this.scryfallApi = new ScryfallApiService();
+    this.cardLookup = cardLookup;
     this.onProgress = onProgress;
   }
 
@@ -75,15 +75,11 @@ export class MtgTextListDeckImporter extends DeckImporter {
     }
 
     let results: CardDataResult[];
-    let failedLineItems: DeckLineItem[];
     try {
-      ({ results, failedLineItems } = await this.auraApi.fetchImagesForList(entries, this.onProgress));
-      if (failedLineItems.length > 0) {
-        trackFallbackTriggered(failedLineItems.length, entries.length);
-        // remove existing errors because scryfall will report its own errors
-        results = results.filter(card => card.error === undefined);
-        const fallbackCards: CardDataResult[] = await this.scryfallApi.fetchImagesForList(failedLineItems, this.onProgress);
-        results.unshift(...fallbackCards);
+      const lookup = await this.cardLookup.fetchImagesForList(entries, this.onProgress);
+      results = lookup.results;
+      if (lookup.fallbackTriggeredCount > 0) {
+        trackFallbackTriggered(lookup.fallbackTriggeredCount, entries.length);
       }
     } catch (e) {
       // Unexpected throw from fetchImagesForList itself (not per-card errors,

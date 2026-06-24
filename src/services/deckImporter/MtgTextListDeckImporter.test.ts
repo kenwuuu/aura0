@@ -1,41 +1,34 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { MtgTextListDeckImporter } from './MtgTextListDeckImporter';
-import {parseDecklist} from "@/services/deckImporter/DeckListParser";
+import { CardLookupService } from '@/services/cards';
 
-// Mock the ScryfallApiService but use real parseDecklist
-vi.mock('../scryfall', async () => {
-  const actual = await vi.importActual<typeof import('../scryfall')>('../scryfall');
-
-  class MockScryfallApiService {
-    parseDecklist: typeof parseDecklist;
-    fetchImagesForList: ReturnType<typeof vi.fn>;
-
-    constructor() {
-      const realService = new actual.ScryfallApiService();
-      this.parseDecklist = parseDecklist.bind(realService);
-      this.fetchImagesForList = vi.fn().mockImplementation(async (entries) => {
-        // Return mock data for each entry
-        return entries.map((entry: any) => ({
-          name: entry.name,
-          count: entry.count,
-          scryfallId: `${entry.name.toLowerCase().replace(/\s+/g, '-')}-id`,
-          type_line: entry.name.includes('Mountain') ? 'Basic Land' : 'Instant',
-          imageUris: { front: { normal: `https://example.com/${entry.name.toLowerCase()}.jpg` } },
-        }));
-      });
-    }
-  }
-
-  return {
-    ScryfallApiService: MockScryfallApiService,
-  };
-});
+// Mock CardLookupService so tests don't hit the network.
+// We construct a minimal CardLookupService whose fetchImagesForList returns
+// canned successful results for every entry — no fallback needed.
+function makeMockLookup(): CardLookupService {
+  const lookup = new CardLookupService();
+  vi.spyOn(lookup, 'fetchImagesForList').mockImplementation(async (entries) => ({
+    results: entries.map((entry) => ({
+      name: entry.name,
+      count: entry.count,
+      scryfallId: `${entry.name.toLowerCase().replace(/\s+/g, '-')}-id`,
+      type_line: entry.name.includes('Mountain') ? 'Basic Land' : 'Instant',
+      imageUris: {
+        front: { normal: `https://example.com/${entry.name.toLowerCase()}.jpg` } as any,
+        back: null,
+      },
+    })),
+    failedItems: [],
+    fallbackTriggeredCount: 0,
+  }));
+  return lookup;
+}
 
 describe('MtgTextListDeckImporter - Section Header Detection', () => {
   let importer: MtgTextListDeckImporter;
 
   beforeEach(() => {
-    importer = new MtgTextListDeckImporter();
+    importer = new MtgTextListDeckImporter(undefined, makeMockLookup());
   });
 
   describe('Section header detection', () => {
@@ -245,32 +238,4 @@ SIDEBOARD
       expect(result.errors).toBeUndefined();
     });
   });
-
-//   describe('ignoring non-numeral lines', () => {
-//     it('should automatically filter out comment lines', async () => {
-//       const deckText = `# This is my awesome deck
-// 4 Lightning Bolt
-// // Another comment
-// 20 Mountain`;
-//
-//       const result = await importer.importFromText(deckText);
-//
-//       // Should succeed - comments are filtered out automatically
-//       expect(result.cards.length).toBeGreaterThan(0);
-//       expect(result.errors).toBeUndefined();
-//     });
-//
-//     it('should automatically filter out blank text lines', async () => {
-//       const deckText = `Some random text
-// 4 Lightning Bolt
-// Another line of text
-// 20 Mountain`;
-//
-//       const result = await importer.importFromText(deckText);
-//
-//       // Should succeed - text lines are filtered out automatically
-//       expect(result.cards.length).toBeGreaterThan(0);
-//       expect(result.errors).toBeUndefined();
-//     });
-//   });
 });
