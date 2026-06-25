@@ -1,16 +1,12 @@
 /**
- * bootstrapGame — imperative app wiring (Phase 5).
+ * bootstrapGame — imperative app wiring.
  *
- * Replaces the `AuraApp.initialize()` method from `src/index.ts`. Construction
- * order is preserved verbatim so sequencing constraints (networking before player,
- * player before dock, all instances before store population) remain visible in one
- * place. Returns a `GameContext` consumed by `App.tsx`.
+ * Wires the game singletons (Y.Doc, networking, Player, services) in dependency
+ * order, populates Zustand stores, and returns a GameContext for App.tsx.
  *
- * Deck domain logic lives in `features/deck-manager/deckLoading.ts`.
- * Room-link copy lives in `features/room/setupRoomLinkCopy.ts`.
+ * Deck domain logic lives in features/deck-manager/deckLoading.ts.
  */
 import * as Y from 'yjs';
-import { GameResourcesDock } from '@/features/game-dock';
 import { Player } from '@/features/player';
 import { RoomManager } from '@/features/room';
 import { CardLookupService, TokenService } from '@/infrastructure/cards';
@@ -66,32 +62,23 @@ export async function bootstrapGame(): Promise<GameContext> {
   // Populate playerStore immediately so any component reading yPlayerState gets it on mount
   usePlayerStore.getState().setYPlayerState(player.yPlayerState);
 
-  // ── 4. Dock (imperative class, Phase 6 target for React conversion) ────────
-  const dockContainer = document.getElementById('local-dock');
-  if (!dockContainer) throw new Error('Local dock container not found');
-
-  new GameResourcesDock(dockContainer, player, {
-    position: 'bottom',
-    playerId,
-  });
-
-  // ── 5. Services ────────────────────────────────────────────────────────────
+  // ── 4. Services ────────────────────────────────────────────────────────────
   const cardLookup = new CardLookupService();
   // TokenService no longer needs getZoomLevel — positioning is in flow coordinates
   const tokenService = new TokenService(() => 1, cardLookup);
 
-  // ── 6. Populate game-instance store (before React renders) ─────────────────
+  // ── 5. Populate game-instance store (before React renders) ─────────────────
   useGameInstance.getState().setYDoc(yDoc);
   useGameInstance.getState().setPlayer(player);
   useGameInstance.getState().setPlayerId(playerId);
   useGameInstance.getState().setRoomManager(roomManager);
 
-  // ── 7. Deck seeding + auto-load ────────────────────────────────────────────
+  // ── 6. Deck seeding + auto-load ────────────────────────────────────────────
   const storage = new DeckStorageService();
   await seedDefaultDeckIfFirstLoad(storage);
   await autoLoadDeckOnStart(player, roomManager, storage);
 
-  // ── 8. Analytics ───────────────────────────────────────────────────────────
+  // ── 7. Analytics ───────────────────────────────────────────────────────────
   const visitCount = parseInt(localStorage.getItem(VISIT_COUNT_KEY) ?? '0', 10);
   localStorage.setItem(VISIT_COUNT_KEY, (visitCount + 1).toString());
 

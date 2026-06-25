@@ -116,25 +116,6 @@ body {
 }
 
 /* Game Resources Dock */
-#local-dock {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  z-index: 900;
-}
-
-.game-resources-dock {
-  background-color: rgba(10, 10, 10, 0.95);
-  border-top: 2px solid #2d2d2d;
-  padding: 16px;
-  display: flex;
-  gap: 16px;
-  align-items: center;
-  justify-content: center;
-  backdrop-filter: blur(10px);
-  position: relative;
-}
 
 .resource-pile {
   background-color: #1a1a1a;

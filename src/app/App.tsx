@@ -9,6 +9,7 @@ import { OpponentPileViewers } from '@/features/opponents/OpponentPileViewers';
 import { FloatingHand } from '@/features/game-dock/FloatingHand';
 import { FloatingControlsMenu } from '@/features/game-dock/controls/FloatingControlsMenu';
 import { ScryManager } from '@/features/game-dock/ScryManager';
+import { LocalPileTiles } from '@/features/game-dock/LocalPileTiles';
 import { DeckManager } from '@/features/deck-manager';
 import { loadDeck } from '@/features/deck-manager/deckLoading';
 import { RoomManager } from '@/features/room';
@@ -70,6 +71,7 @@ export function App({ yDoc, yjsNetworkProvider, player, roomManager, playerId, c
       <FloatingHand />
       <FloatingControlsMenu />
       <ScryManager />
+      <LocalPileTiles />
       <OpponentPileViewers yDoc={yDoc} localPlayerId={playerId} />
       <CardPreview />
       <HotkeyMenu />
