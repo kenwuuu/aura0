@@ -5,13 +5,13 @@ import { PileViewer, PileType } from './components';
 import { CardPreview } from '@/features/card-preview';
 import React from 'react';
 import {createRoot, Root} from 'react-dom/client';
-import {HealthDisplay} from '@/features/opponents/HealthDisplay';
 import {HotkeyTooltip} from '@/features/hotkeys/HotkeyTooltip';
 import {HotkeyContext} from '@/features/hotkeys/hotkeys';
 import {ScryModal} from '@/features/game-dock/ScryModal';
 import { ControlsMenu } from '@/features/game-dock/controls/ControlsMenu';
 import { HandCardsContainer } from './HandCardsContainer';
 import { useHotkeyStore } from '@/app/stores/hotkeyStore';
+import { usePileViewerOpenStore } from './pileViewerOpenStore';
 
 export class GameResourcesDock {
   private container: HTMLElement;
@@ -28,15 +28,14 @@ export class GameResourcesDock {
     handPile: HTMLElement;
     controls: HTMLElement;
     deck: HTMLElement;
-    health: HTMLElement;
   } | null = null;
   private draggedCard: { card: Card; element: HTMLElement } | null = null;
   private hoveredHandCardId: string | null = null;
-  private hoveredResource: 'deck' | 'exile' | 'discard' | 'health' | null = null;
+  private hoveredResource: 'deck' | 'exile' | 'discard' | null = null;
   private handZoomLevel: number = 1;
   private zoomControls?: HTMLElement;
-  private healthRoot: Root | null = null;
   private controlsRoot: Root | null = null;
+  private _unsubPileOpen: (() => void) | null = null;
   private handRoot: Root | null = null;
   private tooltipRoot: Root | null = null;
   private tooltipContainer: HTMLElement | null = null;
@@ -99,6 +98,15 @@ export class GameResourcesDock {
     this.setupEventListeners();
     this.setupDragDropZones();
     this.setupTooltip();
+
+    // Subscribe to pile-open requests from board PileNodes so they can open
+    // the dock's existing viewers (which own all the move callbacks).
+    this._unsubPileOpen = usePileViewerOpenStore.subscribe((state) => {
+      const req = state.request;
+      if (!req || req.scope !== 'local') return;
+      usePileViewerOpenStore.getState().clear();
+      this.viewPile(req.pile);
+    });
   }
 
   private setupTooltip(): void {
@@ -169,7 +177,6 @@ export class GameResourcesDock {
     const handPile = this.createPileElement('hand', 'Hand');
     const controls = this.createControlsElement();
     const deck = this.createDeckElement();
-    const health = this.createHealthElement();
 
     this.container.appendChild(exile);
     this.container.appendChild(discard);
@@ -177,9 +184,8 @@ export class GameResourcesDock {
     this.container.appendChild(hand);
     this.container.appendChild(controls);
     this.container.appendChild(deck);
-    this.container.appendChild(health);
 
-    this.elements = { exile, discard, handPile, hand, controls, deck, health };
+    this.elements = { exile, discard, handPile, hand, controls, deck };
   }
 
   private createPileElement(type: string, label: string): HTMLElement {
@@ -203,7 +209,7 @@ export class GameResourcesDock {
 
     // Hover tracking for keyboard shortcuts and tooltip
     pile.addEventListener('mouseenter', () => {
-      this.hoveredResource = type as 'deck' | 'exile' | 'discard' | 'health';
+      this.hoveredResource = type as 'deck' | 'exile' | 'discard';
       this.hoveredHandCardId = null;
       // Update Zustand store for new hotkey system (only for deck/exile/discard, not health)
       if (type === 'deck' || type === 'exile' || type === 'discard') {
@@ -346,44 +352,6 @@ export class GameResourcesDock {
     );
   }
 
-  private createHealthElement(): HTMLElement {
-    const healthElement = document.createElement('div');
-
-    this.healthRoot = createRoot(healthElement);
-    this.renderHealthComponent();
-
-    // Add hover event listeners for keyboard shortcuts
-    healthElement.addEventListener('mouseenter', () => {
-      this.hoveredResource = 'health';
-      this.hoveredHandCardId = null;
-    });
-
-    healthElement.addEventListener('mouseleave', () => {
-      this.hoveredResource = null;
-    });
-
-    return healthElement;
-  }
-
-  private renderHealthComponent(): void {
-    if (!this.healthRoot) return;
-
-    const state = this.player.getState();
-    this.healthRoot.render(
-      React.createElement(HealthDisplay, {
-        label: state.name,
-        health: state.health,
-        onModifyHealth: (delta: number) => this.player.modifyHealth(delta),
-        onRename: (name: string) => this.player.setName(name),
-        variant: 'local',
-        customCounters: state.customCounters,
-        onAddCounter: (title: string, icon: string) => this.player.addCustomCounter(title, icon),
-        onModifyCounter: (counterId: string, delta: number) => this.player.modifyCustomCounter(counterId, delta),
-        onRemoveCounter: (counterId: string) => this.player.removeCustomCounter(counterId)
-      })
-    );
-  }
-
   private setupEventListeners(): void {
     this.player.onStateChange((state) => {
       this.updateUI(state);
@@ -456,9 +424,6 @@ export class GameResourcesDock {
 
     const handCount = this.elements.handPile.querySelector('.pile-count');
     if (handCount) handCount.textContent = state.hand.length.toString();
-
-    // Update health React component
-    this.renderHealthComponent();
 
     // Hand updates are now handled automatically by React via Yjs observation
   }
@@ -728,9 +693,9 @@ export class GameResourcesDock {
   }
 
   public destroy(): void {
-    if (this.healthRoot) {
-      this.healthRoot.unmount();
-      this.healthRoot = null;
+    if (this._unsubPileOpen) {
+      this._unsubPileOpen();
+      this._unsubPileOpen = null;
     }
     if (this.controlsRoot) {
       this.controlsRoot.unmount();

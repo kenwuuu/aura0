@@ -10,3 +10,7 @@ Any functionality that begins to differentiate it from a generic tabletop
 should be scrutinized. For example, the concept of a command zone is specific to 
 MTG EDH. This should be implemented only as a plugin to the project. In fact, 
 automatically drawing the commander should also be a plugin.
+
+## Playmat photo sources
+https://www.pexels.com/search/nature/
+https://unsplash.com/photos/green-grass-field-during-sunset-_RBcxo9AU-U

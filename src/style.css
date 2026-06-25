@@ -53,15 +53,18 @@ body {
   justify-content: center;
 }
 
-#opponent-health-container {
-  position: fixed;
-  top: 80px;
-  right: 10px;
-  z-index: 900;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  align-items: flex-end;
+
+/* ── Playmat board node overrides ────────────────────────────────────────────
+   Remove react-flow's default node border, background, and box-shadow so our
+   custom styles are not overridden.                                           */
+.react-flow__node-playmat,
+.react-flow__node-health,
+.react-flow__node-pile {
+  border: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+  padding: 0 !important;
 }
 
 #whiteboard {

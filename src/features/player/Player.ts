@@ -12,7 +12,9 @@ import {
   YDOC_PLAYER,
   YSTATE_CUSTOM_COUNTERS,
   YSTATE_DECK, YDOC_KEYWORD_TOKENS,
-  YSTATE_PLAYER_NAME
+  YSTATE_PLAYER_NAME,
+  YSTATE_JOINED_AT,
+  YSTATE_CAN_VIEW_HAND,
 } from "@/constants";
 import { getStoredPlayerName, setStoredPlayerName } from "@/infrastructure/networking/persistence";
 import {PileType} from '@/features/game-dock/components';
@@ -86,6 +88,11 @@ export class Player {
       this.yPlayerState.set('scry', []);
       this.yPlayerState.set(YSTATE_CUSTOM_COUNTERS, []);
       this.yPlayerState.set('deckRevealCount', 0); // 0=hidden, -1=all, N>0=top N cards
+    }
+    // Write joinedAt once — determines stable seat order across all peers.
+    // Written separately so reconnecting players keep their original seat.
+    if (!this.yPlayerState.has(YSTATE_JOINED_AT)) {
+      this.yPlayerState.set(YSTATE_JOINED_AT, Date.now());
     }
   }
 
@@ -235,6 +242,15 @@ export class Player {
 
   public setHealth(health: number): void {
     this.yPlayerState.set(YSTATE_HEALTH, health);
+  }
+
+  /** Toggle whether opponents can view this player's hand cards. */
+  public setAllowViewHand(allow: boolean): void {
+    this.yPlayerState.set(YSTATE_CAN_VIEW_HAND, allow);
+  }
+
+  public getAllowViewHand(): boolean {
+    return (this.yPlayerState.get(YSTATE_CAN_VIEW_HAND) as boolean | undefined) ?? false;
   }
 
   public modifyHealth(delta: number): void {

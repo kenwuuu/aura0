@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useEffect, useRef } from 'react';
 import {
   ReactFlow,
   ReactFlowProvider,
@@ -14,11 +14,15 @@ import posthog from 'posthog-js';
 
 import { CardNode } from './nodes/CardNode';
 import { TokenNode } from './nodes/TokenNode';
+import { PlaymatNode } from './nodes/PlaymatNode';
+import { HealthNode } from './nodes/HealthNode';
+import { PileNode } from './nodes/PileNode';
 import { useBattlefieldNodes } from './useBattlefieldNodes';
+import { usePlaymatNodes } from './usePlaymatNodes';
 import { WhiteboardCard } from './types';
 import { KeywordToken } from '@/features/keyword-tokens/types';
 import { YDOC_CARDS_ON_BOARD, YDOC_KEYWORD_TOKENS, CARD_WIDTH, CARD_HEIGHT } from '@/constants';
-import { MIN_ZOOM, MAX_ZOOM } from './boardWorld';
+import { MIN_ZOOM, MAX_ZOOM, MAT_WIDTH, MAT_HEIGHT } from './boardWorld';
 import { TOKEN_SIZE } from './nodes/TokenNode';
 import type { Player } from '@/features/player';
 import type { TokenService } from '@/infrastructure/cards';
@@ -28,6 +32,9 @@ import { useGameInstance } from '@/app/stores/gameInstanceStore';
 const nodeTypes = {
   card: CardNode,
   token: TokenNode,
+  playmat: PlaymatNode,
+  health: HealthNode,
+  pile: PileNode,
 };
 
 interface BattlefieldCanvasProps {
@@ -44,13 +51,23 @@ function getMaxZIndex(yCards: Y.Map<WhiteboardCard>, yTokens: Y.Map<KeywordToken
   return max;
 }
 
-function findPileType(element: Element | null): 'hand' | 'exile' | 'discard' | 'deck' | null {
+interface PileDropTarget {
+  pileType: 'hand' | 'exile' | 'discard' | 'deck';
+  /** ownerId from data-pile-owner, or null for dock elements (treated as local player's). */
+  ownerId: string | null;
+}
+
+function findPileType(element: Element | null): PileDropTarget | null {
   let current = element as HTMLElement | null;
   while (current) {
+    // Board PileNode: sets data-pile-type and data-pile-owner
     const pt = current.dataset?.pileType;
-    if (pt === 'exile' || pt === 'discard' || pt === 'deck') return pt;
+    if (pt === 'exile' || pt === 'discard' || pt === 'deck' || pt === 'hand') {
+      return { pileType: pt, ownerId: current.dataset?.pileOwner ?? null };
+    }
+    // Dock hand elements (legacy; kept while the dock still exists in Phase 1)
     if (current.classList.contains('hand-container') || current.classList.contains('hand-cards')) {
-      return 'hand';
+      return { pileType: 'hand', ownerId: null };
     }
     current = current.parentElement;
   }
@@ -61,21 +78,38 @@ function BattlefieldCanvasInner({ yDoc, localPlayerId, player, tokenService }: B
   const yCards = yDoc.getMap<WhiteboardCard>(YDOC_CARDS_ON_BOARD);
   const yTokens = yDoc.getMap<KeywordToken>(YDOC_KEYWORD_TOKENS);
 
-  const { nodes, onNodesChange } = useBattlefieldNodes(yCards, yTokens, localPlayerId);
-  const { screenToFlowPosition } = useReactFlow();
+  const { nodes: cardTokenNodes, onNodesChange } = useBattlefieldNodes(yCards, yTokens, localPlayerId);
+  const { nodes: playmatNodes, localMatOrigin } = usePlaymatNodes(yDoc, localPlayerId);
+  const { screenToFlowPosition, fitBounds } = useReactFlow();
+
+  // Center the camera on the local player's mat once on first load.
+  const hasCenteredRef = useRef(false);
+  useEffect(() => {
+    if (hasCenteredRef.current || !localMatOrigin) return;
+    fitBounds(
+      { x: localMatOrigin.x, y: localMatOrigin.y, width: MAT_WIDTH, height: MAT_HEIGHT },
+      { padding: 0.15, duration: 0 },
+    );
+    hasCenteredRef.current = true;
+  }, [localMatOrigin, fitBounds]);
 
   const onNodeDragStop: OnNodeDrag = useCallback(
     (event, node) => {
       const clientX = 'clientX' in event ? event.clientX : event.touches?.[0]?.clientX ?? 0;
       const clientY = 'clientY' in event ? event.clientY : event.touches?.[0]?.clientY ?? 0;
 
-      // Check if released over a dock pile → move card off board
+      // Check if released over a pile → move card off board (own piles only)
       if (node.type === 'card') {
         const under = document.elementFromPoint(clientX, clientY);
-        const pileType = findPileType(under);
-        if (pileType) {
-          useGameInstance.getState().moveCardFromBattlefield(node.id, pileType);
-          return;
+        const pileTarget = findPileType(under);
+        if (pileTarget) {
+          const { pileType, ownerId } = pileTarget;
+          // ownerId === null → dock pile → local player's pile
+          if (ownerId === null || ownerId === localPlayerId) {
+            useGameInstance.getState().moveCardFromBattlefield(node.id, pileType);
+            return; // card moved off board; don't write position
+          }
+          // Dropped on an opponent's pile — reject silently; fall through to write position
         }
       }
 
@@ -88,7 +122,7 @@ function BattlefieldCanvasInner({ yDoc, localPlayerId, player, tokenService }: B
         if (token) yTokens.set(node.id, { ...token, x: node.position.x, y: node.position.y });
       }
     },
-    [yCards, yTokens],
+    [yCards, yTokens, localPlayerId],
   );
 
   const onDragOver = useCallback((event: React.DragEvent) => {
@@ -175,9 +209,12 @@ function BattlefieldCanvasInner({ yDoc, localPlayerId, player, tokenService }: B
     }
   }, [screenToFlowPosition, yCards, yTokens, player, tokenService, localPlayerId]);
 
+  // Playmat nodes first (lowest z-order by zIndex, not array position)
+  const allNodes: Node[] = [...playmatNodes, ...cardTokenNodes];
+
   return (
     <ReactFlow
-      nodes={nodes}
+      nodes={allNodes}
       edges={[]}
       onNodesChange={onNodesChange}
       onNodeDragStop={onNodeDragStop}

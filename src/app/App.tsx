@@ -5,7 +5,7 @@ import { BattlefieldCanvas } from '@/features/battlefield/BattlefieldCanvas';
 import { CardPreview } from '@/features/card-preview';
 import { HotkeyMenu } from '@/features/hotkeys/HotkeyMenu';
 import { GameHotkeysManager } from '@/features/hotkeys/GameHotkeysManager';
-import { OpponentHealthList } from '@/features/opponents/OpponentHealthList';
+import { OpponentPileViewers } from '@/features/opponents/OpponentPileViewers';
 import { DeckManager } from '@/features/deck-manager';
 import { loadDeck } from '@/features/deck-manager/deckLoading';
 import { RoomManager } from '@/features/room';
@@ -64,9 +64,7 @@ export function App({ yDoc, yjsNetworkProvider, player, roomManager, playerId, c
       </div>
 
       {/* ── Fixed-position overlays ── */}
-      <div id="opponent-health-container">
-        <OpponentHealthList yDoc={yDoc} localPlayerId={playerId} />
-      </div>
+      <OpponentPileViewers yDoc={yDoc} localPlayerId={playerId} />
       <CardPreview />
       <HotkeyMenu />
       <GameHotkeysManager />

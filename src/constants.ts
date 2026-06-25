@@ -22,3 +22,5 @@ export const YSTATE_CAN_VIEW_HAND = 'allowViewHand';
 // Player-chosen display name. Synced via Yjs so other peers see it. Distinct from the
 // internal player ID (YDOC_PLAYER key / ownerId), which stays stable and private.
 export const YSTATE_PLAYER_NAME = 'playerName';
+// Timestamp (Date.now()) written once on first init; determines stable seat order across peers.
+export const YSTATE_JOINED_AT = 'joinedAt';
