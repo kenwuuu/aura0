@@ -1,69 +1,23 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
-import * as Y from 'yjs';
+import { useCallback, useEffect, useRef } from 'react';
 import { PileViewer } from './components/PileViewer';
 import { useGameInstance } from '@/app/stores/gameInstanceStore';
-import { usePlayerStore } from '@/app/stores/playerStore';
-import { useHotkeyStore } from '@/app/stores/hotkeyStore';
 import { usePileViewerOpenStore } from './pileViewerOpenStore';
-import { HotkeyTooltip } from '@/features/hotkeys/HotkeyTooltip';
 
-function useYjsArrayLength(yPlayerState: Y.Map<any> | null, key: string): number {
-  const [length, setLength] = useState<number>(() => {
-    const val = yPlayerState?.get(key);
-    return Array.isArray(val) ? val.length : 0;
-  });
-  useEffect(() => {
-    if (!yPlayerState) return;
-    const observer = () => {
-      const val = yPlayerState.get(key);
-      setLength(Array.isArray(val) ? val.length : 0);
-    };
-    yPlayerState.observe(observer);
-    observer();
-    return () => yPlayerState.unobserve(observer);
-  }, [yPlayerState, key]);
-  return length;
-}
-
-type LocalPile = 'deck' | 'exile' | 'discard';
-
+/**
+ * Headless component: manages PileViewer instances and bridges the
+ * usePileViewerOpenStore signal (fired by board PileNodes on click) to
+ * the imperative PileViewer modals.  No DOM output.
+ */
 export function LocalPileTiles() {
   const player = useGameInstance((s) => s.player);
-  const yPlayerState = usePlayerStore((s) => s.yPlayerState);
   const playerRef = useRef(player);
   useEffect(() => {
     playerRef.current = player;
   }, [player]);
 
-  const deckCount = useYjsArrayLength(yPlayerState, 'deck');
-  const exileCount = useYjsArrayLength(yPlayerState, 'exilePile');
-  const discardCount = useYjsArrayLength(yPlayerState, 'discardPile');
-
   const deckViewerRef = useRef<PileViewer | null>(null);
   const exileViewerRef = useRef<PileViewer | null>(null);
   const discardViewerRef = useRef<PileViewer | null>(null);
-
-  // Tooltip state — mouse position only updates while a pile is hovered
-  const [hoveredPile, setHoveredPile] = useState<LocalPile | null>(null);
-  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
-  const [isMouseDown, setIsMouseDown] = useState(false);
-  const hoveredPileRef = useRef<LocalPile | null>(null);
-
-  useEffect(() => {
-    const onMove = (e: MouseEvent) => {
-      if (hoveredPileRef.current) setMousePos({ x: e.clientX, y: e.clientY });
-    };
-    const onDown = () => setIsMouseDown(true);
-    const onUp = () => setIsMouseDown(false);
-    document.addEventListener('mousemove', onMove);
-    document.addEventListener('mousedown', onDown);
-    document.addEventListener('mouseup', onUp);
-    return () => {
-      document.removeEventListener('mousemove', onMove);
-      document.removeEventListener('mousedown', onDown);
-      document.removeEventListener('mouseup', onUp);
-    };
-  }, []);
 
   const getDeckViewer = useCallback((): PileViewer => {
     if (!deckViewerRef.current) {
@@ -202,7 +156,7 @@ export function LocalPileTiles() {
   }, []);
 
   const viewPile = useCallback(
-    (pile: LocalPile) => {
+    (pile: 'deck' | 'exile' | 'discard') => {
       const p = playerRef.current;
       if (!p) return;
       switch (pile) {
@@ -238,109 +192,5 @@ export function LocalPileTiles() {
     };
   }, []);
 
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    (e.currentTarget as HTMLElement).classList.add('drag-over');
-  };
-  const handleDragLeave = (e: React.DragEvent) => {
-    (e.currentTarget as HTMLElement).classList.remove('drag-over');
-  };
-  const handleDrop = (e: React.DragEvent, pileType: LocalPile) => {
-    e.preventDefault();
-    (e.currentTarget as HTMLElement).classList.remove('drag-over');
-    const cardId = e.dataTransfer?.getData('text/plain');
-    if (!cardId) return;
-    const p = playerRef.current;
-    if (!p) return;
-    const card = p.getState().hand.find((c) => c.id === cardId);
-    if (!card) return;
-    p.removeCardFromHand(cardId);
-    p.placeCardInPile(card, pileType);
-  };
-
-  const handleMouseEnter = (pile: LocalPile) => {
-    hoveredPileRef.current = pile;
-    setHoveredPile(pile);
-    useHotkeyStore.getState().setHoveredPile(pile);
-  };
-  const handleMouseLeave = () => {
-    hoveredPileRef.current = null;
-    setHoveredPile(null);
-    useHotkeyStore.getState().setHoveredPile(null);
-  };
-
-  if (!yPlayerState) return null;
-
-  return (
-    <>
-      <div
-        style={{
-          position: 'fixed',
-          bottom: 16,
-          left: '50%',
-          transform: 'translateX(-50%)',
-          zIndex: 920,
-          display: 'flex',
-          gap: '16px',
-        }}
-      >
-        <div
-          className="resource-pile exile-pile"
-          onMouseEnter={() => handleMouseEnter('exile')}
-          onMouseLeave={handleMouseLeave}
-          onDragOver={handleDragOver}
-          onDragLeave={handleDragLeave}
-          onDrop={(e) => handleDrop(e, 'exile')}
-          onClick={() => viewPile('exile')}
-        >
-          <div className="pile-label">Exile</div>
-          <div className="pile-count">{exileCount}</div>
-        </div>
-
-        <div
-          className="resource-pile discard-pile"
-          onMouseEnter={() => handleMouseEnter('discard')}
-          onMouseLeave={handleMouseLeave}
-          onDragOver={handleDragOver}
-          onDragLeave={handleDragLeave}
-          onDrop={(e) => handleDrop(e, 'discard')}
-          onClick={() => viewPile('discard')}
-        >
-          <div className="pile-label">Discard</div>
-          <div className="pile-count">{discardCount}</div>
-        </div>
-
-        <div
-          className="resource-pile deck-pile"
-          onMouseEnter={() => handleMouseEnter('deck')}
-          onMouseLeave={handleMouseLeave}
-          onDragOver={handleDragOver}
-          onDragLeave={handleDragLeave}
-          onDrop={(e) => handleDrop(e, 'deck')}
-          onClick={() => viewPile('deck')}
-        >
-          <div className="pile-label">Deck</div>
-          <div className="pile-count">{deckCount}</div>
-          <button
-            className="draw-button"
-            onClick={(e) => {
-              e.stopPropagation();
-              playerRef.current?.drawCard();
-            }}
-          >
-            Draw
-          </button>
-        </div>
-      </div>
-
-      {hoveredPile && !isMouseDown && (
-        <HotkeyTooltip
-          context={hoveredPile}
-          mouseX={mousePos.x}
-          mouseY={mousePos.y}
-          isMouseDown={isMouseDown}
-        />
-      )}
-    </>
-  );
+  return null;
 }

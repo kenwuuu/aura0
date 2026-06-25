@@ -1,8 +1,10 @@
-import React, { memo } from 'react';
+import React, { memo, useState } from 'react';
 import { NodeProps } from '@xyflow/react';
 import * as Y from 'yjs';
 import { usePileViewerOpenStore } from '@/features/game-dock/pileViewerOpenStore';
 import { useGameInstance } from '@/app/stores/gameInstanceStore';
+import { useHotkeyStore } from '@/app/stores/hotkeyStore';
+import { HotkeyTooltip } from '@/features/hotkeys/HotkeyTooltip';
 
 export type PileKind = 'deck' | 'exile' | 'discard' | 'hand';
 
@@ -23,6 +25,9 @@ const PILE_LABELS: Record<PileKind, string> = {
   hand: 'Hand',
 };
 
+// PileKind values that map 1:1 to HotkeyContext values and support hotkey hints
+const HOTKEY_PILE_KINDS = new Set<PileKind>(['deck', 'exile', 'discard']);
+
 /**
  * PileNode — card-pile tile rendered on the board for each player.
  *
@@ -41,6 +46,9 @@ export const PileNode = memo(function PileNode({ data }: NodeProps) {
 
   // Opponent hand: dim if sharing is not enabled
   const handDisabled = isOpponentHand && !allowViewHand;
+
+  const [hovered, setHovered] = useState(false);
+  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
 
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -62,6 +70,46 @@ export const PileNode = memo(function PileNode({ data }: NodeProps) {
   const handleDraw = (e: React.MouseEvent) => {
     e.stopPropagation();
     useGameInstance.getState().player?.drawCard();
+  };
+
+  const handleMouseEnter = (e: React.MouseEvent) => {
+    setHovered(true);
+    setMousePos({ x: e.clientX, y: e.clientY });
+    if (isLocal && HOTKEY_PILE_KINDS.has(pileKind)) {
+      useHotkeyStore.getState().setHoveredPile(pileKind as 'deck' | 'exile' | 'discard');
+    }
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    setMousePos({ x: e.clientX, y: e.clientY });
+  };
+
+  const handleMouseLeave = () => {
+    setHovered(false);
+    if (isLocal && HOTKEY_PILE_KINDS.has(pileKind)) {
+      useHotkeyStore.getState().setHoveredPile(null);
+    }
+  };
+
+  // Hand→pile drag: hand cards are HTML-dragged via dataTransfer text/plain (card id)
+  const handleDragOver = (e: React.DragEvent) => {
+    if (!isLocal || isHandPile) return;
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    if (!isLocal || isHandPile) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const cardId = e.dataTransfer.getData('text/plain');
+    if (!cardId) return;
+    const p = useGameInstance.getState().player;
+    if (!p) return;
+    const card = p.getState().hand.find((c) => c.id === cardId);
+    if (!card) return;
+    p.removeCardFromHand(cardId);
+    p.placeCardInPile(card, pileKind);
   };
 
   return (
@@ -86,6 +134,11 @@ export const PileNode = memo(function PileNode({ data }: NodeProps) {
       }}
       onClick={handleClick}
       onPointerDown={(e) => e.stopPropagation()}
+      onMouseEnter={handleMouseEnter}
+      onMouseMove={handleMouseMove}
+      onMouseLeave={handleMouseLeave}
+      onDragOver={handleDragOver}
+      onDrop={handleDrop}
     >
       <div className="pile-label" style={{ fontSize: 8 }}>
         {PILE_LABELS[pileKind]}
@@ -101,6 +154,9 @@ export const PileNode = memo(function PileNode({ data }: NodeProps) {
         >
           Draw
         </button>
+      )}
+      {hovered && isLocal && HOTKEY_PILE_KINDS.has(pileKind) && (
+        <HotkeyTooltip context={pileKind} mouseX={mousePos.x} mouseY={mousePos.y} />
       )}
     </div>
   );

@@ -98,10 +98,16 @@ function BattlefieldCanvasInner({ yDoc, localPlayerId, player, tokenService }: B
       const clientX = 'clientX' in event ? event.clientX : event.touches?.[0]?.clientX ?? 0;
       const clientY = 'clientY' in event ? event.clientY : event.touches?.[0]?.clientY ?? 0;
 
-      // Check if released over a pile → move card off board (own piles only)
+      // Check if released over a pile → move card off board (own piles only).
+      // Use elementsFromPoint (plural) because the dragged card node has pointer-events: all
+      // and sits on top of the pile at the drop location, so elementFromPoint returns the card,
+      // not the pile. Iterating the full z-ordered list finds the pile underneath.
       if (node.type === 'card') {
-        const under = document.elementFromPoint(clientX, clientY);
-        const pileTarget = findPileType(under);
+        let pileTarget: PileDropTarget | null = null;
+        for (const el of document.elementsFromPoint(clientX, clientY)) {
+          pileTarget = findPileType(el);
+          if (pileTarget) break;
+        }
         if (pileTarget) {
           const { pileType, ownerId } = pileTarget;
           // ownerId === null → dock pile → local player's pile
