@@ -11,7 +11,8 @@ import {
   YSTATE_CUSTOM_COUNTERS,
   YSTATE_DISCARD_PILE,
   YSTATE_EXILE_PILE,
-  YSTATE_HAND, YSTATE_HEALTH
+  YSTATE_HAND, YSTATE_HEALTH,
+  YSTATE_PLAYER_NAME
 } from "../../constants";
 
 interface OpponentHealthListProps {
@@ -21,6 +22,7 @@ interface OpponentHealthListProps {
 
 interface OpponentData {
   playerId: string;
+  name: string;
   health: number;
   customCounters: CustomCounter[];
   exilePile: Card[];
@@ -51,6 +53,7 @@ export const OpponentHealthList: React.FC<OpponentHealthListProps> = ({
         if (key.startsWith('player-') && key !== YDOC_PLAYER(localPlayerId)) {
           const playerId = key.replace('player-', '');
           const yPlayerState = yDoc.getMap(key);
+          const name = (yPlayerState.get(YSTATE_PLAYER_NAME) as string | undefined) ?? playerId.slice(0, 9);
           const health = (yPlayerState.get(YSTATE_HEALTH) as number | undefined) ?? 20;
           const customCounters = (yPlayerState.get(YSTATE_CUSTOM_COUNTERS) as CustomCounter[] | undefined) ?? [];
           const exilePile = (yPlayerState.get(YSTATE_EXILE_PILE) as Card[] | undefined) ?? [];
@@ -58,7 +61,7 @@ export const OpponentHealthList: React.FC<OpponentHealthListProps> = ({
           const hand = (yPlayerState.get(YSTATE_HAND) as Card[] | undefined) ?? [];
           const allowViewHand = (yPlayerState.get(YSTATE_CAN_VIEW_HAND) as boolean | undefined) ?? false;
 
-          opponentsList.push({ playerId, health, customCounters, exilePile, discardPile, hand, allowViewHand });
+          opponentsList.push({ playerId, name, health, customCounters, exilePile, discardPile, hand, allowViewHand });
         }
       });
 
@@ -85,7 +88,7 @@ export const OpponentHealthList: React.FC<OpponentHealthListProps> = ({
           const deckRevealObserver = (event: Y.YMapEvent<any>) => {
             if (event.changes.keys.has('deckRevealCount')) {
               const deckRevealCount = yPlayerState.get('deckRevealCount') as number | undefined ?? 0;
-              const playerLabel = playerId.slice(0, 9);
+              const playerLabel = (yPlayerState.get(YSTATE_PLAYER_NAME) as string | undefined) ?? playerId.slice(0, 9);
 
               if (deckRevealCount === -1) {
                 toast.warning(`${playerLabel} revealed their entire deck`, {
@@ -208,7 +211,7 @@ export const OpponentHealthList: React.FC<OpponentHealthListProps> = ({
       {opponents.map((opponent) => (
         <HealthDisplay
           key={opponent.playerId}
-          label={opponent.playerId.slice(0, 9)}
+          label={opponent.name}
           health={opponent.health}
           onModifyHealth={(delta) => modifyOpponentHealth(opponent.playerId, delta)}
           variant="opponent"

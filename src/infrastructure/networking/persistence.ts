@@ -37,6 +37,7 @@ import {v4 as uuidv4} from 'uuid';
 
 const STORAGE_KEYS = {
   PLAYER_ID: 'aura:playerId',
+  PLAYER_NAME: 'aura:playerName',
   AWARENESS_STATE: 'aura:awarenessState',
   PEER_ID: 'aura:peerId',
 } as const;
@@ -60,6 +61,22 @@ export function getOrCreatePlayerId(): string {
   }
 
   return playerId;
+}
+
+/**
+ * Get the player's chosen display name from localStorage, if they've set one.
+ * The name follows the user across rooms and reloads. The Yjs player state is
+ * seeded from this on init; returns null when the user has never renamed.
+ */
+export function getStoredPlayerName(): string | null {
+  return localStorage.getItem(STORAGE_KEYS.PLAYER_NAME);
+}
+
+/**
+ * Persist the player's chosen display name to localStorage.
+ */
+export function setStoredPlayerName(name: string): void {
+  localStorage.setItem(STORAGE_KEYS.PLAYER_NAME, name);
 }
 
 /**
@@ -128,6 +145,7 @@ export function setupAwarenessStatePersistence(getState: () => AwarenessState | 
  */
 export function clearPersistedSession(): void {
   localStorage.removeItem(STORAGE_KEYS.PLAYER_ID);
+  localStorage.removeItem(STORAGE_KEYS.PLAYER_NAME);
   localStorage.removeItem(STORAGE_KEYS.AWARENESS_STATE);
   localStorage.removeItem(STORAGE_KEYS.PEER_ID);
 }

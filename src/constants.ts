@@ -19,3 +19,6 @@ export const YSTATE_DISCARD_PILE = 'discard-pile';
 export const YSTATE_DECK_CARD_COUNT = 'deck-card-count';
 export const YSTATE_CUSTOM_COUNTERS = 'custom-counters';
 export const YSTATE_CAN_VIEW_HAND = 'allowViewHand';
+// Player-chosen display name. Synced via Yjs so other peers see it. Distinct from the
+// internal player ID (YDOC_PLAYER key / ownerId), which stays stable and private.
+export const YSTATE_PLAYER_NAME = 'playerName';

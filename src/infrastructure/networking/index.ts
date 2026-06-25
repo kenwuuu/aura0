@@ -3,6 +3,8 @@ export type { WebRTCConfig, ConnectionStatus } from './types';
 export {
   getOrCreatePlayerId,
   getOrCreatePeerId,
+  getStoredPlayerName,
+  setStoredPlayerName,
   saveAwarenessState,
   restoreAwarenessState,
   clearPersistedSession,

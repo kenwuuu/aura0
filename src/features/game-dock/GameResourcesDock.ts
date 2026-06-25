@@ -371,9 +371,10 @@ export class GameResourcesDock {
     const state = this.player.getState();
     this.healthRoot.render(
       React.createElement(HealthDisplay, {
-        label: this.player.getId().slice(0, 9),
+        label: state.name,
         health: state.health,
         onModifyHealth: (delta: number) => this.player.modifyHealth(delta),
+        onRename: (name: string) => this.player.setName(name),
         variant: 'local',
         customCounters: state.customCounters,
         onAddCounter: (title: string, icon: string) => this.player.addCustomCounter(title, icon),

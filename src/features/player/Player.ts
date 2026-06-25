@@ -11,8 +11,10 @@ import {
   YSTATE_EXILE_PILE,
   YDOC_PLAYER,
   YSTATE_CUSTOM_COUNTERS,
-  YSTATE_DECK, YDOC_KEYWORD_TOKENS
+  YSTATE_DECK, YDOC_KEYWORD_TOKENS,
+  YSTATE_PLAYER_NAME
 } from "@/constants";
+import { getStoredPlayerName, setStoredPlayerName } from "@/infrastructure/networking/persistence";
 import {PileType} from '@/features/game-dock/components';
 import { CardPile } from './CardPile';
 import {SavedDeck} from "@/features/player/types";
@@ -53,6 +55,11 @@ export class Player {
     const deck = initialDeckCards ?? new Deck();
     this.initializeState(deck);
 
+    // Seed this player's display name into their own Yjs state so peers see it.
+    // The local player owns this state, so localStorage (the name that follows the
+    // user across rooms) is authoritative; fall back to a short slice of the ID.
+    this.yPlayerState.set(YSTATE_PLAYER_NAME, getStoredPlayerName() ?? this.getDefaultName());
+
     // Create CardPile instances that reference yPlayerState
     this.deck = new CardPile(this.yPlayerState, YSTATE_DECK);
     this.hand = new CardPile(this.yPlayerState, YSTATE_HAND);
@@ -89,9 +96,30 @@ export class Player {
     // This method is kept for backward compatibility but does nothing
   }
 
+  private getDefaultName(): string {
+    return this.playerId.slice(0, 9);
+  }
+
+  public getName(): string {
+    return (this.yPlayerState.get(YSTATE_PLAYER_NAME) as string | undefined) ?? this.getDefaultName();
+  }
+
+  /**
+   * Update this player's display name. Syncs to other peers via Yjs and persists
+   * locally so the name follows the user across rooms and reloads. Empty/whitespace
+   * names fall back to the default (short player ID).
+   */
+  public setName(name: string): void {
+    const trimmed = name.trim();
+    const newName = trimmed.length > 0 ? trimmed : this.getDefaultName();
+    this.yPlayerState.set(YSTATE_PLAYER_NAME, newName);
+    setStoredPlayerName(newName);
+  }
+
   public getState(): PlayerState {
     return {
       id: this.playerId,
+      name: this.getName(),
       health: this.yPlayerState.get(YSTATE_HEALTH) ?? this.config.initialHealth,
       hand: this.yPlayerState.get(YSTATE_HAND) ?? [],
       exilePile: this.yPlayerState.get(YSTATE_EXILE_PILE) ?? [],

@@ -52,6 +52,7 @@ export interface CustomCounter {
 
 export interface PlayerState {
   id: string;
+  name: string;
   health: number;
   hand: Card[];
   exilePile: Card[];

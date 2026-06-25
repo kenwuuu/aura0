@@ -3,6 +3,7 @@ import { CustomCounter } from '@/features/player/types';
 import { PlayerCounterModal } from '@/components/PlayerCounterModal';
 import styles from './HealthDisplay.module.css';
 import {EditableHealth} from "./EditableHealth";
+import {EditableName} from "./EditableName";
 
 interface HealthDisplayProps {
   label: string;
@@ -10,6 +11,8 @@ interface HealthDisplayProps {
   onModifyHealth: (delta: number) => void;
   variant?: 'local' | 'opponent';
   playerId?: string;
+  /** When provided (local player only), the name label becomes editable. */
+  onRename?: (name: string) => void;
   customCounters?: CustomCounter[];
   onAddCounter?: (title: string, icon: string) => void;
   onModifyCounter?: (counterId: string, delta: number) => void;
@@ -29,6 +32,7 @@ export const HealthDisplay: React.FC<HealthDisplayProps> = ({
   onModifyHealth,
   variant = 'local',
   playerId,
+  onRename,
   customCounters = [],
   onAddCounter,
   onModifyCounter,
@@ -108,9 +112,17 @@ export const HealthDisplay: React.FC<HealthDisplayProps> = ({
         onClick={handleClick}
       >
         <div className={styles.health}>
-          <div className={variant === 'local' ? styles.healthLabel : styles.opponentHealthLabel}>
-            {label}
-          </div>
+          {onRename ? (
+            <EditableName
+              name={label}
+              onRename={onRename}
+              className={variant === 'local' ? styles.healthLabel : styles.opponentHealthLabel}
+            />
+          ) : (
+            <div className={variant === 'local' ? styles.healthLabel : styles.opponentHealthLabel}>
+              {label}
+            </div>
+          )}
           <EditableHealth
             health={health}
             onModifyHealth={onModifyHealth}
