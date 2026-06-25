@@ -8,10 +8,11 @@
 
 import { create } from 'zustand';
 import * as Y from 'yjs';
+import posthog from 'posthog-js';
 import type { Player } from '@/features/player';
 import type { Card } from '@/features/player/types';
 import type { RoomManager } from '@/features/room';
-import { YDOC_CARDS_ON_BOARD } from '@/constants';
+import { YDOC_CARDS_ON_BOARD, CARD_WIDTH, CARD_HEIGHT } from '@/constants';
 import { DeckPersistenceService } from '@/infrastructure/persistence';
 import type { WhiteboardCard } from '@/features/battlefield/types';
 
@@ -45,6 +46,14 @@ interface GameInstanceStore {
   // Add a card to the battlefield (writes to yCards)
   addCardToBoard: (card: Card, ownerId: string) => void;
 
+  // screenToFlowPosition: set by BattlefieldCanvas on mount so other components can convert
+  // screen coords (e.g. from a dnd-kit drag end) to ReactFlow canvas coordinates.
+  screenToFlowPosition: ((point: { x: number; y: number }) => { x: number; y: number }) | null;
+  setScreenToFlowPosition: (fn: (point: { x: number; y: number }) => { x: number; y: number }) => void;
+
+  // Play a card from hand directly onto the battlefield at the given screen position.
+  playCardFromHand: (cardId: string, clientX: number, clientY: number) => void;
+
   // Reset all instances (useful for cleanup)
   reset: () => void;
 }
@@ -55,6 +64,7 @@ export const useGameInstance = create<GameInstanceStore>((set, get) => ({
   player: null,
   playerId: null,
   roomManager: null,
+  screenToFlowPosition: null,
 
   // Setters
   setYDoc: (yDoc) => set({ yDoc }),
@@ -100,6 +110,27 @@ export const useGameInstance = create<GameInstanceStore>((set, get) => ({
     yCards.delete(cardId);
   },
 
+  setScreenToFlowPosition: (fn) => set({ screenToFlowPosition: fn }),
+
+  playCardFromHand: (cardId, clientX, clientY) => {
+    const { yDoc, player, playerId, screenToFlowPosition } = get();
+    if (!yDoc || !player || !playerId || !screenToFlowPosition) return;
+    const card = player.removeCardFromHand(cardId);
+    if (!card) return;
+    const position = screenToFlowPosition({ x: clientX, y: clientY });
+    const yCards = yDoc.getMap<WhiteboardCard>(YDOC_CARDS_ON_BOARD);
+    let maxZ = 0;
+    yCards.forEach((c) => { if (c.zIndex > maxZ) maxZ = c.zIndex; });
+    yCards.set(card.id, {
+      ...card,
+      x: position.x - CARD_WIDTH / 2,
+      y: position.y - CARD_HEIGHT / 2,
+      zIndex: maxZ + 1,
+      ownerId: playerId,
+    });
+    posthog.capture('card_played_to_battlefield', { card_name: card.name, is_flipped: card.isFlipped });
+  },
+
   addCardToBoard: (card, ownerId) => {
     const { yDoc } = get();
     if (!yDoc) return;
@@ -115,5 +146,6 @@ export const useGameInstance = create<GameInstanceStore>((set, get) => ({
     player: null,
     playerId: null,
     roomManager: null,
+    screenToFlowPosition: null,
   }),
 }));

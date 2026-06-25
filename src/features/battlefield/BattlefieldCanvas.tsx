@@ -8,6 +8,7 @@ import {
   useReactFlow,
   type OnNodeDrag,
 } from '@xyflow/react';
+import { useDroppable } from '@dnd-kit/core';
 import '@xyflow/react/dist/style.css';
 import * as Y from 'yjs';
 import posthog from 'posthog-js';
@@ -81,6 +82,13 @@ function BattlefieldCanvasInner({ yDoc, localPlayerId, player, tokenService }: B
   const { nodes: cardTokenNodes, onNodesChange, elevateNode } = useBattlefieldNodes(yCards, yTokens, localPlayerId);
   const { nodes: playmatNodes, localMatOrigin } = usePlaymatNodes(yDoc, localPlayerId);
   const { screenToFlowPosition, fitBounds } = useReactFlow();
+  const { setNodeRef: setBattlefieldRef } = useDroppable({ id: 'battlefield' });
+
+  // Expose screenToFlowPosition so dnd-kit's onDragEnd handler in App can convert
+  // the drop pointer position to ReactFlow canvas coordinates.
+  useEffect(() => {
+    useGameInstance.getState().setScreenToFlowPosition(screenToFlowPosition);
+  }, [screenToFlowPosition]);
 
   // Hold Alt to snap dragged cards/tokens to a sub-card grid.
   const [snapActive, setSnapActive] = useState(false);
@@ -196,119 +204,73 @@ function BattlefieldCanvasInner({ yDoc, localPlayerId, player, tokenService }: B
     [yCards, yTokens],
   );
 
+  // Only token-template drops remain here — hand cards use dnd-kit (see App.tsx onDragEnd).
   const onDragOver = useCallback((event: React.DragEvent) => {
-    event.preventDefault();
-    const types = event.dataTransfer.types;
-    event.dataTransfer.dropEffect = types.includes('text/x-keyword-token-template') ? 'copy' : 'move';
+    if (event.dataTransfer.types.includes('text/x-keyword-token-template')) {
+      event.preventDefault();
+      event.dataTransfer.dropEffect = 'copy';
+    }
   }, []);
 
   const onDrop = useCallback(async (event: React.DragEvent) => {
+    const tokenTemplateData = event.dataTransfer.getData('text/x-keyword-token-template');
+    if (!tokenTemplateData) return;
     event.preventDefault();
 
-    // Keyword-token template drop (from the token grid)
-    const tokenTemplateData = event.dataTransfer.getData('text/x-keyword-token-template');
-    if (tokenTemplateData) {
-      try {
-        const template = JSON.parse(tokenTemplateData);
-        const position = screenToFlowPosition({ x: event.clientX, y: event.clientY });
-        const tokenId = `token-${Math.random().toString(36).substring(2, 11)}`;
-        const maxZ = getMaxZIndex(yCards, yTokens);
-        const newToken: KeywordToken = {
-          id: tokenId,
-          title: template.title,
-          imageUrl: template.imageUrl ?? '',
-          backgroundColor: template.backgroundColor,
-          count: template.count,
-          ownerId: localPlayerId,
-          x: position.x - TOKEN_SIZE / 2,
-          y: position.y - TOKEN_SIZE / 2,
-          zIndex: maxZ + 1,
-          rotation: 0,
-        };
-        yTokens.set(tokenId, newToken);
-      } catch (err) {
-        console.error('Failed to create token from template:', err);
-      }
-      return;
+    try {
+      const template = JSON.parse(tokenTemplateData);
+      const position = screenToFlowPosition({ x: event.clientX, y: event.clientY });
+      const tokenId = `token-${Math.random().toString(36).substring(2, 11)}`;
+      const maxZ = getMaxZIndex(yCards, yTokens);
+      const newToken: KeywordToken = {
+        id: tokenId,
+        title: template.title,
+        imageUrl: template.imageUrl ?? '',
+        backgroundColor: template.backgroundColor,
+        count: template.count,
+        ownerId: localPlayerId,
+        x: position.x - TOKEN_SIZE / 2,
+        y: position.y - TOKEN_SIZE / 2,
+        zIndex: maxZ + 1,
+        rotation: 0,
+      };
+      yTokens.set(tokenId, newToken);
+    } catch (err) {
+      console.error('Failed to create token from template:', err);
     }
-
-    // Card drop from hand
-    const cardId = event.dataTransfer.getData('text/plain');
-    if (!cardId) return;
-
-    const card = player.removeCardFromHand(cardId);
-    if (!card) return;
-
-    const position = screenToFlowPosition({ x: event.clientX, y: event.clientY });
-    const maxZ = getMaxZIndex(yCards, yTokens);
-
-    const whiteboardCard: WhiteboardCard = {
-      ...card,
-      x: position.x - CARD_WIDTH / 2,
-      y: position.y - CARD_HEIGHT / 2,
-      zIndex: maxZ + 1,
-      ownerId: localPlayerId,
-    };
-
-    yCards.set(card.id, whiteboardCard);
-
-    posthog.capture('card_played_to_battlefield', {
-      card_name: card.name,
-      is_flipped: card.isFlipped,
-    });
-
-    // Create related MTG tokens (async, fire-and-forget)
-    if (card.scryfallId) {
-      tokenService
-        .createTokensForCard(card.scryfallId, { x: whiteboardCard.x, y: whiteboardCard.y })
-        .then((result) => {
-          result.tokens.forEach((token) => {
-            const maxZ2 = getMaxZIndex(yCards, yTokens);
-            yCards.set(token.id, {
-              ...token,
-              x: token.x,
-              y: token.y,
-              zIndex: maxZ2 + 1,
-              ownerId: localPlayerId,
-            });
-          });
-          if (result.errors.length > 0) {
-            console.warn(`Token creation errors for ${card.name}:`, result.errors);
-          }
-        })
-        .catch(console.error);
-    }
-  }, [screenToFlowPosition, yCards, yTokens, player, tokenService, localPlayerId]);
+  }, [screenToFlowPosition, yCards, yTokens, localPlayerId]);
 
   // Playmat nodes first (lowest z-order by zIndex, not array position)
   const allNodes: Node[] = [...playmatNodes, ...cardTokenNodes];
 
   return (
-    <ReactFlow
-      nodes={allNodes}
-      edges={[]}
-      onNodesChange={onNodesChange}
-      onNodeDragStart={onNodeDragStart}
-      onNodeDragStop={onNodeDragStop}
-      onSelectionDragStart={onSelectionDragStart}
-      onSelectionDragStop={onSelectionDragStop}
-      nodeTypes={nodeTypes}
-      onDragOver={onDragOver}
-      onDrop={onDrop}
-      onPaneClick={() => useHotkeyMenuStore.getState().close()}
-      onMoveStart={() => useHotkeyMenuStore.getState().close()}
-      snapToGrid={snapActive}
-      snapGrid={[Math.round(CARD_WIDTH / 4), Math.round(CARD_HEIGHT / 5)]}
-      minZoom={MIN_ZOOM}
-      maxZoom={MAX_ZOOM}
-      deleteKeyCode={null}
-      panOnScroll={false}
-      panOnDrag={true}
-      style={{ background: '#1a1a1a' }}
-    >
-      <Background color="#2d2d2d" gap={40} />
-      <Controls position="bottom-right" />
-    </ReactFlow>
+    <div ref={setBattlefieldRef} style={{ width: '100%', height: '100%' }}>
+      <ReactFlow
+        nodes={allNodes}
+        edges={[]}
+        onNodesChange={onNodesChange}
+        onNodeDragStart={onNodeDragStart}
+        onNodeDragStop={onNodeDragStop}
+        onSelectionDragStart={onSelectionDragStart}
+        onSelectionDragStop={onSelectionDragStop}
+        nodeTypes={nodeTypes}
+        onDragOver={onDragOver}
+        onDrop={onDrop}
+        onPaneClick={() => useHotkeyMenuStore.getState().close()}
+        onMoveStart={() => useHotkeyMenuStore.getState().close()}
+        snapToGrid={snapActive}
+        snapGrid={[Math.round(CARD_WIDTH / 4), Math.round(CARD_HEIGHT / 5)]}
+        minZoom={MIN_ZOOM}
+        maxZoom={MAX_ZOOM}
+        deleteKeyCode={null}
+        panOnScroll={false}
+        panOnDrag={true}
+        style={{ background: '#1a1a1a' }}
+      >
+        <Background color="#2d2d2d" gap={40} />
+        <Controls position="bottom-right" />
+      </ReactFlow>
+    </div>
   );
 }
 

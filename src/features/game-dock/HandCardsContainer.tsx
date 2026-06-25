@@ -1,39 +1,25 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import * as Y from 'yjs';
+import { SortableContext, horizontalListSortingStrategy } from '@dnd-kit/sortable';
 import { HandCard } from './HandCard';
 import { Card } from '@/features/player';
-import { animate } from 'motion';
-import {useCardPreviewStore} from "@/features/card-preview/cardPreviewStore";
+import { useCardPreviewStore } from '@/features/card-preview/cardPreviewStore';
 
 interface HandCardsContainerProps {
   yPlayerState: Y.Map<any>;
   playerId: string;
   zoomLevel: number;
   onHoveredCardChange: (cardId: string | null) => void;
-  onHandReorder: (reorderedHand: Card[]) => void;
-  adjustHandZoom: (delta: number) => void;
 }
 
-/**
- * Custom hook to observe Yjs Map changes and trigger React re-renders
- */
 function useYjsObserver<T>(yMap: Y.Map<any>, key: string, defaultValue: T): T {
   const [value, setValue] = useState<T>(() => yMap.get(key) ?? defaultValue);
-
   useEffect(() => {
-    const observer = () => {
-      setValue(yMap.get(key) ?? defaultValue);
-    };
-
+    const observer = () => setValue(yMap.get(key) ?? defaultValue);
     yMap.observe(observer);
-    // Initial sync
     observer();
-
-    return () => {
-      yMap.unobserve(observer);
-    };
+    return () => yMap.unobserve(observer);
   }, [yMap, key, defaultValue]);
-
   return value;
 }
 
@@ -42,249 +28,61 @@ export const HandCardsContainer: React.FC<HandCardsContainerProps> = ({
   playerId,
   zoomLevel,
   onHoveredCardChange,
-  onHandReorder,
-  adjustHandZoom
 }) => {
   const hand = useYjsObserver<Card[]>(yPlayerState, 'hand', []);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const dragStateRef = useRef<{ mode: string; draggedElement: HTMLDivElement; startIndex: number } | undefined>(undefined);
-  const requestAnimationFrameIdRef = useRef<number | null>(null);
-  const scrollAnimationRef = useRef<any>(null);
-  const [cardSpacing, setCardSpacing] = useState<number>(4); // default margin-right
-  const [containerWidth, setContainerWidth] = useState<number>(0);
-  const isReorderingRef = useRef<boolean>(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const prevHandLenRef = useRef(hand.length);
 
-  useEffect(() => {  // useEffect: on load
-    adjustHandZoom(0.0);
-  }, []);
-
-  // Track container width with ResizeObserver
+  // Scroll to the end when a card is added to hand.
   useEffect(() => {
-    if (!containerRef.current) return;
-
-    const resizeObserver = new ResizeObserver((entries) => {
-      for (const entry of entries) {
-        setContainerWidth(entry.contentRect.width);
-      }
-    });
-
-    resizeObserver.observe(containerRef.current);
-    // Set initial width
-    setContainerWidth(containerRef.current.clientWidth);
-
-    return () => {
-      resizeObserver.disconnect();
-    };
-  }, []);
-
-  // Calculate card spacing based on zoom level and container width
-  useEffect(() => {
-    if (containerWidth === 0) return;
-
-    const baseCardWidth = 63;
-    const currentCardWidth = baseCardWidth * zoomLevel;
-    const threshold = containerWidth / 5; // 1/4 of container width
-
-    if (currentCardWidth >= threshold) {
-      // Calculate how much we've exceeded the threshold
-      const excessRatio = (currentCardWidth - threshold) / threshold;
-
-      // Start with 4px spacing and gradually reduce to negative values
-      // Max overlap is 80% of card width for a nice fanned effect
-      const maxOverlap = currentCardWidth * .5;
-      const spacing = 4 - (maxOverlap * Math.min(excessRatio, 1));
-
-      setCardSpacing(spacing);
-    } else {
-      // No overlap needed, use default spacing
-      setCardSpacing(4);
+    if (hand.length > prevHandLenRef.current && scrollRef.current) {
+      scrollRef.current.scrollTo({ left: scrollRef.current.scrollWidth, behavior: 'smooth' });
     }
-  }, [zoomLevel, containerWidth]);
+    prevHandLenRef.current = hand.length;
+  }, [hand.length]);
 
-  // Scroll to end when hand changes
-  useEffect(() => {
-    if (containerRef.current && !isReorderingRef.current) {
-      const container = containerRef.current;
-
-      // Cancel any existing scroll animation
-      if (scrollAnimationRef.current) {
-        scrollAnimationRef.current.stop();
-      }
-
-      scrollAnimationRef.current = animate(
-        container.scrollLeft,
-        container.scrollWidth - container.clientWidth,
-        {
-          duration: 0.3,
-          ease: 'easeOut',
-          onUpdate(value) {
-            container.scrollLeft = value;
-          }
-        }
-      );
-    }
-  }, [hand]);
-
-  const handleCardMouseEnter = useCallback((cardId: string) => {
+  const handleMouseEnter = useCallback((cardId: string) => {
     onHoveredCardChange(cardId);
     const card = hand.find(c => c.id === cardId);
-    if (card) {
-      useCardPreviewStore.getState().show(card);
-    }
+    if (card) useCardPreviewStore.getState().show(card);
   }, [hand, onHoveredCardChange]);
 
-  const handleCardMouseMove = useCallback((e: React.MouseEvent) => {
+  const handleMouseMove = useCallback((e: React.MouseEvent) => {
     useCardPreviewStore.getState().updatePosition(e.clientX, e.clientY);
   }, []);
 
-  const handleCardMouseLeave = useCallback(() => {
+  const handleMouseLeave = useCallback(() => {
     onHoveredCardChange(null);
     useCardPreviewStore.getState().hide();
   }, [onHoveredCardChange]);
 
-  const handleCardDragStart = useCallback((card: Card, element: HTMLDivElement, _e: React.DragEvent) => {
-    useCardPreviewStore.getState().hide();
-    onHoveredCardChange(null);
-
-    const startIndex = hand.findIndex(c => c.id === card.id);
-    dragStateRef.current = { mode: 'play', draggedElement: element, startIndex };
-  }, [hand, onHoveredCardChange]);
-
-  const handleCardDragEnd = useCallback(() => {
-    // Handled by container dragend
-  }, []);
-
-  // Setup hand reordering
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
-
-    const buffer = 60; // px allowed above/below hand before switching to play mode
-    const transparentDragImage = new Image();
-    transparentDragImage.src = 'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=';
-
-    const handleDragOver = (e: DragEvent) => {
-      if (!dragStateRef.current) return;
-      e.preventDefault();
-
-      // Throttle with requestAnimationFrame to prevent layout thrashing
-      if (requestAnimationFrameIdRef.current !== null) return;
-
-      requestAnimationFrameIdRef.current = requestAnimationFrame(() => {
-        requestAnimationFrameIdRef.current = null;
-
-        if (!dragStateRef.current) return;
-        const { draggedElement, mode } = dragStateRef.current;
-        if (!draggedElement) return;
-
-        // Read phase: batch all layout reads together
-        const handRect = container.getBoundingClientRect();
-        const outOfBounds =
-          e.clientY < handRect.top - buffer ||
-          e.clientY > handRect.bottom + buffer;
-
-        // MODE SWITCHING LOGIC
-        if (outOfBounds) {
-          if (mode !== 'play') {
-            dragStateRef.current.mode = 'play';
-          }
-          return;
-        } else {
-          if (mode !== 'reorder') {
-            dragStateRef.current.mode = 'reorder';
-            try {
-              e.dataTransfer?.setDragImage(transparentDragImage, 0, 0);
-            } catch {}
-          }
-        }
-
-        // REORDER MODE BEHAVIOR
-        if (dragStateRef.current.mode === 'reorder') {
-          const target = (e.target as HTMLElement).closest('.hand-card') as HTMLElement | null;
-          if (!target || target === draggedElement) return;
-
-          const rect = target.getBoundingClientRect();
-          const midpoint = rect.left + rect.width / 2;
-
-          // Write phase: batch all DOM mutations together
-          if (e.clientX < midpoint) {
-            container.insertBefore(draggedElement, target);
-          } else {
-            container.insertBefore(draggedElement, target.nextSibling);
-          }
-        }
-      });
-    };
-
-    const handleDragEnd = () => {
-      // Cancel any pending animation frame
-      if (requestAnimationFrameIdRef.current !== null) {
-        cancelAnimationFrame(requestAnimationFrameIdRef.current);
-        requestAnimationFrameIdRef.current = null;
-      }
-
-      if (!dragStateRef.current) return;
-      const { draggedElement, startIndex, mode } = dragStateRef.current;
-
-      if (mode === 'reorder') {
-        // Apply Yjs reorder
-        const newIndex = Array.from(container.children).indexOf(draggedElement);
-
-        if (newIndex !== startIndex && newIndex !== -1) {
-          const reordered = [...hand];
-          const movedCard = reordered.splice(startIndex, 1)[0];
-          reordered.splice(newIndex, 0, movedCard);
-
-          // Set flag to prevent scroll animation during reorder
-          isReorderingRef.current = true;
-          onHandReorder(reordered);
-          // Reset flag after a short delay to allow the reorder to complete
-          setTimeout(() => {
-            isReorderingRef.current = false;
-          }, 100);
-        }
-      }
-
-      dragStateRef.current = { ...dragStateRef.current, mode: 'none' };
-    };
-
-    container.addEventListener('dragover', handleDragOver);
-    container.addEventListener('dragend', handleDragEnd);
-
-    return () => {
-      container.removeEventListener('dragover', handleDragOver);
-      container.removeEventListener('dragend', handleDragEnd);
-
-      if (requestAnimationFrameIdRef.current !== null) {
-        cancelAnimationFrame(requestAnimationFrameIdRef.current);
-      }
-
-      if (scrollAnimationRef.current) {
-        scrollAnimationRef.current.stop();
-      }
-    };
-  }, [hand, onHandReorder]);
+  // card-height * zoom + 20px headroom so the hover-lift (translateY(-12px)) never clips.
+  const containerHeight = Math.ceil(88 * zoomLevel) + 20;
 
   return (
     <div
-      ref={containerRef}
-      className="hand-cards"
+      ref={scrollRef}
+      className="hand-scroll"
       data-hand={playerId}
-      style={{ height: `${Math.ceil(88 * zoomLevel)}px`, maxWidth: 'min(75vw, 950px)' }}
+      style={{
+        height: containerHeight,
+        maxWidth: 'min(75vw, 950px)',
+        ['--card-zoom' as string]: zoomLevel,
+      }}
     >
-      {hand.map((card) => (
-        <HandCard
-          key={card.id}
-          card={card}
-          zoomLevel={zoomLevel}
-          spacing={cardSpacing}
-          onMouseEnter={handleCardMouseEnter}
-          onMouseMove={handleCardMouseMove}
-          onMouseLeave={handleCardMouseLeave}
-          onDragStart={handleCardDragStart}
-          onDragEnd={handleCardDragEnd}
-        />
-      ))}
+      <SortableContext items={hand.map(c => c.id)} strategy={horizontalListSortingStrategy}>
+        <div className="hand-cards">
+          {hand.map(card => (
+            <HandCard
+              key={card.id}
+              card={card}
+              onMouseEnter={handleMouseEnter}
+              onMouseMove={handleMouseMove}
+              onMouseLeave={handleMouseLeave}
+            />
+          ))}
+        </div>
+      </SortableContext>
     </div>
   );
 };

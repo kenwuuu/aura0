@@ -177,46 +177,56 @@ body {
 .svg-black {
   filter: brightness(0) saturate(100%);
 }
-.hand-cards {
-  position: relative;
-  display: flex;
-  align-items: center;
+/* Horizontal scroll wrapper. Height is set inline as card_height*zoom + 20px so
+   the hover-lift (translateY(-12px)) fits within bounds without clipping. */
+.hand-scroll {
   overflow-x: auto;
   overflow-y: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: #4a4a4a transparent;
+}
+
+/* Cards sit at the bottom; the 20px headroom at the top absorbs the hover lift. */
+.hand-cards {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  padding: 0 4px;
+  min-height: 100%;
 }
 
 .hand-card {
-  position: relative;
-  width: 63px;
-  height: 88px;
+  flex-shrink: 0;
+  width: calc(63px * var(--card-zoom, 1));
+  height: calc(88px * var(--card-zoom, 1));
   background-color: #2d2d2d;
   border: 2px solid #4a4a4a;
   border-radius: 8px;
-  margin-right: 4px;
   cursor: grab;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 10px;
   color: #9ca3af;
-  transition: all 0.2s;
-  flex-shrink: 0;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
   user-select: none;
+  touch-action: none;
+  overflow: hidden;
 }
 
 .hand-card:hover {
-  transform: translateY(-8px);
+  transform: translateY(-12px);
   border-color: #6a6a6a;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.6);
 }
 
-.hand-card.dragging {
-  opacity: 0.5;
-  cursor: grabbing;
-}
-
-.hand-card:active {
-  cursor: grabbing;
+.hand-card-image {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+  pointer-events: none;
+  border-radius: 6px;
 }
 
 /* Specific pile colors */

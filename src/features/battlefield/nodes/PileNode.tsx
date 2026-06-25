@@ -1,6 +1,7 @@
 import React, { memo, useState } from 'react';
 import { NodeProps } from '@xyflow/react';
 import * as Y from 'yjs';
+import { useDroppable } from '@dnd-kit/core';
 import { usePileViewerOpenStore } from '@/features/game-dock/pileViewerOpenStore';
 import { useGameInstance } from '@/app/stores/gameInstanceStore';
 import { useHotkeyStore } from '@/app/stores/hotkeyStore';
@@ -25,27 +26,23 @@ const PILE_LABELS: Record<PileKind, string> = {
   hand: 'Hand',
 };
 
-// PileKind values that map 1:1 to HotkeyContext values and support hotkey hints
 const HOTKEY_PILE_KINDS = new Set<PileKind>(['deck', 'exile', 'discard']);
 
-/**
- * PileNode — card-pile tile rendered on the board for each player.
- *
- * Reuses the dock's `.resource-pile` CSS classes for visual parity.
- * Sets `data-pile-type` and `data-pile-owner` so the BattlefieldCanvas
- * `findPileType` DOM-walk detects drops of board cards onto this tile.
- * Local deck also shows a Draw button.
- * Opponent hand tile is only interactive when allowViewHand is set.
- */
 export const PileNode = memo(function PileNode({ data }: NodeProps) {
   const d = data as unknown as PileNodeData;
   const { ownerId, isLocal, pileKind, count, allowViewHand } = d;
 
   const isHandPile = pileKind === 'hand';
   const isOpponentHand = isHandPile && !isLocal;
-
-  // Opponent hand: dim if sharing is not enabled
   const handDisabled = isOpponentHand && !allowViewHand;
+
+  // Register as a dnd-kit droppable for hand cards dragged from the FloatingHand.
+  // Only local non-hand piles accept drops; disabled elsewhere.
+  const canReceiveDrop = isLocal && !isHandPile;
+  const { setNodeRef, isOver } = useDroppable({
+    id: `pile-${pileKind}-${ownerId}`,
+    disabled: !canReceiveDrop,
+  });
 
   const [hovered, setHovered] = useState(false);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
@@ -55,21 +52,14 @@ export const PileNode = memo(function PileNode({ data }: NodeProps) {
     if (handDisabled) return;
 
     if (isLocal) {
-      // Local piles: request dock's existing viewer via the open-store
       if (pileKind !== 'hand') {
         usePileViewerOpenStore.getState().open({ scope: 'local', pile: pileKind });
       }
     } else {
-      // Opponent piles: request OpponentPileViewers to open read-only viewer
       if (pileKind === 'exile' || pileKind === 'discard' || pileKind === 'hand') {
         usePileViewerOpenStore.getState().open({ scope: 'opponent', playerId: ownerId, pile: pileKind });
       }
     }
-  };
-
-  const handleDraw = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    useGameInstance.getState().player?.drawCard();
   };
 
   const handleMouseEnter = (e: React.MouseEvent) => {
@@ -91,32 +81,9 @@ export const PileNode = memo(function PileNode({ data }: NodeProps) {
     }
   };
 
-  // Hand→pile drag: hand cards are HTML-dragged via dataTransfer text/plain (card id)
-  const handleDragOver = (e: React.DragEvent) => {
-    if (!isLocal || isHandPile) return;
-    e.preventDefault();
-    e.stopPropagation();
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    if (!isLocal || isHandPile) return;
-    e.preventDefault();
-    e.stopPropagation();
-    const cardId = e.dataTransfer.getData('text/plain');
-    if (!cardId) return;
-    const p = useGameInstance.getState().player;
-    if (!p) return;
-    const card = p.getState().hand.find((c) => c.id === cardId);
-    if (!card) return;
-    p.removeCardFromHand(cardId);
-    p.placeCardInPile(card, pileKind);
-  };
-
   return (
-    // nodrag: prevents react-flow from treating button clicks as drag starts
-    // data-pile-type / data-pile-owner: picked up by BattlefieldCanvas.findPileType
-    // so dragging a board card onto this node moves it off-board into the right pile
     <div
+      ref={setNodeRef}
       className={`resource-pile ${pileKind}-pile nodrag`}
       data-pile-type={pileKind}
       data-pile-owner={ownerId}
@@ -131,14 +98,13 @@ export const PileNode = memo(function PileNode({ data }: NodeProps) {
         justifyContent: 'center',
         opacity: handDisabled ? 0.4 : 1,
         cursor: handDisabled ? 'default' : 'pointer',
+        outline: isOver && canReceiveDrop ? '2px solid #60a5fa' : undefined,
       }}
       onClick={handleClick}
       onPointerDown={(e) => e.stopPropagation()}
       onMouseEnter={handleMouseEnter}
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
-      onDragOver={handleDragOver}
-      onDrop={handleDrop}
     >
       <div className="pile-label" style={{ fontSize: 8 }}>
         {PILE_LABELS[pileKind]}
@@ -149,7 +115,7 @@ export const PileNode = memo(function PileNode({ data }: NodeProps) {
         <button
           className="draw-button"
           style={{ padding: '2px 6px', fontSize: 9, marginTop: 0 }}
-          onClick={handleDraw}
+          onClick={(e) => { e.stopPropagation(); useGameInstance.getState().player?.drawCard(); }}
           onPointerDown={(e) => e.stopPropagation()}
         >
           Draw
