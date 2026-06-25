@@ -22,7 +22,7 @@ function selectPreviewImage(card: Card): { src: string | null; alt: string } {
     };
   }
   return {
-    src: card.images?.front?.large || null,
+    src: card.images?.front?.normal || null,
     alt: card.name || `Card #${card.cardNumber}`,
   };
 }

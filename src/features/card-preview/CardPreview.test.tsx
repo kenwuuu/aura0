@@ -12,8 +12,8 @@ function makeCard(overrides: Partial<Card> = {}): Card {
     cardNumber: 7,
     name: 'Lightning Bolt',
     images: {
-      front: { large: 'https://img/front-large.png', normal: 'https://img/front-normal.png' },
-      back: { large: 'https://img/back-large.png', normal: 'https://img/back-normal.png' },
+      front: { normal: 'https://img/front-normal.png' },
+      back: { normal: 'https://img/back-normal.png' },
     },
     x: 0,
     y: 0,
@@ -54,9 +54,9 @@ describe('CardPreview', () => {
       expect(container.querySelector('.card-preview-popup')).not.toBeNull();
     });
 
-    it('renders no popup when the front card has no large image', () => {
+    it('renders no popup when the front card has no normal image', () => {
       useCardPreviewStore.setState({
-        card: makeCard({ images: { front: { normal: 'only-normal.png' } } }),
+        card: makeCard({ images: { front: {} } }),
         isVisible: true,
       });
       const { container } = render(<CardPreview />);
@@ -65,11 +65,11 @@ describe('CardPreview', () => {
   });
 
   describe('image selection', () => {
-    it('shows the front large image with the card name as alt', () => {
+    it('shows the front normal image with the card name as alt', () => {
       useCardPreviewStore.setState({ card: makeCard(), isVisible: true });
       render(<CardPreview />);
       const img = screen.getByAltText('Lightning Bolt') as HTMLImageElement;
-      expect(img.src).toContain('front-large.png');
+      expect(img.src).toContain('front-normal.png');
     });
 
     it('falls back to "Card #n" alt when the card has no name', () => {
@@ -93,7 +93,7 @@ describe('CardPreview', () => {
 
     it('falls back to the default card back when a flipped card has no back image', () => {
       useCardPreviewStore.setState({
-        card: makeCard({ isFlipped: true, images: { front: { large: 'f.png' } } }),
+        card: makeCard({ isFlipped: true, images: { front: { normal: 'f.png' } } }),
         isVisible: true,
       });
       render(<CardPreview />);
