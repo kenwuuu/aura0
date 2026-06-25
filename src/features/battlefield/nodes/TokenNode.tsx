@@ -65,7 +65,7 @@ export const TokenNode = memo(function TokenNode({ data, id }: NodeProps) {
         cursor: isOwn ? 'grab' : 'default',
         userSelect: 'none',
         position: 'relative',
-        opacity: isOwn ? 1 : 0.7,
+        opacity: 1,
       }}
       onClick={handleClick}
       onContextMenu={handleContextMenu}

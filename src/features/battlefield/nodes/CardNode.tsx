@@ -86,7 +86,7 @@ export const CardNode = memo(function CardNode({ data, id }: NodeProps) {
 
   return (
     <div
-      style={{ ...CARD_STYLE, transform, opacity: isOwn ? 1 : 0.85 }}
+      style={{ ...CARD_STYLE, transform }}
       onMouseEnter={handleMouseEnter}
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}

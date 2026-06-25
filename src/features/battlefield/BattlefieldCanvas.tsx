@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ReactFlow,
   ReactFlowProvider,
@@ -78,9 +78,19 @@ function BattlefieldCanvasInner({ yDoc, localPlayerId, player, tokenService }: B
   const yCards = yDoc.getMap<WhiteboardCard>(YDOC_CARDS_ON_BOARD);
   const yTokens = yDoc.getMap<KeywordToken>(YDOC_KEYWORD_TOKENS);
 
-  const { nodes: cardTokenNodes, onNodesChange } = useBattlefieldNodes(yCards, yTokens, localPlayerId);
+  const { nodes: cardTokenNodes, onNodesChange, elevateNode } = useBattlefieldNodes(yCards, yTokens, localPlayerId);
   const { nodes: playmatNodes, localMatOrigin } = usePlaymatNodes(yDoc, localPlayerId);
   const { screenToFlowPosition, fitBounds } = useReactFlow();
+
+  // Hold Alt to snap dragged cards/tokens to a sub-card grid.
+  const [snapActive, setSnapActive] = useState(false);
+  useEffect(() => {
+    const onDown = (e: KeyboardEvent) => { if (e.key === 'Alt') setSnapActive(true); };
+    const onUp = (e: KeyboardEvent) => { if (e.key === 'Alt') setSnapActive(false); };
+    window.addEventListener('keydown', onDown);
+    window.addEventListener('keyup', onUp);
+    return () => { window.removeEventListener('keydown', onDown); window.removeEventListener('keyup', onUp); };
+  }, []);
 
   // Center the camera on the local player's mat once on first load.
   const hasCenteredRef = useRef(false);
@@ -93,8 +103,41 @@ function BattlefieldCanvasInner({ yDoc, localPlayerId, player, tokenService }: B
     hasCenteredRef.current = true;
   }, [localMatOrigin, fitBounds]);
 
+  // Maps node id → elevated zIndex assigned at drag-start, consumed at drag-stop.
+  const dragElevationRef = useRef<Map<string, number>>(new Map());
+  // True while a multi-selection drag is in flight; prevents onNodeDragStop from
+  // double-writing the primary node (onSelectionDragStop handles all nodes instead).
+  const isMultiDragRef = useRef(false);
+
+  const onNodeDragStart: OnNodeDrag = useCallback(
+    (_, node) => {
+      useHotkeyMenuStore.getState().close();
+      const newZ = getMaxZIndex(yCards, yTokens) + 1;
+      dragElevationRef.current.set(node.id, newZ);
+      elevateNode(node.id, newZ);
+    },
+    [yCards, yTokens, elevateNode],
+  );
+
+  const onSelectionDragStart = useCallback(
+    (_: React.MouseEvent, nodes: Node[]) => {
+      isMultiDragRef.current = true;
+      useHotkeyMenuStore.getState().close();
+      const baseZ = getMaxZIndex(yCards, yTokens);
+      nodes.forEach((node, i) => {
+        const newZ = baseZ + i + 1;
+        dragElevationRef.current.set(node.id, newZ);
+        elevateNode(node.id, newZ);
+      });
+    },
+    [yCards, yTokens, elevateNode],
+  );
+
   const onNodeDragStop: OnNodeDrag = useCallback(
     (event, node) => {
+      // Multi-selection drag: onSelectionDragStop handles all writes, skip here.
+      if (isMultiDragRef.current) return;
+
       const clientX = 'clientX' in event ? event.clientX : event.touches?.[0]?.clientX ?? 0;
       const clientY = 'clientY' in event ? event.clientY : event.touches?.[0]?.clientY ?? 0;
 
@@ -113,22 +156,44 @@ function BattlefieldCanvasInner({ yDoc, localPlayerId, player, tokenService }: B
           // ownerId === null → dock pile → local player's pile
           if (ownerId === null || ownerId === localPlayerId) {
             useGameInstance.getState().moveCardFromBattlefield(node.id, pileType);
+            dragElevationRef.current.delete(node.id);
             return; // card moved off board; don't write position
           }
           // Dropped on an opponent's pile — reject silently; fall through to write position
         }
       }
 
-      // Write final drag position to Yjs
+      // Write final drag position + elevated zIndex to Yjs
+      const elevatedZ = dragElevationRef.current.get(node.id);
+      dragElevationRef.current.delete(node.id);
+
       if (node.type === 'card') {
         const card = yCards.get(node.id);
-        if (card) yCards.set(node.id, { ...card, x: node.position.x, y: node.position.y });
+        if (card) yCards.set(node.id, { ...card, x: node.position.x, y: node.position.y, zIndex: elevatedZ ?? card.zIndex });
       } else if (node.type === 'token') {
         const token = yTokens.get(node.id);
-        if (token) yTokens.set(node.id, { ...token, x: node.position.x, y: node.position.y });
+        if (token) yTokens.set(node.id, { ...token, x: node.position.x, y: node.position.y, zIndex: elevatedZ ?? token.zIndex });
       }
     },
     [yCards, yTokens, localPlayerId],
+  );
+
+  const onSelectionDragStop = useCallback(
+    (_: React.MouseEvent, nodes: Node[]) => {
+      isMultiDragRef.current = false;
+      nodes.forEach((node) => {
+        const elevatedZ = dragElevationRef.current.get(node.id);
+        dragElevationRef.current.delete(node.id);
+        if (node.type === 'card') {
+          const card = yCards.get(node.id);
+          if (card) yCards.set(node.id, { ...card, x: node.position.x, y: node.position.y, zIndex: elevatedZ ?? card.zIndex });
+        } else if (node.type === 'token') {
+          const token = yTokens.get(node.id);
+          if (token) yTokens.set(node.id, { ...token, x: node.position.x, y: node.position.y, zIndex: elevatedZ ?? token.zIndex });
+        }
+      });
+    },
+    [yCards, yTokens],
   );
 
   const onDragOver = useCallback((event: React.DragEvent) => {
@@ -223,18 +288,20 @@ function BattlefieldCanvasInner({ yDoc, localPlayerId, player, tokenService }: B
       nodes={allNodes}
       edges={[]}
       onNodesChange={onNodesChange}
+      onNodeDragStart={onNodeDragStart}
       onNodeDragStop={onNodeDragStop}
+      onSelectionDragStart={onSelectionDragStart}
+      onSelectionDragStop={onSelectionDragStop}
       nodeTypes={nodeTypes}
       onDragOver={onDragOver}
       onDrop={onDrop}
       onPaneClick={() => useHotkeyMenuStore.getState().close()}
       onMoveStart={() => useHotkeyMenuStore.getState().close()}
-      onNodeDragStart={() => useHotkeyMenuStore.getState().close()}
+      snapToGrid={snapActive}
+      snapGrid={[Math.round(CARD_WIDTH / 4), Math.round(CARD_HEIGHT / 5)]}
       minZoom={MIN_ZOOM}
       maxZoom={MAX_ZOOM}
       deleteKeyCode={null}
-      selectionKeyCode={null}
-      multiSelectionKeyCode={null}
       panOnScroll={false}
       panOnDrag={true}
       style={{ background: '#1a1a1a' }}

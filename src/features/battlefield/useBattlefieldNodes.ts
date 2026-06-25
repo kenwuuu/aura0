@@ -19,7 +19,7 @@ function buildNodes(
       data: { ...card, yCards, localPlayerId },
       zIndex: card.zIndex,
       draggable: card.ownerId === localPlayerId,
-      selectable: false,
+      selectable: card.ownerId === localPlayerId,
     });
   });
 
@@ -31,7 +31,7 @@ function buildNodes(
       data: { ...token, yTokens, localPlayerId },
       zIndex: token.zIndex,
       draggable: token.ownerId === localPlayerId,
-      selectable: false,
+      selectable: token.ownerId === localPlayerId,
     });
   });
 
@@ -64,5 +64,11 @@ export function useBattlefieldNodes(
     setNodes((prev) => applyNodeChanges(changes, prev));
   }, []);
 
-  return { nodes, onNodesChange };
+  // Elevate a node's zIndex in local state only (no Yjs write).
+  // Called on drag-start; the final zIndex is persisted to Yjs on drag-stop.
+  const elevateNode = useCallback((id: string, zIndex: number) => {
+    setNodes((prev) => prev.map((n) => (n.id === id ? { ...n, zIndex } : n)));
+  }, []);
+
+  return { nodes, onNodesChange, elevateNode };
 }
