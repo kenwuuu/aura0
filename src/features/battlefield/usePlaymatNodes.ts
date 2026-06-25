@@ -71,6 +71,8 @@ export function buildPlaymatNodes(yDoc: Y.Doc, localPlayerId: string): Node[] {
     });
 
     // Health widget
+    // selectable intentionally omitted (defaults to true) so react-flow sets
+    // pointer-events: all on the wrapper — required for button clicks to land.
     nodes.push({
       id: `health-${playerId}`,
       type: 'health',
@@ -78,7 +80,6 @@ export function buildPlaymatNodes(yDoc: Y.Doc, localPlayerId: string): Node[] {
       data: { ownerId: playerId, isLocal, name, health, customCounters, yDoc },
       zIndex: 10,
       draggable: false,
-      selectable: false,
     });
 
     // Deck pile
@@ -89,7 +90,6 @@ export function buildPlaymatNodes(yDoc: Y.Doc, localPlayerId: string): Node[] {
       data: { ownerId: playerId, isLocal, pileKind: 'deck', count: deck.length, allowViewHand: false, yDoc },
       zIndex: 10,
       draggable: false,
-      selectable: false,
     });
 
     // Discard pile
@@ -100,7 +100,6 @@ export function buildPlaymatNodes(yDoc: Y.Doc, localPlayerId: string): Node[] {
       data: { ownerId: playerId, isLocal, pileKind: 'discard', count: discardPile.length, allowViewHand: false, yDoc },
       zIndex: 10,
       draggable: false,
-      selectable: false,
     });
 
     // Exile pile
@@ -111,7 +110,6 @@ export function buildPlaymatNodes(yDoc: Y.Doc, localPlayerId: string): Node[] {
       data: { ownerId: playerId, isLocal, pileKind: 'exile', count: exilePile.length, allowViewHand: false, yDoc },
       zIndex: 10,
       draggable: false,
-      selectable: false,
     });
 
     // Opponent hand pile — always emitted for opponents; gating is handled in PileNode
@@ -123,7 +121,6 @@ export function buildPlaymatNodes(yDoc: Y.Doc, localPlayerId: string): Node[] {
         data: { ownerId: playerId, isLocal, pileKind: 'hand', count: hand.length, allowViewHand, yDoc },
         zIndex: 10,
         draggable: false,
-        selectable: false,
       });
     }
   });

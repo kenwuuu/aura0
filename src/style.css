@@ -65,6 +65,16 @@ body {
   box-shadow: none !important;
   border-radius: 0 !important;
   padding: 0 !important;
+  /* Suppress the react-flow selection ring — these nodes are non-selectable UX-wise */
+  outline: none !important;
+}
+
+/* Playmat wrapper must pass pointer events through so cards/widgets above it are clickable.
+   react-flow sets pointer-events: none automatically when selectable+draggable are both false,
+   which is what we want for the mat background. Health/pile nodes omit selectable: false so
+   their wrappers keep pointer-events: all (react-flow default). */
+.react-flow__node-playmat {
+  pointer-events: none !important;
 }
 
 #whiteboard {
