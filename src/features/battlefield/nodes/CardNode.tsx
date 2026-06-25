@@ -2,7 +2,6 @@ import { memo, useCallback } from 'react';
 import { NodeProps } from '@xyflow/react';
 import * as Y from 'yjs';
 import { WhiteboardCard } from '../types';
-import { CardCounter } from './CardCounter';
 import { useHotkeyStore } from '@/app/stores/hotkeyStore';
 import { useCardPreviewStore } from '@/features/card-preview/cardPreviewStore';
 import { useHotkeyMenuStore } from '@/features/hotkeys/hotkeyMenuStore';
@@ -25,19 +24,18 @@ export type CardNodeType = {
 const CARD_STYLE = {
   width: CARD_WIDTH,
   height: CARD_HEIGHT,
-  borderRadius: 8,
-  border: '2px solid #4a4a4a',
-  boxShadow: '0 4px 6px rgba(0,0,0,0.3)',
-  overflow: 'hidden' as const,
   position: 'relative' as const,
   cursor: 'grab',
   userSelect: 'none' as const,
+  backgroundColor: '#6a6a6a',
+  borderRadius: 3.5,
+  boxShadow: '0 4px 6px rgba(0,0,0,0.3)',
+  padding: .5,
 };
 
 export const CardNode = memo(function CardNode({ data, id }: NodeProps) {
   const card = data as unknown as CardNodeData;
   const { yCards, localPlayerId } = card;
-  const isOwn = card.ownerId === localPlayerId;
 
   const imageSrc = card.isFlipped
     ? (card.images?.back?.normal || DEFAULT_CARD_BACK)
@@ -71,15 +69,6 @@ export const CardNode = memo(function CardNode({ data, id }: NodeProps) {
     });
   }, [id, yCards, localPlayerId]);
 
-  const modifyCounter = useCallback((index: number, delta: number) => {
-    const latest = yCards.get(id);
-    if (!latest) return;
-    const counters = [...latest.counters];
-    counters[index] = counters[index] + delta;
-    if (counters[index] === 0) counters.splice(index, 1);
-    yCards.set(id, { ...latest, counters });
-  }, [id, yCards]);
-
   // tap + rotation transform
   const rotation = (card.rotation ?? 0) + (card.isTapped ? 90 : 0);
   const transform = rotation ? `rotate(${rotation}deg)` : undefined;
@@ -96,7 +85,7 @@ export const CardNode = memo(function CardNode({ data, id }: NodeProps) {
         <img
           src={imageSrc}
           alt={card.isFlipped ? 'Card Back' : (card.name || `Card #${card.cardNumber}`)}
-          style={{ width: '100%', height: '100%', objectFit: 'cover', pointerEvents: 'none', display: 'block' }}
+          style={{ width: '100%', height: '100%', objectFit: 'cover', pointerEvents: 'none', display: 'block', borderRadius: 3 }}
           draggable={false}
         />
       ) : (
@@ -105,6 +94,7 @@ export const CardNode = memo(function CardNode({ data, id }: NodeProps) {
           backgroundColor: card.isFlipped ? '#4a4a4a' : '#2d2d2d',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           color: '#888', fontSize: 11,
+          borderRadius: 3,
         }}>
           #{card.cardNumber}
         </div>
@@ -112,21 +102,6 @@ export const CardNode = memo(function CardNode({ data, id }: NodeProps) {
 
       {/* card number badge */}
       <div className="card-number-badge-battlefield">#{card.cardNumber}</div>
-
-      {/* counters */}
-      {card.counters && card.counters.length > 0 && (
-        <div className="card-counters">
-          {card.counters.map((value, index) => (
-            <CardCounter
-              key={index}
-              value={value}
-              index={index}
-              onIncrement={() => modifyCounter(index, 1)}
-              onDecrement={() => modifyCounter(index, -1)}
-            />
-          ))}
-        </div>
-      )}
     </div>
   );
 });
