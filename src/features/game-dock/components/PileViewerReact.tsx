@@ -32,6 +32,7 @@ import { CardGrid } from './CardGrid';
 import { usePlayerStore } from '@/stores/playerStore';
 import { useHotkeyStore } from '@/stores/hotkeyStore';
 import { useHotkeyMenuStore } from '@/features/hotkeys/hotkeyMenuStore';
+import { usePileViewerHotkeyStore } from '@/features/game-dock/pileViewerHotkeyStore';
 
 export type PileType = 'deck' | 'exile' | 'discard' | 'hand' | 'scry';
 
@@ -170,12 +171,12 @@ export function PileViewerReact({
     }
   }, [cards, callbacks, pileType]);
 
-  // Listen for centralized hotkey events
+  // Register this viewer's move handler so the global hotkey layer can route
+  // pile-viewer shortcuts to it (replaces the old window 'pileViewerCardAction' bus).
   React.useEffect(() => {
     if (!isOpen) return;
 
-    const handlePileViewerAction = (e: Event) => {
-      const { action, cardId } = (e as CustomEvent).detail;
+    const handlePileViewerAction = (action: string, cardId: string) => {
       const card = cards.find(c => c.id === cardId);
       if (!card) return;
 
@@ -202,8 +203,8 @@ export function PileViewerReact({
       setHoveredCard(null);
     };
 
-    window.addEventListener('pileViewerCardAction', handlePileViewerAction);
-    return () => window.removeEventListener('pileViewerCardAction', handlePileViewerAction);
+    usePileViewerHotkeyStore.getState().setActionHandler(handlePileViewerAction);
+    return () => usePileViewerHotkeyStore.getState().setActionHandler(null);
   }, [isOpen, cards, callbacks]);
 
   // Emit scry viewer closing event

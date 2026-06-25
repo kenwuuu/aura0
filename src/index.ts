@@ -242,39 +242,9 @@ class AuraApp {
     );
     this.eventHandlers.setupEventListeners();
 
-    // Setup event listeners for battlefield card movements (from hotkeys)
-    window.addEventListener('moveCardToHand', (e: Event) => {
-      const customEvent = e as CustomEvent;
-      const card = customEvent.detail.card;
-      const hand = this.localPlayer.getState().hand;
-      this.localPlayer['yPlayerState'].set('hand', [...hand, card]);
-    });
-
-    window.addEventListener('moveCardToDiscard', (e: Event) => {
-      const customEvent = e as CustomEvent;
-      const card = customEvent.detail.card;
-      this.localPlayer.placeCardInPile(card, 'discard');
-    });
-
-    window.addEventListener('moveCardToExile', (e: Event) => {
-      const customEvent = e as CustomEvent;
-      const card = customEvent.detail.card;
-      this.localPlayer.placeCardInPile(card, 'exile');
-    });
-
-    window.addEventListener('moveCardToDeckTop', (e: Event) => {
-      const customEvent = e as CustomEvent;
-      const card = customEvent.detail.card;
-      this.localPlayer.moveCardToDeckTop(card);
-      DeckPersistenceService.saveDeckForRoom(this.roomManager.getRoomName(), this.localPlayer.getDeck());
-    });
-
-    window.addEventListener('moveCardToDeckBottom', (e: Event) => {
-      const customEvent = e as CustomEvent;
-      const card = customEvent.detail.card;
-      this.localPlayer.moveCardToDeckBottom(card);
-      DeckPersistenceService.saveDeckForRoom(this.roomManager.getRoomName(), this.localPlayer.getDeck());
-    });
+    // Battlefield card movements (moveCardTo{Hand,Discard,Exile,DeckTop,DeckBottom})
+    // are now direct Zustand actions on gameInstanceStore, dispatched from
+    // battlefieldCardActions — no window event bus needed here.
   }
 
   private setupConnectionStatus(): void {

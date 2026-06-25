@@ -24,6 +24,7 @@ import { DeckPersistenceService } from '@/infrastructure/persistence';
 import { executeBattlefieldCardAction } from '@/features/battlefield/battlefieldCardActions';
 import { triggerConfirmation } from '@/shared/utils/confirmation';
 import { useCardPreviewStore } from '@/features/card-preview/cardPreviewStore';
+import { usePileViewerHotkeyStore } from '@/features/game-dock/pileViewerHotkeyStore';
 
 export function useAllGameHotkeys() {
   const { player, whiteboard, playerId, roomManager } = useGameInstance();
@@ -116,13 +117,11 @@ export function useAllGameHotkeys() {
     }
   };
 
-  // TODO(phase-4): replace this window event with a direct store action, the
-  // same way the battlefield→pile moves are being migrated off the window bus.
+  // Route the move to the currently-open pile viewer, which owns the card list
+  // and the source-pile-bound callbacks (see pileViewerHotkeyStore).
   const pileViewerMove = (action: string) => {
     if (t?.kind !== 'pileViewer') return;
-    window.dispatchEvent(
-      new CustomEvent('pileViewerCardAction', { detail: { action, cardId: t.id } })
-    );
+    usePileViewerHotkeyStore.getState().actionHandler?.(action, t.id);
   };
 
   // ===========================================================================

@@ -8,6 +8,7 @@
 import { MultiPlayerBoardManager } from '@/features/battlefield/MultiPlayerBoardManager';
 import { useCardPreviewStore } from '@/features/card-preview/cardPreviewStore';
 import { useHotkeyMenuStore } from '@/features/hotkeys/hotkeyMenuStore';
+import { useGameInstance } from '@/stores/gameInstanceStore';
 
 export function executeBattlefieldCardAction(
   action: string,
@@ -62,31 +63,31 @@ export function executeBattlefieldCardAction(
     case 'moveToHand':
       useCardPreviewStore.getState().hide();
       useHotkeyMenuStore.getState().close();
-      window.dispatchEvent(new CustomEvent('moveCardToHand', { detail: { card } }));
+      useGameInstance.getState().moveCardToHand(card);
       yCards.delete(cardId);
       break;
     case 'moveToDiscard':
       useCardPreviewStore.getState().hide();
       useHotkeyMenuStore.getState().close();
-      window.dispatchEvent(new CustomEvent('moveCardToDiscard', { detail: { card } }));
+      useGameInstance.getState().moveCardToDiscard(card);
       yCards.delete(cardId);
       break;
     case 'moveToExile':
       useCardPreviewStore.getState().hide();
       useHotkeyMenuStore.getState().close();
-      window.dispatchEvent(new CustomEvent('moveCardToExile', { detail: { card } }));
+      useGameInstance.getState().moveCardToExile(card);
       yCards.delete(cardId);
       break;
     case 'moveToDeckTop':
       useCardPreviewStore.getState().hide();
       useHotkeyMenuStore.getState().close();
-      window.dispatchEvent(new CustomEvent('moveCardToDeckTop', { detail: { card } }));
+      useGameInstance.getState().moveCardToDeckTop(card);
       yCards.delete(cardId);
       break;
     case 'moveToDeckBottom':
       useCardPreviewStore.getState().hide();
       useHotkeyMenuStore.getState().close();
-      window.dispatchEvent(new CustomEvent('moveCardToDeckBottom', { detail: { card } }));
+      useGameInstance.getState().moveCardToDeckBottom(card);
       yCards.delete(cardId);
       break;
   }
