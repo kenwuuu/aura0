@@ -160,8 +160,17 @@ Verified: `tsc --noEmit` shows only the pre-existing `YDOC_INVERTED_BOARDS` erro
 
 **Out of scope (other window events, intentionally left):** `moveCardFromBattlefield` (board drag→pile, `MultiPlayerBoardManager`→`WhiteboardEventHandlers`), `playCard` (hand→board), `opponentBoardHover`/`opponentBoardPin`/`opponentCountChanged`, `modalOpen`/`modalClosed`, `scryViewer closing`. The plan scoped Phase 4 to the card-movement bus + dock hover state; these remaining events are separate concerns better untangled alongside Phase 5/6.
 
-### Phase 5 — Collapse `index.ts` God Object
-Break `AuraApp` class into per-feature initializers. Make `App.tsx` the actual React tree root with a single `createRoot()`. Move Sentry/Posthog init into `app/main.ts`.
+### Phase 5 — Collapse `index.ts` God Object ✅ DONE
+- ✅ Deleted `src/index.ts` (571 lines) and `ReactToasterRoot.tsx`.
+- ✅ **`src/app/main.ts`** — new entry point; Sentry/PostHog init, then `bootstrapGame()` + single `createRoot(<App/>)` into `#app-react-root`.
+- ✅ **`src/app/bootstrap.ts`** — `bootstrapGame()` orchestrator: wires `Y.Doc`, networking, `Player`, `MultiPlayerBoardManager`, `GameResourcesDock`, services, populates stores, seeds/auto-loads deck. Deck domain logic in `features/deck-manager/deckLoading.ts`; room-link copy in `features/room/setupRoomLinkCopy.ts`.
+- ✅ **`src/app/App.tsx`** — single React tree. Fixed-position overlays (`ZoomControls`, `CardPreview`, `HotkeyMenu`, `GameHotkeysManager`, `Toaster`, modals, `AddCardManager`) as direct children. Toolbar slots (`DeckManager`, `OpponentHealthList`, `RoomConnectionStatus`, `HelpButton`, `HotkeysButton`, `DiscordButton`) rendered via `createPortal` into existing `index.html` mount points.
+- ✅ **`src/app/ToolbarButtons.tsx`** — `HelpButton`, `HotkeysButton`, `DiscordButton` components (extracted from inline definitions in the old `AuraApp`).
+- ✅ `index.html` updated: entry point → `/src/app/main.ts`; `#toaster-root` removed; `#app-react-root` added.
+
+Verified: `tsc --noEmit` shows only the pre-existing `YDOC_INVERTED_BOARDS` error in `BoardInverter.tsx`; `npm run build` ✓; full vitest run ✓ (216 passed, 96 skipped, 0 failed).
+
+**Deferred to Phase 6:** `index.html` still retains hard-coded toolbar mount-point divs (`#deck-manager-root`, `#hotkeys-root`, `#help-root`, `#discord-root`, `#connection-status`, `#opponent-health-container`) that `App.tsx` targets with portals. When Phase 6 replaces the whiteboard, **fully restructure `index.html` down to a single `<div id="root">`** and let `<App>` render the entire toolbar/layout (board + dock via refs), dropping the portal indirection. The whiteboard DOM region is already being rewritten at that point, so it's the natural moment for the full restructure.
 
 ### Phase 6 — Whiteboard replacement
 By this point `features/battlefield/` is cleanly isolated. The seams are:
@@ -169,5 +178,7 @@ By this point `features/battlefield/` is cleanly isolated. The seams are:
 - Input: receives zoom preferences from Zustand
 - Output: dispatches card actions via Zustand store actions
 - Output: exposes `getZoomLevel()` for token placement
+
+**Also do at the start of Phase 6 (deferred from Phase 5):** restructure `index.html` → single `<div id="root">`; let `<App>` render full toolbar/layout; remove portals from `App.tsx`.
 
 Swap in new canvas implementation (Konva, react-flow, custom `<canvas>`, etc.).
