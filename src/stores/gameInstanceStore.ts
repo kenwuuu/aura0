@@ -7,22 +7,24 @@
  */
 
 import { create } from 'zustand';
+import * as Y from 'yjs';
 import type { Player } from '@/features/player';
 import type { Card } from '@/features/player/types';
-import type { MultiPlayerBoardManager } from '@/features/battlefield';
 import type { RoomManager } from '@/features/room';
+import { YDOC_CARDS_ON_BOARD } from '@/constants';
 import { DeckPersistenceService } from '@/infrastructure/persistence';
+import type { WhiteboardCard } from '@/features/battlefield/types';
 
 interface GameInstanceStore {
   // Game instances
+  yDoc: Y.Doc | null;
   player: Player | null;
-  whiteboard: MultiPlayerBoardManager | null;
   playerId: string | null;
   roomManager: RoomManager | null;
 
   // Setters
+  setYDoc: (yDoc: Y.Doc) => void;
   setPlayer: (player: Player) => void;
-  setWhiteboard: (whiteboard: MultiPlayerBoardManager) => void;
   setPlayerId: (playerId: string) => void;
   setRoomManager: (roomManager: RoomManager) => void;
 
@@ -35,20 +37,23 @@ interface GameInstanceStore {
   moveCardToDeckTop: (card: Card) => void;
   moveCardToDeckBottom: (card: Card) => void;
 
+  // Add a card to the battlefield (writes to yCards)
+  addCardToBoard: (card: Card, ownerId: string) => void;
+
   // Reset all instances (useful for cleanup)
   reset: () => void;
 }
 
 export const useGameInstance = create<GameInstanceStore>((set, get) => ({
   // Initial state
+  yDoc: null,
   player: null,
-  whiteboard: null,
   playerId: null,
   roomManager: null,
 
   // Setters
+  setYDoc: (yDoc) => set({ yDoc }),
   setPlayer: (player) => set({ player }),
-  setWhiteboard: (whiteboard) => set({ whiteboard }),
   setPlayerId: (playerId) => set({ playerId }),
   setRoomManager: (roomManager) => set({ roomManager }),
 
@@ -73,10 +78,19 @@ export const useGameInstance = create<GameInstanceStore>((set, get) => ({
     }
   },
 
+  addCardToBoard: (card, ownerId) => {
+    const { yDoc } = get();
+    if (!yDoc) return;
+    const yCards = yDoc.getMap<WhiteboardCard>(YDOC_CARDS_ON_BOARD);
+    let maxZIndex = 0;
+    yCards.forEach((c) => { if (c.zIndex > maxZIndex) maxZIndex = c.zIndex; });
+    yCards.set(card.id, { ...card, zIndex: maxZIndex + 1, ownerId });
+  },
+
   // Reset
   reset: () => set({
+    yDoc: null,
     player: null,
-    whiteboard: null,
     playerId: null,
     roomManager: null,
   }),

@@ -1,3 +1,2 @@
-export { MultiPlayerBoardManager } from './MultiPlayerBoardManager';
-export { BoardCanvasRenderer } from './BoardCanvasRenderer';
+export { BattlefieldCanvas } from './BattlefieldCanvas';
 export type { WhiteboardCard, WhiteboardConfig, DragState } from './types';

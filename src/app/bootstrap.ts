@@ -10,7 +10,6 @@
  * Room-link copy lives in `features/room/setupRoomLinkCopy.ts`.
  */
 import * as Y from 'yjs';
-import { MultiPlayerBoardManager } from '@/features/battlefield';
 import { GameResourcesDock } from '@/features/game-dock';
 import { Player } from '@/features/player';
 import { RoomManager } from '@/features/room';
@@ -34,10 +33,10 @@ export interface GameContext {
   yDoc: Y.Doc;
   yjsNetworkProvider: YjsNetworkProvider;
   player: Player;
-  whiteboard: MultiPlayerBoardManager;
   roomManager: RoomManager;
   playerId: string;
   cardLookup: CardLookupService;
+  tokenService: TokenService;
 }
 
 export async function bootstrapGame(): Promise<GameContext> {
@@ -69,17 +68,7 @@ export async function bootstrapGame(): Promise<GameContext> {
   // Populate playerStore immediately so any component reading yPlayerState gets it on mount
   usePlayerStore.getState().setYPlayerState(player.yPlayerState);
 
-  // ── 4. Board + dock (imperative classes, Phase 6 targets) ──────────────────
-  const whiteboardContainer = document.getElementById('whiteboard');
-  if (!whiteboardContainer) throw new Error('Whiteboard container not found');
-
-  const whiteboard = new MultiPlayerBoardManager(
-    whiteboardContainer,
-    yDoc,
-    playerId,
-    '#1a1a1a', // backgroundColor
-  );
-
+  // ── 4. Dock (imperative class, Phase 6 target for React conversion) ────────
   const dockContainer = document.getElementById('local-dock');
   if (!dockContainer) throw new Error('Local dock container not found');
 
@@ -90,13 +79,12 @@ export async function bootstrapGame(): Promise<GameContext> {
 
   // ── 5. Services ────────────────────────────────────────────────────────────
   const cardLookup = new CardLookupService();
-  const tokenService = new TokenService(() => whiteboard.getZoomLevel(), cardLookup);
+  // TokenService no longer needs getZoomLevel — positioning is in flow coordinates
+  const tokenService = new TokenService(() => 1, cardLookup);
 
   // ── 6. Populate game-instance store (before React renders) ─────────────────
-  // Populating here (rather than mid-initialize as before) ensures useGameInstance
-  // never returns nulls during the initial render.
+  useGameInstance.getState().setYDoc(yDoc);
   useGameInstance.getState().setPlayer(player);
-  useGameInstance.getState().setWhiteboard(whiteboard);
   useGameInstance.getState().setPlayerId(playerId);
   useGameInstance.getState().setRoomManager(roomManager);
 
@@ -104,8 +92,6 @@ export async function bootstrapGame(): Promise<GameContext> {
   const eventHandlers = new WhiteboardEventHandlers(
     yDoc,
     player,
-    whiteboard,
-    tokenService,
     playerId,
     () => DeckPersistenceService.saveDeckForRoom(roomManager.getRoomName(), player.getDeck()),
   );
@@ -123,5 +109,5 @@ export async function bootstrapGame(): Promise<GameContext> {
   const visitCount = parseInt(localStorage.getItem(VISIT_COUNT_KEY) ?? '0', 10);
   localStorage.setItem(VISIT_COUNT_KEY, (visitCount + 1).toString());
 
-  return { yDoc, yjsNetworkProvider, player, whiteboard, roomManager, playerId, cardLookup };
+  return { yDoc, yjsNetworkProvider, player, roomManager, playerId, cardLookup, tokenService };
 }

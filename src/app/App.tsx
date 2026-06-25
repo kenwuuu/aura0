@@ -1,5 +1,5 @@
 /**
- * App — the single React root for Aura (Phase 5).
+ * React root for Aura.
  *
  * Previously the app had ~17 separate `createRoot()` calls scattered across
  * `src/index.ts`. This component consolidates all React UI into one tree so
@@ -7,17 +7,17 @@
  *
  * index.html retains its existing mount-point divs (toolbar slots, etc.) for now.
  * Components that must live inside those static HTML elements render via
- * `createPortal`. Fixed-position overlays (zoom controls, card preview, menus,
- * modals) are direct children and rendered into the React root div.
+ * `createPortal`. Fixed-position overlays (card preview, menus, modals) are
+ * direct children and rendered into the React root div.
  *
- * Full restructure of index.html → single <div id="root"> (dropping portals) is
- * deferred to Phase 6, which already rewrites the board DOM region.
+ * Phase 6: BattlefieldCanvas is rendered via portal into #whiteboard, replacing
+ * the old MultiPlayerBoardManager imperative class.
  */
 import React from 'react';
 import { createPortal } from 'react-dom';
 import * as Y from 'yjs';
 
-import { ZoomControls } from '@/features/battlefield/ZoomControls';
+import { BattlefieldCanvas } from '@/features/battlefield/BattlefieldCanvas';
 import { CardPreview } from '@/features/card-preview';
 import { HotkeyMenu } from '@/features/hotkeys/HotkeyMenu';
 import { GameHotkeysManager } from '@/features/hotkeys/GameHotkeysManager';
@@ -27,7 +27,7 @@ import { loadDeck } from '@/features/deck-manager/deckLoading';
 import { RoomManager } from '@/features/room';
 import { Player } from '@/features/player';
 import { SavedDeck } from '@/features/player/types';
-import { CardLookupService } from '@/infrastructure/cards';
+import { CardLookupService, TokenService } from '@/infrastructure/cards';
 import { YjsNetworkProvider } from '@/infrastructure/networking/YjsNetworkFactory';
 import { RoomConnectionStatus } from '@/components/RoomConnectionStatus';
 import { AddCardManager } from '@/components/AddCardManager';
@@ -47,9 +47,10 @@ interface AppProps {
   roomManager: RoomManager;
   playerId: string;
   cardLookup: CardLookupService;
+  tokenService: TokenService;
 }
 
-export function App({ yDoc, yjsNetworkProvider, player, roomManager, playerId, cardLookup }: AppProps) {
+export function App({ yDoc, yjsNetworkProvider, player, roomManager, playerId, cardLookup, tokenService }: AppProps) {
   const handleDeckSelected = (deck: SavedDeck) => loadDeck(player, roomManager, deck);
   const handleAddCard = (card: Parameters<Player['placeCardInPile']>[0]) =>
     player.placeCardInPile(card, 'hand');
@@ -57,17 +58,27 @@ export function App({ yDoc, yjsNetworkProvider, player, roomManager, playerId, c
   return (
     <>
       {/* ── Fixed-position overlays (DOM location irrelevant) ── */}
-      <ZoomControls />
       <CardPreview />
       <HotkeyMenu />
       <GameHotkeysManager />
       <Toaster />
-      <MobileWarningModal />
+      {/*<MobileWarningModal />*/}
       {!isDevEnv && <WelcomeModal />}
       {AnnouncementsService.shouldShowAnnouncement() && (
         <AnnouncementModal onClose={() => AnnouncementsService.markAnnouncementAsSeen()} />
       )}
       <AddCardManager cardLookup={cardLookup} onAddCard={handleAddCard} />
+
+      {/* ── BattlefieldCanvas — fills #whiteboard div ── */}
+      {createPortal(
+        <BattlefieldCanvas
+          yDoc={yDoc}
+          localPlayerId={playerId}
+          player={player}
+          tokenService={tokenService}
+        />,
+        document.getElementById('whiteboard')!,
+      )}
 
       {/* ── Portals into existing index.html toolbar slots ── */}
       {createPortal(

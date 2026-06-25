@@ -2,10 +2,11 @@
  * Battlefield card actions
  *
  * Centralized logic for executing actions on battlefield cards.
- * Used by both keyboard hotkeys and tooltip menu clicks.
+ * Used by both keyboard hotkeys and context menu clicks.
  */
 
-import { MultiPlayerBoardManager } from '@/features/battlefield/MultiPlayerBoardManager';
+import * as Y from 'yjs';
+import { WhiteboardCard } from './types';
 import { useCardPreviewStore } from '@/features/card-preview/cardPreviewStore';
 import { useHotkeyMenuStore } from '@/features/hotkeys/hotkeyMenuStore';
 import { useGameInstance } from '@/stores/gameInstanceStore';
@@ -13,12 +14,9 @@ import { useGameInstance } from '@/stores/gameInstanceStore';
 export function executeBattlefieldCardAction(
   action: string,
   cardId: string,
-  whiteboard: MultiPlayerBoardManager,
+  yCards: Y.Map<WhiteboardCard>,
   playerId: string,
 ) {
-  const yCards = whiteboard['yCards'];
-  const card = yCards.get(cardId);
-
   if (action === 'untapAll') {
     yCards.forEach((c, cId) => {
       if (c.ownerId === playerId && c.isTapped) {
@@ -28,6 +26,7 @@ export function executeBattlefieldCardAction(
     return;
   }
 
+  const card = yCards.get(cardId);
   if (!card) return;
 
   switch (action) {
@@ -43,18 +42,21 @@ export function executeBattlefieldCardAction(
     case 'removeCounter':
       yCards.set(cardId, { ...card, counters: [...card.counters, -1] });
       break;
-    case 'copy':
-      const newCard = {
+    case 'copy': {
+      let maxZIndex = 0;
+      yCards.forEach((c) => { if (c.zIndex > maxZIndex) maxZIndex = c.zIndex; });
+      const newCard: WhiteboardCard = {
         ...card,
         id: `card-${Math.random().toString(36).substring(2, 11)}`,
         ownerId: playerId,
         x: card.x + 20,
         y: card.y + 20,
-        zIndex: ++whiteboard['maxZIndex'],
+        zIndex: maxZIndex + 1,
         counters: [...card.counters],
       };
       yCards.set(newCard.id, newCard);
       break;
+    }
     case 'delete':
       useCardPreviewStore.getState().hide();
       useHotkeyMenuStore.getState().close();

@@ -25,9 +25,12 @@ import { executeBattlefieldCardAction } from '@/features/battlefield/battlefield
 import { triggerConfirmation } from '@/shared/utils/confirmation';
 import { useCardPreviewStore } from '@/features/card-preview/cardPreviewStore';
 import { usePileViewerHotkeyStore } from '@/features/game-dock/pileViewerHotkeyStore';
+import { YDOC_CARDS_ON_BOARD, YDOC_KEYWORD_TOKENS } from '@/constants';
+import type { WhiteboardCard } from '@/features/battlefield/types';
+import type { KeywordToken } from '@/features/keyword-tokens/types';
 
 export function useAllGameHotkeys() {
-  const { player, whiteboard, playerId, roomManager } = useGameInstance();
+  const { player, yDoc, playerId, roomManager } = useGameInstance();
 
   const hoverTarget = useHotkeyStore((s) => s.hoverTarget);
   const isModalOpen = useHotkeyStore((s) => s.isModalOpen);
@@ -69,8 +72,9 @@ export function useAllGameHotkeys() {
   };
 
   const onBattlefield = (action: string) => {
-    if (whiteboard && playerId && t?.kind === 'battlefield') {
-      executeBattlefieldCardAction(action, t.id, whiteboard, playerId);
+    if (yDoc && playerId && t?.kind === 'battlefield') {
+      const yCards = yDoc.getMap<WhiteboardCard>(YDOC_CARDS_ON_BOARD);
+      executeBattlefieldCardAction(action, t.id, yCards, playerId);
     }
   };
 
@@ -102,8 +106,8 @@ export function useAllGameHotkeys() {
   };
 
   const tokenOp = (op: 'increment' | 'decrement' | 'delete') => {
-    if (!whiteboard || !playerId || t?.kind !== 'token') return;
-    const yTokens = whiteboard['yTokens'];
+    if (!yDoc || !playerId || t?.kind !== 'token') return;
+    const yTokens = yDoc.getMap<KeywordToken>(YDOC_KEYWORD_TOKENS);
     const token = yTokens.get(t.id);
     if (!token || token.ownerId !== playerId) return;
     if (op === 'delete') {
@@ -156,8 +160,9 @@ export function useAllGameHotkeys() {
   }, board);
 
   useHotkeys(getKeyBindingsForAction('untapAll'), () => {
-    if (whiteboard && playerId) {
-      executeBattlefieldCardAction('untapAll', '', whiteboard, playerId);
+    if (yDoc && playerId) {
+      const yCards = yDoc.getMap<WhiteboardCard>(YDOC_CARDS_ON_BOARD);
+      executeBattlefieldCardAction('untapAll', '', yCards, playerId);
     }
   }, board);
 

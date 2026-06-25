@@ -1,83 +1,133 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useCallback } from 'react';
 import { KeywordTokenTemplate } from '@/features/keyword-tokens/types';
-import { KeywordTokenFactory } from '@/features/keyword-tokens/KeywordTokenFactory';
-import { setElementDragPoint } from "@/shared/utils/centerHtmlElementOnDrag";
+import { setElementDragPoint } from '@/shared/utils/centerHtmlElementOnDrag';
 import { HotkeyContext } from '@/features/hotkeys/hotkeys';
 import { useHotkeyMenuStore } from '@/features/hotkeys/hotkeyMenuStore';
 
+const TOKEN_SIZE = 40;
+
+interface TokenGridItemProps {
+  template: KeywordTokenTemplate;
+  onDragStart?: (template: KeywordTokenTemplate) => void;
+}
+
+function TokenGridItem({ template, onDragStart }: TokenGridItemProps) {
+  const handleMouseEnter = useCallback((e: React.MouseEvent) => {
+    useHotkeyMenuStore.getState().showHint({
+      context: HotkeyContext.KeywordToken,
+      x: e.clientX,
+      y: e.clientY,
+      title: template.title,
+    });
+  }, [template.title]);
+
+  const handleMouseLeave = useCallback(() => {
+    useHotkeyMenuStore.getState().close();
+  }, []);
+
+  const handleDragStart = useCallback((e: React.DragEvent<HTMLDivElement>) => {
+    e.stopPropagation();
+    useHotkeyMenuStore.getState().close();
+    setElementDragPoint(e.target as HTMLDivElement, e.nativeEvent, 'kwToken');
+    e.dataTransfer.setData('text/x-keyword-token-template', JSON.stringify(template));
+    e.dataTransfer.effectAllowed = 'copy';
+    onDragStart?.(template);
+  }, [template, onDragStart]);
+
+  const handleDragEnd = useCallback((e: React.DragEvent<HTMLDivElement>) => {
+    (e.currentTarget as HTMLDivElement).style.opacity = '1';
+  }, []);
+
+  return (
+    <div
+      draggable
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+      style={{
+        width: TOKEN_SIZE,
+        height: TOKEN_SIZE,
+        cursor: 'grab',
+        userSelect: 'none',
+        position: 'relative',
+      }}
+    >
+      {/* circular background */}
+      <div style={{
+        position: 'absolute',
+        width: '100%',
+        height: '100%',
+        borderRadius: '50%',
+        backgroundColor: template.backgroundColor,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        pointerEvents: 'none',
+      }}>
+        {template.imageUrl && (
+          <img
+            src={template.imageUrl}
+            alt={template.title}
+            className="svg-black"
+            style={{ width: '70%', height: '70%', objectFit: 'contain', pointerEvents: 'none' }}
+            draggable={false}
+          />
+        )}
+      </div>
+
+      {/* count overlay */}
+      {template.count !== undefined && (
+        <div style={{
+          position: 'absolute',
+          top: '-15%',
+          left: 0,
+          fontSize: 20,
+          fontWeight: 'bold',
+          color: 'white',
+          textShadow: '-2px -2px 0 black, 2px -2px 0 black, -2px 2px 0 black, 2px 2px 0 black',
+          pointerEvents: 'none',
+          userSelect: 'none',
+        }}>
+          {template.count}
+        </div>
+      )}
+    </div>
+  );
+}
+
 interface KeywordTokenGridProps {
   templates: KeywordTokenTemplate[];
-  columns?: number; // Number of columns (default: auto-fill)
-  rows?: number; // Number of rows (default: auto based on templates)
-  gap?: number; // Gap between tokens in pixels (default: 12)
+  columns?: number;
+  rows?: number;
+  gap?: number;
   onDragStart?: (template: KeywordTokenTemplate) => void;
 }
 
 export const KeywordTokenGrid: React.FC<KeywordTokenGridProps> = ({
   templates,
-  columns = 7, // Default to 5 columns
-  rows, // Auto-calculate if not provided
+  columns = 7,
+  rows,
   gap = 12,
   onDragStart,
 }) => {
-  const containerRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!containerRef.current) return;
-
-    // Clear existing tokens
-    containerRef.current.innerHTML = '';
-
-    // Create token elements for each template
-    templates.forEach((template) => {
-      const tokenElement = KeywordTokenFactory.createTokenElement(template, {
-        mode: 'grid',
-        // Hover hint only: shows the token's bindings; the picker has no actions.
-        onMouseEnter: (e: MouseEvent) => {
-          useHotkeyMenuStore.getState().showHint({
-            context: HotkeyContext.KeywordToken,
-            x: e.clientX,
-            y: e.clientY,
-            title: template.title,
-          });
-        },
-        onMouseLeave: () => {
-          useHotkeyMenuStore.getState().close();
-        },
-        onDragStart: (e: DragEvent, draggedTemplate: KeywordTokenTemplate) => {
-          // Hide hint when starting drag
-          useHotkeyMenuStore.getState().close();
-
-          // Center the drag image on the mouse cursor
-          setElementDragPoint(e.target as HTMLDivElement, e, 'kwToken');
-
-          // Store token template data in dataTransfer for board to read
-          e.dataTransfer!.setData('text/x-keyword-token-template', JSON.stringify(draggedTemplate));
-          e.dataTransfer!.effectAllowed = 'copy'; // Indicate this is a copy operation
-
-          // Call parent callback
-          onDragStart?.(draggedTemplate);
-        },
-      });
-
-      containerRef.current!.appendChild(tokenElement);
-    });
-  }, [templates, onDragStart]);
-
-  // Calculate grid template based on columns/rows config
-  const gridTemplateColumns = columns ? `repeat(${columns}, 50px)` : 'repeat(auto-fill, 50px)';
-  const gridTemplateRows = rows ? `repeat(${rows}, 50px)` : undefined;
+  const gridTemplateRows = rows ? `repeat(${rows}, ${TOKEN_SIZE}px)` : undefined;
 
   return (
-    <div
-      ref={containerRef}
-      style={{
-        display: 'grid',
-        gridTemplateColumns,
-        gridTemplateRows,
-        gap: `${gap}px`,
-        padding: '8px',
-      }}
-    />
+    <div style={{
+      display: 'grid',
+      gridTemplateColumns: `repeat(${columns}, ${TOKEN_SIZE}px)`,
+      gridTemplateRows,
+      gap: `${gap}px`,
+      padding: '8px',
+    }}>
+      {templates.map((template) => (
+        <TokenGridItem
+          key={template.title}
+          template={template}
+          onDragStart={onDragStart}
+        />
+      ))}
+    </div>
   );
 };
