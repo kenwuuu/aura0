@@ -172,13 +172,16 @@ Verified: `tsc --noEmit` shows only the pre-existing `YDOC_INVERTED_BOARDS` erro
 
 **Deferred to Phase 6:** `index.html` still retains hard-coded toolbar mount-point divs (`#deck-manager-root`, `#hotkeys-root`, `#help-root`, `#discord-root`, `#connection-status`, `#opponent-health-container`) that `App.tsx` targets with portals. When Phase 6 replaces the whiteboard, **fully restructure `index.html` down to a single `<div id="root">`** and let `<App>` render the entire toolbar/layout (board + dock via refs), dropping the portal indirection. The whiteboard DOM region is already being rewritten at that point, so it's the natural moment for the full restructure.
 
-### Phase 6 — Whiteboard replacement
-By this point `features/battlefield/` is cleanly isolated. The seams are:
-- Input: receives cards from `yDoc.getMap(YDOC_CARDS_ON_BOARD)` (Yjs)
-- Input: receives zoom preferences from Zustand
-- Output: dispatches card actions via Zustand store actions
-- Output: exposes `getZoomLevel()` for token placement
+### Phase 6 — Whiteboard replacement ✅ DONE (partial)
+- ✅ Replaced `MultiPlayerBoardManager` with `BattlefieldCanvas.tsx` (react-flow). Previous commit.
+- ✅ **Removed portals**: `index.html` stripped to `#app-react-root` + `#local-dock`; `App.tsx` renders toolbar (`#toolbar`) and battlefield (`#whiteboard`) as inline children — no more `createPortal` calls.
+- ✅ **`moveCardFromBattlefield` window event eliminated**: logic moved into `gameInstanceStore.moveCardFromBattlefield()`; `BattlefieldCanvas` calls it directly. `WhiteboardEventHandlers.ts` deleted.
+- ✅ **`setupRoomLinkCopy.ts` eliminated**: replaced by `features/room/RoomLinkButton.tsx` (React component reading `useGameInstance`).
+- ✅ **`touch-action: none`** added to `#whiteboard` CSS to fix mobile card-node drag.
 
-**Also do at the start of Phase 6 (deferred from Phase 5):** restructure `index.html` → single `<div id="root">`; let `<App>` render full toolbar/layout; remove portals from `App.tsx`.
+Verified: `tsc --noEmit` shows only the pre-existing `YDOC_INVERTED_BOARDS` error; `npm run build` ✓; full vitest run ✓ (197 passed, 1 skipped).
 
-Swap in new canvas implementation (Konva, react-flow, custom `<canvas>`, etc.).
+**Still remaining:**
+- `GameResourcesDock` is still an imperative class mounted into `#local-dock`. Converting it to a React component would let the dock be removed from `index.html` entirely.
+- Window events that go through `GameResourcesDock` (`modalOpen`/`modalClosed`, `scryViewer closing`, `opponentBoardHover`/`opponentBoardPin`, `playCard`) are kept until the dock is converted.
+- Ko-fi widget stays as a script in `index.html` (renders as a floating overlay, not inline).

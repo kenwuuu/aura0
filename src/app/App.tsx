@@ -1,20 +1,4 @@
-/**
- * React root for Aura.
- *
- * Previously the app had ~17 separate `createRoot()` calls scattered across
- * `src/index.ts`. This component consolidates all React UI into one tree so
- * components share context and renders are coordinated.
- *
- * index.html retains its existing mount-point divs (toolbar slots, etc.) for now.
- * Components that must live inside those static HTML elements render via
- * `createPortal`. Fixed-position overlays (card preview, menus, modals) are
- * direct children and rendered into the React root div.
- *
- * Phase 6: BattlefieldCanvas is rendered via portal into #whiteboard, replacing
- * the old MultiPlayerBoardManager imperative class.
- */
 import React from 'react';
-import { createPortal } from 'react-dom';
 import * as Y from 'yjs';
 
 import { BattlefieldCanvas } from '@/features/battlefield/BattlefieldCanvas';
@@ -25,13 +9,13 @@ import { OpponentHealthList } from '@/features/opponents/OpponentHealthList';
 import { DeckManager } from '@/features/deck-manager';
 import { loadDeck } from '@/features/deck-manager/deckLoading';
 import { RoomManager } from '@/features/room';
+import { RoomLinkButton } from '@/features/room/RoomLinkButton';
 import { Player } from '@/features/player';
 import { SavedDeck } from '@/features/player/types';
 import { CardLookupService, TokenService } from '@/infrastructure/cards';
 import { YjsNetworkProvider } from '@/infrastructure/networking/YjsNetworkFactory';
 import { RoomConnectionStatus } from '@/components/RoomConnectionStatus';
 import { AddCardManager } from '@/components/AddCardManager';
-import { MobileWarningModal } from '@/components/MobileWarningModal';
 import { WelcomeModal } from '@/components/WelcomeModal';
 import { AnnouncementModal } from '@/components/AnnouncementModal';
 import { Toaster } from '@/shared/ui/sonner';
@@ -57,45 +41,41 @@ export function App({ yDoc, yjsNetworkProvider, player, roomManager, playerId, c
 
   return (
     <>
-      {/* ── Fixed-position overlays (DOM location irrelevant) ── */}
-      <CardPreview />
-      <HotkeyMenu />
-      <GameHotkeysManager />
-      <Toaster />
-      {/*<MobileWarningModal />*/}
-      {!isDevEnv && <WelcomeModal />}
-      {AnnouncementsService.shouldShowAnnouncement() && (
-        <AnnouncementModal onClose={() => AnnouncementsService.markAnnouncementAsSeen()} />
-      )}
-      <AddCardManager cardLookup={cardLookup} onAddCard={handleAddCard} />
+      {/* ── Toolbar ── */}
+      <div id="toolbar">
+        <DeckManager onDeckSelected={handleDeckSelected} />
+        <HotkeysButton />
+        <HelpButton />
+        <DiscordButton />
+        <span id="connection-status">
+          <RoomConnectionStatus yjsNetworkProvider={yjsNetworkProvider} />
+        </span>
+        <RoomLinkButton />
+      </div>
 
-      {/* ── BattlefieldCanvas — fills #whiteboard div ── */}
-      {createPortal(
+      {/* ── Battlefield (fills remaining viewport height) ── */}
+      <div id="whiteboard">
         <BattlefieldCanvas
           yDoc={yDoc}
           localPlayerId={playerId}
           player={player}
           tokenService={tokenService}
-        />,
-        document.getElementById('whiteboard')!,
-      )}
+        />
+      </div>
 
-      {/* ── Portals into existing index.html toolbar slots ── */}
-      {createPortal(
-        <DeckManager onDeckSelected={handleDeckSelected} />,
-        document.getElementById('deck-manager-root')!,
+      {/* ── Fixed-position overlays ── */}
+      <div id="opponent-health-container">
+        <OpponentHealthList yDoc={yDoc} localPlayerId={playerId} />
+      </div>
+      <CardPreview />
+      <HotkeyMenu />
+      <GameHotkeysManager />
+      <Toaster />
+      {!isDevEnv && <WelcomeModal />}
+      {AnnouncementsService.shouldShowAnnouncement() && (
+        <AnnouncementModal onClose={() => AnnouncementsService.markAnnouncementAsSeen()} />
       )}
-      {createPortal(
-        <OpponentHealthList yDoc={yDoc} localPlayerId={playerId} />,
-        document.getElementById('opponent-health-container')!,
-      )}
-      {createPortal(
-        <RoomConnectionStatus yjsNetworkProvider={yjsNetworkProvider} />,
-        document.getElementById('connection-status')!,
-      )}
-      {createPortal(<HelpButton />, document.getElementById('help-root')!)}
-      {createPortal(<HotkeysButton />, document.getElementById('hotkeys-root')!)}
-      {createPortal(<DiscordButton />, document.getElementById('discord-root')!)}
+      <AddCardManager cardLookup={cardLookup} onAddCard={handleAddCard} />
     </>
   );
 }

@@ -23,6 +23,7 @@ import { TOKEN_SIZE } from './nodes/TokenNode';
 import type { Player } from '@/features/player';
 import type { TokenService } from '@/infrastructure/cards';
 import { useHotkeyMenuStore } from '@/features/hotkeys/hotkeyMenuStore';
+import { useGameInstance } from '@/stores/gameInstanceStore';
 
 const nodeTypes = {
   card: CardNode,
@@ -73,9 +74,7 @@ function BattlefieldCanvasInner({ yDoc, localPlayerId, player, tokenService }: B
         const under = document.elementFromPoint(clientX, clientY);
         const pileType = findPileType(under);
         if (pileType) {
-          window.dispatchEvent(new CustomEvent('moveCardFromBattlefield', {
-            detail: { cardId: node.id, destination: pileType },
-          }));
+          useGameInstance.getState().moveCardFromBattlefield(node.id, pileType);
           return;
         }
       }
@@ -194,7 +193,7 @@ function BattlefieldCanvasInner({ yDoc, localPlayerId, player, tokenService }: B
       selectionKeyCode={null}
       multiSelectionKeyCode={null}
       panOnScroll={false}
-      panOnDrag={[0, 1]}
+      panOnDrag={true}
       style={{ background: '#1a1a1a' }}
     >
       <Background color="#2d2d2d" gap={40} />

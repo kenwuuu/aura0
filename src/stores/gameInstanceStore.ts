@@ -15,6 +15,8 @@ import { YDOC_CARDS_ON_BOARD } from '@/constants';
 import { DeckPersistenceService } from '@/infrastructure/persistence';
 import type { WhiteboardCard } from '@/features/battlefield/types';
 
+type BattlefieldDestination = 'hand' | 'exile' | 'discard' | 'deck';
+
 interface GameInstanceStore {
   // Game instances
   yDoc: Y.Doc | null;
@@ -36,6 +38,9 @@ interface GameInstanceStore {
   moveCardToExile: (card: Card) => void;
   moveCardToDeckTop: (card: Card) => void;
   moveCardToDeckBottom: (card: Card) => void;
+
+  // Drag a card from the battlefield back to a dock pile (replaces the moveCardFromBattlefield window event).
+  moveCardFromBattlefield: (cardId: string, destination: BattlefieldDestination) => void;
 
   // Add a card to the battlefield (writes to yCards)
   addCardToBoard: (card: Card, ownerId: string) => void;
@@ -76,6 +81,23 @@ export const useGameInstance = create<GameInstanceStore>((set, get) => ({
     if (roomManager) {
       DeckPersistenceService.saveDeckForRoom(roomManager.getRoomName(), player.getDeck());
     }
+  },
+
+  moveCardFromBattlefield: (cardId, destination) => {
+    const { yDoc, player, playerId, roomManager } = get();
+    if (!yDoc || !player || !playerId) return;
+    const yCards = yDoc.getMap<WhiteboardCard>(YDOC_CARDS_ON_BOARD);
+    const card = yCards.get(cardId);
+    if (!card || card.ownerId !== playerId) return;
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { zIndex, ownerId, ...baseCard } = card;
+    if (destination === 'deck') {
+      player.moveCardToDeckTop(baseCard as any);
+      if (roomManager) DeckPersistenceService.saveDeckForRoom(roomManager.getRoomName(), player.getDeck());
+    } else {
+      player.placeCardInPile(baseCard as any, destination);
+    }
+    yCards.delete(cardId);
   },
 
   addCardToBoard: (card, ownerId) => {

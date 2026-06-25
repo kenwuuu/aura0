@@ -13,13 +13,11 @@ import * as Y from 'yjs';
 import { GameResourcesDock } from '@/features/game-dock';
 import { Player } from '@/features/player';
 import { RoomManager } from '@/features/room';
-import { setupRoomLinkCopy } from '@/features/room/setupRoomLinkCopy';
 import { CardLookupService, TokenService } from '@/infrastructure/cards';
 import { yjsNetworkFactory } from '@/infrastructure/networking';
 import { YjsNetworkProvider } from '@/infrastructure/networking/YjsNetworkFactory';
 import { getOrCreatePlayerId, getOrCreatePeerId } from '@/infrastructure/networking';
 import { DeckPersistenceService, DeckStorageService } from '@/infrastructure/persistence';
-import { WhiteboardEventHandlers } from '@/services/eventHandlers';
 import { useGameInstance } from '@/stores/gameInstanceStore';
 import { usePlayerStore } from '@/stores/playerStore';
 import {
@@ -88,24 +86,12 @@ export async function bootstrapGame(): Promise<GameContext> {
   useGameInstance.getState().setPlayerId(playerId);
   useGameInstance.getState().setRoomManager(roomManager);
 
-  // ── 7. Event handlers ──────────────────────────────────────────────────────
-  const eventHandlers = new WhiteboardEventHandlers(
-    yDoc,
-    player,
-    playerId,
-    () => DeckPersistenceService.saveDeckForRoom(roomManager.getRoomName(), player.getDeck()),
-  );
-  eventHandlers.setupEventListeners();
-
-  // ── 8. Room-link copy button ───────────────────────────────────────────────
-  setupRoomLinkCopy(roomManager);
-
-  // ── 9. Deck seeding + auto-load ────────────────────────────────────────────
+  // ── 7. Deck seeding + auto-load ────────────────────────────────────────────
   const storage = new DeckStorageService();
   await seedDefaultDeckIfFirstLoad(storage);
   await autoLoadDeckOnStart(player, roomManager, storage);
 
-  // ── 10. Analytics ──────────────────────────────────────────────────────────
+  // ── 8. Analytics ───────────────────────────────────────────────────────────
   const visitCount = parseInt(localStorage.getItem(VISIT_COUNT_KEY) ?? '0', 10);
   localStorage.setItem(VISIT_COUNT_KEY, (visitCount + 1).toString());
 
