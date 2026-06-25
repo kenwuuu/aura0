@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import patchNotesContent from '../content/patchNotes.md?raw';
+import patchNotesContent from './content/patchNotes.md?raw';
 import {
   Dialog,
   DialogContent,

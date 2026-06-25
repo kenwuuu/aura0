@@ -3,7 +3,7 @@ import { NodeProps } from '@xyflow/react';
 import * as Y from 'yjs';
 import { WhiteboardCard } from '../types';
 import { CardCounter } from './CardCounter';
-import { useHotkeyStore } from '@/stores/hotkeyStore';
+import { useHotkeyStore } from '@/app/stores/hotkeyStore';
 import { useCardPreviewStore } from '@/features/card-preview/cardPreviewStore';
 import { useHotkeyMenuStore } from '@/features/hotkeys/hotkeyMenuStore';
 import { HotkeyContext } from '@/features/hotkeys/hotkeys';

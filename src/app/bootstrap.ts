@@ -18,8 +18,8 @@ import { yjsNetworkFactory } from '@/infrastructure/networking';
 import { YjsNetworkProvider } from '@/infrastructure/networking/YjsNetworkFactory';
 import { getOrCreatePlayerId, getOrCreatePeerId } from '@/infrastructure/networking';
 import { DeckPersistenceService, DeckStorageService } from '@/infrastructure/persistence';
-import { useGameInstance } from '@/stores/gameInstanceStore';
-import { usePlayerStore } from '@/stores/playerStore';
+import { useGameInstance } from '@/app/stores/gameInstanceStore';
+import { usePlayerStore } from '@/app/stores/playerStore';
 import {
   autoLoadDeckOnStart,
   seedDefaultDeckIfFirstLoad,

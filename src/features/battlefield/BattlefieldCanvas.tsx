@@ -23,7 +23,7 @@ import { TOKEN_SIZE } from './nodes/TokenNode';
 import type { Player } from '@/features/player';
 import type { TokenService } from '@/infrastructure/cards';
 import { useHotkeyMenuStore } from '@/features/hotkeys/hotkeyMenuStore';
-import { useGameInstance } from '@/stores/gameInstanceStore';
+import { useGameInstance } from '@/app/stores/gameInstanceStore';
 
 const nodeTypes = {
   card: CardNode,

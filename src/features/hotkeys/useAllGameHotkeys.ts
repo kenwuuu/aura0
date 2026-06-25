@@ -13,8 +13,8 @@
 
 import { useEffect } from 'react';
 import { useHotkeys, useHotkeysContext } from 'react-hotkeys-hook';
-import { useHotkeyStore } from '@/stores/hotkeyStore';
-import { useGameInstance } from '@/stores/gameInstanceStore';
+import { useHotkeyStore } from '@/app/stores/hotkeyStore';
+import { useGameInstance } from '@/app/stores/gameInstanceStore';
 import {
   getKeyBindingsForAction,
   HotkeyContext,

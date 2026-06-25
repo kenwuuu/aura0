@@ -29,8 +29,8 @@ import {
 } from '@/shared/ui/select';
 import { Checkbox } from '@/shared/ui/checkbox';
 import { CardGrid } from './CardGrid';
-import { usePlayerStore } from '@/stores/playerStore';
-import { useHotkeyStore } from '@/stores/hotkeyStore';
+import { usePlayerStore } from '@/app/stores/playerStore';
+import { useHotkeyStore } from '@/app/stores/hotkeyStore';
 import { useHotkeyMenuStore } from '@/features/hotkeys/hotkeyMenuStore';
 import { usePileViewerHotkeyStore } from '@/features/game-dock/pileViewerHotkeyStore';
 

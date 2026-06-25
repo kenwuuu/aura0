@@ -3,7 +3,7 @@ import posthog from 'posthog-js';
 import { AddCardModal } from './AddCardModal';
 import { CardLookupService, toCard } from '@/infrastructure/cards';
 import { Card } from '@/features/player';
-import { useHotkeyStore } from '@/stores/hotkeyStore';
+import { useHotkeyStore } from '@/app/stores/hotkeyStore';
 
 interface AddCardManagerProps {
   cardLookup: CardLookupService;

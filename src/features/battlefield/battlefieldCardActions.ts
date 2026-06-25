@@ -9,7 +9,7 @@ import * as Y from 'yjs';
 import { WhiteboardCard } from './types';
 import { useCardPreviewStore } from '@/features/card-preview/cardPreviewStore';
 import { useHotkeyMenuStore } from '@/features/hotkeys/hotkeyMenuStore';
-import { useGameInstance } from '@/stores/gameInstanceStore';
+import { useGameInstance } from '@/app/stores/gameInstanceStore';
 
 export function executeBattlefieldCardAction(
   action: string,

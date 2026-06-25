@@ -10,7 +10,7 @@ import { Player } from '@/features/player';
 import { RoomManager } from '@/features/room';
 import { DeckStorageService } from '@/infrastructure/persistence';
 import { DeckPersistenceService } from '@/infrastructure/persistence';
-import { DEFAULT_DECK } from '@/data/defaultDeck';
+import { DEFAULT_DECK } from './defaultDeck';
 import { SavedDeck } from '@/features/player/types';
 import { YSTATE_DECK_CARD_COUNT } from '@/constants';
 

@@ -2,7 +2,7 @@ import { memo, useCallback } from 'react';
 import { NodeProps } from '@xyflow/react';
 import * as Y from 'yjs';
 import { KeywordToken } from '@/features/keyword-tokens/types';
-import { useHotkeyStore } from '@/stores/hotkeyStore';
+import { useHotkeyStore } from '@/app/stores/hotkeyStore';
 import { useHotkeyMenuStore } from '@/features/hotkeys/hotkeyMenuStore';
 import { HotkeyContext } from '@/features/hotkeys/hotkeys';
 

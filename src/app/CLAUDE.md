@@ -8,3 +8,6 @@ Top-level application composition.
 - `ToolbarButtons.tsx` — toolbar button components (Help, Hotkeys, Discord).
 - `WelcomeModal.tsx`, `AnnouncementModal.tsx`, `HelpModal.tsx`, `PatchNotesModal.tsx` — app-shell
   modals mounted at the app root.
+- `stores/` — Zustand stores (`gameInstanceStore`, `hotkeyStore`, `playerStore`, `uiStore`). These
+  import from features/infrastructure so live here, not in `shared/`.
+- `content/` — markdown source for help, announcement, and patch-note modals.

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import announcementContent from '../content/announcement.md?raw';
+import announcementContent from './content/announcement.md?raw';
 import {
   Dialog,
   DialogContent,

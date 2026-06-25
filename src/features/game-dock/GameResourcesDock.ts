@@ -11,7 +11,7 @@ import {HotkeyContext} from '@/features/hotkeys/hotkeys';
 import {ScryModal} from '@/features/game-dock/ScryModal';
 import { ControlsMenu } from '@/features/game-dock/controls/ControlsMenu';
 import { HandCardsContainer } from './HandCardsContainer';
-import { useHotkeyStore } from '@/stores/hotkeyStore';
+import { useHotkeyStore } from '@/app/stores/hotkeyStore';
 
 export class GameResourcesDock {
   private container: HTMLElement;
