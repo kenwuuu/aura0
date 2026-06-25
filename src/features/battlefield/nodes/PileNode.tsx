@@ -72,18 +72,30 @@ export const PileNode = memo(function PileNode({ data }: NodeProps) {
       className={`resource-pile ${pileKind}-pile nodrag`}
       data-pile-type={pileKind}
       data-pile-owner={ownerId}
-      style={{ opacity: handDisabled ? 0.4 : 1, cursor: handDisabled ? 'default' : 'pointer' }}
+      style={{
+        width: 63,
+        height: 88,
+        minWidth: 63,
+        padding: '4px',
+        gap: 2,
+        borderRadius: 8,
+        boxSizing: 'border-box',
+        justifyContent: 'center',
+        opacity: handDisabled ? 0.4 : 1,
+        cursor: handDisabled ? 'default' : 'pointer',
+      }}
       onClick={handleClick}
       onPointerDown={(e) => e.stopPropagation()}
     >
-      <div className="pile-label">
+      <div className="pile-label" style={{ fontSize: 8 }}>
         {PILE_LABELS[pileKind]}
         {isOpponentHand && !allowViewHand && ' 🔒'}
       </div>
-      <div className="pile-count">{count}</div>
+      <div className="pile-count" style={{ fontSize: 22, lineHeight: 1 }}>{count}</div>
       {isLocal && pileKind === 'deck' && (
         <button
           className="draw-button"
+          style={{ padding: '2px 6px', fontSize: 9, marginTop: 0 }}
           onClick={handleDraw}
           onPointerDown={(e) => e.stopPropagation()}
         >

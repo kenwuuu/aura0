@@ -13,11 +13,14 @@
 // Each new column is added to the right as more players join.
 
 // ── Playmat dimensions ──────────────────────────────────────────────────────
-// 1 card = 2.48" × 3.46" in real-world; rendered at CARD_WIDTH=63 × CARD_HEIGHT=88 px
-// → 25.4 px/inch. Playmat 28" × 14" at that scale:
+// Card dimensions in board-space pixels (also used for pile sizing).
+export const CARD_WIDTH  = 63;
+export const CARD_HEIGHT = 88;
+
+// Playmat: 28 cards wide × 5 cards tall.
 export const PX_PER_INCH = 25.4;
 export const MAT_WIDTH  = Math.round(28 * PX_PER_INCH); // 711 px
-export const MAT_HEIGHT = Math.round(14 * PX_PER_INCH); // 356 px
+export const MAT_HEIGHT = 5 * CARD_HEIGHT;               // 440 px
 
 // Gaps between mats in the grid
 export const MAT_COL_GAP = 80;   // px between columns
@@ -35,21 +38,25 @@ export function seatOrigin(seatIndex: number): { x: number; y: number } {
 }
 
 // ── Mat-relative widget offsets ───────────────────────────────────────────────
-const HEALTH_OFFSET   = { x: 12, y: 12 };
-const PILE_ROW_Y      = MAT_HEIGHT - 110;  // bottom strip
-const PILE_SPACING_X  = 82;
-const PILE_START_X    = 12;
+const HEALTH_OFFSET  = { x: 12, y: 12 };
+
+// Piles sit in a vertical column on the right edge of the mat.
+// Order top-to-bottom: deck, discard, exile, (opponent) hand.
+const PILE_COL_X   = MAT_WIDTH - CARD_WIDTH - 12;
+const PILE_START_Y = 12;
+const PILE_GAP     = 10;
 
 /** Absolute flow positions for all per-player board widgets at a given seat. */
 export function playmatNodePositions(seatIndex: number) {
   const o = seatOrigin(seatIndex);
+  const pileY = (i: number) => o.y + PILE_START_Y + i * (CARD_HEIGHT + PILE_GAP);
   return {
-    mat:     { x: o.x,                              y: o.y },
-    health:  { x: o.x + HEALTH_OFFSET.x,            y: o.y + HEALTH_OFFSET.y },
-    deck:    { x: o.x + PILE_START_X,               y: o.y + PILE_ROW_Y },
-    discard: { x: o.x + PILE_START_X + PILE_SPACING_X,     y: o.y + PILE_ROW_Y },
-    exile:   { x: o.x + PILE_START_X + PILE_SPACING_X * 2, y: o.y + PILE_ROW_Y },
-    hand:    { x: o.x + PILE_START_X + PILE_SPACING_X * 3, y: o.y + PILE_ROW_Y },
+    mat:     { x: o.x,              y: o.y },
+    health:  { x: o.x + HEALTH_OFFSET.x, y: o.y + HEALTH_OFFSET.y },
+    deck:    { x: o.x + PILE_COL_X, y: pileY(0) },
+    discard: { x: o.x + PILE_COL_X, y: pileY(1) },
+    exile:   { x: o.x + PILE_COL_X, y: pileY(2) },
+    hand:    { x: o.x + PILE_COL_X, y: pileY(3) },
   };
 }
 

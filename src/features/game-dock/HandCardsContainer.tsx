@@ -266,27 +266,25 @@ export const HandCardsContainer: React.FC<HandCardsContainerProps> = ({
   }, [hand, onHandReorder]);
 
   return (
-    <div className="hand-container">
-      <div
-        ref={containerRef}
-        className="hand-cards"
-        data-hand={playerId}
-        style={{ height: `${Math.ceil(88 * zoomLevel)}px` }}
-      >
-        {hand.map((card) => (
-          <HandCard
-            key={card.id}
-            card={card}
-            zoomLevel={zoomLevel}
-            spacing={cardSpacing}
-            onMouseEnter={handleCardMouseEnter}
-            onMouseMove={handleCardMouseMove}
-            onMouseLeave={handleCardMouseLeave}
-            onDragStart={handleCardDragStart}
-            onDragEnd={handleCardDragEnd}
-          />
-        ))}
-      </div>
+    <div
+      ref={containerRef}
+      className="hand-cards"
+      data-hand={playerId}
+      style={{ height: `${Math.ceil(88 * zoomLevel)}px`, maxWidth: 'min(75vw, 950px)' }}
+    >
+      {hand.map((card) => (
+        <HandCard
+          key={card.id}
+          card={card}
+          zoomLevel={zoomLevel}
+          spacing={cardSpacing}
+          onMouseEnter={handleCardMouseEnter}
+          onMouseMove={handleCardMouseMove}
+          onMouseLeave={handleCardMouseLeave}
+          onDragStart={handleCardDragStart}
+          onDragEnd={handleCardDragEnd}
+        />
+      ))}
     </div>
   );
 };

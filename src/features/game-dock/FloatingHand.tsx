@@ -40,23 +40,19 @@ export function FloatingHand() {
   if (!yPlayerState || !playerId) return null;
 
   return (
-    <div
-      style={{
-        position: 'fixed',
-        bottom: 0,
-        left: 0,
-        right: 0,
-        zIndex: 950,
-        display: 'flex',
-        alignItems: 'flex-end',
-        padding: '8px',
-        gap: '8px',
-        pointerEvents: 'none',
-      }}
-    >
+    <>
+      {/* Zoom controls — fixed bottom-left */}
       <div
         className="zoom-controls hand-zoom-controls"
-        style={{ pointerEvents: 'auto', display: 'flex', flexDirection: 'column', gap: '8px' }}
+        style={{
+          position: 'fixed',
+          bottom: 8,
+          left: 8,
+          zIndex: 950,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '8px',
+        }}
       >
         <button className="zoom-button" onClick={() => adjustZoom(0.2)} title="Zoom In Hand Cards">
           +
@@ -73,7 +69,17 @@ export function FloatingHand() {
           −
         </button>
       </div>
-      <div style={{ flex: 1, pointerEvents: 'auto' }}>
+
+      {/* Hand cards — centered horizontally */}
+      <div
+        style={{
+          position: 'fixed',
+          bottom: 8,
+          left: '50%',
+          transform: 'translateX(-50%)',
+          zIndex: 950,
+        }}
+      >
         <HandCardsContainer
           yPlayerState={yPlayerState}
           playerId={playerId}
@@ -83,6 +89,6 @@ export function FloatingHand() {
           adjustHandZoom={adjustZoom}
         />
       </div>
-    </div>
+    </>
   );
 }
