@@ -2,7 +2,7 @@ import { memo, useCallback } from 'react';
 import { NodeProps } from '@xyflow/react';
 import * as Y from 'yjs';
 import { WhiteboardCard } from '../types';
-import { CardCounter } from '@/components/CardCounter';
+import { CardCounter } from './CardCounter';
 import { useHotkeyStore } from '@/stores/hotkeyStore';
 import { useCardPreviewStore } from '@/features/card-preview/cardPreviewStore';
 import { useHotkeyMenuStore } from '@/features/hotkeys/hotkeyMenuStore';

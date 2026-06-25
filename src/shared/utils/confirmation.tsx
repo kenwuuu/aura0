@@ -1,6 +1,6 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
-import { ConfirmationDialog } from '@/components/ConfirmationDialog';
+import { ConfirmationDialog } from '@/shared/components/ConfirmationDialog';
 
 /**
  * Triggers a confirmation dialog and returns a promise that resolves to true if confirmed, false if canceled.

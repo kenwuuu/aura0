@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import styles from './ControlsMenu.module.css';
-import { KeywordTokenGrid } from '@/components/KeywordTokenGrid';
+import { KeywordTokenGrid } from '@/features/keyword-tokens/KeywordTokenGrid';
 import { KeywordTokenTemplate } from '@/features/keyword-tokens/types';
 
 interface ControlsMenuProps {

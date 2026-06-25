@@ -6,7 +6,7 @@ import { CardPreview } from '@/features/card-preview';
 import React from 'react';
 import {createRoot, Root} from 'react-dom/client';
 import {HealthDisplay} from '@/features/opponents/HealthDisplay';
-import {HotkeyTooltip} from '@/components';
+import {HotkeyTooltip} from '@/features/hotkeys/HotkeyTooltip';
 import {HotkeyContext} from '@/features/hotkeys/hotkeys';
 import {ScryModal} from '@/features/game-dock/ScryModal';
 import { ControlsMenu } from '@/features/game-dock/controls/ControlsMenu';

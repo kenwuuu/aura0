@@ -4,7 +4,7 @@ import { MtgTextListDeckImporter } from '@/features/deck-manager';
 import { DeckStorageService } from '@/infrastructure/persistence';
 import { SavedDeck } from '@/features/player/types';
 import { DeckImportHelpDialog } from './DeckImportHelpDialog';
-import { ModalFooter } from '@/components/ModalFooter';
+import { ModalFooter } from '@/shared/components/ModalFooter';
 import {InfoIcon} from "lucide-react"
 import {
   Alert,

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { CustomCounter } from '@/features/player/types';
-import { PlayerCounterModal } from '@/components/PlayerCounterModal';
+import { PlayerCounterModal } from './PlayerCounterModal';
 import styles from './HealthDisplay.module.css';
 import {EditableHealth} from "./EditableHealth";
 import {EditableName} from "./EditableName";

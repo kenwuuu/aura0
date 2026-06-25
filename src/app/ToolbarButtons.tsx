@@ -6,7 +6,7 @@
  * Rendered via portals in `App.tsx` into the static toolbar mount points in index.html.
  */
 import React, { useState } from 'react';
-import { HelpModal } from '@/components/HelpModal';
+import { HelpModal } from '@/app/HelpModal';
 import { HotkeysModal } from '@/features/hotkeys/HotkeysModal';
 
 export const HelpButton: React.FC = () => {

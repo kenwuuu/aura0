@@ -14,12 +14,12 @@ import { Player } from '@/features/player';
 import { SavedDeck } from '@/features/player/types';
 import { CardLookupService, TokenService } from '@/infrastructure/cards';
 import { YjsNetworkProvider } from '@/infrastructure/networking/YjsNetworkFactory';
-import { RoomConnectionStatus } from '@/components/RoomConnectionStatus';
-import { AddCardManager } from '@/components/AddCardManager';
-import { WelcomeModal } from '@/components/WelcomeModal';
-import { AnnouncementModal } from '@/components/AnnouncementModal';
+import { RoomConnectionStatus } from '@/features/room/RoomConnectionStatus';
+import { AddCardManager } from '@/features/deck-manager/AddCardManager';
+import { WelcomeModal } from '@/app/WelcomeModal';
+import { AnnouncementModal } from '@/app/AnnouncementModal';
 import { Toaster } from '@/shared/ui/sonner';
-import { AnnouncementsService } from '@/services/announcements/AnnouncementsService';
+import { AnnouncementsService } from '@/shared/services/announcements/AnnouncementsService';
 import { HelpButton, HotkeysButton, DiscordButton } from './ToolbarButtons';
 
 const isDevEnv = import.meta.env.MODE === 'development';
