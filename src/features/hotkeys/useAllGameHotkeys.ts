@@ -1,496 +1,251 @@
 /**
- * Unified hook for all game hotkeys
+ * Unified hook for all game hotkeys.
  *
- * Replaces the repetitive individual hooks (useGlobalHotkeys, useBattlefieldCardHotkeys, etc.)
- * with a single hook that reads from the centralized hotkey configuration.
+ * One `useHotkeys` binding per key. The contextual routing (battlefield vs hand
+ * vs pile vs token vs pile-viewer) happens *inside* each handler by reading the
+ * single `hoverTarget` from the store, instead of registering the same action
+ * once per surface. Modal gating is handled by react-hotkeys-hook scopes
+ * (Board ↔ PileViewer) rather than threading `!isModalOpen` through every
+ * binding — see GameHotkeysManager for the <HotkeysProvider> that owns them.
  *
- * This hook accesses game instances from the gameInstanceStore, eliminating the need
- * for prop drilling.
+ * Game instances come from gameInstanceStore, so no props/prop-drilling.
  */
 
-import { useHotkeys } from 'react-hotkeys-hook';
+import { useEffect } from 'react';
+import { useHotkeys, useHotkeysContext } from 'react-hotkeys-hook';
 import { useHotkeyStore } from '@/stores/hotkeyStore';
 import { useGameInstance } from '@/stores/gameInstanceStore';
-import { getKeyBindingsForAction, HotkeyContext } from '@/features/hotkeys/hotkeys';
+import {
+  getKeyBindingsForAction,
+  HotkeyContext,
+  HotkeyScope,
+} from '@/features/hotkeys/hotkeys';
 import { DeckPersistenceService } from '@/infrastructure/persistence';
 import { executeBattlefieldCardAction } from '@/features/battlefield/battlefieldCardActions';
 import { triggerConfirmation } from '@/shared/utils/confirmation';
 import { useCardPreviewStore } from '@/features/card-preview/cardPreviewStore';
 
 export function useAllGameHotkeys() {
-  // Get game instances from store
   const { player, whiteboard, playerId, roomManager } = useGameInstance();
 
-  // Get hover states from hotkey store
-  const {
-    hoveredBattlefieldCardId,
-    hoveredHandCardId,
-    hoveredPileType,
-    hoveredTokenId,
-    hoveredPileViewerCardId,
-    hoveredPileViewerContext,
-    isModalOpen,
-    setAddCardModalOpen,
-  } = useHotkeyStore();
+  const hoverTarget = useHotkeyStore((s) => s.hoverTarget);
+  const isModalOpen = useHotkeyStore((s) => s.isModalOpen);
+  const setAddCardModalOpen = useHotkeyStore((s) => s.setAddCardModalOpen);
 
-  // Helper to save deck after modifications
+  const { enableScope, disableScope } = useHotkeysContext();
+
+  // Modal state → active scope. Keep exactly one scope active at all times
+  // (an empty active-scope set re-enables scoped bindings with a warning), and
+  // enable the new scope before disabling the old to avoid a transient gap.
+  useEffect(() => {
+    if (isModalOpen) {
+      enableScope(HotkeyScope.PileViewer);
+      disableScope(HotkeyScope.Board);
+    } else {
+      enableScope(HotkeyScope.Board);
+      disableScope(HotkeyScope.PileViewer);
+    }
+  }, [isModalOpen, enableScope, disableScope]);
+
+  // --- Shared option presets (per-binding `enabled` is spread in) ---
+  const board = { scopes: HotkeyScope.Board, preventDefault: true } as const;
+  const pv = { scopes: HotkeyScope.PileViewer, preventDefault: true } as const;
+
+  // --- Current target, decomposed for `enabled` flags ---
+  const t = hoverTarget;
+  const isBattlefield = t?.kind === 'battlefield';
+  const isHand = t?.kind === 'hand';
+  const isPile = t?.kind === 'pile';
+  const isToken = t?.kind === 'token';
+  const isPileViewer = t?.kind === 'pileViewer';
+  const pvContext = t?.context;
+
+  // --- Helpers ---
   const saveDeck = () => {
     if (player && roomManager) {
       DeckPersistenceService.saveDeckForRoom(roomManager.getRoomName(), player.getDeck());
     }
   };
 
-  // --- Global Hotkeys (always active unless modal is open) ---
+  const onBattlefield = (action: string) => {
+    if (whiteboard && playerId && t?.kind === 'battlefield') {
+      executeBattlefieldCardAction(action, t.id, whiteboard, playerId);
+    }
+  };
 
-  useHotkeys(
-    getKeyBindingsForAction('draw'),
-    () => {
-      if (player) {
-        player.drawCard();
-        saveDeck();
-      }
-    },
-    { enabled: !isModalOpen, preventDefault: true }
-  );
+  // Move the hovered hand card to another pile. `position` 0 = deck bottom,
+  // omitted = deck top (Player.placeCardInPile defaults to Infinity).
+  const handMove = (dest: 'discard' | 'exile' | 'deck', position?: number) => {
+    if (!player || t?.kind !== 'hand') return;
+    const card = player.getState().hand.find((c) => c.id === t.id);
+    if (card) {
+      player.removeCardFromPileById(t.id, 'hand');
+      if (position === undefined) player.placeCardInPile(card, dest);
+      else player.placeCardInPile(card, dest, position);
+      useCardPreviewStore.getState().hide();
+    }
+    player.syncToYState();
+  };
 
-  useHotkeys(
-    getKeyBindingsForAction('shuffle'),
-    () => {
-      if (player) {
-        player.shuffleDeck();
-        saveDeck();
-      }
-    },
-    { enabled: !isModalOpen, preventDefault: true }
-  );
+  // Draw the top card of the hovered pile and move it elsewhere. A move into
+  // the same pile is a no-op (mirrors the old per-pile `enabled` guards).
+  const pileMove = (dest: 'hand' | 'discard' | 'exile' | 'deck', position?: number) => {
+    if (!player || t?.kind !== 'pile' || !t.pileType) return;
+    if (t.pileType === dest) return;
+    const card = player.drawCardFromPile(t.pileType);
+    if (card) {
+      if (position === undefined) player.placeCardInPile(card, dest);
+      else player.placeCardInPile(card, dest, position);
+    }
+    player.syncToYState();
+  };
 
-  useHotkeys(
-    getKeyBindingsForAction('mulligan'),
-    () => {
-      if (player) {
-        triggerConfirmation("Mulligan? Draws 7 new cards.", "m").then((confirmed) => {
-          if (confirmed) {
-            player.mulligan(7);
-            saveDeck();
-          }
-        });
-      }
-    },
-    { enabled: !isModalOpen, preventDefault: true }
-  );
+  const tokenOp = (op: 'increment' | 'decrement' | 'delete') => {
+    if (!whiteboard || !playerId || t?.kind !== 'token') return;
+    const yTokens = whiteboard['yTokens'];
+    const token = yTokens.get(t.id);
+    if (!token || token.ownerId !== playerId) return;
+    if (op === 'delete') {
+      yTokens.delete(t.id);
+    } else if (op === 'increment') {
+      yTokens.set(t.id, { ...token, count: (token.count ?? 0) + 1 });
+    } else {
+      const next = (token.count ?? 0) - 1;
+      if (next <= 0) yTokens.delete(t.id);
+      else yTokens.set(t.id, { ...token, count: next });
+    }
+  };
 
-  useHotkeys(
-    getKeyBindingsForAction('gainHealth'),
-    () => {
-      if (player) {
-        player.modifyHealth(1);
-      }
-    },
-    { enabled: !isModalOpen, preventDefault: true }
-  );
+  // TODO(phase-4): replace this window event with a direct store action, the
+  // same way the battlefield→pile moves are being migrated off the window bus.
+  const pileViewerMove = (action: string) => {
+    if (t?.kind !== 'pileViewer') return;
+    window.dispatchEvent(
+      new CustomEvent('pileViewerCardAction', { detail: { action, cardId: t.id } })
+    );
+  };
 
-  useHotkeys(
-    getKeyBindingsForAction('loseHealth'),
-    () => {
-      if (player) {
-        player.modifyHealth(-1);
-      }
-    },
-    { enabled: !isModalOpen, preventDefault: true }
-  );
+  // ===========================================================================
+  // Global shortcuts — fire whenever the Board scope is active (no hover needed)
+  // ===========================================================================
+  useHotkeys(getKeyBindingsForAction('draw'), () => {
+    if (player) { player.drawCard(); saveDeck(); }
+  }, board);
 
-  useHotkeys(
-    getKeyBindingsForAction('untapAll'),
-    () => {
-      if (whiteboard && playerId) {
-        executeBattlefieldCardAction('untapAll', '', whiteboard, playerId);
-      }
-    },
-    { enabled: !isModalOpen, preventDefault: true }
-  );
+  useHotkeys(getKeyBindingsForAction('shuffle'), () => {
+    if (player) { player.shuffleDeck(); saveDeck(); }
+  }, board);
 
-  useHotkeys(
-    getKeyBindingsForAction('addCard'),
-    () => {
-      setAddCardModalOpen(true);
-    },
-    { enabled: !isModalOpen, preventDefault: true }
-  );
+  useHotkeys(getKeyBindingsForAction('mulligan'), () => {
+    if (player) {
+      triggerConfirmation('Mulligan? Draws 7 new cards.', 'm').then((confirmed) => {
+        if (confirmed) { player.mulligan(7); saveDeck(); }
+      });
+    }
+  }, board);
 
-  // --- Battlefield Card Hotkeys (active when hovering battlefield card) ---
+  useHotkeys(getKeyBindingsForAction('addCard'), () => {
+    setAddCardModalOpen(true);
+  }, board);
 
-  const battlefieldEnabled = !isModalOpen && !!hoveredBattlefieldCardId;
+  useHotkeys(getKeyBindingsForAction('gainHealth'), () => {
+    player?.modifyHealth(1);
+  }, board);
 
-  useHotkeys(
-    getKeyBindingsForAction('tap'),
-    () => {
-      if (whiteboard && playerId && hoveredBattlefieldCardId) {
-        executeBattlefieldCardAction('tap', hoveredBattlefieldCardId, whiteboard, playerId);
-      }
-    },
-    { enabled: battlefieldEnabled, preventDefault: true }
-  );
+  useHotkeys(getKeyBindingsForAction('loseHealth'), () => {
+    player?.modifyHealth(-1);
+  }, board);
 
-  useHotkeys(
-    getKeyBindingsForAction('flip'),
-    () => {
-      if (whiteboard && playerId && hoveredBattlefieldCardId) {
-        executeBattlefieldCardAction('flip', hoveredBattlefieldCardId, whiteboard, playerId);
-      }
-    },
-    { enabled: battlefieldEnabled, preventDefault: true }
-  );
+  useHotkeys(getKeyBindingsForAction('untapAll'), () => {
+    if (whiteboard && playerId) {
+      executeBattlefieldCardAction('untapAll', '', whiteboard, playerId);
+    }
+  }, board);
 
-  useHotkeys(
-    getKeyBindingsForAction('addCounter'),
-    () => {
-      if (whiteboard && playerId && hoveredBattlefieldCardId) {
-        executeBattlefieldCardAction('addCounter', hoveredBattlefieldCardId, whiteboard, playerId);
-      }
-    },
-    { enabled: battlefieldEnabled, preventDefault: true }
-  );
+  // ===========================================================================
+  // Contextual shortcuts — one binding per key, routed by the hovered surface
+  // ===========================================================================
 
-  useHotkeys(
-    getKeyBindingsForAction('removeCounter'),
-    () => {
-      if (whiteboard && playerId && hoveredBattlefieldCardId) {
-        executeBattlefieldCardAction('removeCounter', hoveredBattlefieldCardId, whiteboard, playerId);
-      }
-    },
-    { enabled: battlefieldEnabled, preventDefault: true }
-  );
+  // Battlefield-only keys
+  useHotkeys(getKeyBindingsForAction('tap'), () => onBattlefield('tap'),
+    { ...board, enabled: isBattlefield });
+  useHotkeys(getKeyBindingsForAction('addCounter'), () => onBattlefield('addCounter'),
+    { ...board, enabled: isBattlefield });
+  useHotkeys(getKeyBindingsForAction('removeCounter'), () => onBattlefield('removeCounter'),
+    { ...board, enabled: isBattlefield });
+  useHotkeys(getKeyBindingsForAction('copy'), () => onBattlefield('copy'),
+    { ...board, enabled: isBattlefield });
 
-  useHotkeys(
-    getKeyBindingsForAction('copy'),
-    () => {
-      if (whiteboard && playerId && hoveredBattlefieldCardId) {
-        executeBattlefieldCardAction('copy', hoveredBattlefieldCardId, whiteboard, playerId);
-      }
-    },
-    { enabled: battlefieldEnabled, preventDefault: true }
-  );
+  // Flip — battlefield card or hand card
+  useHotkeys(getKeyBindingsForAction('flip'), () => {
+    if (isBattlefield) {
+      onBattlefield('flip');
+    } else if (isHand && player && t?.kind === 'hand') {
+      player.flipHandCard(t.id);
+      player.syncToYState();
+      useCardPreviewStore.getState().hide();
+    }
+  }, { ...board, enabled: isBattlefield || isHand });
 
-  useHotkeys(
-    getKeyBindingsForAction('delete'),
-    () => {
-      if (whiteboard && playerId && hoveredBattlefieldCardId) {
-        executeBattlefieldCardAction('delete', hoveredBattlefieldCardId, whiteboard, playerId);
-      }
-    },
-    { enabled: battlefieldEnabled, preventDefault: true }
-  );
+  // Backspace — delete battlefield card or delete token
+  useHotkeys(getKeyBindingsForAction('delete'), () => {
+    if (isBattlefield) onBattlefield('delete');
+    else if (isToken) tokenOp('delete');
+  }, { ...board, enabled: isBattlefield || isToken });
 
-  useHotkeys(
-    getKeyBindingsForAction('moveToHand'),
-    () => {
-      if (whiteboard && playerId && hoveredBattlefieldCardId) {
-        executeBattlefieldCardAction('moveToHand', hoveredBattlefieldCardId, whiteboard, playerId);
-      }
-    },
-    { enabled: battlefieldEnabled, preventDefault: true }
-  );
+  // Move-to-hand (H) — battlefield card or pile top
+  useHotkeys(getKeyBindingsForAction('moveToHand'), () => {
+    if (isBattlefield) onBattlefield('moveToHand');
+    else if (isPile) pileMove('hand');
+  }, { ...board, enabled: isBattlefield || isPile });
 
-  useHotkeys(
-    getKeyBindingsForAction('moveToDiscard'),
-    () => {
-      if (whiteboard && playerId && hoveredBattlefieldCardId) {
-        executeBattlefieldCardAction('moveToDiscard', hoveredBattlefieldCardId, whiteboard, playerId);
-      }
-    },
-    { enabled: battlefieldEnabled, preventDefault: true }
-  );
+  // Move-to-discard (D) — battlefield / hand / pile
+  useHotkeys(getKeyBindingsForAction('moveToDiscard'), () => {
+    if (isBattlefield) onBattlefield('moveToDiscard');
+    else if (isHand) handMove('discard');
+    else if (isPile) pileMove('discard');
+  }, { ...board, enabled: isBattlefield || isHand || isPile });
 
-  useHotkeys(
-    getKeyBindingsForAction('moveToExile'),
-    () => {
-      if (whiteboard && playerId && hoveredBattlefieldCardId) {
-        executeBattlefieldCardAction('moveToExile', hoveredBattlefieldCardId, whiteboard, playerId);
-      }
-    },
-    { enabled: battlefieldEnabled, preventDefault: true }
-  );
+  // Move-to-exile (S) — battlefield / hand / pile
+  useHotkeys(getKeyBindingsForAction('moveToExile'), () => {
+    if (isBattlefield) onBattlefield('moveToExile');
+    else if (isHand) handMove('exile');
+    else if (isPile) pileMove('exile');
+  }, { ...board, enabled: isBattlefield || isHand || isPile });
 
-  useHotkeys(
-    getKeyBindingsForAction('moveToDeckTop'),
-    () => {
-      if (whiteboard && playerId && hoveredBattlefieldCardId) {
-        executeBattlefieldCardAction('moveToDeckTop', hoveredBattlefieldCardId, whiteboard, playerId);
-      }
-    },
-    { enabled: battlefieldEnabled, preventDefault: true }
-  );
+  // Move-to-deck-top (T) — battlefield / hand / pile
+  useHotkeys(getKeyBindingsForAction('moveToDeckTop'), () => {
+    if (isBattlefield) onBattlefield('moveToDeckTop');
+    else if (isHand) handMove('deck');
+    else if (isPile) pileMove('deck');
+  }, { ...board, enabled: isBattlefield || isHand || isPile });
 
-  useHotkeys(
-    getKeyBindingsForAction('moveToDeckBottom'),
-    () => {
-      if (whiteboard && playerId && hoveredBattlefieldCardId) {
-        executeBattlefieldCardAction('moveToDeckBottom', hoveredBattlefieldCardId, whiteboard, playerId);
-      }
-    },
-    { enabled: battlefieldEnabled, preventDefault: true }
-  );
+  // Move-to-deck-bottom (Y) — battlefield / hand / pile (position 0)
+  useHotkeys(getKeyBindingsForAction('moveToDeckBottom'), () => {
+    if (isBattlefield) onBattlefield('moveToDeckBottom');
+    else if (isHand) handMove('deck', 0);
+    else if (isPile) pileMove('deck', 0);
+  }, { ...board, enabled: isBattlefield || isHand || isPile });
 
-  // --- Hand Card Hotkeys (active when hovering hand card) ---
+  // Token counters
+  useHotkeys(getKeyBindingsForAction('tokenIncrement'), () => tokenOp('increment'),
+    { ...board, enabled: isToken });
+  useHotkeys(getKeyBindingsForAction('tokenDecrement'), () => tokenOp('decrement'),
+    { ...board, enabled: isToken });
 
-  const handEnabled = !isModalOpen && !!hoveredHandCardId;
-
-  useHotkeys(
-    getKeyBindingsForAction('flip'),
-    () => {
-      if (player && hoveredHandCardId) {
-        player.flipHandCard(hoveredHandCardId);
-        player.syncToYState();
-        useCardPreviewStore.getState().hide();
-      }
-    },
-    { enabled: handEnabled, preventDefault: true }
-  );
-
-  useHotkeys(
-    getKeyBindingsForAction('moveToDiscard'),
-    () => {
-      if (player && hoveredHandCardId) {
-        const hand = player.getState().hand;
-        const card = hand.find(c => c.id === hoveredHandCardId);
-        if (card) {
-          player.removeCardFromPileById(hoveredHandCardId, 'hand');
-          player.placeCardInPile(card, 'discard');
-          useCardPreviewStore.getState().hide();
-        }
-        player.syncToYState();
-      }
-    },
-    { enabled: handEnabled, preventDefault: true }
-  );
-
-  useHotkeys(
-    getKeyBindingsForAction('moveToExile'),
-    () => {
-      if (player && hoveredHandCardId) {
-        const hand = player.getState().hand;
-        const card = hand.find(c => c.id === hoveredHandCardId);
-        if (card) {
-          player.removeCardFromPileById(hoveredHandCardId, 'hand');
-          player.placeCardInPile(card, 'exile');
-          useCardPreviewStore.getState().hide();
-        }
-        player.syncToYState();
-      }
-    },
-    { enabled: handEnabled, preventDefault: true }
-  );
-
-  useHotkeys(
-    getKeyBindingsForAction('moveToDeckTop'),
-    () => {
-      if (player && hoveredHandCardId) {
-        const hand = player.getState().hand;
-        const card = hand.find(c => c.id === hoveredHandCardId);
-        if (card) {
-          player.removeCardFromPileById(hoveredHandCardId, 'hand');
-          player.placeCardInPile(card, 'deck');
-          useCardPreviewStore.getState().hide();
-        }
-        player.syncToYState();
-      }
-    },
-    { enabled: handEnabled, preventDefault: true }
-  );
-
-  useHotkeys(
-    getKeyBindingsForAction('moveToDeckBottom'),
-    () => {
-      if (player && hoveredHandCardId) {
-        const hand = player.getState().hand;
-        const card = hand.find(c => c.id === hoveredHandCardId);
-        if (card) {
-          player.removeCardFromPileById(hoveredHandCardId, 'hand');
-          player.placeCardInPile(card, 'deck', 0);
-          useCardPreviewStore.getState().hide();
-        }
-        player.syncToYState();
-      }
-    },
-    { enabled: handEnabled, preventDefault: true }
-  );
-
-  // --- Pile Hotkeys (active when hovering a pile) ---
-
-  const pileEnabled = !isModalOpen && !!hoveredPileType;
-
-  useHotkeys(
-    getKeyBindingsForAction('moveToHand'),
-    () => {
-      if (player && hoveredPileType) {
-        const card = player.drawCardFromPile(hoveredPileType as 'deck' | 'exile' | 'discard');
-        if (card) player.placeCardInPile(card, 'hand');
-        player.syncToYState();
-      }
-    },
-    { enabled: pileEnabled, preventDefault: true }
-  );
-
-  useHotkeys(
-    getKeyBindingsForAction('moveToDiscard'),
-    () => {
-      if (player && hoveredPileType && hoveredPileType !== 'discard') {
-        const card = player.drawCardFromPile(hoveredPileType as 'deck' | 'exile' | 'discard');
-        if (card) player.placeCardInPile(card, 'discard');
-        player.syncToYState();
-      }
-    },
-    { enabled: pileEnabled && hoveredPileType !== 'discard', preventDefault: true }
-  );
-
-  useHotkeys(
-    getKeyBindingsForAction('moveToExile'),
-    () => {
-      if (player && hoveredPileType && hoveredPileType !== 'exile') {
-        const card = player.drawCardFromPile(hoveredPileType as 'deck' | 'exile' | 'discard');
-        if (card) player.placeCardInPile(card, 'exile');
-        player.syncToYState();
-      }
-    },
-    { enabled: pileEnabled && hoveredPileType !== 'exile', preventDefault: true }
-  );
-
-  useHotkeys(
-    getKeyBindingsForAction('moveToDeckTop'),
-    () => {
-      if (player && hoveredPileType && hoveredPileType !== 'deck') {
-        const card = player.drawCardFromPile(hoveredPileType as 'deck' | 'exile' | 'discard');
-        if (card) player.placeCardInPile(card, 'deck');
-        player.syncToYState();
-      }
-    },
-    { enabled: pileEnabled && hoveredPileType !== 'deck', preventDefault: true }
-  );
-
-  useHotkeys(
-    getKeyBindingsForAction('moveToDeckBottom'),
-    () => {
-      if (player && hoveredPileType && hoveredPileType !== 'deck') {
-        const card = player.drawCardFromPile(hoveredPileType as 'deck' | 'exile' | 'discard');
-        if (card) player.placeCardInPile(card, 'deck', 0);
-        player.syncToYState();
-      }
-    },
-    { enabled: pileEnabled && hoveredPileType !== 'deck', preventDefault: true }
-  );
-
-  // --- Token Hotkeys (active when hovering a keyword token) ---
-
-  const tokenEnabled = !isModalOpen && !!hoveredTokenId;
-
-  useHotkeys(
-    getKeyBindingsForAction('tokenIncrement'),
-    () => {
-      if (whiteboard && playerId && hoveredTokenId) {
-        const yTokens = whiteboard['yTokens'];
-        const token = yTokens.get(hoveredTokenId);
-        if (token && token.ownerId === playerId) {
-          yTokens.set(hoveredTokenId, { ...token, count: (token.count ?? 0) + 1 });
-        }
-      }
-    },
-    { enabled: tokenEnabled, preventDefault: true }
-  );
-
-  useHotkeys(
-    getKeyBindingsForAction('tokenDecrement'),
-    () => {
-      if (whiteboard && playerId && hoveredTokenId) {
-        const yTokens = whiteboard['yTokens'];
-        const token = yTokens.get(hoveredTokenId);
-        if (token && token.ownerId === playerId) {
-          const newCount = (token.count ?? 0) - 1;
-          if (newCount <= 0) {
-            yTokens.delete(hoveredTokenId);
-          } else {
-            yTokens.set(hoveredTokenId, { ...token, count: newCount });
-          }
-        }
-      }
-    },
-    { enabled: tokenEnabled, preventDefault: true }
-  );
-
-  useHotkeys(
-    getKeyBindingsForAction('tokenDelete'),
-    () => {
-      if (whiteboard && playerId && hoveredTokenId) {
-        const yTokens = whiteboard['yTokens'];
-        const token = yTokens.get(hoveredTokenId);
-        if (token && token.ownerId === playerId) {
-          yTokens.delete(hoveredTokenId);
-        }
-      }
-    },
-    { enabled: tokenEnabled, preventDefault: true }
-  );
-
-  // --- Pile Viewer Card Hotkeys (active when hovering card in pile viewer modal) ---
-
-  const pileViewerEnabled = isModalOpen && !!hoveredPileViewerCardId;
-
-  useHotkeys(
-    getKeyBindingsForAction('moveToHand'),
-    () => {
-      if (hoveredPileViewerCardId) {
-        window.dispatchEvent(new CustomEvent('pileViewerCardAction', {
-          detail: { action: 'moveToHand', cardId: hoveredPileViewerCardId }
-        }));
-      }
-    },
-    { enabled: pileViewerEnabled, preventDefault: true }
-  );
-
-  useHotkeys(
-    getKeyBindingsForAction('moveToDiscard'),
-    () => {
-      if (hoveredPileViewerCardId && hoveredPileViewerContext !== HotkeyContext.Discard) {
-        window.dispatchEvent(new CustomEvent('pileViewerCardAction', {
-          detail: { action: 'moveToDiscard', cardId: hoveredPileViewerCardId }
-        }));
-      }
-    },
-    { enabled: pileViewerEnabled && hoveredPileViewerContext !== HotkeyContext.Discard, preventDefault: true }
-  );
-
-  useHotkeys(
-    getKeyBindingsForAction('moveToExile'),
-    () => {
-      if (hoveredPileViewerCardId && hoveredPileViewerContext !== HotkeyContext.Exile) {
-        window.dispatchEvent(new CustomEvent('pileViewerCardAction', {
-          detail: { action: 'moveToExile', cardId: hoveredPileViewerCardId }
-        }));
-      }
-    },
-    { enabled: pileViewerEnabled && hoveredPileViewerContext !== HotkeyContext.Exile, preventDefault: true }
-  );
-
-  useHotkeys(
-    getKeyBindingsForAction('moveToDeckTop'),
-    () => {
-      if (hoveredPileViewerCardId) {
-        window.dispatchEvent(new CustomEvent('pileViewerCardAction', {
-          detail: { action: 'moveToDeckTop', cardId: hoveredPileViewerCardId }
-        }));
-      }
-    },
-    { enabled: pileViewerEnabled, preventDefault: true }
-  );
-
-  useHotkeys(
-    getKeyBindingsForAction('moveToDeckBottom'),
-    () => {
-      if (hoveredPileViewerCardId) {
-        window.dispatchEvent(new CustomEvent('pileViewerCardAction', {
-          detail: { action: 'moveToDeckBottom', cardId: hoveredPileViewerCardId }
-        }));
-      }
-    },
-    { enabled: pileViewerEnabled, preventDefault: true }
-  );
+  // ===========================================================================
+  // Pile-viewer shortcuts — active only while the PileViewer scope is on
+  // ===========================================================================
+  useHotkeys(getKeyBindingsForAction('moveToHand'), () => pileViewerMove('moveToHand'),
+    { ...pv, enabled: isPileViewer });
+  useHotkeys(getKeyBindingsForAction('moveToDiscard'), () => {
+    if (pvContext !== HotkeyContext.Discard) pileViewerMove('moveToDiscard');
+  }, { ...pv, enabled: isPileViewer && pvContext !== HotkeyContext.Discard });
+  useHotkeys(getKeyBindingsForAction('moveToExile'), () => {
+    if (pvContext !== HotkeyContext.Exile) pileViewerMove('moveToExile');
+  }, { ...pv, enabled: isPileViewer && pvContext !== HotkeyContext.Exile });
+  useHotkeys(getKeyBindingsForAction('moveToDeckTop'), () => pileViewerMove('moveToDeckTop'),
+    { ...pv, enabled: isPileViewer });
+  useHotkeys(getKeyBindingsForAction('moveToDeckBottom'), () => pileViewerMove('moveToDeckBottom'),
+    { ...pv, enabled: isPileViewer });
 }

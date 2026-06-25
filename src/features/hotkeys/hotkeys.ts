@@ -20,6 +20,21 @@ export const HotkeyContext = {
 
 export type HotkeyContext = typeof HotkeyContext[keyof typeof HotkeyContext];
 
+/**
+ * Hotkey scopes for react-hotkeys-hook's <HotkeysProvider>.
+ *
+ * Exactly one scope is active at a time (never empty — an empty active-scope
+ * set makes scoped bindings fall back to "always on" with a console warning):
+ * - `Board`      — normal play; all battlefield / hand / pile / token hotkeys.
+ * - `PileViewer` — a modal (pile viewer) is open; only its card hotkeys fire.
+ */
+export const HotkeyScope = {
+  Board: 'board',
+  PileViewer: 'pile-viewer',
+} as const;
+
+export type HotkeyScope = typeof HotkeyScope[keyof typeof HotkeyScope];
+
 export interface Hotkey {
   key: string; // Display name for UI (e.g., "Space", "+  or  =")
   keys: string[]; // Actual key bindings for react-hotkeys-hook (e.g., ["space"], ["+", "="])

@@ -1,34 +1,43 @@
 /**
  * Hotkey Store (Zustand)
  *
- * Global state management for hotkey context and hover states.
- * Eliminates window globals and enables declarative hotkey handling.
+ * Tracks the single thing the user is currently hovering plus modal state, so
+ * the hotkey layer can decide which contextual shortcuts are live.
+ *
+ * Previously this held six parallel `hoveredXId` fields plus an `activeContext`
+ * that every setter had to keep in sync; they collapse to one `hoverTarget`
+ * (only one surface can be hovered at a time). The public `setHoveredX` setters
+ * are kept so imperative callers (battlefield/dock/pile-viewer) don't change.
  */
 
 import { create } from 'zustand';
 import { HotkeyContext } from '@/features/hotkeys/hotkeys';
 
+export type HoverKind = 'battlefield' | 'hand' | 'pile' | 'token' | 'pileViewer';
+export type PileType = 'deck' | 'exile' | 'discard';
+
+export interface HoverTarget {
+  kind: HoverKind;
+  /** Card id, token id, or — for `kind: 'pile'` — the pile type. */
+  id: string;
+  /** Set when `kind === 'pile'`. */
+  pileType?: PileType;
+  /** Set when `kind === 'pileViewer'` — gates which pile moves are valid. */
+  context?: HotkeyContext;
+}
+
 interface HotkeyStore {
-  // Current context (what user is hovering)
-  activeContext: HotkeyContext;
+  // What the user is currently hovering (only one surface at a time).
+  hoverTarget: HoverTarget | null;
 
-  // Context-specific hover state
-  hoveredBattlefieldCardId: string | null;
-  hoveredHandCardId: string | null;
-  hoveredPileType: 'deck' | 'exile' | 'discard' | null;
-  hoveredTokenId: string | null;
-  hoveredPileViewerCardId: string | null;
-  hoveredPileViewerContext: HotkeyContext | null;
-
-  // Modal states (disable hotkeys when modals are open)
+  // Modal states (disable hotkeys / switch scopes when modals are open).
   isModalOpen: boolean;
   addCardModalOpen: boolean;
 
   // Actions
-  setActiveContext: (context: HotkeyContext) => void;
   setHoveredBattlefieldCard: (cardId: string | null) => void;
   setHoveredHandCard: (cardId: string | null) => void;
-  setHoveredPile: (pileType: 'deck' | 'exile' | 'discard' | null) => void;
+  setHoveredPile: (pileType: PileType | null) => void;
   setHoveredToken: (tokenId: string | null) => void;
   setHoveredPileViewerCard: (cardId: string | null, context: HotkeyContext | null) => void;
   setModalOpen: (isOpen: boolean) => void;
@@ -37,98 +46,31 @@ interface HotkeyStore {
 }
 
 export const useHotkeyStore = create<HotkeyStore>((set) => ({
-  activeContext: HotkeyContext.Global,
-  hoveredBattlefieldCardId: null,
-  hoveredHandCardId: null,
-  hoveredPileType: null,
-  hoveredTokenId: null,
-  hoveredPileViewerCardId: null,
-  hoveredPileViewerContext: null,
+  hoverTarget: null,
   isModalOpen: false,
   addCardModalOpen: false,
 
-  setActiveContext: (context) => set({ activeContext: context }),
+  setHoveredBattlefieldCard: (cardId) =>
+    set({ hoverTarget: cardId ? { kind: 'battlefield', id: cardId } : null }),
 
-  setHoveredBattlefieldCard: (cardId) => {
-    set({
-      hoveredBattlefieldCardId: cardId,
-      activeContext: cardId ? HotkeyContext.Battlefield : HotkeyContext.Global,
-      // Clear other hover states
-      hoveredHandCardId: null,
-      hoveredPileType: null,
-      hoveredTokenId: null,
-      hoveredPileViewerCardId: null,
-      hoveredPileViewerContext: null,
-    });
-  },
+  setHoveredHandCard: (cardId) =>
+    set({ hoverTarget: cardId ? { kind: 'hand', id: cardId } : null }),
 
-  setHoveredHandCard: (cardId) => {
-    set({
-      hoveredHandCardId: cardId,
-      activeContext: cardId ? HotkeyContext.Hand : HotkeyContext.Global,
-      // Clear other hover states
-      hoveredBattlefieldCardId: null,
-      hoveredPileType: null,
-      hoveredTokenId: null,
-      hoveredPileViewerCardId: null,
-      hoveredPileViewerContext: null,
-    });
-  },
+  setHoveredPile: (pileType) =>
+    set({ hoverTarget: pileType ? { kind: 'pile', id: pileType, pileType } : null }),
 
-  setHoveredPile: (pileType) => {
-    set({
-      hoveredPileType: pileType,
-      activeContext: pileType
-        ? (pileType === 'deck' ? HotkeyContext.Deck
-           : pileType === 'exile' ? HotkeyContext.Exile
-           : HotkeyContext.Discard)
-        : HotkeyContext.Global,
-      // Clear other hover states
-      hoveredBattlefieldCardId: null,
-      hoveredHandCardId: null,
-      hoveredTokenId: null,
-      hoveredPileViewerCardId: null,
-      hoveredPileViewerContext: null,
-    });
-  },
+  setHoveredToken: (tokenId) =>
+    set({ hoverTarget: tokenId ? { kind: 'token', id: tokenId } : null }),
 
-  setHoveredToken: (tokenId) => {
+  setHoveredPileViewerCard: (cardId, context) =>
     set({
-      hoveredTokenId: tokenId,
-      activeContext: tokenId ? HotkeyContext.KeywordToken : HotkeyContext.Global,
-      // Clear other hover states
-      hoveredBattlefieldCardId: null,
-      hoveredHandCardId: null,
-      hoveredPileType: null,
-      hoveredPileViewerCardId: null,
-      hoveredPileViewerContext: null,
-    });
-  },
-
-  setHoveredPileViewerCard: (cardId, context) => {
-    set({
-      hoveredPileViewerCardId: cardId,
-      hoveredPileViewerContext: context,
-      activeContext: cardId && context ? context : HotkeyContext.Global,
-      // Clear other hover states
-      hoveredBattlefieldCardId: null,
-      hoveredHandCardId: null,
-      hoveredPileType: null,
-      hoveredTokenId: null,
-    });
-  },
+      hoverTarget:
+        cardId && context ? { kind: 'pileViewer', id: cardId, context } : null,
+    }),
 
   setModalOpen: (isOpen) => set({ isModalOpen: isOpen }),
 
   setAddCardModalOpen: (isOpen) => set({ addCardModalOpen: isOpen }),
 
-  reset: () => set({
-    activeContext: HotkeyContext.Global,
-    hoveredBattlefieldCardId: null,
-    hoveredHandCardId: null,
-    hoveredPileType: null,
-    hoveredTokenId: null,
-    hoveredPileViewerCardId: null,
-    hoveredPileViewerContext: null,
-  }),
+  reset: () => set({ hoverTarget: null }),
 }));

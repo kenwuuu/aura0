@@ -1,19 +1,27 @@
 /**
  * Game Hotkeys Manager
  *
- * Single centralized component that manages ALL game hotkeys.
+ * Single centralized component that owns ALL game hotkeys. It renders nothing —
+ * it sets up the react-hotkeys-hook <HotkeysProvider> (so contextual bindings
+ * can be gated by scope) and runs the unified useAllGameHotkeys hook inside it.
  *
- * This component doesn't render anything - it just sets up hotkey listeners
- * using the unified useAllGameHotkeys hook.
- *
- * Game instances are accessed from the gameInstanceStore, so no props are needed.
+ * Game instances are accessed from gameInstanceStore, so no props are needed.
  */
 
+import { HotkeysProvider } from 'react-hotkeys-hook';
+import { HotkeyScope } from '@/features/hotkeys/hotkeys';
 import { useAllGameHotkeys } from '@/features/hotkeys/useAllGameHotkeys';
 
-export function GameHotkeysManager() {
+// Must live inside the provider so useAllGameHotkeys can call useHotkeysContext.
+function GameHotkeysRunner() {
   useAllGameHotkeys();
-
-  // This component doesn't render anything
   return null;
+}
+
+export function GameHotkeysManager() {
+  return (
+    <HotkeysProvider initiallyActiveScopes={[HotkeyScope.Board]}>
+      <GameHotkeysRunner />
+    </HotkeysProvider>
+  );
 }
