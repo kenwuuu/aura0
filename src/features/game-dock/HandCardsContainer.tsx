@@ -10,8 +10,6 @@ interface HandCardsContainerProps {
   playerId: string;
   zoomLevel: number;
   onHoveredCardChange: (cardId: string | null) => void;
-  onDraggedCardChange: (draggedCard: { card: Card; element: HTMLElement } | null) => void;
-  onDragStateChange: (dragState: { mode: string; draggedElement: HTMLDivElement; startIndex: number } | undefined) => void;
   onHandReorder: (reorderedHand: Card[]) => void;
   adjustHandZoom: (delta: number) => void;
 }
@@ -44,8 +42,6 @@ export const HandCardsContainer: React.FC<HandCardsContainerProps> = ({
   playerId,
   zoomLevel,
   onHoveredCardChange,
-  onDraggedCardChange,
-  onDragStateChange,
   onHandReorder,
   adjustHandZoom
 }) => {
@@ -150,19 +146,9 @@ export const HandCardsContainer: React.FC<HandCardsContainerProps> = ({
     useCardPreviewStore.getState().hide();
     onHoveredCardChange(null);
 
-    // Track the card globally for board drop logic
-    onDraggedCardChange({ card, element });
-
-    // Starting state: we assume play mode, not reorder mode
     const startIndex = hand.findIndex(c => c.id === card.id);
-    const dragState = {
-      mode: 'play',
-      draggedElement: element,
-      startIndex
-    };
-    dragStateRef.current = dragState;
-    onDragStateChange(dragState);
-  }, [hand, onHoveredCardChange, onDraggedCardChange, onDragStateChange]);
+    dragStateRef.current = { mode: 'play', draggedElement: element, startIndex };
+  }, [hand, onHoveredCardChange]);
 
   const handleCardDragEnd = useCallback(() => {
     // Handled by container dragend
@@ -199,24 +185,13 @@ export const HandCardsContainer: React.FC<HandCardsContainerProps> = ({
 
         // MODE SWITCHING LOGIC
         if (outOfBounds) {
-          // Switch to PLAY MODE
           if (mode !== 'play') {
             dragStateRef.current.mode = 'play';
-            onDragStateChange(dragStateRef.current);
-
-            // Switch BACK to your full-size centered drag image
-            try {
-              // Note: Can't change drag image mid-drag in most browsers
-            } catch {}
           }
           return;
         } else {
-          // Switch into REORDER MODE
           if (mode !== 'reorder') {
             dragStateRef.current.mode = 'reorder';
-            onDragStateChange(dragStateRef.current);
-
-            // Use transparent drag image so reorder looks clean
             try {
               e.dataTransfer?.setDragImage(transparentDragImage, 0, 0);
             } catch {}
@@ -271,7 +246,6 @@ export const HandCardsContainer: React.FC<HandCardsContainerProps> = ({
       }
 
       dragStateRef.current = { ...dragStateRef.current, mode: 'none' };
-      onDragStateChange(dragStateRef.current);
     };
 
     container.addEventListener('dragover', handleDragOver);
@@ -281,17 +255,15 @@ export const HandCardsContainer: React.FC<HandCardsContainerProps> = ({
       container.removeEventListener('dragover', handleDragOver);
       container.removeEventListener('dragend', handleDragEnd);
 
-      // Cancel any pending animation frame on unmount
       if (requestAnimationFrameIdRef.current !== null) {
         cancelAnimationFrame(requestAnimationFrameIdRef.current);
       }
 
-      // Cancel any pending scroll animation
       if (scrollAnimationRef.current) {
         scrollAnimationRef.current.stop();
       }
     };
-  }, [hand, onHandReorder, onDragStateChange]);
+  }, [hand, onHandReorder]);
 
   return (
     <div className="hand-container">
@@ -299,6 +271,7 @@ export const HandCardsContainer: React.FC<HandCardsContainerProps> = ({
         ref={containerRef}
         className="hand-cards"
         data-hand={playerId}
+        style={{ height: `${Math.ceil(88 * zoomLevel)}px` }}
       >
         {hand.map((card) => (
           <HandCard

@@ -136,11 +136,6 @@ body {
   position: relative;
 }
 
-.game-resources-dock > div:last-child {
-  position: absolute;
-  right: 16px;
-}
-
 .resource-pile {
   background-color: #1a1a1a;
   border: 2px solid #3d3d3d;
@@ -197,14 +192,10 @@ body {
   transform: translateY(0);
 }
 
-/* Hand Container */
+/* Hand Container — floats transparently over the board (no backdrop) */
 .hand-container {
   flex: 1;
-  width: 600px;
-  background-color: #1a1a1a;
-  border: 2px solid #3d3d3d;
-  border-radius: 12px;
-  padding: 12px;
+  padding: 8px 12px;
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -222,7 +213,6 @@ body {
 }
 .hand-cards {
   position: relative;
-  height: 120px;
   display: flex;
   align-items: center;
   overflow-x: auto;
