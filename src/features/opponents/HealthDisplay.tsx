@@ -71,17 +71,6 @@ export const HealthDisplay: React.FC<HealthDisplayProps> = ({
   const containerClass = variant === 'local' ? styles.healthContainer : styles.opponentHealth;
   const expandClass = variant === 'opponent' ? styles.expandLeft : styles.expandRight;
 
-  const handleMouseEnter = () => {
-    setIsHovered(true);
-
-    // Emit custom event for opponent board opacity control
-    if (variant === 'opponent' && playerId) {
-      window.dispatchEvent(new CustomEvent('opponentBoardHover', {
-        detail: { playerId, isHovered: true }
-      }));
-    }
-  };
-
   const handleMouseLeave = () => {
     setIsHovered(false);
 
@@ -107,7 +96,6 @@ export const HealthDisplay: React.FC<HealthDisplayProps> = ({
       <div
         className={`${containerClass} ${expandClass}`}
         data-player-id={playerId}
-        onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
         onClick={handleClick}
       >

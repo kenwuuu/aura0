@@ -99,9 +99,6 @@ export const CardNode = memo(function CardNode({ data, id }: NodeProps) {
           #{card.cardNumber}
         </div>
       )}
-
-      {/* card number badge */}
-      <div className="card-number-badge-battlefield">#{card.cardNumber}</div>
     </div>
   );
 });

@@ -1,4 +1,5 @@
 import React, {useState, useRef, useLayoutEffect} from 'react';
+import { createPortal } from 'react-dom';
 import { HotkeyContext, getHotkeysForContext, Hotkey } from './hotkeys';
 
 interface HotkeyTooltipProps {
@@ -107,7 +108,7 @@ export const HotkeyTooltip: React.FC<HotkeyTooltipProps> = ({ context, mouseX, m
     }
   };
 
-  return (
+  return createPortal(
     <div
       ref={tooltipRef}
       style={{
@@ -138,6 +139,7 @@ export const HotkeyTooltip: React.FC<HotkeyTooltipProps> = ({ context, mouseX, m
           <span style={styles.hotkeyAction}>{hotkey.shortDescription}</span>
         </div>
       ))}
-    </div>
+    </div>,
+    document.body
   );
 };
