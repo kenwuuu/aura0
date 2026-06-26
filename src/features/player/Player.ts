@@ -76,9 +76,29 @@ export class Player {
       exile: this.exile,
       scry: this.scry,
     };
+
+    // [hand-debug] TEMP: trace who/when empties the hand to diagnose the
+    // "hand disappears after refresh" sync race. Remove once resolved.
+    this.yPlayerState.observe((event, transaction) => {
+      if (!event.keysChanged.has(YSTATE_HAND)) return;
+      const hand = (this.yPlayerState.get(YSTATE_HAND) ?? []) as Card[];
+      console.log('[hand-debug] HAND changed', {
+        t: Math.round(performance.now()),
+        newLen: hand.length,
+        local: transaction.local, // true = we wrote it, false = peer wrote it
+        origin: (transaction.origin as any)?.constructor?.name ?? String(transaction.origin),
+      });
+    });
   }
 
   private initializeState(initialDeckCards: Deck): void {
+    // [hand-debug] TEMP: did we take the fresh-init branch (peer/IndexedDB data
+    // not yet synced)? Remove once the refresh-race is resolved.
+    console.log('[hand-debug] initializeState', {
+      t: Math.round(performance.now()),
+      hadHealth: this.yPlayerState.has(YSTATE_HEALTH),
+      existingHandLen: ((this.yPlayerState.get(YSTATE_HAND) ?? []) as Card[]).length,
+    });
     if (!this.yPlayerState.has(YSTATE_HEALTH)) {
       this.yPlayerState.set(YSTATE_HEALTH, this.config.initialHealth);
       this.yPlayerState.set(YSTATE_DECK, initialDeckCards.getCards());

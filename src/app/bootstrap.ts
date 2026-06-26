@@ -39,8 +39,15 @@ export async function bootstrapGame(): Promise<GameContext> {
 
   // Log size of Yjs incremental update. We want to eventually reduce the size and volume of updates
   // from drawing a card (70KB) and moving a card on board (hundreds of updates for a single drag).
-  yDoc.on('update', (update: Uint8Array) => {
+  yDoc.on('update', (update: Uint8Array, origin: unknown) => {
     console.debug(`Yjs incremental update of size: ${update.byteLength} bytes`);
+    // [hand-debug] TEMP: tag update origin (WebrtcConn / IndexeddbPersistence /
+    // undefined=local) to order remote sync against local re-init writes.
+    console.log('[hand-debug] yDoc update', {
+      t: Math.round(performance.now()),
+      bytes: update.byteLength,
+      origin: (origin as any)?.constructor?.name ?? String(origin),
+    });
   });
 
   const playerId = getOrCreatePlayerId();
