@@ -6,7 +6,7 @@ import { useHotkeyStore } from '@/app/stores/hotkeyStore';
 import { useHotkeyMenuStore } from '@/features/hotkeys/hotkeyMenuStore';
 import { HotkeyContext } from '@/features/hotkeys/hotkeys';
 
-export const TOKEN_SIZE = 40;
+export const TOKEN_SIZE = 30;
 
 interface TokenNodeData extends KeywordToken {
   yTokens: Y.Map<KeywordToken>;
@@ -99,12 +99,12 @@ export const TokenNode = memo(function TokenNode({ data, id }: NodeProps) {
       {token.count !== undefined && (
         <div style={{
           position: 'absolute',
-          top: '-15%',
-          left: 0,
+          top: '-35%',
+          left: '-10%',
           fontSize: 20,
           fontWeight: 'bold',
           color: 'white',
-          textShadow: '-2px -2px 0 black, 2px -2px 0 black, -2px 2px 0 black, 2px 2px 0 black, 0 0 8px black',
+          textShadow: '-1px -1px 0 black, 1px -1px 0 black, -1px 1px 0 black, 1px 1px 0 black',
           pointerEvents: 'none',
           userSelect: 'none',
         }}>
