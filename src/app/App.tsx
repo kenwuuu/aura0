@@ -3,13 +3,14 @@ import * as Y from 'yjs';
 import {
   DndContext,
   DragOverlay,
-  PointerSensor,
+  MouseSensor,
   TouchSensor,
   useSensor,
   useSensors,
   type DragStartEvent,
   type DragEndEvent,
 } from '@dnd-kit/core';
+import { snapCenterToCursor } from '@dnd-kit/modifiers';
 import { arrayMove } from '@dnd-kit/sortable';
 
 import { BattlefieldCanvas } from '@/features/battlefield/BattlefieldCanvas';
@@ -53,13 +54,13 @@ interface AppProps {
   tokenService: TokenService;
 }
 
-function CardDragOverlay({ card }: { card: Card }) {
+function CardDragOverlay({ card, zoom }: { card: Card; zoom: number }) {
   const imageUrl = card.isFlipped
     ? (card.images?.back?.normal ?? DEFAULT_CARD_BACK)
     : card.images?.front?.normal;
   return (
     <div style={{
-      width: 63, height: 88,
+      width: 63 * zoom, height: 88 * zoom,
       borderRadius: 8,
       overflow: 'hidden',
       boxShadow: '0 12px 40px rgba(0,0,0,0.8)',
@@ -67,7 +68,7 @@ function CardDragOverlay({ card }: { card: Card }) {
       cursor: 'grabbing',
     }}>
       {imageUrl && (
-        <img src={imageUrl} style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }} />
+        <img src={imageUrl} style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block', borderRadius: 2 }} />
       )}
     </div>
   );
@@ -75,6 +76,7 @@ function CardDragOverlay({ card }: { card: Card }) {
 
 export function App({ yDoc, yjsNetworkProvider, player, roomManager, playerId, cardLookup, tokenService }: AppProps) {
   const [activeCard, setActiveCard] = useState<Card | null>(null);
+  const [activeZoom, setActiveZoom] = useState(1);
   const lastPointerRef = useRef({ x: 0, y: 0 });
 
   useEffect(() => {
@@ -84,13 +86,17 @@ export function App({ yDoc, yjsNetworkProvider, player, roomManager, playerId, c
   }, []);
 
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
-    useSensor(TouchSensor, { activationConstraint: { delay: 150, tolerance: 8 } }),
+    useSensor(MouseSensor, { activationConstraint: { distance: 8 } }),
+    // Long-press to drag on touch: 300ms hold without moving > 5px starts the drag.
+    // During the delay window dnd-kit does not call preventDefault, so the browser
+    // can still scroll the hand horizontally on a quick swipe.
+    useSensor(TouchSensor, { activationConstraint: { delay: 300, tolerance: 5 } }),
   );
 
   const handleDragStart = useCallback((event: DragStartEvent) => {
     const card = player.getState().hand.find(c => c.id === event.active.id);
     setActiveCard(card ?? null);
+    setActiveZoom(parseFloat(localStorage.getItem('hand-zoom') || '1'));
     useCardPreviewStore.getState().hide();
   }, [player]);
 
@@ -175,8 +181,8 @@ export function App({ yDoc, yjsNetworkProvider, player, roomManager, playerId, c
       )}
       <AddCardManager cardLookup={cardLookup} onAddCard={handleAddCard} />
 
-      <DragOverlay dropAnimation={null}>
-        {activeCard && <CardDragOverlay card={activeCard} />}
+      <DragOverlay dropAnimation={null} modifiers={[snapCenterToCursor]}>
+        {activeCard && <CardDragOverlay card={activeCard} zoom={activeZoom} />}
       </DragOverlay>
     </DndContext>
   );

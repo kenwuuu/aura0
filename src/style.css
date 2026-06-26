@@ -210,7 +210,6 @@ body {
   color: #9ca3af;
   transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
   user-select: none;
-  touch-action: none;
   overflow: hidden;
 }
 
@@ -226,7 +225,7 @@ body {
   object-fit: contain;
   display: block;
   pointer-events: none;
-  border-radius: 6px;
+  border-radius: 2px;
 }
 
 /* Specific pile colors */
