@@ -76,4 +76,4 @@ export const WORLD_MAX_X = 6 * (MAT_WIDTH + MAT_COL_GAP) + 500;  // supports up 
 export const WORLD_MAX_Y = 2 * MAT_HEIGHT + MAT_ROW_GAP + 500;
 
 export const MIN_ZOOM = 0.1;
-export const MAX_ZOOM = 6;
+export const MAX_ZOOM = 20;
