@@ -225,7 +225,7 @@ body {
   object-fit: contain;
   display: block;
   pointer-events: none;
-  border-radius: 2px;
+  border-radius: 12px;
 }
 
 /* Specific pile colors */
