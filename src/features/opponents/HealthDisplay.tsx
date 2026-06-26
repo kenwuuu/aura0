@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 import { CustomCounter } from '@/features/player/types';
 import { PlayerCounterModal } from './PlayerCounterModal';
 import styles from './HealthDisplay.module.css';
-import {EditableHealth} from "./EditableHealth";
-import {EditableName} from "./EditableName";
+import { EditableHealth } from './EditableHealth';
+import { EditableName } from './EditableName';
 
 interface HealthDisplayProps {
   label: string;
@@ -47,82 +47,49 @@ export const HealthDisplay: React.FC<HealthDisplayProps> = ({
 }) => {
   const [isHovered, setIsHovered] = useState(false);
   const [showModal, setShowModal] = useState(false);
-  const [editableHealth, setEditableHealth] = useState(String(health));
+
+  const isOpponent = variant === 'opponent';
+  const expandClass = isOpponent ? styles.expandLeft : styles.expandRight;
 
   React.useEffect(() => {
-    // Keep editable field in sync with external health changes
-    setEditableHealth(String(health));
-  }, [health]);
-
-  // Emit modal open/close event. Used for hiding hotkey tooltip
-  React.useEffect(() => {
-    if (showModal) {
-      window.dispatchEvent(new CustomEvent('modalOpen'));
-    } else {
-      window.dispatchEvent(new CustomEvent('modalClosed'));
-    }
+    window.dispatchEvent(new CustomEvent(showModal ? 'modalOpen' : 'modalClosed'));
   }, [showModal]);
-
-  const handleAddCounter = (title: string, icon: string) => {
-    onAddCounter?.(title, icon);
-    setShowModal(false);
-  };
-
-  const containerClass = variant === 'local' ? styles.healthContainer : styles.opponentHealth;
-  const expandClass = variant === 'opponent' ? styles.expandLeft : styles.expandRight;
 
   const handleMouseLeave = () => {
     setIsHovered(false);
-
-    // Emit custom event for opponent board opacity control
-    if (variant === 'opponent' && playerId) {
-      window.dispatchEvent(new CustomEvent('opponentBoardHover', {
-        detail: { playerId, isHovered: false }
-      }));
+    if (isOpponent && playerId) {
+      window.dispatchEvent(new CustomEvent('opponentBoardHover', { detail: { playerId, isHovered: false } }));
     }
   };
 
   const handleClick = () => {
-    // Emit custom event for pinning opponent board
-    if (variant === 'opponent' && playerId) {
-      window.dispatchEvent(new CustomEvent('opponentBoardPin', {
-        detail: { playerId }
-      }));
+    if (isOpponent && playerId) {
+      window.dispatchEvent(new CustomEvent('opponentBoardPin', { detail: { playerId } }));
     }
   };
 
   return (
     <>
       <div
-        className={`${containerClass} ${expandClass}`}
+        className={`${styles.healthContainer} ${isOpponent ? styles.opponent : ''} ${expandClass}`}
         data-player-id={playerId}
         onMouseLeave={handleMouseLeave}
         onClick={handleClick}
       >
         <div className={styles.health}>
           {onRename ? (
-            <EditableName
-              name={label}
-              onRename={onRename}
-              className={variant === 'local' ? styles.healthLabel : styles.opponentHealthLabel}
-            />
+            <EditableName name={label} onRename={onRename} className={styles.healthLabel} />
           ) : (
-            <div className={variant === 'local' ? styles.healthLabel : styles.opponentHealthLabel}>
-              {label}
-            </div>
+            <div className={styles.healthLabel}>{label}</div>
           )}
-          <EditableHealth
-            health={health}
-            onModifyHealth={onModifyHealth}
-            className={variant === 'local' ? styles.healthValue : styles.opponentHealthValue}
-          />
-          <div className={variant === 'local' ? styles.healthControls : styles.opponentHealthControls}>
+          <EditableHealth health={health} onModifyHealth={onModifyHealth} className={styles.healthValue} />
+          <div className={styles.healthControls}>
             <button onClick={() => onModifyHealth(-1)}>-</button>
             <button onClick={() => onModifyHealth(1)}>+</button>
           </div>
         </div>
 
-        {variant === 'opponent' && isHovered && (
+        {isOpponent && isHovered && (
           <>
             <div
               className="resource-pile hand-pile"
@@ -165,7 +132,6 @@ export const HealthDisplay: React.FC<HealthDisplayProps> = ({
                 </button>
               </div>
             ))}
-
             {onAddCounter && (
               <button
                 className={styles.addCounterButton}
@@ -181,9 +147,9 @@ export const HealthDisplay: React.FC<HealthDisplayProps> = ({
 
       {showModal && (
         <PlayerCounterModal
-          onAdd={handleAddCounter}
+          onAdd={(title, icon) => { onAddCounter?.(title, icon); setShowModal(false); }}
           onCancel={() => setShowModal(false)}
-          openedFromBottom={variant === 'local'}
+          openedFromBottom={!isOpponent}
         />
       )}
     </>
