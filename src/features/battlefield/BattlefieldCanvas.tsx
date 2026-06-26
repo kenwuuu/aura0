@@ -265,6 +265,7 @@ function BattlefieldCanvasInner({ yDoc, localPlayerId, player, tokenService }: B
         deleteKeyCode={null}
         panOnScroll={false}
         panOnDrag={true}
+        zoomOnDoubleClick={false}
         style={{ background: '#1a1a1a' }}
       >
         <Background color="#2d2d2d" gap={40} />
