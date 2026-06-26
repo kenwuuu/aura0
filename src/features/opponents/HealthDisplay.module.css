@@ -26,6 +26,13 @@
   color: #9ca3af;
   text-transform: uppercase;
   letter-spacing: 0.05em;
+  background: transparent;
+  border: none;
+  outline: none;
+  padding: 0;
+  width: 10ch;
+  text-align: center;
+  box-sizing: content-box;
 }
 
 .healthValue {
@@ -33,6 +40,13 @@
   font-weight: bold;
   color: #10b981;
   font-family: 'Courier New', monospace;
+  background: transparent;
+  border: none;
+  outline: none;
+  padding: 0;
+  width: 3ch;
+  text-align: center;
+  box-sizing: content-box;
 }
 
 .healthControls {
@@ -83,6 +97,13 @@
   text-transform: uppercase;
   letter-spacing: 0.05em;
   margin-bottom: 2px;
+  background: transparent;
+  border: none;
+  outline: none;
+  padding: 0;
+  width: 8ch;
+  text-align: center;
+  box-sizing: content-box;
 }
 
 .opponentHealthValue {
@@ -90,6 +111,13 @@
   font-weight: bold;
   color: #ef4444;
   font-family: 'Courier New', monospace;
+  background: transparent;
+  border: none;
+  outline: none;
+  padding: 0;
+  width: 3ch;
+  text-align: center;
+  box-sizing: content-box;
 }
 
 .opponentHealthControls {

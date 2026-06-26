@@ -56,6 +56,12 @@ export const HandCardsContainer: React.FC<HandCardsContainerProps> = ({
     useCardPreviewStore.getState().hide();
   }, [onHoveredCardChange]);
 
+  const handleWheel = useCallback((e: React.WheelEvent<HTMLDivElement>) => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollLeft += e.deltaY;
+    }
+  }, []);
+
   // card-height * zoom + 20px headroom so the hover-lift (translateY(-12px)) never clips.
   const containerHeight = Math.ceil(88 * zoomLevel) + 20;
 
@@ -64,6 +70,7 @@ export const HandCardsContainer: React.FC<HandCardsContainerProps> = ({
       ref={scrollRef}
       className="hand-scroll"
       data-hand={playerId}
+      onWheel={handleWheel}
       style={{
         height: containerHeight,
         maxWidth: 'min(75vw, 950px)',
