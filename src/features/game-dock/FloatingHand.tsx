@@ -13,7 +13,7 @@ export function FloatingHand() {
 
   const adjustZoom = useCallback((delta: number) => {
     setZoomLevel((prev) => {
-      const next = Math.max(0.5, Math.min(3.5, prev + delta));
+      const next = Math.max(0.5, Math.min(2, prev + delta));
       localStorage.setItem('hand-zoom', String(next));
       return next;
     });

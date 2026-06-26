@@ -198,8 +198,10 @@ body {
 
 .hand-card {
   flex-shrink: 0;
-  width: calc(63px * var(--card-zoom, 1));
-  height: calc(88px * var(--card-zoom, 1));
+  /* 63×88 matches CARD_WIDTH×CARD_HEIGHT in src/constants.ts */
+  /* the 3 multiplier matches HandCardsContainer.tsx. multiply by 3 bc 1x is too small */
+  width: calc(3 * 63px * var(--card-zoom, 1));
+  height: calc(3 * 88px * var(--card-zoom, 1));
   background-color: #2d2d2d;
   border: 2px solid #4a4a4a;
   border-radius: 10px;

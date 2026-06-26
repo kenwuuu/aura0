@@ -13,9 +13,8 @@
 // Each new column is added to the right as more players join.
 
 // ── Playmat dimensions ──────────────────────────────────────────────────────
-// Card dimensions in board-space pixels (also used for pile sizing).
-export const CARD_WIDTH  = 63;
-export const CARD_HEIGHT = 88;
+import { CARD_WIDTH, CARD_HEIGHT } from '@/constants';
+export { CARD_WIDTH, CARD_HEIGHT };
 
 // Playmat: 28 cards wide × 5 cards tall.
 export const PX_PER_INCH = 25.4;

@@ -4,6 +4,7 @@ import { SortableContext, horizontalListSortingStrategy } from '@dnd-kit/sortabl
 import { HandCard } from './HandCard';
 import { Card } from '@/features/player';
 import { useCardPreviewStore } from '@/features/card-preview/cardPreviewStore';
+import { CARD_HEIGHT } from '@/constants';
 
 interface HandCardsContainerProps {
   yPlayerState: Y.Map<any>;
@@ -63,7 +64,9 @@ export const HandCardsContainer: React.FC<HandCardsContainerProps> = ({
   }, []);
 
   // card-height * zoom + 20px headroom so the hover-lift (translateY(-12px)) never clips.
-  const containerHeight = Math.ceil(88 * zoomLevel) + 20;
+  // 3x multiplier matches hand-card in style.css. 3x because 1x is too small
+  // don't want to have a default zoom level that's not 1.0x because it would confuse users
+  const containerHeight = Math.ceil(3 * CARD_HEIGHT * zoomLevel) + 20;
 
   return (
     <div
