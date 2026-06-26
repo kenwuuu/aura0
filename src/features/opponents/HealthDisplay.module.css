@@ -1,6 +1,6 @@
 /* ── Health Display ─────────────────────────────────────────────────── */
 .healthContainer {
-  --accent: #10b981;
+  --accent: #1c8763;
   background-color: #1a1a1a;
   border: 1px solid var(--accent);
   border-radius: 12px;
@@ -16,7 +16,7 @@
 }
 
 .healthContainer.opponent {
-  --accent: #ef4444;
+  --accent: #933030;
   background-color: rgba(13, 13, 13, 0.9);
   backdrop-filter: blur(10px);
 }
@@ -41,6 +41,9 @@
   width: 10ch;
   text-align: center;
   box-sizing: content-box;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .healthValue {
