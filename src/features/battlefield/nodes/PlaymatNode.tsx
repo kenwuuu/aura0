@@ -32,8 +32,8 @@ export const PlaymatNode = memo(function PlaymatNode({ data }: NodeProps) {
         height: MAT_HEIGHT,
         background,
         border: d.isLocal
-          ? '2px solid rgba(74, 222, 128, 0.3)'
-          : '2px solid rgba(96, 165, 250, 0.3)',
+          ? '1px solid rgba(74, 222, 128, 0.3)'
+          : '1px solid rgba(96, 165, 250, 0.3)',
         borderRadius: 8,
         pointerEvents: 'none',
         userSelect: 'none',

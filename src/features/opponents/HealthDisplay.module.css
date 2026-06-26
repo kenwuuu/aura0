@@ -1,7 +1,7 @@
 /* Local Player Health Display */
 .healthContainer {
   background-color: #1a1a1a;
-  border: 2px solid #10b981;
+  border: 1px solid #10855c;
   border-radius: 12px;
   padding: 6px 10px;
   display: flex;
@@ -64,7 +64,7 @@
 /* Opponent Health Display */
 .opponentHealth {
   background-color: rgba(13, 13, 13, 0.9);
-  border: 2px solid #ef4444;
+  border: 1px solid #a12c2c;
   border-radius: 12px;
   padding: 6px 10px;
   display: flex;
