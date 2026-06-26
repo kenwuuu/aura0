@@ -100,15 +100,24 @@ function BattlefieldCanvasInner({ yDoc, localPlayerId, player, tokenService }: B
     return () => { window.removeEventListener('keydown', onDown); window.removeEventListener('keyup', onUp); };
   }, []);
 
-  // Center the camera on the local player's mat once on first load.
-  const hasCenteredRef = useRef(false);
+  // Center the camera on the local player's mat, and keep following it while the
+  // seating settles during initial peer sync. When a player first loads in, only
+  // their own player map exists, so they're seat 0; once peers sync in (with
+  // earlier joinedAt), their seat index shifts and their mat moves. Re-centering
+  // on each localMatOrigin change keeps the camera on the local mat instead of
+  // leaving it parked on what becomes the first player's board. We stop the
+  // moment the user manually pans/zooms so we never yank the viewport.
+  const hasUserMovedRef = useRef(false);
+  const lastCenteredKeyRef = useRef<string | null>(null);
   useEffect(() => {
-    if (hasCenteredRef.current || !localMatOrigin) return;
+    if (hasUserMovedRef.current || !localMatOrigin) return;
+    const key = `${localMatOrigin.x},${localMatOrigin.y}`;
+    if (lastCenteredKeyRef.current === key) return;
     fitBounds(
       { x: localMatOrigin.x, y: localMatOrigin.y, width: MAT_WIDTH, height: MAT_HEIGHT },
       { padding: 0.15, duration: 0 },
     );
-    hasCenteredRef.current = true;
+    lastCenteredKeyRef.current = key;
   }, [localMatOrigin, fitBounds]);
 
   // Maps node id → elevated zIndex assigned at drag-start, consumed at drag-stop.
@@ -257,7 +266,14 @@ function BattlefieldCanvasInner({ yDoc, localPlayerId, player, tokenService }: B
         onDragOver={onDragOver}
         onDrop={onDrop}
         onPaneClick={() => useHotkeyMenuStore.getState().close()}
-        onMoveStart={() => useHotkeyMenuStore.getState().close()}
+        onMoveStart={(event) => {
+          useHotkeyMenuStore.getState().close();
+
+          // event is null for programmatic moves (our fitBounds), non-null for
+          // a real user pan/zoom — only the latter stops board auto-centering
+          // see: lastCenteredKeyRef for location of auto-centering on load
+          if (event) hasUserMovedRef.current = true;
+        }}
         snapToGrid={snapActive}
         snapGrid={[Math.round(CARD_WIDTH / 4), Math.round(CARD_HEIGHT / 5)]}
         minZoom={MIN_ZOOM}
