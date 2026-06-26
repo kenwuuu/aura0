@@ -63,7 +63,7 @@ function CardPreviewPopup() {
     width: `${width}px`,
     height: `${height}px`,
     zIndex: 10000,
-    borderRadius: '12px',
+    borderRadius: `${24 * zoom}px`,
     boxShadow: '0 8px 16px rgba(0, 0, 0, 0.6)',
     border: '2px solid #4a4a4a',
     overflow: 'hidden',
