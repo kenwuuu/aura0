@@ -93,10 +93,10 @@ export const PileNode = memo(function PileNode({ data }: NodeProps) {
         minWidth: 63,
         padding: '4px',
         gap: 2,
-        borderRadius: 8,
+        borderRadius: 3,
         boxSizing: 'border-box',
         justifyContent: 'center',
-        opacity: handDisabled ? 0.4 : 1,
+        opacity: handDisabled ? 0.6 : 1,
         cursor: handDisabled ? 'default' : 'pointer',
         outline: isOver && canReceiveDrop ? '2px solid #60a5fa' : undefined,
       }}

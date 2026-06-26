@@ -3,7 +3,7 @@
   --accent: #1c8763;
   background-color: #1a1a1a;
   border: 1px solid var(--accent);
-  border-radius: 12px;
+  border-radius: 4px;
   padding: 6px 10px;
   display: flex;
   flex-direction: row-reverse;
@@ -75,7 +75,7 @@
   height: 22px;
   background-color: color-mix(in srgb, var(--accent) 20%, transparent);
   border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
-  border-radius: 6px;
+  border-radius: 2px;
   color: var(--accent);
   font-size: 12px;
   cursor: pointer;
