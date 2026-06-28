@@ -22,6 +22,7 @@ import { useBattlefieldNodes } from './useBattlefieldNodes';
 import { usePlaymatNodes } from './usePlaymatNodes';
 import { WhiteboardCard } from './types';
 import { KeywordToken } from '@/features/keyword-tokens/types';
+import { attachedTokens, findParentCard } from './cardTokenAttachment';
 import { YDOC_CARDS_ON_BOARD, YDOC_KEYWORD_TOKENS, CARD_WIDTH, CARD_HEIGHT } from '@/constants';
 import { MIN_ZOOM, MAX_ZOOM, MAT_WIDTH, MAT_HEIGHT } from './boardWorld';
 import { TOKEN_SIZE } from './nodes/TokenNode';
@@ -79,7 +80,7 @@ function BattlefieldCanvasInner({ yDoc, localPlayerId, player, tokenService }: B
   const yCards = yDoc.getMap<WhiteboardCard>(YDOC_CARDS_ON_BOARD);
   const yTokens = yDoc.getMap<KeywordToken>(YDOC_KEYWORD_TOKENS);
 
-  const { nodes: cardTokenNodes, onNodesChange, elevateNode } = useBattlefieldNodes(yCards, yTokens, localPlayerId);
+  const { nodes: cardTokenNodes, onNodesChange, elevateNode, elevateNodes, translateNodes } = useBattlefieldNodes(yCards, yTokens, localPlayerId);
   const { nodes: playmatNodes, localMatOrigin } = usePlaymatNodes(yDoc, localPlayerId);
   const { screenToFlowPosition, fitBounds } = useReactFlow();
   const { setNodeRef: setBattlefieldRef } = useDroppable({ id: 'battlefield' });
@@ -120,8 +121,33 @@ function BattlefieldCanvasInner({ yDoc, localPlayerId, player, tokenService }: B
     lastCenteredKeyRef.current = key;
   }, [localMatOrigin, fitBounds]);
 
+  // Track the latest localMatOrigin in a ref so the visibilitychange handler
+  // can read it without being recreated on every localMatOrigin change.
+  const localMatOriginRef = useRef(localMatOrigin);
+  useEffect(() => { localMatOriginRef.current = localMatOrigin; }, [localMatOrigin]);
+
+  // Re-center when the tab becomes visible. On mobile, the browser chrome
+  // (address bar) animates during tab switches and resizes the ReactFlow
+  // container without triggering onMoveStart — so the mat can drift off-screen.
+  // Only recover if the user hasn't manually panned (hasUserMovedRef still false).
+  useEffect(() => {
+    const onVisibilityChange = () => {
+      const origin = localMatOriginRef.current;
+      if (document.hidden || hasUserMovedRef.current || !origin) return;
+      fitBounds(
+        { x: origin.x, y: origin.y, width: MAT_WIDTH, height: MAT_HEIGHT },
+        { padding: 0.15, duration: 0 },
+      );
+    };
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', onVisibilityChange);
+  }, [fitBounds]);
+
   // Maps node id → elevated zIndex assigned at drag-start, consumed at drag-stop.
   const dragElevationRef = useRef<Map<string, number>>(new Map());
+  // Maps token id → pixel offset from its card's top-left corner, captured at
+  // drag-start. Used to carry attached tokens along during a card drag.
+  const attachOffsetsRef = useRef<Map<string, { dx: number; dy: number }>>(new Map());
   // True while a multi-selection drag is in flight; prevents onNodeDragStop from
   // double-writing the primary node (onSelectionDragStop handles all nodes instead).
   const isMultiDragRef = useRef(false);
@@ -132,8 +158,48 @@ function BattlefieldCanvasInner({ yDoc, localPlayerId, player, tokenService }: B
       const newZ = getMaxZIndex(yCards, yTokens) + 1;
       dragElevationRef.current.set(node.id, newZ);
       elevateNode(node.id, newZ);
+
+      // When a card starts moving, capture the offset of each attached token so
+      // we can translate them in real time during the drag (onNodeDrag).
+      if (node.type === 'card') {
+        const tokens = attachedTokens(node.id, yTokens);
+        if (tokens.length > 0) {
+          const zElevations = new Map<string, number>();
+          tokens.forEach((token, i) => {
+            // Store offset from card origin so we can recompute absolute position
+            // purely from the card's drag position (no accumulated drift).
+            attachOffsetsRef.current.set(token.id, {
+              dx: token.x - node.position.x,
+              dy: token.y - node.position.y,
+            });
+            // Each attached token is elevated just above its card. Tokens added
+            // later get progressively higher z so they don't interleave.
+            const tokenZ = newZ + i + 1;
+            dragElevationRef.current.set(token.id, tokenZ);
+            zElevations.set(token.id, tokenZ);
+          });
+          elevateNodes(zElevations);
+        }
+      }
     },
-    [yCards, yTokens, elevateNode],
+    [yCards, yTokens, elevateNode, elevateNodes],
+  );
+
+  // Move attached tokens in real time as a card is dragged. This is local-state
+  // only — Yjs writes happen once, on drag-stop, to avoid flooding peers.
+  const onNodeDrag: OnNodeDrag = useCallback(
+    (_, node) => {
+      if (node.type !== 'card' || attachOffsetsRef.current.size === 0) return;
+      const positions = new Map<string, { x: number; y: number }>();
+      attachOffsetsRef.current.forEach((offset, tokenId) => {
+        positions.set(tokenId, {
+          x: node.position.x + offset.dx,
+          y: node.position.y + offset.dy,
+        });
+      });
+      translateNodes(positions);
+    },
+    [translateNodes],
   );
 
   const onSelectionDragStart = useCallback(

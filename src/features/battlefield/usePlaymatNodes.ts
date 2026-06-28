@@ -177,7 +177,12 @@ export function usePlaymatNodes(
       rafId = requestAnimationFrame(rebuild);
     };
 
+    const onVisibilityChange = () => {
+      if (!document.hidden) rebuild();
+    };
+
     yDoc.on('update', onDocUpdate);
+    document.addEventListener('visibilitychange', onVisibilityChange);
     rebuild(); // Build immediately (don't wait for first update)
 
     // Fallback: re-scan every 2s to pick up any edge cases the doc-update
@@ -187,6 +192,7 @@ export function usePlaymatNodes(
 
     return () => {
       yDoc.off('update', onDocUpdate);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
       if (rafId !== null) cancelAnimationFrame(rafId);
       clearInterval(interval);
     };
