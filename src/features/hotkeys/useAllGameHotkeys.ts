@@ -74,7 +74,8 @@ export function useAllGameHotkeys() {
   const onBattlefield = (action: string) => {
     if (yDoc && playerId && t?.kind === 'battlefield') {
       const yCards = yDoc.getMap<WhiteboardCard>(YDOC_CARDS_ON_BOARD);
-      executeBattlefieldCardAction(action, t.id, yCards, playerId);
+      const yTokens = yDoc.getMap<KeywordToken>(YDOC_KEYWORD_TOKENS);
+      executeBattlefieldCardAction(action, t.id, yCards, yTokens, playerId);
     }
   };
 
@@ -162,7 +163,8 @@ export function useAllGameHotkeys() {
   useHotkeys(getKeyBindingsForAction('untapAll'), () => {
     if (yDoc && playerId) {
       const yCards = yDoc.getMap<WhiteboardCard>(YDOC_CARDS_ON_BOARD);
-      executeBattlefieldCardAction('untapAll', '', yCards, playerId);
+      const yTokens = yDoc.getMap<KeywordToken>(YDOC_KEYWORD_TOKENS);
+      executeBattlefieldCardAction('untapAll', '', yCards, yTokens, playerId);
     }
   }, board);
 

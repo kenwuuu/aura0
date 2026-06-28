@@ -5,6 +5,7 @@ export interface KeywordToken extends WhiteboardObject {
   imageUrl?: string; // URL to the token image (can be SVG or regular image)
   backgroundColor: string; // Background color for circular background
   count?: number; // The number overlaid on the token (optional for blank tokens)
+  attachedTo?: string; // id of the card this token is stacked on; undefined when free-floating
 }
 
 export interface KeywordTokenConfig {

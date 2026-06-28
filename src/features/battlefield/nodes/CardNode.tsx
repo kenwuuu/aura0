@@ -2,6 +2,7 @@ import { memo, useCallback } from 'react';
 import { NodeProps } from '@xyflow/react';
 import * as Y from 'yjs';
 import { WhiteboardCard } from '../types';
+import { KeywordToken } from '@/features/keyword-tokens/types';
 import { useHotkeyStore } from '@/app/stores/hotkeyStore';
 import { useCardPreviewStore } from '@/features/card-preview/cardPreviewStore';
 import { useHotkeyMenuStore } from '@/features/hotkeys/hotkeyMenuStore';
@@ -11,6 +12,7 @@ import { DEFAULT_CARD_BACK, CARD_WIDTH, CARD_HEIGHT } from '@/constants';
 
 interface CardNodeData extends WhiteboardCard {
   yCards: Y.Map<WhiteboardCard>;
+  yTokens: Y.Map<KeywordToken>;
   localPlayerId: string;
 }
 
@@ -35,7 +37,7 @@ const CARD_STYLE = {
 
 export const CardNode = memo(function CardNode({ data, id }: NodeProps) {
   const card = data as unknown as CardNodeData;
-  const { yCards, localPlayerId } = card;
+  const { yCards, yTokens, localPlayerId } = card;
 
   const imageSrc = card.isFlipped
     ? (card.images?.back?.normal || DEFAULT_CARD_BACK)
@@ -65,7 +67,7 @@ export const CardNode = memo(function CardNode({ data, id }: NodeProps) {
       context: HotkeyContext.Battlefield,
       x: e.clientX,
       y: e.clientY,
-      onSelect: (hotkey) => executeBattlefieldCardAction(hotkey.action, id, yCards, localPlayerId),
+      onSelect: (hotkey) => executeBattlefieldCardAction(hotkey.action, id, yCards, yTokens, localPlayerId),
     });
   }, [id, yCards, localPlayerId]);
 

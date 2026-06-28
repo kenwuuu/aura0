@@ -16,7 +16,7 @@ function buildNodes(
       id: card.id,
       type: 'card',
       position: { x: card.x, y: card.y },
-      data: { ...card, yCards, localPlayerId },
+      data: { ...card, yCards, yTokens, localPlayerId },
       zIndex: card.zIndex,
       draggable: card.ownerId === localPlayerId,
       selectable: card.ownerId === localPlayerId,
@@ -64,11 +64,23 @@ export function useBattlefieldNodes(
     setNodes((prev) => applyNodeChanges(changes, prev));
   }, []);
 
-  // Elevate a node's zIndex in local state only (no Yjs write).
-  // Called on drag-start; the final zIndex is persisted to Yjs on drag-stop.
-  const elevateNode = useCallback((id: string, zIndex: number) => {
-    setNodes((prev) => prev.map((n) => (n.id === id ? { ...n, zIndex } : n)));
+  // Elevate multiple nodes at once in local state only.
+  // Used when a card drag-start also needs to raise its attached tokens.
+  const elevateNodes = useCallback((updates: Map<string, number>) => {
+    setNodes((prev) => prev.map((n) => {
+      const newZ = updates.get(n.id);
+      return newZ !== undefined ? { ...n, zIndex: newZ } : n;
+    }));
   }, []);
 
-  return { nodes, onNodesChange, elevateNode };
+  // Move a set of nodes to new positions in local state only (no Yjs write).
+  // Used during card drag to carry attached tokens along in real time.
+  const translateNodes = useCallback((positions: Map<string, { x: number; y: number }>) => {
+    setNodes((prev) => prev.map((n) => {
+      const pos = positions.get(n.id);
+      return pos !== undefined ? { ...n, position: pos } : n;
+    }));
+  }, []);
+
+  return { nodes, onNodesChange, elevateNodes, translateNodes };
 }
