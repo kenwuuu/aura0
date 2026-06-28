@@ -12,26 +12,33 @@ function buildNodes(
   const nodes: Node[] = [];
 
   yCards.forEach((card) => {
+    const isLocal = card.ownerId === localPlayerId;
     nodes.push({
       id: card.id,
       type: 'card',
       position: { x: card.x, y: card.y },
       data: { ...card, yCards, yTokens, localPlayerId },
       zIndex: card.zIndex,
-      draggable: card.ownerId === localPlayerId,
-      selectable: card.ownerId === localPlayerId,
+      draggable: isLocal,
+      selectable: isLocal,
+      // react-flow sets pointer-events:none when draggable&&selectable are both
+      // false, which breaks hover (CardNode.onMouseEnter → card preview).
+      // Spreading style after lets us restore pointer events for enemy cards.
+      style: isLocal ? undefined : { pointerEvents: 'all' as const },
     });
   });
 
   yTokens.forEach((token) => {
+    const isLocal = token.ownerId === localPlayerId;
     nodes.push({
       id: token.id,
       type: 'token',
       position: { x: token.x, y: token.y },
       data: { ...token, yTokens, localPlayerId },
       zIndex: token.zIndex,
-      draggable: token.ownerId === localPlayerId,
-      selectable: token.ownerId === localPlayerId,
+      draggable: isLocal,
+      selectable: isLocal,
+      style: isLocal ? undefined : { pointerEvents: 'all' as const },
     });
   });
 
