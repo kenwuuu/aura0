@@ -6,6 +6,13 @@ import {WebsocketProvider} from "@/infrastructure/networking/WebsocketProvider";
 export interface YjsNetworkProvider{
   status(): string;
   on(event: 'status', callback: (event: { status: string }) => void): void;
+  /**
+   * Resolves once the local IndexedDB copy of the Y.Doc has fully loaded.
+   * Callers must await this before seeding default state, otherwise a fresh
+   * in-memory doc can write empty defaults that win the CRDT merge against the
+   * persisted state (e.g. emptying the hand on refresh).
+   */
+  whenSynced(): Promise<void>;
 }
 
 /**

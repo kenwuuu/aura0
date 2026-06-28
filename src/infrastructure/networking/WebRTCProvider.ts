@@ -85,6 +85,11 @@ export class WebRTCProvider implements YjsNetworkProvider{
     return this.provider.connected ? 'connected' : 'connecting';
   }
 
+  /** Resolves once the Y.Doc has been restored from IndexedDB. */
+  public whenSynced(): Promise<void> {
+    return this.persistence.whenSynced.then(() => undefined);
+  }
+
   public on(event: 'status', callback: (event: { status: string }) => void): void {
     this.provider.on('peers', (peersEvent: { webrtcPeers: string[] }) => {
       const status = peersEvent.webrtcPeers.length > 0 ? 'connected' : 'disconnected';
@@ -141,20 +146,11 @@ export class WebRTCProvider implements YjsNetworkProvider{
 
     this.provider.on('synced', (event: { synced: boolean }) => {
       console.log('Yjs synced:', event.synced);
-      // [hand-debug] TEMP: timestamp peer sync to order against hand writes.
-      console.log('[hand-debug] provider synced', { t: Math.round(performance.now()), synced: event.synced });
-    });
-
-    // [hand-debug] TEMP: timestamp peer connect to order against hand writes.
-    this.provider.on('peers', (event: { webrtcPeers: string[] }) => {
-      console.log('[hand-debug] peers', { t: Math.round(performance.now()), count: event.webrtcPeers.length });
     });
 
     // Log when IndexedDB persistence is ready
     this.persistence.whenSynced.then(() => {
       console.log('Document loaded from IndexedDB');
-      // [hand-debug] TEMP: timestamp IndexedDB load to order against hand writes.
-      console.log('[hand-debug] indexeddb synced', { t: Math.round(performance.now()) });
     });
   }
 

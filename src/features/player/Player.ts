@@ -1,4 +1,5 @@
 import * as Y from 'yjs';
+import * as Sentry from '@sentry/browser';
 import posthog from 'posthog-js';
 import { Card } from './types';
 import { Deck } from './Deck';
@@ -34,6 +35,9 @@ export class Player {
   private discard: CardPile;
   private scry: CardPile;
   private piles: Record<PileType, CardPile>;
+
+  // Tracks own-hand size to detect remote merges that clobber local hand state.
+  private lastHandLen: number = 0;
 
   // posthog
   private healthEventTimer: ReturnType<typeof setTimeout> | null = null;
@@ -77,28 +81,49 @@ export class Player {
       scry: this.scry,
     };
 
-    // [hand-debug] TEMP: trace who/when empties the hand to diagnose the
-    // "hand disappears after refresh" sync race. Remove once resolved.
+    this.lastHandLen = this.hand.getCards().length;
+    this.watchForHandClobber();
+  }
+
+  /**
+   * The local player is the sole author of their own hand, so a *non-local*
+   * transaction (IndexedDB restore or a peer) that shrinks it is the signature
+   * of a CRDT merge clobbering local state — e.g. seeding empty defaults into a
+   * not-yet-synced doc on refresh (fixed by awaiting whenSynced() in bootstrap,
+   * before constructing Player). If it ever happens again, surface it loudly
+   * rather than silently losing the player's hand.
+   */
+  private watchForHandClobber(): void {
     this.yPlayerState.observe((event, transaction) => {
       if (!event.keysChanged.has(YSTATE_HAND)) return;
-      const hand = (this.yPlayerState.get(YSTATE_HAND) ?? []) as Card[];
-      console.log('[hand-debug] HAND changed', {
-        t: Math.round(performance.now()),
-        newLen: hand.length,
-        local: transaction.local, // true = we wrote it, false = peer wrote it
-        origin: (transaction.origin as any)?.constructor?.name ?? String(transaction.origin),
-      });
+      const newLen = ((this.yPlayerState.get(YSTATE_HAND) ?? []) as Card[]).length;
+      const prevLen = this.lastHandLen;
+      this.lastHandLen = newLen;
+
+      if (!transaction.local && newLen < prevLen) {
+        const origin = (transaction.origin as any)?.constructor?.name ?? String(transaction.origin);
+        console.error(
+          `[Aura] Hand clobbered by remote merge: ${prevLen} -> ${newLen} cards (origin: ${origin})`,
+        );
+        posthog.capture('hand_clobbered', {
+          prev_hand_size: prevLen,
+          new_hand_size: newLen,
+          origin,
+        });
+        Sentry.captureMessage('Hand clobbered by remote merge', {
+          level: 'error',
+          extra: {
+            playerId: this.playerId,
+            prevHandSize: prevLen,
+            newHandSize: newLen,
+            origin,
+          },
+        });
+      }
     });
   }
 
   private initializeState(initialDeckCards: Deck): void {
-    // [hand-debug] TEMP: did we take the fresh-init branch (peer/IndexedDB data
-    // not yet synced)? Remove once the refresh-race is resolved.
-    console.log('[hand-debug] initializeState', {
-      t: Math.round(performance.now()),
-      hadHealth: this.yPlayerState.has(YSTATE_HEALTH),
-      existingHandLen: ((this.yPlayerState.get(YSTATE_HAND) ?? []) as Card[]).length,
-    });
     if (!this.yPlayerState.has(YSTATE_HEALTH)) {
       this.yPlayerState.set(YSTATE_HEALTH, this.config.initialHealth);
       this.yPlayerState.set(YSTATE_DECK, initialDeckCards.getCards());

@@ -47,6 +47,11 @@ export class WebsocketProvider implements YjsNetworkProvider{
     return this.provider.wsconnected ? 'connected' : 'connecting';
   }
 
+  /** Resolves once the Y.Doc has been restored from IndexedDB. */
+  public whenSynced(): Promise<void> {
+    return this.persistence.whenSynced.then(() => undefined);
+  }
+
   public on(event: 'status', callback: (event: { status: string }) => void): void {
     this.provider.on('status', (wsEvent: { status: string }) => {
       callback({ status: wsEvent.status });

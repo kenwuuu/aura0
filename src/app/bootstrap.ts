@@ -39,15 +39,8 @@ export async function bootstrapGame(): Promise<GameContext> {
 
   // Log size of Yjs incremental update. We want to eventually reduce the size and volume of updates
   // from drawing a card (70KB) and moving a card on board (hundreds of updates for a single drag).
-  yDoc.on('update', (update: Uint8Array, origin: unknown) => {
+  yDoc.on('update', (update: Uint8Array) => {
     console.debug(`Yjs incremental update of size: ${update.byteLength} bytes`);
-    // [hand-debug] TEMP: tag update origin (WebrtcConn / IndexeddbPersistence /
-    // undefined=local) to order remote sync against local re-init writes.
-    console.log('[hand-debug] yDoc update', {
-      t: Math.round(performance.now()),
-      bytes: update.byteLength,
-      origin: (origin as any)?.constructor?.name ?? String(origin),
-    });
   });
 
   const playerId = getOrCreatePlayerId();
@@ -63,6 +56,12 @@ export async function bootstrapGame(): Promise<GameContext> {
   });
 
   // ── 3. Player ──────────────────────────────────────────────────────────────
+  // Wait for the local IndexedDB copy to load before constructing Player, which
+  // seeds default state if the doc looks empty. Seeding into a not-yet-synced
+  // doc writes empty defaults (e.g. an empty hand) that win the CRDT merge
+  // against the persisted state, wiping the hand on refresh.
+  await yjsNetworkProvider.whenSynced();
+
   const restoredDeck = DeckPersistenceService.restoreDeckForRoom(roomManager.getRoomName());
   const player = new Player(playerId, yDoc, restoredDeck, { initialHealth: 40 });
 
