@@ -24,7 +24,7 @@ import {
   YSTATE_DISCARD_PILE,
   YSTATE_CAN_VIEW_HAND,
 } from '@/constants';
-import { playmatNodePositions } from './boardWorld';
+import { playmatNodePositions, MAT_WIDTH, MAT_HEIGHT } from './boardWorld';
 
 export function buildPlaymatNodes(yDoc: Y.Doc, localPlayerId: string): Node[] {
   const nodes: Node[] = [];
@@ -59,7 +59,13 @@ export function buildPlaymatNodes(yDoc: Y.Doc, localPlayerId: string): Node[] {
     const hand = (map.get(YSTATE_HAND) as Card[] | undefined) ?? [];
     const allowViewHand = (map.get(YSTATE_CAN_VIEW_HAND) as boolean | undefined) ?? false;
 
-    // Playmat background
+    // Playmat background.
+    // width/height must be set explicitly so React Flow's nodeHasDimensions()
+    // returns true immediately (it falls back to node.width when measured is
+    // undefined). Without this, every call to buildPlaymatNodes() produces new
+    // node objects with no measured field, causing React Flow to re-initialise
+    // the node as hidden until ResizeObserver fires — which, on tab-switch, can
+    // happen after the first paint, making the mat visibly disappear.
     nodes.push({
       id: `playmat-${playerId}`,
       type: 'playmat',
@@ -68,6 +74,8 @@ export function buildPlaymatNodes(yDoc: Y.Doc, localPlayerId: string): Node[] {
       zIndex: 0,
       draggable: false,
       selectable: false,
+      width: MAT_WIDTH,
+      height: MAT_HEIGHT,
     });
 
     // Health widget
