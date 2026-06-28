@@ -22,10 +22,9 @@ import { useBattlefieldNodes } from './useBattlefieldNodes';
 import { usePlaymatNodes } from './usePlaymatNodes';
 import { WhiteboardCard } from './types';
 import { KeywordToken } from '@/features/keyword-tokens/types';
-import { attachedTokens, findParentCard } from './cardTokenAttachment';
+import { attachedChildren, findParent, nodeCenter, nodeContainsPoint, NODE_SIZES } from './nodeAttachment';
 import { YDOC_CARDS_ON_BOARD, YDOC_KEYWORD_TOKENS, CARD_WIDTH, CARD_HEIGHT } from '@/constants';
 import { MIN_ZOOM, MAX_ZOOM, MAT_WIDTH, MAT_HEIGHT } from './boardWorld';
-import { TOKEN_SIZE } from './nodes/TokenNode';
 import type { Player } from '@/features/player';
 import type { TokenService } from '@/infrastructure/cards';
 import { useHotkeyMenuStore } from '@/features/hotkeys/hotkeyMenuStore';
@@ -164,32 +163,31 @@ function BattlefieldCanvasInner({ yDoc, localPlayerId, player, tokenService }: B
       const zElevations = new Map<string, number>();
       zElevations.set(node.id, newZ);
 
-      if (node.type === 'card') {
-        attachedTokens(node.id, yTokens).forEach((token, i) => {
-          // Store offset from card origin so we can recompute absolute position
-          // purely from the card's drag position (no accumulated drift).
-          attachOffsetsRef.current.set(token.id, {
-            dx: token.x - node.position.x,
-            dy: token.y - node.position.y,
-          });
-          // Each token sits just above the card. Multiple tokens get
-          // progressively higher z so they don't interleave with each other.
-          const tokenZ = newZ + i + 1;
-          dragElevationRef.current.set(token.id, tokenZ);
-          zElevations.set(token.id, tokenZ);
+      // Any node type can have attached children — collect offsets and elevations for all.
+      attachedChildren(node.id, yTokens).forEach((child, i) => {
+        // Store offset from parent origin so we can recompute absolute position
+        // purely from the parent's drag position (no accumulated drift).
+        attachOffsetsRef.current.set(child.id, {
+          dx: child.x - node.position.x,
+          dy: child.y - node.position.y,
         });
-      }
+        // Each child sits just above its parent. Multiple children get
+        // progressively higher z so they don't interleave with each other.
+        const childZ = newZ + i + 1;
+        dragElevationRef.current.set(child.id, childZ);
+        zElevations.set(child.id, childZ);
+      });
 
       elevateNodes(zElevations);
     },
     [yCards, yTokens, elevateNodes],
   );
 
-  // Move attached tokens in real time as a card is dragged. This is local-state
-  // only — Yjs writes happen once, on drag-stop, to avoid flooding peers.
+  // Move attached children in real time as a parent node is dragged. This is
+  // local-state only — Yjs writes happen once, on drag-stop, to avoid flooding peers.
   const onNodeDrag: OnNodeDrag = useCallback(
     (_, node) => {
-      if (node.type !== 'card' || attachOffsetsRef.current.size === 0) return;
+      if (attachOffsetsRef.current.size === 0) return;
       const positions = new Map<string, { x: number; y: number }>();
       attachOffsetsRef.current.forEach((offset, tokenId) => {
         positions.set(tokenId, {
@@ -220,18 +218,17 @@ function BattlefieldCanvasInner({ yDoc, localPlayerId, player, tokenService }: B
         dragElevationRef.current.set(node.id, newZ);
         zElevations.set(node.id, newZ);
 
-        if (node.type === 'card') {
-          attachedTokens(node.id, yTokens).forEach((token, j) => {
-            if (selectedTokenIds.has(token.id)) return;
-            attachOffsetsRef.current.set(token.id, {
-              dx: token.x - node.position.x,
-              dy: token.y - node.position.y,
-            });
-            const tokenZ = newZ + j + 1;
-            dragElevationRef.current.set(token.id, tokenZ);
-            zElevations.set(token.id, tokenZ);
+        // Any node type can carry attached children.
+        attachedChildren(node.id, yTokens).forEach((child, j) => {
+          if (selectedTokenIds.has(child.id)) return;
+          attachOffsetsRef.current.set(child.id, {
+            dx: child.x - node.position.x,
+            dy: child.y - node.position.y,
           });
-        }
+          const childZ = newZ + j + 1;
+          dragElevationRef.current.set(child.id, childZ);
+          zElevations.set(child.id, childZ);
+        });
       });
       elevateNodes(zElevations);
     },
@@ -294,27 +291,21 @@ function BattlefieldCanvasInner({ yDoc, localPlayerId, player, tokenService }: B
         });
         attachOffsetsRef.current.clear();
 
-        // "Card dropped onto a token": if a free-floating token's center now
-        // falls inside this card's final bounds, attach it and raise it above
-        // the card so it remains visible.
-        const cardFinalZ = elevatedZ ?? (yCards.get(node.id)?.zIndex ?? 0);
+        // "Node dropped onto a token": if a free-floating token's center now
+        // falls inside this node's final bounds, attach it and raise it above
+        // the node so it remains visible.
+        const nodeFinalZ = elevatedZ ?? (yCards.get(node.id)?.zIndex ?? 0);
         yTokens.forEach((token, tokenId) => {
-          // Skip tokens already attached to this card (handled above).
+          // Skip tokens already attached to this node (handled above).
           if (token.attachedTo === node.id) return;
-          // Only attach free-floating tokens; don't steal from another card.
+          // Only attach free-floating tokens; don't steal from another node.
           if (token.attachedTo !== undefined) return;
-          const center = { x: token.x + TOKEN_SIZE / 2, y: token.y + TOKEN_SIZE / 2 };
-          const inside =
-            center.x >= node.position.x &&
-            center.x <= node.position.x + CARD_WIDTH &&
-            center.y >= node.position.y &&
-            center.y <= node.position.y + CARD_HEIGHT;
-          if (inside) {
+          if (nodeContainsPoint(node.position, node.type ?? '', nodeCenter(token, 'token'))) {
             yTokens.set(tokenId, {
               ...token,
               attachedTo: node.id,
-              // Token must sit above the card in the global z-order.
-              zIndex: Math.max(token.zIndex, cardFinalZ + 1),
+              // Token must sit above the parent in the global z-order.
+              zIndex: Math.max(token.zIndex, nodeFinalZ + 1),
             });
           }
         });
@@ -324,9 +315,11 @@ function BattlefieldCanvasInner({ yDoc, localPlayerId, player, tokenService }: B
           // Recompute attachment: attach to the topmost card whose bounds
           // contain the token's center, or clear it if the token was dragged
           // off all cards.
-          const newParentId = findParentCard(
-            { ...token, x: node.position.x, y: node.position.y },
+          const newParentId = findParent(
+            { x: node.position.x, y: node.position.y },
+            'token',
             yCards,
+            'card',
           );
           const parentCard = newParentId ? yCards.get(newParentId) : undefined;
           // Token must sit above its card in the global z-order.
@@ -361,8 +354,8 @@ function BattlefieldCanvasInner({ yDoc, localPlayerId, player, tokenService }: B
           const card = yCards.get(node.id);
           if (card) yCards.set(node.id, { ...card, x: node.position.x, y: node.position.y, zIndex: elevatedZ ?? card.zIndex });
 
-          // Carry any attached tokens that weren't already in the selection.
-          attachedTokens(node.id, yTokens).forEach((token) => {
+          // Carry any attached children that weren't already in the selection.
+          attachedChildren(node.id, yTokens).forEach((token) => {
             if (selectedTokenIds.has(token.id)) return; // moving on its own
             const offset = attachOffsetsRef.current.get(token.id);
             const tokenElevatedZ = dragElevationRef.current.get(token.id);
@@ -380,9 +373,11 @@ function BattlefieldCanvasInner({ yDoc, localPlayerId, player, tokenService }: B
           const token = yTokens.get(node.id);
           if (token) {
             // Recompute attachment after move.
-            const newParentId = findParentCard(
-              { ...token, x: node.position.x, y: node.position.y },
+            const newParentId = findParent(
+              { x: node.position.x, y: node.position.y },
+              'token',
               yCards,
+              'card',
             );
             const parentCard = newParentId ? yCards.get(newParentId) : undefined;
             const finalZ = parentCard
@@ -421,10 +416,10 @@ function BattlefieldCanvasInner({ yDoc, localPlayerId, player, tokenService }: B
       const position = screenToFlowPosition({ x: event.clientX, y: event.clientY });
       const tokenId = `token-${Math.random().toString(36).substring(2, 11)}`;
       const maxZ = getMaxZIndex(yCards, yTokens);
-      const tokenX = position.x - TOKEN_SIZE / 2;
-      const tokenY = position.y - TOKEN_SIZE / 2;
+      const tokenX = position.x - NODE_SIZES.token.width / 2;
+      const tokenY = position.y - NODE_SIZES.token.height / 2;
       // Attach to the topmost card under the drop point, if any.
-      const parentId = findParentCard({ x: tokenX, y: tokenY } as KeywordToken, yCards);
+      const parentId = findParent({ x: tokenX, y: tokenY }, 'token', yCards, 'card');
       const parentCard = parentId ? yCards.get(parentId) : undefined;
       const newToken: KeywordToken = {
         id: tokenId,

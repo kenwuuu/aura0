@@ -9,14 +9,14 @@ import * as Y from 'yjs';
 import { WhiteboardCard } from './types';
 import { KeywordToken } from '@/features/keyword-tokens/types';
 import { YDOC_KEYWORD_TOKENS } from '@/constants';
-import { attachedTokens } from './cardTokenAttachment';
+import { attachedChildren } from './nodeAttachment';
 import { useCardPreviewStore } from '@/features/card-preview/cardPreviewStore';
 import { useHotkeyMenuStore } from '@/features/hotkeys/hotkeyMenuStore';
 import { useGameInstance } from '@/app/stores/gameInstanceStore';
 
 /** Clear `attachedTo` on any token that was attached to the given card. */
 function detachTokens(cardId: string, yTokens: Y.Map<KeywordToken>) {
-  attachedTokens(cardId, yTokens).forEach((token) => {
+  attachedChildren(cardId, yTokens).forEach((token) => {
     yTokens.set(token.id, { ...token, attachedTo: undefined });
   });
 }
