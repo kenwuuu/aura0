@@ -21,10 +21,6 @@ function buildNodes(
       zIndex: card.zIndex,
       draggable: isLocal,
       selectable: isLocal,
-      // react-flow sets pointer-events:none when draggable&&selectable are both
-      // false, which breaks hover (CardNode.onMouseEnter → card preview).
-      // Spreading style after lets us restore pointer events for enemy cards.
-      style: isLocal ? undefined : { pointerEvents: 'all' as const },
     });
   });
 
@@ -38,7 +34,6 @@ function buildNodes(
       zIndex: token.zIndex,
       draggable: isLocal,
       selectable: isLocal,
-      style: isLocal ? undefined : { pointerEvents: 'all' as const },
     });
   });
 

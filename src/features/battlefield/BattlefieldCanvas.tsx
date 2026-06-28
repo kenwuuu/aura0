@@ -457,6 +457,7 @@ function BattlefieldCanvasInner({ yDoc, localPlayerId, player, tokenService }: B
         nodeTypes={nodeTypes}
         onDragOver={onDragOver}
         onDrop={onDrop}
+        onNodeMouseEnter={() => {}} // keeps pointer-events:all on non-draggable/selectable nodes (enemy cards/tokens)
         onPaneClick={() => useHotkeyMenuStore.getState().close()}
         onMoveStart={(event) => {
           useHotkeyMenuStore.getState().close();
