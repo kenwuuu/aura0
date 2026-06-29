@@ -75,6 +75,47 @@ function findPileType(element: Element | null): PileDropTarget | null {
   return null;
 }
 
+function finalizeCardDrag(
+  node: Node,
+  yCards: Y.Map<WhiteboardCard>,
+  yTokens: Y.Map<KeywordToken>,
+  elevatedZ: number | undefined,
+  dragElevation: Map<string, number>,
+  attachOffsets: Map<string, { dx: number; dy: number }>,
+  skipTokenIds: Set<string> = new Set(),
+): void {
+  const card = yCards.get(node.id);
+  if (card) yCards.set(node.id, { ...card, x: node.position.x, y: node.position.y, zIndex: elevatedZ ?? card.zIndex });
+  attachedChildren(node.id, yTokens).forEach((token) => {
+    if (skipTokenIds.has(token.id)) return;
+    const offset = attachOffsets.get(token.id);
+    const tokenZ = dragElevation.get(token.id);
+    dragElevation.delete(token.id);
+    yTokens.set(token.id, {
+      ...token,
+      x: offset ? node.position.x + offset.dx : token.x,
+      y: offset ? node.position.y + offset.dy : token.y,
+      zIndex: tokenZ ?? token.zIndex,
+    });
+  });
+}
+
+function finalizeTokenDrag(
+  node: Node,
+  yCards: Y.Map<WhiteboardCard>,
+  yTokens: Y.Map<KeywordToken>,
+  elevatedZ: number | undefined,
+): void {
+  const token = yTokens.get(node.id);
+  if (!token) return;
+  const newParentId = findParent({ x: node.position.x, y: node.position.y }, 'token', yCards, 'card');
+  const parentCard = newParentId ? yCards.get(newParentId) : undefined;
+  const finalZ = parentCard
+    ? Math.max(elevatedZ ?? token.zIndex, parentCard.zIndex + 1)
+    : (elevatedZ ?? token.zIndex);
+  yTokens.set(node.id, { ...token, x: node.position.x, y: node.position.y, zIndex: finalZ, attachedTo: newParentId });
+}
+
 function BattlefieldCanvasInner({ yDoc, localPlayerId, player, tokenService }: BattlefieldCanvasProps) {
   const yCards = yDoc.getMap<WhiteboardCard>(YDOC_CARDS_ON_BOARD);
   const yTokens = yDoc.getMap<KeywordToken>(YDOC_KEYWORD_TOKENS);
@@ -237,103 +278,42 @@ function BattlefieldCanvasInner({ yDoc, localPlayerId, player, tokenService }: B
 
   const onNodeDragStop: OnNodeDrag = useCallback(
     (event, node) => {
-      // Multi-selection drag: onSelectionDragStop handles all writes, skip here.
+      // react-flow fires onNodeDragStop for every node in a selection drag too.
+      // Skip here — onSelectionDragStop owns all Yjs writes for multi-node drags.
       if (isMultiDragRef.current) return;
 
-      const clientX = 'clientX' in event ? event.clientX : event.touches?.[0]?.clientX ?? 0;
-      const clientY = 'clientY' in event ? event.clientY : event.touches?.[0]?.clientY ?? 0;
+      const elevatedZ = dragElevationRef.current.get(node.id);
+      dragElevationRef.current.delete(node.id);
 
-      // Check if released over a pile → move card off board (own piles only).
-      // Use elementsFromPoint (plural) because the dragged card node has pointer-events: all
-      // and sits on top of the pile at the drop location, so elementFromPoint returns the card,
-      // not the pile. Iterating the full z-ordered list finds the pile underneath.
       if (node.type === 'card') {
+        // Check if card dropped on a pile. Use elementsFromPoint (plural) because
+        // the dragged card sits on top and intercepts elementFromPoint.
+        const clientX = 'clientX' in event ? event.clientX : event.touches?.[0]?.clientX ?? 0;
+        const clientY = 'clientY' in event ? event.clientY : event.touches?.[0]?.clientY ?? 0;
         let pileTarget: PileDropTarget | null = null;
         for (const el of document.elementsFromPoint(clientX, clientY)) {
           pileTarget = findPileType(el);
           if (pileTarget) break;
         }
-        if (pileTarget) {
-          const { pileType, ownerId } = pileTarget;
-          // ownerId === null → dock pile → local player's pile
-          if (ownerId === null || ownerId === localPlayerId) {
-            useGameInstance.getState().moveCardFromBattlefield(node.id, pileType);
-            dragElevationRef.current.delete(node.id);
-            attachOffsetsRef.current.clear();
-            return; // card moved off board; don't write position
-          }
-          // Dropped on an opponent's pile — reject silently; fall through to write position
+        if (pileTarget && (pileTarget.ownerId === null || pileTarget.ownerId === localPlayerId)) {
+          useGameInstance.getState().moveCardFromBattlefield(node.id, pileTarget.pileType);
+          attachOffsetsRef.current.clear();
+          return;
         }
-      }
 
-      // Write final drag position + elevated zIndex to Yjs
-      const elevatedZ = dragElevationRef.current.get(node.id);
-      dragElevationRef.current.delete(node.id);
-
-      if (node.type === 'card') {
-        const card = yCards.get(node.id);
-        if (card) yCards.set(node.id, { ...card, x: node.position.x, y: node.position.y, zIndex: elevatedZ ?? card.zIndex });
-
-        // Write the final absolute position for every token that was carried
-        // along with this card during the drag.
-        attachOffsetsRef.current.forEach((offset, tokenId) => {
-          const tokenElevatedZ = dragElevationRef.current.get(tokenId);
-          dragElevationRef.current.delete(tokenId);
-          const token = yTokens.get(tokenId);
-          if (token) {
-            yTokens.set(tokenId, {
-              ...token,
-              x: node.position.x + offset.dx,
-              y: node.position.y + offset.dy,
-              zIndex: tokenElevatedZ ?? token.zIndex,
-            });
-          }
-        });
+        finalizeCardDrag(node, yCards, yTokens, elevatedZ, dragElevationRef.current, attachOffsetsRef.current);
         attachOffsetsRef.current.clear();
 
-        // "Node dropped onto a token": if a free-floating token's center now
-        // falls inside this node's final bounds, attach it and raise it above
-        // the node so it remains visible.
+        // Attach any free-floating tokens whose center now falls inside this card.
         const nodeFinalZ = elevatedZ ?? (yCards.get(node.id)?.zIndex ?? 0);
         yTokens.forEach((token, tokenId) => {
-          // Skip tokens already attached to this node (handled above).
-          if (token.attachedTo === node.id) return;
-          // Only attach free-floating tokens; don't steal from another node.
-          if (token.attachedTo !== undefined) return;
+          if (token.attachedTo === node.id || token.attachedTo !== undefined) return;
           if (nodeContainsPoint(node.position, node.type ?? '', nodeCenter(token, 'token'))) {
-            yTokens.set(tokenId, {
-              ...token,
-              attachedTo: node.id,
-              // Token must sit above the parent in the global z-order.
-              zIndex: Math.max(token.zIndex, nodeFinalZ + 1),
-            });
+            yTokens.set(tokenId, { ...token, attachedTo: node.id, zIndex: Math.max(token.zIndex, nodeFinalZ + 1) });
           }
         });
       } else if (node.type === 'token') {
-        const token = yTokens.get(node.id);
-        if (token) {
-          // Recompute attachment: attach to the topmost card whose bounds
-          // contain the token's center, or clear it if the token was dragged
-          // off all cards.
-          const newParentId = findParent(
-            { x: node.position.x, y: node.position.y },
-            'token',
-            yCards,
-            'card',
-          );
-          const parentCard = newParentId ? yCards.get(newParentId) : undefined;
-          // Token must sit above its card in the global z-order.
-          const finalZ = parentCard
-            ? Math.max(elevatedZ ?? token.zIndex, parentCard.zIndex + 1)
-            : (elevatedZ ?? token.zIndex);
-          yTokens.set(node.id, {
-            ...token,
-            x: node.position.x,
-            y: node.position.y,
-            zIndex: finalZ,
-            attachedTo: newParentId,
-          });
-        }
+        finalizeTokenDrag(node, yCards, yTokens, elevatedZ);
       }
     },
     [yCards, yTokens, localPlayerId],
@@ -342,55 +322,14 @@ function BattlefieldCanvasInner({ yDoc, localPlayerId, player, tokenService }: B
   const onSelectionDragStop = useCallback(
     (_: React.MouseEvent, nodes: Node[]) => {
       isMultiDragRef.current = false;
-
-      // Build a set of token ids that are moving on their own (selected directly)
-      // so we don't double-write them when processing their card's attached tokens.
       const selectedTokenIds = new Set(nodes.filter((n) => n.type === 'token').map((n) => n.id));
-
       nodes.forEach((node) => {
         const elevatedZ = dragElevationRef.current.get(node.id);
         dragElevationRef.current.delete(node.id);
         if (node.type === 'card') {
-          const card = yCards.get(node.id);
-          if (card) yCards.set(node.id, { ...card, x: node.position.x, y: node.position.y, zIndex: elevatedZ ?? card.zIndex });
-
-          // Carry any attached children that weren't already in the selection.
-          attachedChildren(node.id, yTokens).forEach((token) => {
-            if (selectedTokenIds.has(token.id)) return; // moving on its own
-            const offset = attachOffsetsRef.current.get(token.id);
-            const tokenElevatedZ = dragElevationRef.current.get(token.id);
-            dragElevationRef.current.delete(token.id);
-            const newX = offset ? node.position.x + offset.dx : token.x;
-            const newY = offset ? node.position.y + offset.dy : token.y;
-            yTokens.set(token.id, {
-              ...token,
-              x: newX,
-              y: newY,
-              zIndex: tokenElevatedZ ?? token.zIndex,
-            });
-          });
+          finalizeCardDrag(node, yCards, yTokens, elevatedZ, dragElevationRef.current, attachOffsetsRef.current, selectedTokenIds);
         } else if (node.type === 'token') {
-          const token = yTokens.get(node.id);
-          if (token) {
-            // Recompute attachment after move.
-            const newParentId = findParent(
-              { x: node.position.x, y: node.position.y },
-              'token',
-              yCards,
-              'card',
-            );
-            const parentCard = newParentId ? yCards.get(newParentId) : undefined;
-            const finalZ = parentCard
-              ? Math.max(elevatedZ ?? token.zIndex, parentCard.zIndex + 1)
-              : (elevatedZ ?? token.zIndex);
-            yTokens.set(node.id, {
-              ...token,
-              x: node.position.x,
-              y: node.position.y,
-              zIndex: finalZ,
-              attachedTo: newParentId,
-            });
-          }
+          finalizeTokenDrag(node, yCards, yTokens, elevatedZ);
         }
       });
       attachOffsetsRef.current.clear();
