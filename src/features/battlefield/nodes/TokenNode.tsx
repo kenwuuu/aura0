@@ -6,7 +6,8 @@ import { useHotkeyStore } from '@/app/stores/hotkeyStore';
 import { useHotkeyMenuStore } from '@/features/hotkeys/hotkeyMenuStore';
 import { HotkeyContext } from '@/features/hotkeys/hotkeys';
 
-export const TOKEN_SIZE = 30;
+export const TOKEN_SIZE = 20;
+export const FONT_SCALE = 30 / 40 ;
 
 interface TokenNodeData extends KeywordToken {
   yTokens: Y.Map<KeywordToken>;
@@ -23,11 +24,7 @@ export const TokenNode = memo(function TokenNode({ data, id }: NodeProps) {
     const latest = yTokens.get(id);
     if (!latest) return;
     const next = (latest.count ?? 0) + delta;
-    if (next <= 0) {
-      yTokens.delete(id);
-    } else {
-      yTokens.set(id, { ...latest, count: next });
-    }
+    yTokens.set(id, { ...latest, count: next });
   }, [id, yTokens, isOwn]);
 
   const handleClick = useCallback((e: React.MouseEvent) => {
@@ -101,7 +98,7 @@ export const TokenNode = memo(function TokenNode({ data, id }: NodeProps) {
           position: 'absolute',
           top: '-35%',
           left: '-10%',
-          fontSize: 20,
+          fontSize: TOKEN_SIZE * FONT_SCALE,
           fontWeight: 'bold',
           color: 'white',
           textShadow: '-1px -1px 0 black, 1px -1px 0 black, -1px 1px 0 black, 1px 1px 0 black',
