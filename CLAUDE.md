@@ -41,7 +41,7 @@ Each feature owns its UI, business logic, and types:
 - `opponents/` — opponent health display (Yjs-synced)
 
 ### Battlefield (react-flow)
-`BattlefieldCanvas` wraps `<ReactFlow>` with controlled nodes driven by `useBattlefieldNodes`. The bridge observes `yCards`/`yTokens` and calls `setNodes`; drag writes back to Yjs only on `onNodeDragStop`. Board-to-dock card moves fire a `moveCardFromBattlefield` window event, handled by `WhiteboardEventHandlers`. Hand-to-board and token-to-board drops are handled inside `BattlefieldCanvas.onDrop` via `screenToFlowPosition`.
+`BattlefieldCanvas` wraps `<ReactFlow>` with controlled nodes driven by `useBattlefieldNodes`. The bridge observes `yCards`/`yTokens` and calls `setNodes`; drag writes back to Yjs only on `onNodeDragStop`. Board-to-dock card moves go through `gameInstanceStore.moveCardFromBattlefield`. Hand-to-board drops call `gameInstanceStore.playCardFromHand`; keyword-token drops are handled inside `BattlefieldCanvas.onDrop` via `screenToFlowPosition`.
 
 ### Hotkey system
 `useAllGameHotkeys` (mounted in `<GameHotkeysManager>`) reads `hoverTarget` from `hotkeyStore` to route contextual actions to the right surface (battlefield card, hand card, pile, token). Modal state switches between `HotkeyScope.Board` and `HotkeyScope.PileViewer` via `react-hotkeys-hook`'s `<HotkeysProvider>`. The context menu (`HotkeyMenu`) is a Radix Popover opened imperatively via `useHotkeyMenuStore.getState().openMenu(...)`.
@@ -54,7 +54,13 @@ Each feature owns its UI, business logic, and types:
 ### Path aliases
 `@/` maps to `src/`. Use it everywhere — no relative `../../` imports across features.
 
-## Key Conventions
+## Design Philosophy
+
+**Extensible and self-documenting over simple.** When choosing where to put logic, prefer the location that makes the code correct by default for all future callers — not the one that's shortest. A store action like `playCardFromHand` names a complete game action; if callers have to remember to also trigger token creation afterward, the name lies and every new call-site is a latent bug.
+
+**Complete semantic actions.** Store actions represent full game events with all their consequences. Side effects (token creation, analytics, persistence) belong inside the action, not scattered at call sites. This means: if you add a new way to play a card from hand (hotkey, pile drag, etc.), it gets token creation for free.
+
+**Caller should not need to know implementation details.** If playing a card creates tokens, that is not the UI layer's concern. The UI layer says what happened (a card was played); the action layer decides what that means (place card + spawn related tokens).
 
 **Yjs mutations always go through `Player`** for player-state (hand, deck, health). For battlefield objects, write directly to `yDoc.getMap(YDOC_CARDS_ON_BOARD)`. Never use `player.yPlayerState` directly from outside `Player.ts`.
 
