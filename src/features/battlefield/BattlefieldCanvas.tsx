@@ -155,8 +155,8 @@ function BattlefieldCanvasInner({ yDoc, localPlayerId, player, tokenService }: B
     const key = `${localMatOrigin.x},${localMatOrigin.y}`;
     if (lastCenteredKeyRef.current === key) return;
     fitBounds(
-      { x: localMatOrigin.x, y: localMatOrigin.y, width: MAT_WIDTH, height: MAT_HEIGHT },
-      { padding: 0.15, duration: 0 },
+      { x: localMatOrigin.x, y: localMatOrigin.y + MAT_HEIGHT * 0.25, width: MAT_WIDTH, height: MAT_HEIGHT },
+      { padding: 0.65, duration: 0 },
     );
     lastCenteredKeyRef.current = key;
   }, [localMatOrigin, fitBounds]);
