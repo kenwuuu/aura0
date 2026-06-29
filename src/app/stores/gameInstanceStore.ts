@@ -14,6 +14,7 @@ import type { Card } from '@/features/player/types';
 import type { RoomManager } from '@/features/room';
 import { YDOC_CARDS_ON_BOARD, CARD_WIDTH, CARD_HEIGHT } from '@/constants';
 import { DeckPersistenceService } from '@/infrastructure/persistence';
+import type { TokenService } from '@/infrastructure/cards';
 import type { WhiteboardCard } from '@/features/battlefield/types';
 
 type BattlefieldDestination = 'hand' | 'exile' | 'discard' | 'deck';
@@ -24,12 +25,14 @@ interface GameInstanceStore {
   player: Player | null;
   playerId: string | null;
   roomManager: RoomManager | null;
+  tokenService: TokenService | null;
 
   // Setters
   setYDoc: (yDoc: Y.Doc) => void;
   setPlayer: (player: Player) => void;
   setPlayerId: (playerId: string) => void;
   setRoomManager: (roomManager: RoomManager) => void;
+  setTokenService: (tokenService: TokenService) => void;
 
   // Card movements off the battlefield (replaces the old window CustomEvent bus).
   // Callers (battlefieldCardActions) already remove the card from the board; these
@@ -51,8 +54,8 @@ interface GameInstanceStore {
   screenToFlowPosition: ((point: { x: number; y: number }) => { x: number; y: number }) | null;
   setScreenToFlowPosition: (fn: (point: { x: number; y: number }) => { x: number; y: number }) => void;
 
-  // Play a card from hand directly onto the battlefield at the given screen position.
-  playCardFromHand: (cardId: string, clientX: number, clientY: number) => void;
+  // Play a card from hand onto the battlefield: places the card and spawns any related tokens.
+  playCardFromHand: (cardId: string, clientX: number, clientY: number) => Promise<void>;
 
   // Reset all instances (useful for cleanup)
   reset: () => void;
@@ -64,6 +67,7 @@ export const useGameInstance = create<GameInstanceStore>((set, get) => ({
   player: null,
   playerId: null,
   roomManager: null,
+  tokenService: null,
   screenToFlowPosition: null,
 
   // Setters
@@ -71,6 +75,7 @@ export const useGameInstance = create<GameInstanceStore>((set, get) => ({
   setPlayer: (player) => set({ player }),
   setPlayerId: (playerId) => set({ playerId }),
   setRoomManager: (roomManager) => set({ roomManager }),
+  setTokenService: (tokenService) => set({ tokenService }),
 
   // Card movements
   moveCardToHand: (card) => get().player?.placeCardInPile(card, 'hand'),
@@ -112,23 +117,31 @@ export const useGameInstance = create<GameInstanceStore>((set, get) => ({
 
   setScreenToFlowPosition: (fn) => set({ screenToFlowPosition: fn }),
 
-  playCardFromHand: (cardId, clientX, clientY) => {
-    const { yDoc, player, playerId, screenToFlowPosition } = get();
+  playCardFromHand: async (cardId, clientX, clientY) => {
+    const { yDoc, player, playerId, screenToFlowPosition, tokenService } = get();
     if (!yDoc || !player || !playerId || !screenToFlowPosition) return;
     const card = player.removeCardFromHand(cardId);
     if (!card) return;
+
     const position = screenToFlowPosition({ x: clientX, y: clientY });
+    const cardX = position.x - CARD_WIDTH / 2;
+    const cardY = position.y - CARD_HEIGHT / 2;
+
     const yCards = yDoc.getMap<WhiteboardCard>(YDOC_CARDS_ON_BOARD);
     let maxZ = 0;
     yCards.forEach((c) => { if (c.zIndex > maxZ) maxZ = c.zIndex; });
-    yCards.set(card.id, {
-      ...card,
-      x: position.x - CARD_WIDTH / 2,
-      y: position.y - CARD_HEIGHT / 2,
-      zIndex: maxZ + 1,
-      ownerId: playerId,
-    });
+    yCards.set(card.id, { ...card, x: cardX, y: cardY, zIndex: maxZ + 1, ownerId: playerId });
     posthog.capture('card_played_to_battlefield', { card_name: card.name, is_flipped: card.isFlipped });
+
+    if (tokenService && card.scryfallId) {
+      const result = await tokenService.createTokensForCard(card.scryfallId, { x: cardX, y: cardY });
+      result.tokens.forEach((token, i) => {
+        yCards.set(token.id, { ...token, zIndex: maxZ + 2 + i, ownerId: playerId });
+      });
+      if (result.errors.length > 0) {
+        console.warn(`Token creation errors for ${card.name}:`, result.errors);
+      }
+    }
   },
 
   addCardToBoard: (card, ownerId) => {
@@ -146,6 +159,7 @@ export const useGameInstance = create<GameInstanceStore>((set, get) => ({
     player: null,
     playerId: null,
     roomManager: null,
+    tokenService: null,
     screenToFlowPosition: null,
   }),
 }));

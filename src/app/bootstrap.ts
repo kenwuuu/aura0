@@ -78,6 +78,7 @@ export async function bootstrapGame(): Promise<GameContext> {
   useGameInstance.getState().setPlayer(player);
   useGameInstance.getState().setPlayerId(playerId);
   useGameInstance.getState().setRoomManager(roomManager);
+  useGameInstance.getState().setTokenService(tokenService);
 
   // ── 6. Deck seeding + auto-load ────────────────────────────────────────────
   const storage = new DeckStorageService();
