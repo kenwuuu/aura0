@@ -836,41 +836,6 @@ body {
   border-color: #4752C4;
 }
 
-/* Zoom Controls */
-.zoom-controls {
-  background-color: rgba(10, 10, 10, 0.9);
-  border: 2px solid #2d2d2d;
-  border-radius: 12px;
-  padding: 8px;
-  backdrop-filter: blur(10px);
-}
-
-.zoom-button {
-  width: 40px;
-  height: 40px;
-  background-color: #2d2d2d;
-  color: #ffffff;
-  border: 1px solid #3d3d3d;
-  border-radius: 8px;
-  font-size: 18px;
-  font-weight: bold;
-  cursor: pointer;
-  transition: all 0.2s;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.zoom-button:hover {
-  background-color: #3d3d3d;
-  border-color: #4d4d4d;
-  transform: scale(1.1);
-}
-
-.zoom-button:active {
-  background-color: #1d1d1d;
-  transform: scale(0.95);
-}
 /* ===== Deck Pile Viewer Components ===== */
 
 /* Deck Pile Viewer Modal */

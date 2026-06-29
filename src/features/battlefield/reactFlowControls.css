@@ -1,0 +1,51 @@
+/**
+ * Dark-theme overrides for react-flow's built-in <Controls> widget.
+ *
+ * The default react-flow stylesheet uses white/light backgrounds which become
+ * invisible on Aura's black board. These overrides apply the app's dark palette
+ * (#1a1a1a / #2d2d2d bg, #4a4a4a borders, light icon fill) for clear contrast.
+ *
+ * We use a plain CSS file (not a CSS module) because react-flow's classes are
+ * global — CSS modules generate scoped hashes that can't target external classes.
+ * Import order: this file is imported after '@xyflow/react/dist/style.css' in
+ * BattlefieldCanvas.tsx so these rules take precedence.
+ */
+
+.react-flow__controls {
+  background: rgba(26, 26, 26, 0.9);
+  border: 1px solid #4a4a4a;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+  overflow: hidden;
+  backdrop-filter: blur(8px);
+}
+
+.react-flow__controls-button {
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid #3d3d3d;
+  color: #d1d5db;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.react-flow__controls-button:last-child {
+  border-bottom: none;
+}
+
+.react-flow__controls-button:hover {
+  background: #2d2d2d;
+  color: #ffffff;
+}
+
+.react-flow__controls-button svg {
+  fill: currentColor;
+  /* react-flow uses SVG fill for its icons */
+  max-width: 14px;
+  max-height: 14px;
+}

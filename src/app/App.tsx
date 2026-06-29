@@ -40,6 +40,7 @@ import { AnnouncementsService } from '@/shared/services/announcements/Announceme
 import { HelpButton, HotkeysButton, DiscordButton } from './ToolbarButtons';
 import { useGameInstance } from './stores/gameInstanceStore';
 import { useCardPreviewStore } from '@/features/card-preview/cardPreviewStore';
+import { useSettingsStore } from './stores/settingsStore';
 import { DEFAULT_CARD_BACK } from '@/constants';
 
 const isDevEnv = import.meta.env.MODE === 'development';
@@ -96,7 +97,7 @@ export function App({ yDoc, yjsNetworkProvider, player, roomManager, playerId, c
   const handleDragStart = useCallback((event: DragStartEvent) => {
     const card = player.getState().hand.find(c => c.id === event.active.id);
     setActiveCard(card ?? null);
-    setActiveZoom(parseFloat(localStorage.getItem('hand-zoom') || '1'));
+    setActiveZoom(useSettingsStore.getState().handZoom);
     useCardPreviewStore.getState().hide();
   }, [player]);
 

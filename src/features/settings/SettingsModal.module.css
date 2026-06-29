@@ -1,0 +1,68 @@
+/**
+ * Layout for the Settings modal: a fixed-height two-column shell with a
+ * sidebar category nav on the left and a scrollable content panel on the right.
+ * New categories (added to sections.tsx) automatically appear in the nav.
+ */
+
+/* Two-column shell --------------------------------------------------------- */
+.shell {
+  display: grid;
+  grid-template-columns: 160px 1fr;
+  min-height: 380px;
+  max-height: 65vh;
+  overflow: hidden;
+}
+
+/* Sidebar ------------------------------------------------------------------ */
+.sidebar {
+  border-right: 1px solid #2d2d2d;
+  padding: 12px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow-y: auto;
+}
+
+.navButton {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: #9ca3af;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.15s, color 0.15s;
+}
+
+.navButton:hover {
+  background: #2d2d2d;
+  color: #e5e7eb;
+}
+
+.navButtonActive {
+  background: #1e3a5f;
+  color: #93c5fd;
+}
+
+.navButtonActive:hover {
+  background: #1e3a5f;
+  color: #93c5fd;
+}
+
+.navIcon {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+}
+
+/* Content panel ------------------------------------------------------------ */
+.panel {
+  padding: 20px 24px;
+  overflow-y: auto;
+}

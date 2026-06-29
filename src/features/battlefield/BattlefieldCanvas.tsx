@@ -4,12 +4,14 @@ import {
   ReactFlowProvider,
   Background,
   Controls,
+  Panel,
   Node,
   useReactFlow,
   type OnNodeDrag,
 } from '@xyflow/react';
 import { useDroppable } from '@dnd-kit/core';
 import '@xyflow/react/dist/style.css';
+import './reactFlowControls.css';
 import * as Y from 'yjs';
 import posthog from 'posthog-js';
 
@@ -29,6 +31,7 @@ import type { Player } from '@/features/player';
 import type { TokenService } from '@/infrastructure/cards';
 import { useHotkeyMenuStore } from '@/features/hotkeys/hotkeyMenuStore';
 import { useGameInstance } from '@/app/stores/gameInstanceStore';
+import { SettingsButton } from '@/features/settings/SettingsButton';
 
 const nodeTypes = {
   card: CardNode,
@@ -419,6 +422,9 @@ function BattlefieldCanvasInner({ yDoc, localPlayerId, player, tokenService }: B
       >
         <Background color="#2d2d2d" gap={40} />
         <Controls position="bottom-right" />
+        <Panel position="bottom-left">
+          <SettingsButton />
+        </Panel>
       </ReactFlow>
     </div>
   );

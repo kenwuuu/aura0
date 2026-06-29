@@ -1,6 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
 import type { Card } from '@/features/player/types';
 import { DEFAULT_CARD_BACK } from '@/constants';
 import { CardPreview } from './CardPreview';
@@ -37,7 +36,6 @@ describe('CardPreview', () => {
       isVisible: false,
       mouseX: 0,
       mouseY: 0,
-      zoom: 1,
     });
     setWindowWidth(1024);
   });
@@ -118,24 +116,6 @@ describe('CardPreview', () => {
       const popup = container.querySelector('.card-preview-popup') as HTMLElement;
       expect(popup.style.left).toBe('20px');
       expect(popup.style.right).toBe('auto');
-    });
-  });
-
-  describe('zoom controls', () => {
-    it('always renders the zoom-control cluster, even when hidden', () => {
-      render(<CardPreview />);
-      expect(screen.getByTitle('Zoom In Card Preview')).toBeInTheDocument();
-      expect(screen.getByTitle('Reset Card Preview Zoom')).toBeInTheDocument();
-      expect(screen.getByTitle('Zoom Out Card Preview')).toBeInTheDocument();
-    });
-
-    it('reflects and updates the preview zoom level', async () => {
-      const user = userEvent.setup();
-      render(<CardPreview />);
-      expect(screen.getByTitle('Reset Card Preview Zoom')).toHaveTextContent('1.0×');
-      await user.click(screen.getByTitle('Zoom In Card Preview'));
-      expect(useCardPreviewStore.getState().zoom).toBeCloseTo(1.1);
-      expect(screen.getByTitle('Reset Card Preview Zoom')).toHaveTextContent('1.1×');
     });
   });
 });

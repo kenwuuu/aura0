@@ -1,56 +1,31 @@
-import React, { useState, useCallback } from 'react';
+import React from 'react';
 import { HandCardsContainer } from './HandCardsContainer';
 import { usePlayerStore } from '@/app/stores/playerStore';
 import { useGameInstance } from '@/app/stores/gameInstanceStore';
 import { useHotkeyStore } from '@/app/stores/hotkeyStore';
+import { useSettingsStore } from '@/app/stores/settingsStore';
 
 export function FloatingHand() {
   const yPlayerState = usePlayerStore((s) => s.yPlayerState);
   const playerId = useGameInstance((s) => s.playerId);
-  const [zoomLevel, setZoomLevel] = useState(() =>
-    parseFloat(localStorage.getItem('hand-zoom') || '1'),
-  );
+  const zoomLevel = useSettingsStore((s) => s.handZoom);
+  const demoHandCards = useSettingsStore((s) => s.demoHandCards);
 
-  const adjustZoom = useCallback((delta: number) => {
-    setZoomLevel((prev) => {
-      const next = Math.max(0.5, Math.min(2, prev + delta));
-      localStorage.setItem('hand-zoom', String(next));
-      return next;
-    });
-  }, []);
-
-  const resetZoom = useCallback(() => {
-    setZoomLevel(1);
-    localStorage.setItem('hand-zoom', '1');
-  }, []);
-
-  const handleHoveredCardChange = useCallback((cardId: string | null) => {
+  const handleHoveredCardChange = React.useCallback((cardId: string | null) => {
     useHotkeyStore.getState().setHoveredHandCard(cardId);
   }, []);
 
   if (!yPlayerState || !playerId) return null;
 
   return (
-    <>
-      <div
-        className="zoom-controls hand-zoom-controls"
-        style={{ position: 'fixed', bottom: 8, left: 8, zIndex: 950, display: 'flex', flexDirection: 'column', gap: '8px' }}
-      >
-        <button className="zoom-button" onClick={() => adjustZoom(0.2)} title="Zoom In Hand Cards">+</button>
-        <button className="zoom-button zoom-display" onClick={resetZoom} title="Reset Hand Zoom" style={{ fontSize: '12px' }}>
-          {zoomLevel.toFixed(1)}×
-        </button>
-        <button className="zoom-button" onClick={() => adjustZoom(-0.2)} title="Zoom Out Hand Cards">−</button>
-      </div>
-
-      <div style={{ position: 'fixed', bottom: 8, left: '50%', transform: 'translateX(-50%)', zIndex: 950 }}>
-        <HandCardsContainer
-          yPlayerState={yPlayerState}
-          playerId={playerId}
-          zoomLevel={zoomLevel}
-          onHoveredCardChange={handleHoveredCardChange}
-        />
-      </div>
-    </>
+    <div style={{ position: 'fixed', bottom: 8, left: '50%', transform: 'translateX(-50%)', zIndex: 950 }}>
+      <HandCardsContainer
+        yPlayerState={yPlayerState}
+        playerId={playerId}
+        zoomLevel={zoomLevel}
+        onHoveredCardChange={handleHoveredCardChange}
+        overrideCards={demoHandCards ?? undefined}
+      />
+    </div>
   );
 }

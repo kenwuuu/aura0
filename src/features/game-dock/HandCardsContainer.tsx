@@ -11,6 +11,7 @@ interface HandCardsContainerProps {
   playerId: string;
   zoomLevel: number;
   onHoveredCardChange: (cardId: string | null) => void;
+  overrideCards?: Card[];
 }
 
 function useYjsObserver<T>(yMap: Y.Map<any>, key: string, defaultValue: T): T {
@@ -29,24 +30,26 @@ export const HandCardsContainer: React.FC<HandCardsContainerProps> = ({
   playerId,
   zoomLevel,
   onHoveredCardChange,
+  overrideCards,
 }) => {
   const hand = useYjsObserver<Card[]>(yPlayerState, 'hand', []);
+  const displayHand = overrideCards && hand.length === 0 ? overrideCards : hand;
   const scrollRef = useRef<HTMLDivElement>(null);
   const prevHandLenRef = useRef(hand.length);
 
   // Scroll to the end when a card is added to hand.
   useEffect(() => {
-    if (hand.length > prevHandLenRef.current && scrollRef.current) {
+    if (displayHand.length > prevHandLenRef.current && scrollRef.current) {
       scrollRef.current.scrollTo({ left: scrollRef.current.scrollWidth, behavior: 'smooth' });
     }
-    prevHandLenRef.current = hand.length;
-  }, [hand.length]);
+    prevHandLenRef.current = displayHand.length;
+  }, [displayHand.length]);
 
   const handleMouseEnter = useCallback((cardId: string) => {
     onHoveredCardChange(cardId);
-    const card = hand.find(c => c.id === cardId);
+    const card = displayHand.find(c => c.id === cardId);
     if (card) useCardPreviewStore.getState().show(card);
-  }, [hand, onHoveredCardChange]);
+  }, [displayHand, onHoveredCardChange]);
 
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
     useCardPreviewStore.getState().updatePosition(e.clientX, e.clientY);
@@ -80,9 +83,9 @@ export const HandCardsContainer: React.FC<HandCardsContainerProps> = ({
         ['--card-zoom' as string]: zoomLevel,
       }}
     >
-      <SortableContext items={hand.map(c => c.id)} strategy={horizontalListSortingStrategy}>
+      <SortableContext items={displayHand.map(c => c.id)} strategy={horizontalListSortingStrategy}>
         <div className="hand-cards">
-          {hand.map(card => (
+          {displayHand.map(card => (
             <HandCard
               key={card.id}
               card={card}
