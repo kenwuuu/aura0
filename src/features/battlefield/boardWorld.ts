@@ -36,6 +36,13 @@ export function seatOrigin(seatIndex: number): { x: number; y: number } {
   };
 }
 
+// ── Health widget dimensions ──────────────────────────────────────────────────
+// Width is a hint (the component is fit-content); height matches the CSS min-height.
+// Both must be set so React Flow's nodeHasDimensions() returns true immediately on
+// every rebuild (avoids visibility:hidden flash when measured is reset).
+export const HEALTH_WIDGET_WIDTH  = 160;
+export const HEALTH_WIDGET_HEIGHT = 72;
+
 // ── Mat-relative widget offsets ───────────────────────────────────────────────
 const HEALTH_OFFSET  = { x: 12, y: 12 };
 

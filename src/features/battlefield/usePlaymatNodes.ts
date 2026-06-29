@@ -24,7 +24,7 @@ import {
   YSTATE_DISCARD_PILE,
   YSTATE_CAN_VIEW_HAND,
 } from '@/constants';
-import { playmatNodePositions, MAT_WIDTH, MAT_HEIGHT } from './boardWorld';
+import { playmatNodePositions, MAT_WIDTH, MAT_HEIGHT, CARD_WIDTH, CARD_HEIGHT, HEALTH_WIDGET_WIDTH, HEALTH_WIDGET_HEIGHT } from './boardWorld';
 
 export function buildPlaymatNodes(yDoc: Y.Doc, localPlayerId: string): Node[] {
   const nodes: Node[] = [];
@@ -88,6 +88,8 @@ export function buildPlaymatNodes(yDoc: Y.Doc, localPlayerId: string): Node[] {
       data: { ownerId: playerId, isLocal, name, health, customCounters, yDoc },
       zIndex: 10,
       draggable: false,
+      width: HEALTH_WIDGET_WIDTH,
+      height: HEALTH_WIDGET_HEIGHT,
     });
 
     // Deck pile
@@ -98,6 +100,8 @@ export function buildPlaymatNodes(yDoc: Y.Doc, localPlayerId: string): Node[] {
       data: { ownerId: playerId, isLocal, pileKind: 'deck', count: deck.length, allowViewHand: false, yDoc },
       zIndex: 10,
       draggable: false,
+      width: CARD_WIDTH,
+      height: CARD_HEIGHT,
     });
 
     // Discard pile
@@ -108,6 +112,8 @@ export function buildPlaymatNodes(yDoc: Y.Doc, localPlayerId: string): Node[] {
       data: { ownerId: playerId, isLocal, pileKind: 'discard', count: discardPile.length, allowViewHand: false, yDoc },
       zIndex: 10,
       draggable: false,
+      width: CARD_WIDTH,
+      height: CARD_HEIGHT,
     });
 
     // Exile pile
@@ -118,6 +124,8 @@ export function buildPlaymatNodes(yDoc: Y.Doc, localPlayerId: string): Node[] {
       data: { ownerId: playerId, isLocal, pileKind: 'exile', count: exilePile.length, allowViewHand: false, yDoc },
       zIndex: 10,
       draggable: false,
+      width: CARD_WIDTH,
+      height: CARD_HEIGHT,
     });
 
     // Opponent hand pile — always emitted for opponents; gating is handled in PileNode
@@ -129,6 +137,8 @@ export function buildPlaymatNodes(yDoc: Y.Doc, localPlayerId: string): Node[] {
         data: { ownerId: playerId, isLocal, pileKind: 'hand', count: hand.length, allowViewHand, yDoc },
         zIndex: 10,
         draggable: false,
+        width: CARD_WIDTH,
+        height: CARD_HEIGHT,
       });
     }
   });
