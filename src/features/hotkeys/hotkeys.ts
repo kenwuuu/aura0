@@ -123,17 +123,17 @@ export const HOTKEYS: Hotkey[] = [
   {
     key: 'U',
     keys: ['u'],
-    context: ['battlefield'],
-    shortDescription: '+1 counter',
-    longDescription: 'Add +1 counter to card',
+    context: ['global'],
+    shortDescription: '+1/+1 counter',
+    longDescription: 'Spawn +1/+1 counter token at cursor',
     action: 'addCounter',
   },
   {
     key: 'I',
     keys: ['i'],
-    context: ['battlefield'],
-    shortDescription: '-1 counter',
-    longDescription: 'Add -1 counter to card',
+    context: ['global'],
+    shortDescription: '-1/-1 counter',
+    longDescription: 'Spawn -1/-1 counter token at cursor',
     action: 'removeCounter',
   },
   {

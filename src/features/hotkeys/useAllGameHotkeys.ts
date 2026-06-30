@@ -11,7 +11,7 @@
  * Game instances come from gameInstanceStore, so no props/prop-drilling.
  */
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useHotkeys, useHotkeysContext } from 'react-hotkeys-hook';
 import { useHotkeyStore } from '@/app/stores/hotkeyStore';
 import { useGameInstance } from '@/app/stores/gameInstanceStore';
@@ -28,6 +28,7 @@ import { usePileViewerHotkeyStore } from '@/features/game-dock/pileViewerHotkeyS
 import { YDOC_CARDS_ON_BOARD, YDOC_KEYWORD_TOKENS } from '@/constants';
 import type { WhiteboardCard } from '@/features/battlefield/types';
 import type { KeywordToken } from '@/features/keyword-tokens/types';
+import { spawnTokenAtPosition } from '@/features/battlefield/spawnToken';
 
 export function useAllGameHotkeys() {
   const { player, yDoc, playerId, roomManager } = useGameInstance();
@@ -37,6 +38,13 @@ export function useAllGameHotkeys() {
   const setAddCardModalOpen = useHotkeyStore((s) => s.setAddCardModalOpen);
 
   const { enableScope, disableScope } = useHotkeysContext();
+
+  const cursorPos = useRef({ x: 0, y: 0 });
+  useEffect(() => {
+    const onMove = (e: MouseEvent) => { cursorPos.current = { x: e.clientX, y: e.clientY }; };
+    window.addEventListener('mousemove', onMove);
+    return () => window.removeEventListener('mousemove', onMove);
+  }, []);
 
   // Modal state → active scope. Keep exactly one scope active at all times
   // (an empty active-scope set re-enables scoped bindings with a warning), and
@@ -175,10 +183,28 @@ export function useAllGameHotkeys() {
   // Battlefield-only keys
   useHotkeys(getKeyBindingsForAction('tap'), () => onBattlefield('tap'),
     { ...board, enabled: isBattlefield });
-  useHotkeys(getKeyBindingsForAction('addCounter'), () => onBattlefield('addCounter'),
-    { ...board, enabled: isBattlefield });
-  useHotkeys(getKeyBindingsForAction('removeCounter'), () => onBattlefield('removeCounter'),
-    { ...board, enabled: isBattlefield });
+  useHotkeys(getKeyBindingsForAction('addCounter'), () => {
+    const { yDoc, playerId, screenToFlowPosition } = useGameInstance.getState();
+    if (!yDoc || !playerId || !screenToFlowPosition) return;
+    const yCards = yDoc.getMap<WhiteboardCard>(YDOC_CARDS_ON_BOARD);
+    const yTokens = yDoc.getMap<KeywordToken>(YDOC_KEYWORD_TOKENS);
+    spawnTokenAtPosition(
+      { title: '+1/+1', backgroundColor: '#e8e1df', count: 1 },
+      screenToFlowPosition(cursorPos.current),
+      yCards, yTokens, playerId,
+    );
+  }, board);
+  useHotkeys(getKeyBindingsForAction('removeCounter'), () => {
+    const { yDoc, playerId, screenToFlowPosition } = useGameInstance.getState();
+    if (!yDoc || !playerId || !screenToFlowPosition) return;
+    const yCards = yDoc.getMap<WhiteboardCard>(YDOC_CARDS_ON_BOARD);
+    const yTokens = yDoc.getMap<KeywordToken>(YDOC_KEYWORD_TOKENS);
+    spawnTokenAtPosition(
+      { title: '-1/-1', backgroundColor: '#e8e1df', count: -1 },
+      screenToFlowPosition(cursorPos.current),
+      yCards, yTokens, playerId,
+    );
+  }, board);
   useHotkeys(getKeyBindingsForAction('copy'), () => onBattlefield('copy'),
     { ...board, enabled: isBattlefield });
 
@@ -255,3 +281,4 @@ export function useAllGameHotkeys() {
   useHotkeys(getKeyBindingsForAction('moveToDeckBottom'), () => pileViewerMove('moveToDeckBottom'),
     { ...pv, enabled: isPileViewer });
 }
+

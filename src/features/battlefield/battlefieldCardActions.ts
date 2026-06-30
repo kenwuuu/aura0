@@ -47,12 +47,6 @@ export function executeBattlefieldCardAction(
     case 'flip':
       yCards.set(cardId, { ...card, isFlipped: !card.isFlipped });
       break;
-    case 'addCounter':
-      yCards.set(cardId, { ...card, counters: [...card.counters, 1] });
-      break;
-    case 'removeCounter':
-      yCards.set(cardId, { ...card, counters: [...card.counters, -1] });
-      break;
     case 'copy': {
       let maxZIndex = 0;
       yCards.forEach((c) => { if (c.zIndex > maxZIndex) maxZIndex = c.zIndex; });

@@ -24,7 +24,8 @@ import { useBattlefieldNodes } from './useBattlefieldNodes';
 import { usePlaymatNodes } from './usePlaymatNodes';
 import { WhiteboardCard } from './types';
 import { KeywordToken } from '@/features/keyword-tokens/types';
-import { attachedChildren, findParent, nodeCenter, nodeContainsPoint, NODE_SIZES } from './nodeAttachment';
+import { attachedChildren, findParent, nodeCenter, nodeContainsPoint } from './nodeAttachment';
+import { spawnTokenAtPosition, getMaxZIndex } from './spawnToken';
 import { YDOC_CARDS_ON_BOARD, YDOC_KEYWORD_TOKENS, CARD_WIDTH, CARD_HEIGHT } from '@/constants';
 import { MIN_ZOOM, MAX_ZOOM, MAT_WIDTH, MAT_HEIGHT } from './boardWorld';
 import type { Player } from '@/features/player';
@@ -46,13 +47,6 @@ interface BattlefieldCanvasProps {
   localPlayerId: string;
   player: Player;
   tokenService: TokenService;
-}
-
-function getMaxZIndex(yCards: Y.Map<WhiteboardCard>, yTokens: Y.Map<KeywordToken>): number {
-  let max = 0;
-  yCards.forEach((c) => { if (c.zIndex > max) max = c.zIndex; });
-  yTokens.forEach((t) => { if (t.zIndex > max) max = t.zIndex; });
-  return max;
 }
 
 interface PileDropTarget {
@@ -356,27 +350,7 @@ function BattlefieldCanvasInner({ yDoc, localPlayerId, player, tokenService }: B
     try {
       const template = JSON.parse(tokenTemplateData);
       const position = screenToFlowPosition({ x: event.clientX, y: event.clientY });
-      const tokenId = `token-${Math.random().toString(36).substring(2, 11)}`;
-      const maxZ = getMaxZIndex(yCards, yTokens);
-      const tokenX = position.x - NODE_SIZES.token.width / 2;
-      const tokenY = position.y - NODE_SIZES.token.height / 2;
-      // Attach to the topmost card under the drop point, if any.
-      const parentId = findParent({ x: tokenX, y: tokenY }, 'token', yCards, 'card');
-      const parentCard = parentId ? yCards.get(parentId) : undefined;
-      const newToken: KeywordToken = {
-        id: tokenId,
-        title: template.title,
-        imageUrl: template.imageUrl ?? '',
-        backgroundColor: template.backgroundColor,
-        count: template.count,
-        ownerId: localPlayerId,
-        x: tokenX,
-        y: tokenY,
-        zIndex: parentCard ? Math.max(maxZ + 1, parentCard.zIndex + 1) : maxZ + 1,
-        rotation: 0,
-        attachedTo: parentId,
-      };
-      yTokens.set(tokenId, newToken);
+      spawnTokenAtPosition(template, position, yCards, yTokens, localPlayerId);
     } catch (err) {
       console.error('Failed to create token from template:', err);
     }
