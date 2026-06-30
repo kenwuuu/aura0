@@ -15,6 +15,15 @@ export function getActionLog(yDoc: Y.Doc): Y.Array<ActionLogEntry> {
   return yDoc.getArray<ActionLogEntry>(YDOC_ACTION_LOG);
 }
 
+/**
+ * Name to use for a card in a log entry. The action log is visible to every
+ * peer, so a face-down card's identity must never appear in it — that's the
+ * entire point of playing/keeping it face down (morph, manifest, etc.).
+ */
+export function cardLogName(card: { name?: string; isFlipped?: boolean }): string {
+  return card.isFlipped ? 'a face-down card' : (card.name ?? 'a card');
+}
+
 export function logAction(
   yDoc: Y.Doc,
   entry: Omit<ActionLogEntry, 'id' | 'ts'>,

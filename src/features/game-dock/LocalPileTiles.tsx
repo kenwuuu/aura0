@@ -32,36 +32,31 @@ export function LocalPileTiles() {
         onMoveToHand: (card) => {
           const p = playerRef.current;
           if (!p) return;
-          p.removeCardFromPileById(card.id, 'deck');
-          p.placeCardInPile(card, 'hand');
+          p.movePileCard(card, 'deck', 'hand');
           deckViewerRef.current?.updateCards(p.getDeckCards());
         },
         onMoveToDiscard: (card) => {
           const p = playerRef.current;
           if (!p) return;
-          p.removeCardFromPileById(card.id, 'deck');
-          p.placeCardInPile(card, 'discard');
+          p.movePileCard(card, 'deck', 'discard');
           deckViewerRef.current?.updateCards(p.getDeckCards());
         },
         onMoveToExile: (card) => {
           const p = playerRef.current;
           if (!p) return;
-          p.removeCardFromPileById(card.id, 'deck');
-          p.placeCardInPile(card, 'exile');
+          p.movePileCard(card, 'deck', 'exile');
           deckViewerRef.current?.updateCards(p.getDeckCards());
         },
         onMoveToDeckTop: (card) => {
           const p = playerRef.current;
           if (!p) return;
-          p.removeCardFromPileById(card.id, 'deck');
-          p.placeCardInPile(card, 'deck');
+          p.movePileCard(card, 'deck', 'deck');
           deckViewerRef.current?.updateCards(p.getDeckCards());
         },
         onMoveToDeckBottom: (card) => {
           const p = playerRef.current;
           if (!p) return;
-          p.removeCardFromPileById(card.id, 'deck');
-          p.placeCardInPile(card, 'deck', 0);
+          p.movePileCard(card, 'deck', 'deck', 0);
           deckViewerRef.current?.updateCards(p.getDeckCards());
         },
       });
@@ -82,29 +77,25 @@ export function LocalPileTiles() {
         onMoveToHand: (card) => {
           const p = playerRef.current;
           if (!p) return;
-          p.removeCardFromPileById(card.id, 'exile');
-          p.placeCardInPile(card, 'hand');
+          p.movePileCard(card, 'exile', 'hand');
           exileViewerRef.current?.updateCards(p.getState().exilePile);
         },
         onMoveToDiscard: (card) => {
           const p = playerRef.current;
           if (!p) return;
-          p.removeCardFromPileById(card.id, 'exile');
-          p.placeCardInPile(card, 'discard');
+          p.movePileCard(card, 'exile', 'discard');
           exileViewerRef.current?.updateCards(p.getState().exilePile);
         },
         onMoveToDeckTop: (card) => {
           const p = playerRef.current;
           if (!p) return;
-          p.removeCardFromPileById(card.id, 'exile');
-          p.placeCardInPile(card, 'deck');
+          p.movePileCard(card, 'exile', 'deck');
           exileViewerRef.current?.updateCards(p.getState().exilePile);
         },
         onMoveToDeckBottom: (card) => {
           const p = playerRef.current;
           if (!p) return;
-          p.removeCardFromPileById(card.id, 'exile');
-          p.placeCardInPile(card, 'deck', 0);
+          p.movePileCard(card, 'exile', 'deck', 0);
           exileViewerRef.current?.updateCards(p.getState().exilePile);
         },
       });
@@ -125,29 +116,25 @@ export function LocalPileTiles() {
         onMoveToHand: (card) => {
           const p = playerRef.current;
           if (!p) return;
-          p.removeCardFromPileById(card.id, 'discard');
-          p.placeCardInPile(card, 'hand');
+          p.movePileCard(card, 'discard', 'hand');
           discardViewerRef.current?.updateCards(p.getState().discardPile);
         },
         onMoveToExile: (card) => {
           const p = playerRef.current;
           if (!p) return;
-          p.removeCardFromPileById(card.id, 'discard');
-          p.placeCardInPile(card, 'exile');
+          p.movePileCard(card, 'discard', 'exile');
           discardViewerRef.current?.updateCards(p.getState().discardPile);
         },
         onMoveToDeckTop: (card) => {
           const p = playerRef.current;
           if (!p) return;
-          p.removeCardFromPileById(card.id, 'discard');
-          p.placeCardInPile(card, 'deck');
+          p.movePileCard(card, 'discard', 'deck');
           discardViewerRef.current?.updateCards(p.getState().discardPile);
         },
         onMoveToDeckBottom: (card) => {
           const p = playerRef.current;
           if (!p) return;
-          p.removeCardFromPileById(card.id, 'discard');
-          p.placeCardInPile(card, 'deck', 0);
+          p.movePileCard(card, 'discard', 'deck', 0);
           discardViewerRef.current?.updateCards(p.getState().discardPile);
         },
       });

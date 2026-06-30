@@ -22,7 +22,7 @@ import {PileType} from '@/features/game-dock/components';
 import { CardPile } from './CardPile';
 import {SavedDeck} from "@/features/player/types";
 import {trackHealthChange} from "@/infrastructure/analytics/PosthogFunctions"
-import { logAction } from '@/features/action-log/actionLog';
+import { logAction, cardLogName } from '@/features/action-log/actionLog';
 
 export class Player {
   private playerId: string;
@@ -294,6 +294,22 @@ export class Player {
     // Places card on top of pile by default
     this.piles[pileType].placeCardAtPosition(card, position);
     this.syncToYState();
+  }
+
+  /**
+   * Move a card from one pile to another as a single logged action.
+   * Centralizes the remove+place+log sequence that pile-viewer callbacks and
+   * hotkeys both need, so no caller can move a card without it being logged.
+   */
+  public movePileCard(card: Card, from: PileType, to: PileType, position: number = Infinity): void {
+    this.piles[from].removeCardById(card.id);
+    this.piles[to].placeCardAtPosition(card, position);
+    this.syncToYState();
+
+    const text = to === 'deck'
+      ? `put ${cardLogName(card)} on ${position === 0 ? 'bottom' : 'top'} of deck`
+      : `moved ${cardLogName(card)} to ${to}`;
+    logAction(this.yDoc, { actorId: this.playerId, type: 'move_to_pile', text });
   }
 
   public setHealth(health: number): void {

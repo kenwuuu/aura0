@@ -17,7 +17,7 @@ import { YDOC_CARDS_ON_BOARD, CARD_WIDTH, CARD_HEIGHT } from '@/constants';
 import { DeckPersistenceService } from '@/infrastructure/persistence';
 import type { TokenService } from '@/infrastructure/cards';
 import type { WhiteboardCard } from '@/features/battlefield/types';
-import { logAction } from '@/features/action-log/actionLog';
+import { logAction, cardLogName } from '@/features/action-log/actionLog';
 
 type BattlefieldDestination = 'hand' | 'exile' | 'discard' | 'deck';
 
@@ -122,7 +122,7 @@ export const useGameInstance = create<GameInstanceStore>((set, get) => ({
     logAction(yDoc, {
       actorId: playerId,
       type: 'move_to_pile',
-      text: `moved ${card.name} to ${destination}`,
+      text: `moved ${cardLogName(card)} to ${destination}`,
     });
   },
 
@@ -143,11 +143,20 @@ export const useGameInstance = create<GameInstanceStore>((set, get) => ({
     yCards.forEach((c) => { if (c.zIndex > maxZ) maxZ = c.zIndex; });
     yCards.set(card.id, { ...card, x: cardX, y: cardY, zIndex: maxZ + 1, ownerId: playerId });
     posthog.capture('card_played_to_battlefield', { card_name: card.name, is_flipped: card.isFlipped });
-    logAction(yDoc, {
-      actorId: playerId,
-      type: 'play_card',
-      text: `played ${card.name}`,
-    });
+
+    if (card.isFlipped) {
+      logAction(yDoc, {
+        actorId: playerId,
+        type: 'play_card',
+        text: `played a card face down`,
+      });
+    } else {
+      logAction(yDoc, {
+        actorId: playerId,
+        type: 'play_card',
+        text: `played ${card.name}`,
+      });
+    }
 
     if (tokenService && card.scryfallId) {
       const result = await tokenService.createTokensForCard(card.scryfallId, { x: cardX, y: cardY });

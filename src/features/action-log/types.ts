@@ -24,7 +24,8 @@ export type ActionLogType =
   | 'add_card'
   | 'scry'
   | 'reveal'
-  | 'search';
+  | 'search'
+  | 'token_count';
 
 export interface ActionLogEntry {
   id: string;          // crypto.randomUUID() — unique across all peers

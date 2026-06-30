@@ -29,6 +29,7 @@ import { YDOC_CARDS_ON_BOARD, YDOC_KEYWORD_TOKENS } from '@/constants';
 import type { WhiteboardCard } from '@/features/battlefield/types';
 import type { KeywordToken } from '@/features/keyword-tokens/types';
 import { spawnTokenAtPosition } from '@/features/battlefield/spawnToken';
+import { logAction, cardLogName } from '@/features/action-log/actionLog';
 
 export function useAllGameHotkeys() {
   const { player, yDoc, playerId, roomManager } = useGameInstance();
@@ -88,17 +89,14 @@ export function useAllGameHotkeys() {
   };
 
   // Move the hovered hand card to another pile. `position` 0 = deck bottom,
-  // omitted = deck top (Player.placeCardInPile defaults to Infinity).
+  // omitted = deck top (Player.movePileCard defaults to Infinity).
   const handMove = (dest: 'discard' | 'exile' | 'deck', position?: number) => {
     if (!player || t?.kind !== 'hand') return;
     const card = player.getState().hand.find((c) => c.id === t.id);
     if (card) {
-      player.removeCardFromPileById(t.id, 'hand');
-      if (position === undefined) player.placeCardInPile(card, dest);
-      else player.placeCardInPile(card, dest, position);
+      player.movePileCard(card, 'hand', dest, position);
       useCardPreviewStore.getState().hide();
     }
-    player.syncToYState();
   };
 
   // Draw the top card of the hovered pile and move it elsewhere. A move into
@@ -110,8 +108,13 @@ export function useAllGameHotkeys() {
     if (card) {
       if (position === undefined) player.placeCardInPile(card, dest);
       else player.placeCardInPile(card, dest, position);
+      if (yDoc && playerId) {
+        const text = dest === 'deck'
+          ? `put ${cardLogName(card)} on ${position === 0 ? 'bottom' : 'top'} of deck`
+          : `moved ${cardLogName(card)} to ${dest}`;
+        logAction(yDoc, { actorId: playerId, type: 'move_to_pile', text });
+      }
     }
-    player.syncToYState();
   };
 
   const tokenOp = (op: 'increment' | 'decrement' | 'delete') => {
@@ -121,12 +124,20 @@ export function useAllGameHotkeys() {
     if (!token || token.ownerId !== playerId) return;
     if (op === 'delete') {
       yTokens.delete(t.id);
+      logAction(yDoc, { actorId: playerId, type: 'delete', text: `removed a ${token.title} token` });
     } else if (op === 'increment') {
-      yTokens.set(t.id, { ...token, count: (token.count ?? 0) + 1 });
+      const next = (token.count ?? 0) + 1;
+      yTokens.set(t.id, { ...token, count: next });
+      logAction(yDoc, { actorId: playerId, type: 'token_count', text: `set a ${token.title} token to ${next}` });
     } else {
       const next = (token.count ?? 0) - 1;
-      if (next <= 0) yTokens.delete(t.id);
-      else yTokens.set(t.id, { ...token, count: next });
+      if (next <= 0) {
+        yTokens.delete(t.id);
+        logAction(yDoc, { actorId: playerId, type: 'delete', text: `removed a ${token.title} token` });
+      } else {
+        yTokens.set(t.id, { ...token, count: next });
+        logAction(yDoc, { actorId: playerId, type: 'token_count', text: `set a ${token.title} token to ${next}` });
+      }
     }
   };
 

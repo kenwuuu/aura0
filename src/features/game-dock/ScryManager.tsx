@@ -19,20 +19,17 @@ export function ScryManager() {
       viewerRef.current = new PileViewer({
         onMoveToDiscard: (card) => {
           if (!player) return;
-          player.removeCardFromPileById(card.id, 'scry');
-          player.placeCardInPile(card, 'discard');
+          player.movePileCard(card, 'scry', 'discard');
           viewerRef.current?.updateCards(player.getScryPile().getCards());
         },
         onMoveToDeckTop: (card) => {
           if (!player) return;
-          player.removeCardFromPileById(card.id, 'scry');
-          player.placeCardInPile(card, 'deck');
+          player.movePileCard(card, 'scry', 'deck');
           viewerRef.current?.updateCards(player.getScryPile().getCards());
         },
         onMoveToDeckBottom: (card) => {
           if (!player) return;
-          player.removeCardFromPileById(card.id, 'scry');
-          player.placeCardInPile(card, 'deck', 0);
+          player.movePileCard(card, 'scry', 'deck', 0);
           viewerRef.current?.updateCards(player.getScryPile().getCards());
         },
       });

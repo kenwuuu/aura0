@@ -13,7 +13,7 @@ import { attachedChildren } from './nodeAttachment';
 import { useCardPreviewStore } from '@/features/card-preview/cardPreviewStore';
 import { useHotkeyMenuStore } from '@/features/hotkeys/hotkeyMenuStore';
 import { useGameInstance } from '@/app/stores/gameInstanceStore';
-import { logAction } from '@/features/action-log/actionLog';
+import { logAction, cardLogName } from '@/features/action-log/actionLog';
 
 /** Clear `attachedTo` on any token that was attached to the given card. */
 function detachTokens(cardId: string, yTokens: Y.Map<KeywordToken>) {
@@ -54,20 +54,25 @@ export function executeBattlefieldCardAction(
           actorId: playerId,
           type: 'tap',
           // card.isTapped reflects the state *before* the toggle
-          text: card.isTapped ? `untapped ${card.name}` : `tapped ${card.name}`,
+          text: card.isTapped ? `untapped ${cardLogName(card)}` : `tapped ${cardLogName(card)}`,
         });
       }
       break;
-    case 'flip':
-      yCards.set(cardId, { ...card, isFlipped: !card.isFlipped });
+    case 'flip': {
+      // card.isFlipped reflects the state *before* the toggle.
+      const willBeFlipped = !card.isFlipped;
+      yCards.set(cardId, { ...card, isFlipped: willBeFlipped });
       if (yDoc) {
         logAction(yDoc, {
           actorId: playerId,
           type: 'flip',
-          text: card.isFlipped ? `unflipped ${card.name}` : `flipped ${card.name}`,
+          // Flipping face down must not name the card it's hiding; flipping
+          // face up reveals it to everyone at once, so the name is now public.
+          text: willBeFlipped ? 'flipped a card face down' : `flipped ${card.name} face up`,
         });
       }
       break;
+    }
     case 'copy': {
       let maxZIndex = 0;
       yCards.forEach((c) => { if (c.zIndex > maxZIndex) maxZIndex = c.zIndex; });
@@ -82,7 +87,7 @@ export function executeBattlefieldCardAction(
       };
       yCards.set(newCard.id, newCard);
       if (yDoc) {
-        logAction(yDoc, { actorId: playerId, type: 'copy', text: `copied ${card.name}` });
+        logAction(yDoc, { actorId: playerId, type: 'copy', text: `copied ${cardLogName(card)}` });
       }
       break;
     }
@@ -92,7 +97,7 @@ export function executeBattlefieldCardAction(
       detachTokens(cardId, yTokens);
       yCards.delete(cardId);
       if (yDoc) {
-        logAction(yDoc, { actorId: playerId, type: 'delete', text: `removed ${card.name}` });
+        logAction(yDoc, { actorId: playerId, type: 'delete', text: `removed ${cardLogName(card)}` });
       }
       break;
     case 'moveToHand':
@@ -102,7 +107,7 @@ export function executeBattlefieldCardAction(
       useGameInstance.getState().moveCardToHand(card);
       yCards.delete(cardId);
       if (yDoc) {
-        logAction(yDoc, { actorId: playerId, type: 'move_to_pile', text: `moved ${card.name} to hand` });
+        logAction(yDoc, { actorId: playerId, type: 'move_to_pile', text: `moved ${cardLogName(card)} to hand` });
       }
       break;
     case 'moveToDiscard':
@@ -112,7 +117,7 @@ export function executeBattlefieldCardAction(
       useGameInstance.getState().moveCardToDiscard(card);
       yCards.delete(cardId);
       if (yDoc) {
-        logAction(yDoc, { actorId: playerId, type: 'move_to_pile', text: `moved ${card.name} to discard` });
+        logAction(yDoc, { actorId: playerId, type: 'move_to_pile', text: `moved ${cardLogName(card)} to discard` });
       }
       break;
     case 'moveToExile':
@@ -122,7 +127,7 @@ export function executeBattlefieldCardAction(
       useGameInstance.getState().moveCardToExile(card);
       yCards.delete(cardId);
       if (yDoc) {
-        logAction(yDoc, { actorId: playerId, type: 'move_to_pile', text: `moved ${card.name} to exile` });
+        logAction(yDoc, { actorId: playerId, type: 'move_to_pile', text: `moved ${cardLogName(card)} to exile` });
       }
       break;
     case 'moveToDeckTop':
@@ -132,7 +137,7 @@ export function executeBattlefieldCardAction(
       useGameInstance.getState().moveCardToDeckTop(card);
       yCards.delete(cardId);
       if (yDoc) {
-        logAction(yDoc, { actorId: playerId, type: 'move_to_pile', text: `put ${card.name} on top of deck` });
+        logAction(yDoc, { actorId: playerId, type: 'move_to_pile', text: `put ${cardLogName(card)} on top of deck` });
       }
       break;
     case 'moveToDeckBottom':
@@ -142,7 +147,7 @@ export function executeBattlefieldCardAction(
       useGameInstance.getState().moveCardToDeckBottom(card);
       yCards.delete(cardId);
       if (yDoc) {
-        logAction(yDoc, { actorId: playerId, type: 'move_to_pile', text: `put ${card.name} on bottom of deck` });
+        logAction(yDoc, { actorId: playerId, type: 'move_to_pile', text: `put ${cardLogName(card)} on bottom of deck` });
       }
       break;
   }
