@@ -19,7 +19,7 @@ function buildNodes(
       position: { x: card.x, y: card.y },
       data: { ...card, yCards, yTokens, localPlayerId },
       zIndex: card.zIndex,
-      draggable: isLocal,
+      draggable: true,
       selectable: isLocal,
     });
   });
@@ -32,7 +32,7 @@ function buildNodes(
       position: { x: token.x, y: token.y },
       data: { ...token, yTokens, localPlayerId },
       zIndex: token.zIndex,
-      draggable: isLocal,
+      draggable: true,
       selectable: isLocal,
     });
   });
