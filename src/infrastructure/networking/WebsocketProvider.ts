@@ -111,6 +111,10 @@ export class WebsocketProvider implements YjsNetworkProvider{
     });
   }
 
+  public getAwareness() {
+    return this.provider.awareness;
+  }
+
   public destroy(): void {
     // Clean up awareness persistence listener
     if (this.cleanupAwarenessPersistence) {

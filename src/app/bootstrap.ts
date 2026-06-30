@@ -37,8 +37,9 @@ export async function bootstrapGame(): Promise<GameContext> {
   // ── 1. Core identifiers ────────────────────────────────────────────────────
   const yDoc = new Y.Doc();
 
-  // Log size of Yjs incremental update. We want to eventually reduce the size and volume of updates
-  // from drawing a card (70KB) and moving a card on board (hundreds of updates for a single drag).
+  // Log size of Yjs incremental update. We want to eventually reduce the size of updates
+  // from drawing a card (70KB). Board drags stream over awareness and now write Yjs only
+  // once, at drag-stop, so a single drag is one update rather than hundreds.
   yDoc.on('update', (update: Uint8Array) => {
     console.debug(`Yjs incremental update of size: ${update.byteLength} bytes`);
   });
@@ -79,6 +80,7 @@ export async function bootstrapGame(): Promise<GameContext> {
   useGameInstance.getState().setPlayerId(playerId);
   useGameInstance.getState().setRoomManager(roomManager);
   useGameInstance.getState().setTokenService(tokenService);
+  useGameInstance.getState().setAwareness(yjsNetworkProvider.getAwareness());
 
   // ── 6. Deck seeding + auto-load ────────────────────────────────────────────
   const storage = new DeckStorageService();

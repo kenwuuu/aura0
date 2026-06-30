@@ -1,8 +1,16 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Node, NodeChange, applyNodeChanges } from '@xyflow/react';
 import * as Y from 'yjs';
+import type { Awareness } from 'y-protocols/awareness';
 import { WhiteboardCard } from './types';
 import { KeywordToken } from '@/features/keyword-tokens/types';
+
+export interface DragNodeState {
+  id: string;
+  x: number;
+  y: number;
+  zIndex: number;
+}
 
 function buildNodes(
   yCards: Y.Map<WhiteboardCard>,
@@ -44,13 +52,37 @@ export function useBattlefieldNodes(
   yCards: Y.Map<WhiteboardCard>,
   yTokens: Y.Map<KeywordToken>,
   localPlayerId: string,
+  awareness: Awareness | null,
 ) {
   const [nodes, setNodes] = useState<Node[]>(() =>
     buildNodes(yCards, yTokens, localPlayerId)
   );
+  const [peerDragOverrides, setPeerDragOverrides] = useState<Map<string, DragNodeState>>(new Map);
+
+  // Ids of nodes the local user is actively dragging. While a drag is in flight
+  // we stream positions to peers via awareness and don't write Yjs until drag-stop,
+  // so the dragged node's Yjs position is stale. A peer's concurrent Yjs write
+  // (drawing, playing, finishing their own drag) triggers a full observer rebuild
+  // that would reset our mid-drag node to that stale position and fight react-flow's
+  // d3-drag. We track these ids so the sync preserves their live local positions.
+  const draggingIdsRef = useRef<Set<string>>(new Set());
+  const setDraggingNodeIds = useCallback((ids: Set<string>) => {
+    draggingIdsRef.current = ids;
+  }, []);
 
   useEffect(() => {
-    const sync = () => setNodes(buildNodes(yCards, yTokens, localPlayerId));
+    const sync = () => setNodes((prev) => {
+      const next = buildNodes(yCards, yTokens, localPlayerId);
+      if (draggingIdsRef.current.size === 0) return next;
+      // Keep the local position/zIndex for nodes this client is dragging so
+      // a peer's concurrent Yjs write doesn't fight react-flow's in-flight drag.
+      const localById = new Map(prev.map((n) => [n.id, n]));
+      return next.map((n) => {
+        if (!draggingIdsRef.current.has(n.id)) return n;
+        const local = localById.get(n.id);
+        return local ? { ...n, position: local.position, zIndex: local.zIndex } : n;
+      });
+    });
     yCards.observe(sync);
     yTokens.observe(sync);
     sync();
@@ -60,14 +92,27 @@ export function useBattlefieldNodes(
     };
   }, [yCards, yTokens, localPlayerId]);
 
-  // Apply react-flow changes locally (smooth drag). Positions are written to
-  // Yjs only on drag-stop (in BattlefieldCanvas.onNodeDragStop).
+  // Listen for peer drag positions broadcast via awareness and apply them as
+  // position overrides so opponents see live card movement.
+  useEffect(() => {
+    if (!awareness) return;
+    const onChange = () => {
+      const overrides = new Map<string, DragNodeState>();
+      awareness.getStates().forEach((state, clientId) => {
+        if (clientId === awareness.clientID) return;
+        const drag = state.drag as { nodes: DragNodeState[] } | null | undefined;
+        drag?.nodes?.forEach((node) => overrides.set(node.id, node));
+      });
+      setPeerDragOverrides(overrides);
+    };
+    awareness.on('change', onChange);
+    return () => awareness.off('change', onChange);
+  }, [awareness]);
+
   const onNodesChange = useCallback((changes: NodeChange[]) => {
     setNodes((prev) => applyNodeChanges(changes, prev));
   }, []);
 
-  // Elevate multiple nodes at once in local state only.
-  // Used when a card drag-start also needs to raise its attached tokens.
   const elevateNodes = useCallback((updates: Map<string, number>) => {
     setNodes((prev) => prev.map((n) => {
       const newZ = updates.get(n.id);
@@ -75,8 +120,6 @@ export function useBattlefieldNodes(
     }));
   }, []);
 
-  // Move a set of nodes to new positions in local state only (no Yjs write).
-  // Used during card drag to carry attached tokens along in real time.
   const translateNodes = useCallback((positions: Map<string, { x: number; y: number }>) => {
     setNodes((prev) => prev.map((n) => {
       const pos = positions.get(n.id);
@@ -84,5 +127,18 @@ export function useBattlefieldNodes(
     }));
   }, []);
 
-  return { nodes, onNodesChange, elevateNodes, translateNodes };
+  // Merge peer drag overrides into the node list. Local drag always wins so
+  // our own react-flow drag state is never clobbered by a peer moving the same node.
+  const nodesWithPeerDrags = useMemo(() => {
+    if (peerDragOverrides.size === 0) return nodes;
+    return nodes.map((n) => {
+      if (draggingIdsRef.current.has(n.id)) return n;
+      const override = peerDragOverrides.get(n.id);
+      return override
+        ? { ...n, position: { x: override.x, y: override.y }, zIndex: override.zIndex }
+        : n;
+    });
+  }, [nodes, peerDragOverrides]);
+
+  return { nodes: nodesWithPeerDrags, onNodesChange, elevateNodes, translateNodes, setDraggingNodeIds };
 }

@@ -1,4 +1,5 @@
 import * as Y from 'yjs';
+import type { Awareness } from 'y-protocols/awareness';
 import { WebRTCConfig } from './types';
 import {WebRTCProvider} from "@/infrastructure/networking/WebRTCProvider";
 import {WebsocketProvider} from "@/infrastructure/networking/WebsocketProvider";
@@ -13,6 +14,7 @@ export interface YjsNetworkProvider{
    * persisted state (e.g. emptying the hand on refresh).
    */
   whenSynced(): Promise<void>;
+  getAwareness(): Awareness;
 }
 
 /**

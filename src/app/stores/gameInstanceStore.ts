@@ -9,6 +9,7 @@
 import { create } from 'zustand';
 import * as Y from 'yjs';
 import posthog from 'posthog-js';
+import type { Awareness } from 'y-protocols/awareness';
 import type { Player } from '@/features/player';
 import type { Card } from '@/features/player/types';
 import type { RoomManager } from '@/features/room';
@@ -26,6 +27,7 @@ interface GameInstanceStore {
   playerId: string | null;
   roomManager: RoomManager | null;
   tokenService: TokenService | null;
+  awareness: Awareness | null;
 
   // Setters
   setYDoc: (yDoc: Y.Doc) => void;
@@ -33,6 +35,7 @@ interface GameInstanceStore {
   setPlayerId: (playerId: string) => void;
   setRoomManager: (roomManager: RoomManager) => void;
   setTokenService: (tokenService: TokenService) => void;
+  setAwareness: (awareness: Awareness) => void;
 
   // Card movements off the battlefield (replaces the old window CustomEvent bus).
   // Callers (battlefieldCardActions) already remove the card from the board; these
@@ -68,6 +71,7 @@ export const useGameInstance = create<GameInstanceStore>((set, get) => ({
   playerId: null,
   roomManager: null,
   tokenService: null,
+  awareness: null,
   screenToFlowPosition: null,
 
   // Setters
@@ -76,6 +80,7 @@ export const useGameInstance = create<GameInstanceStore>((set, get) => ({
   setPlayerId: (playerId) => set({ playerId }),
   setRoomManager: (roomManager) => set({ roomManager }),
   setTokenService: (tokenService) => set({ tokenService }),
+  setAwareness: (awareness) => set({ awareness }),
 
   // Card movements
   moveCardToHand: (card) => get().player?.placeCardInPile(card, 'hand'),
@@ -160,6 +165,7 @@ export const useGameInstance = create<GameInstanceStore>((set, get) => ({
     playerId: null,
     roomManager: null,
     tokenService: null,
+    awareness: null,
     screenToFlowPosition: null,
   }),
 }));
