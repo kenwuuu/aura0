@@ -143,7 +143,7 @@ export function App({ yDoc, yjsNetworkProvider, player, roomManager, playerId, c
   const handleDeckSelected = (deck: SavedDeck) => loadDeck(player, roomManager, deck);
   const handleAddCard = (card: Parameters<Player['placeCardInPile']>[0]) => {
     player.placeCardInPile(card, 'hand');
-    logAction(yDoc, { actorId: playerId, type: 'add_card', text: `added ${card.name} to hand` });
+    logAction(yDoc, { actorId: playerId, type: 'add_card', text: `added ${card.name} to hand from outside the game` });
   };
 
   return (
