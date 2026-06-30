@@ -40,9 +40,11 @@ export function ActionLogPanel({ yDoc, localPlayerId }: ActionLogPanelProps) {
       style={{
         position: 'fixed',
         top: 48,
-        right: 8,
+        left: 8,
         width: 280,
-        zIndex: 800,
+        // Below the shared Dialog overlay (z-50) so pile-viewer/settings
+        // modals visually cover this panel instead of floating above them.
+        zIndex: 40,
         display: 'flex',
         flexDirection: 'column',
         borderRadius: 8,
