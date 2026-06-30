@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
+import * as Y from 'yjs';
 import type { Card } from '@/features/player/types';
 import { DEFAULT_CARD_BACK } from '@/constants';
 import { CardPreview } from './CardPreview';
@@ -33,6 +34,7 @@ describe('CardPreview', () => {
     localStorage.clear();
     useCardPreviewStore.setState({
       card: null,
+      source: null,
       isVisible: false,
       mouseX: 0,
       mouseY: 0,
@@ -97,6 +99,52 @@ describe('CardPreview', () => {
       render(<CardPreview />);
       const img = screen.getByAltText('Card Back') as HTMLImageElement;
       expect(img.src).toContain(DEFAULT_CARD_BACK);
+    });
+  });
+
+  describe('auto-dismiss on card movement', () => {
+    it('hides the preview once the card is no longer present in its watched zone', async () => {
+      const yDoc = new Y.Doc();
+      const yHand = yDoc.getMap<Card[]>('player');
+      const card = makeCard();
+      yHand.set('hand', [card]);
+      useCardPreviewStore.getState().show(card, {
+        yMap: yHand,
+        isPresent: () => (yHand.get('hand') ?? []).some((c) => c.id === card.id),
+      });
+
+      render(<CardPreview />);
+      expect(screen.getByAltText('Lightning Bolt')).toBeInTheDocument();
+
+      // Card moves out of hand (drag, hotkey, or pile-viewer action) — no
+      // explicit hide() call, just the underlying Yjs mutation.
+      act(() => {
+        yHand.set('hand', []);
+      });
+
+      await waitFor(() => {
+        expect(useCardPreviewStore.getState().isVisible).toBe(false);
+      });
+    });
+
+    it('keeps the preview visible while the card remains in its watched zone', () => {
+      const yDoc = new Y.Doc();
+      const yHand = yDoc.getMap<Card[]>('player');
+      const card = makeCard();
+      const otherCard = makeCard({ id: 'card-2' });
+      yHand.set('hand', [card]);
+      useCardPreviewStore.getState().show(card, {
+        yMap: yHand,
+        isPresent: () => (yHand.get('hand') ?? []).some((c) => c.id === card.id),
+      });
+
+      render(<CardPreview />);
+
+      // An unrelated mutation to the same map shouldn't dismiss the preview.
+      yHand.set('hand', [card, otherCard]);
+
+      expect(useCardPreviewStore.getState().isVisible).toBe(true);
+      expect(screen.getByAltText('Lightning Bolt')).toBeInTheDocument();
     });
   });
 

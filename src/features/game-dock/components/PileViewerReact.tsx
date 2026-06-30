@@ -496,6 +496,7 @@ export function PileViewerReact({
             <CardGrid
               cards={filteredAndSortedCards}
               pileType={pileType}
+              yPlayerState={yPlayerState}
               visibleCardCount={visibleCardCount}
               revealAll={revealAll}
               revealCount={revealCount}

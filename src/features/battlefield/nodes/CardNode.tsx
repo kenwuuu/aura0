@@ -46,7 +46,7 @@ export const CardNode = memo(function CardNode({ data, id }: NodeProps) {
   const handleMouseEnter = useCallback((e: React.MouseEvent) => {
     useHotkeyStore.getState().setHoveredBattlefieldCard(id);
     const latestCard = yCards.get(id) || card;
-    useCardPreviewStore.getState().show(latestCard);
+    useCardPreviewStore.getState().show(latestCard, { yMap: yCards, isPresent: () => yCards.has(id) });
     useCardPreviewStore.getState().updatePosition(e.clientX, e.clientY);
   }, [id, yCards, card]);
 

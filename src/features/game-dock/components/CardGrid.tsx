@@ -13,6 +13,7 @@
  */
 
 import * as React from 'react';
+import * as Y from 'yjs';
 import {
   DndContext,
   DragEndEvent,
@@ -37,6 +38,7 @@ import styles from './PileViewerReact.module.css';
 export interface CardGridProps {
   cards: Card[];
   pileType: PileType;
+  yPlayerState: Y.Map<any> | null;
   visibleCardCount: number;
   revealAll: boolean;
   revealCount: number;
@@ -60,6 +62,7 @@ const measuringConfig = {
 export const CardGrid = React.memo(function CardGrid({
   cards,
   pileType,
+  yPlayerState,
   visibleCardCount,
   revealAll,
   revealCount,
@@ -149,6 +152,8 @@ export const CardGrid = React.memo(function CardGrid({
                 onHover={onHover}
                 hotkeyContext={hotkeyContext}
                 onMenuSelect={onMenuSelect}
+                pileType={pileType}
+                yPlayerState={yPlayerState}
               />
             );
           }
@@ -195,6 +200,8 @@ export const CardGrid = React.memo(function CardGrid({
                   onHover={onHover}
                   hotkeyContext={hotkeyContext}
                   onMenuSelect={onMenuSelect}
+                  pileType={pileType}
+                  yPlayerState={yPlayerState}
                 />
               );
             }

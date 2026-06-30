@@ -95,7 +95,6 @@ export function useAllGameHotkeys() {
     const card = player.getState().hand.find((c) => c.id === t.id);
     if (card) {
       player.movePileCard(card, 'hand', dest, position);
-      useCardPreviewStore.getState().hide();
     }
   };
 

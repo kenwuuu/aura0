@@ -7,6 +7,7 @@
  * in the Settings modal instead.
  */
 
+import { useEffect } from 'react';
 import { DEFAULT_CARD_BACK } from '@/constants';
 import type { Card } from '@/features/player/types';
 import { useCardPreviewStore } from './cardPreviewStore';
@@ -68,6 +69,35 @@ function CardPreviewPopup() {
   );
 }
 
+/**
+ * Auto-dismisses the preview once the previewed card leaves the zone it was
+ * hovered from (dragged to a pile, moved by a hotkey, moved from a pile-viewer
+ * modal, etc.) — whatever mutates the watched Yjs map, not just hover-out.
+ */
+function CardPreviewWatcher() {
+  const card = useCardPreviewStore((state) => state.card);
+  const source = useCardPreviewStore((state) => state.source);
+
+  useEffect(() => {
+    if (!card || !source) return;
+
+    const checkPresence = () => {
+      if (!source.isPresent()) useCardPreviewStore.getState().hide();
+    };
+
+    checkPresence();
+    source.yMap.observe(checkPresence);
+    return () => source.yMap.unobserve(checkPresence);
+  }, [card, source]);
+
+  return null;
+}
+
 export function CardPreview() {
-  return <CardPreviewPopup />;
+  return (
+    <>
+      <CardPreviewPopup />
+      <CardPreviewWatcher />
+    </>
+  );
 }

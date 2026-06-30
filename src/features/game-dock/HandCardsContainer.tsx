@@ -48,8 +48,13 @@ export const HandCardsContainer: React.FC<HandCardsContainerProps> = ({
   const handleMouseEnter = useCallback((cardId: string) => {
     onHoveredCardChange(cardId);
     const card = displayHand.find(c => c.id === cardId);
-    if (card) useCardPreviewStore.getState().show(card);
-  }, [displayHand, onHoveredCardChange]);
+    if (card) {
+      useCardPreviewStore.getState().show(card, {
+        yMap: yPlayerState,
+        isPresent: () => ((yPlayerState.get('hand') as Card[] | undefined) ?? []).some(c => c.id === cardId),
+      });
+    }
+  }, [displayHand, onHoveredCardChange, yPlayerState]);
 
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
     useCardPreviewStore.getState().updatePosition(e.clientX, e.clientY);

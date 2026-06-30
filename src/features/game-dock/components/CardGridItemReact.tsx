@@ -10,12 +10,22 @@
  */
 
 import * as React from 'react';
+import type * as Y from 'yjs';
 import {Card} from '@/features/player';
 import {HotkeyContext, Hotkey} from '@/features/hotkeys/hotkeys';
-import {DEFAULT_CARD_BACK} from '@/constants';
+import {DEFAULT_CARD_BACK, YSTATE_HAND, YSTATE_DECK, YSTATE_EXILE_PILE, YSTATE_DISCARD_PILE} from '@/constants';
 import styles from './CardGridItemReact.module.css';
 import {useHotkeyMenuStore} from "@/features/hotkeys/hotkeyMenuStore";
 import {useCardPreviewStore} from "@/features/card-preview/cardPreviewStore";
+import type {PileType} from './PileViewerReact';
+
+const PILE_YSTATE_KEY: Record<PileType, string> = {
+  hand: YSTATE_HAND,
+  deck: YSTATE_DECK,
+  exile: YSTATE_EXILE_PILE,
+  discard: YSTATE_DISCARD_PILE,
+  scry: 'scry',
+};
 
 export interface CardGridItemReactProps {
   card: Card;
@@ -26,6 +36,8 @@ export interface CardGridItemReactProps {
   onHover: (card: Card | null) => void;
   hotkeyContext: HotkeyContext;
   onMenuSelect: (hotkey: Hotkey, cardId: string) => void;
+  pileType: PileType;
+  yPlayerState: Y.Map<any> | null;
 }
 
 export const CardGridItemReact = React.memo(function CardGridItemReact({
@@ -37,6 +49,8 @@ export const CardGridItemReact = React.memo(function CardGridItemReact({
   onHover,
   hotkeyContext,
   onMenuSelect,
+  pileType,
+  yPlayerState,
 }: CardGridItemReactProps) {
   const [frontImageLoaded, setFrontImageLoaded] = React.useState(false);
   const [backImageLoaded, setBackImageLoaded] = React.useState(false);
@@ -49,7 +63,16 @@ export const CardGridItemReact = React.memo(function CardGridItemReact({
 
   const handleMouseEnter = () => {
     onHover(card);
-    if (!showFaceDown) useCardPreviewStore.getState().show(card);
+    if (showFaceDown) return;
+    const cardId = card.id;
+    const yStateKey = PILE_YSTATE_KEY[pileType];
+    const source = yPlayerState
+      ? {
+          yMap: yPlayerState,
+          isPresent: () => ((yPlayerState.get(yStateKey) as Card[] | undefined) ?? []).some(c => c.id === cardId),
+        }
+      : undefined;
+    useCardPreviewStore.getState().show(card, source);
   };
 
   const handleMouseLeave = () => {

@@ -10,7 +10,6 @@ import { WhiteboardCard } from './types';
 import { KeywordToken } from '@/features/keyword-tokens/types';
 import { YDOC_KEYWORD_TOKENS } from '@/constants';
 import { attachedChildren } from './nodeAttachment';
-import { useCardPreviewStore } from '@/features/card-preview/cardPreviewStore';
 import { useHotkeyMenuStore } from '@/features/hotkeys/hotkeyMenuStore';
 import { useGameInstance } from '@/app/stores/gameInstanceStore';
 import { logAction, cardLogName } from '@/features/action-log/actionLog';
@@ -92,7 +91,6 @@ export function executeBattlefieldCardAction(
       break;
     }
     case 'delete':
-      useCardPreviewStore.getState().hide();
       useHotkeyMenuStore.getState().close();
       detachTokens(cardId, yTokens);
       yCards.delete(cardId);
@@ -101,7 +99,6 @@ export function executeBattlefieldCardAction(
       }
       break;
     case 'moveToHand':
-      useCardPreviewStore.getState().hide();
       useHotkeyMenuStore.getState().close();
       detachTokens(cardId, yTokens);
       useGameInstance.getState().moveCardToHand(card);
@@ -111,7 +108,6 @@ export function executeBattlefieldCardAction(
       }
       break;
     case 'moveToDiscard':
-      useCardPreviewStore.getState().hide();
       useHotkeyMenuStore.getState().close();
       detachTokens(cardId, yTokens);
       useGameInstance.getState().moveCardToDiscard(card);
@@ -121,7 +117,6 @@ export function executeBattlefieldCardAction(
       }
       break;
     case 'moveToExile':
-      useCardPreviewStore.getState().hide();
       useHotkeyMenuStore.getState().close();
       detachTokens(cardId, yTokens);
       useGameInstance.getState().moveCardToExile(card);
@@ -131,7 +126,6 @@ export function executeBattlefieldCardAction(
       }
       break;
     case 'moveToDeckTop':
-      useCardPreviewStore.getState().hide();
       useHotkeyMenuStore.getState().close();
       detachTokens(cardId, yTokens);
       useGameInstance.getState().moveCardToDeckTop(card);
@@ -141,7 +135,6 @@ export function executeBattlefieldCardAction(
       }
       break;
     case 'moveToDeckBottom':
-      useCardPreviewStore.getState().hide();
       useHotkeyMenuStore.getState().close();
       detachTokens(cardId, yTokens);
       useGameInstance.getState().moveCardToDeckBottom(card);

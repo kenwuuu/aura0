@@ -22,6 +22,7 @@ describe('cardPreviewStore', () => {
     localStorage.clear();
     useCardPreviewStore.setState({
       card: null,
+      source: null,
       isVisible: false,
       mouseX: 0,
       mouseY: 0,
@@ -49,6 +50,19 @@ describe('cardPreviewStore', () => {
       const state = useCardPreviewStore.getState();
       expect(state.card).toBeNull();
       expect(state.isVisible).toBe(false);
+    });
+
+    it('show stores the optional source for later dismissal checks', () => {
+      const source = { yMap: {} as any, isPresent: () => true };
+      useCardPreviewStore.getState().show(makeCard(), source);
+      expect(useCardPreviewStore.getState().source).toBe(source);
+    });
+
+    it('hide clears the source', () => {
+      const source = { yMap: {} as any, isPresent: () => true };
+      useCardPreviewStore.getState().show(makeCard(), source);
+      useCardPreviewStore.getState().hide();
+      expect(useCardPreviewStore.getState().source).toBeNull();
     });
   });
 
