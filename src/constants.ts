@@ -24,3 +24,11 @@ export const YSTATE_CAN_VIEW_HAND = 'allowViewHand';
 export const YSTATE_PLAYER_NAME = 'playerName';
 // Timestamp (Date.now()) written once on first init; determines stable seat order across peers.
 export const YSTATE_JOINED_AT = 'joinedAt';
+
+// Action log: shared append-only Y.Array of ActionLogEntry objects.
+// Using Y.Array (not a JS-array-in-a-Y.Map) so concurrent appends from different
+// players are conflict-free — last-write-wins would silently drop entries.
+export const YDOC_ACTION_LOG = 'action-log';
+// Soft cap: trim to this many entries whenever a new one is appended.
+// Bounds the per-peer doc download and IndexedDB size as rooms age.
+export const ACTION_LOG_MAX_ENTRIES = 500;

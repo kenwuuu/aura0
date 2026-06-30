@@ -3,9 +3,12 @@ import { ScryModal } from './ScryModal';
 import { PileViewer } from './components/PileViewer';
 import { useScryStore } from './scryStore';
 import { useGameInstance } from '@/app/stores/gameInstanceStore';
+import { logAction } from '@/features/action-log/actionLog';
 
 export function ScryManager() {
   const player = useGameInstance((s) => s.player);
+  const yDoc = useGameInstance((s) => s.yDoc);
+  const playerId = useGameInstance((s) => s.playerId);
   const [isOpen, setIsOpen] = useState(false);
   const [maxCards, setMaxCards] = useState(0);
   const viewerRef = useRef<PileViewer | null>(null);
@@ -72,6 +75,10 @@ export function ScryManager() {
       if (card) cards.unshift(card);
     }
     cards.forEach((card) => scryPile.addCardToTop(card));
+
+    if (yDoc && playerId) {
+      logAction(yDoc, { actorId: playerId, type: 'scry', text: `scried ${count} card${count === 1 ? '' : 's'}` });
+    }
 
     getViewer().show(scryPile.getCards(), 'scry');
   };

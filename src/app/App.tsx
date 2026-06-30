@@ -35,6 +35,8 @@ import { RoomConnectionStatus } from '@/features/room/RoomConnectionStatus';
 import { AddCardManager } from '@/features/deck-manager/AddCardManager';
 import { WelcomeModal } from '@/app/WelcomeModal';
 import { AnnouncementModal } from '@/app/AnnouncementModal';
+import { ActionLogPanel } from '@/features/action-log/ActionLogPanel';
+import { logAction } from '@/features/action-log/actionLog';
 import { Toaster } from '@/shared/ui/sonner';
 import { AnnouncementsService } from '@/shared/services/announcements/AnnouncementsService';
 import { HelpButton, HotkeysButton, DiscordButton } from './ToolbarButtons';
@@ -139,8 +141,10 @@ export function App({ yDoc, yjsNetworkProvider, player, roomManager, playerId, c
   }, [player, playerId]);
 
   const handleDeckSelected = (deck: SavedDeck) => loadDeck(player, roomManager, deck);
-  const handleAddCard = (card: Parameters<Player['placeCardInPile']>[0]) =>
+  const handleAddCard = (card: Parameters<Player['placeCardInPile']>[0]) => {
     player.placeCardInPile(card, 'hand');
+    logAction(yDoc, { actorId: playerId, type: 'add_card', text: `added ${card.name} to hand` });
+  };
 
   return (
     <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
@@ -172,6 +176,7 @@ export function App({ yDoc, yjsNetworkProvider, player, roomManager, playerId, c
       <ScryManager />
       <LocalPileTiles />
       <OpponentPileViewers yDoc={yDoc} localPlayerId={playerId} />
+      <ActionLogPanel yDoc={yDoc} localPlayerId={playerId} />
       <CardPreview />
       <HotkeyMenu />
       <GameHotkeysManager />

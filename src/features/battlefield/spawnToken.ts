@@ -3,6 +3,7 @@ import { WhiteboardCard } from './types';
 import { KeywordToken } from '@/features/keyword-tokens/types';
 import { KeywordTokenTemplate } from '@/features/keyword-tokens/types';
 import { findParent, NODE_SIZES } from './nodeAttachment';
+import { logAction } from '@/features/action-log/actionLog';
 
 export function getMaxZIndex(yCards: Y.Map<WhiteboardCard>, yTokens: Y.Map<KeywordToken>): number {
   let max = 0;
@@ -37,4 +38,13 @@ export function spawnTokenAtPosition(
     rotation: 0,
     attachedTo: parentId,
   });
+
+  const yDoc = yTokens.doc;
+  if (yDoc) {
+    logAction(yDoc, {
+      actorId: ownerId,
+      type: 'spawn_token',
+      text: `placed a ${template.title} token`,
+    });
+  }
 }

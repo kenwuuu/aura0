@@ -33,6 +33,8 @@ import { usePlayerStore } from '@/app/stores/playerStore';
 import { useHotkeyStore } from '@/app/stores/hotkeyStore';
 import { useHotkeyMenuStore } from '@/features/hotkeys/hotkeyMenuStore';
 import { usePileViewerHotkeyStore } from '@/features/game-dock/pileViewerHotkeyStore';
+import { useGameInstance } from '@/app/stores/gameInstanceStore';
+import { logAction } from '@/features/action-log/actionLog';
 
 export type PileType = 'deck' | 'exile' | 'discard' | 'hand' | 'scry';
 
@@ -65,6 +67,8 @@ export function PileViewerReact({
   const yPlayerState = usePlayerStore((state) => state.yPlayerState);
   const setModalOpen = useHotkeyStore((state) => state.setModalOpen);
   const setHoveredPileViewerCard = useHotkeyStore((state) => state.setHoveredPileViewerCard);
+  const yDoc = useGameInstance((s) => s.yDoc);
+  const playerId = useGameInstance((s) => s.playerId);
 
   // State
   const [searchQuery, setSearchQuery] = React.useState('');
@@ -76,6 +80,9 @@ export function PileViewerReact({
 
   // Refs
   const searchTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
+  // Debounces the action-log entry (not the Yjs write, which stays immediate)
+  // for the "reveal top N" number input, since onChange fires per keystroke.
+  const revealCountTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
 
   // Custom hooks
   function useSortOrder(initial: SortOrder): [SortOrder, (newSortOrder: SortOrder) => void] {
@@ -222,14 +229,21 @@ export function PileViewerReact({
     searchTimeoutRef.current = setTimeout(() => {
       setSearchQuery(value);
       setRevealAll(true);
+      const trimmed = value.trim();
+      if (trimmed && yDoc && playerId) {
+        logAction(yDoc, { actorId: playerId, type: 'search', text: `searched ${pileType} for "${trimmed}"` });
+      }
     }, 250);
   };
 
-  // Cleanup timeout on unmount
+  // Cleanup timeouts on unmount
   React.useEffect(() => {
     return () => {
       if (searchTimeoutRef.current) {
         clearTimeout(searchTimeoutRef.current);
+      }
+      if (revealCountTimeoutRef.current) {
+        clearTimeout(revealCountTimeoutRef.current);
       }
     };
   }, []);
@@ -246,6 +260,13 @@ export function PileViewerReact({
       if (yPlayerState) {
         yPlayerState.set('deckRevealCount', 0);
       }
+    }
+    if (yDoc && playerId) {
+      logAction(yDoc, {
+        actorId: playerId,
+        type: 'reveal',
+        text: checked ? 'revealed their deck' : 'stopped revealing their deck',
+      });
     }
   };
 
@@ -264,6 +285,18 @@ export function PileViewerReact({
         yPlayerState.set('deckRevealCount', 0);
       }
     }
+
+    if (revealCountTimeoutRef.current) clearTimeout(revealCountTimeoutRef.current);
+    revealCountTimeoutRef.current = setTimeout(() => {
+      if (!yDoc || !playerId) return;
+      logAction(yDoc, {
+        actorId: playerId,
+        type: 'reveal',
+        text: boundedCount > 0
+          ? `revealed the top ${boundedCount} card${boundedCount === 1 ? '' : 's'} of their deck`
+          : 'stopped revealing the top of their deck',
+      });
+    }, 1000);
   };
 
   // Filter and sort cards

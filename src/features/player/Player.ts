@@ -22,9 +22,11 @@ import {PileType} from '@/features/game-dock/components';
 import { CardPile } from './CardPile';
 import {SavedDeck} from "@/features/player/types";
 import {trackHealthChange} from "@/infrastructure/analytics/PosthogFunctions"
+import { logAction } from '@/features/action-log/actionLog';
 
 export class Player {
   private playerId: string;
+  private yDoc: Y.Doc;
   public yPlayerState: Y.Map<any>;
   private yCardsOnBoard: Y.Map<any>; // Battlefield cards
   private yTokens: Y.Map<any>; // Keyword tokens on battlefield
@@ -49,6 +51,7 @@ export class Player {
     config: Partial<PlayerConfig> = {}
   ) {
     this.playerId = playerId;
+    this.yDoc = yDoc;
     this.config = {
       initialHealth: config.initialHealth ?? 40,
     };
@@ -193,19 +196,19 @@ export class Player {
       const commander: Card = deckCards[deckCards.length - 1];
       this.deck.removeCardById(commander.id);
       this.deck.addCardToTop(commander);
-      this.drawCard();
+      this.drawCard(false); // opening hand draws suppressed; deck-load is its own event
 
       this.deck.shuffle();
 
-      // draw 7
+      // draw 7 — suppressed from action log; deck-load is its own event
       for (let i = 0; i < 7; i++) {
-        this.drawCard()
+        this.drawCard(false);
         await new Promise(r => setTimeout(r, 20));
       }
     }
   }
 
-  public drawCard(): Card | null {
+  public drawCard(logToActionLog = true): Card | null {
     const card: Card | null = this.deck.drawCard();
     if (!card) return null;
 
@@ -216,6 +219,14 @@ export class Player {
       hand_size: this.hand.getCards().length,
       deck_size: this.deck.getCards().length,
     });
+
+    if (logToActionLog) {
+      logAction(this.yDoc, {
+        actorId: this.playerId,
+        type: 'draw',
+        text: 'drew a card',
+      });
+    }
 
     return card;
   }
@@ -304,13 +315,25 @@ export class Player {
 
     if (this.healthEventTimer) clearTimeout(this.healthEventTimer);
     this.healthEventTimer = setTimeout(() => {
-      trackHealthChange(this.yPlayerState.get(YSTATE_HEALTH))
+      const newHealth = this.yPlayerState.get(YSTATE_HEALTH) as number;
+      trackHealthChange(newHealth);
+      // Debounced log: rapid +/- presses collapse into a single entry.
+      logAction(this.yDoc, {
+        actorId: this.playerId,
+        type: 'health',
+        text: `life total is now ${newHealth}`,
+      });
       this.healthEventTimer = null;
     }, 1000);
   }
 
   public shuffleDeck(): void {
     this.deck.shuffle();
+    logAction(this.yDoc, {
+      actorId: this.playerId,
+      type: 'shuffle',
+      text: 'shuffled their deck',
+    });
   }
 
   public mulligan(cardsToDraw: number = 7): void {
@@ -319,6 +342,12 @@ export class Player {
       hand_size_before: handSizeBefore,
       cards_to_draw: cardsToDraw,
     });
+    logAction(this.yDoc, {
+      actorId: this.playerId,
+      type: 'mulligan',
+      text: `took a mulligan (drew ${cardsToDraw} cards)`,
+    });
+
     // Move all cards from hand back to deck
     this.hand.getCards().forEach((card: Card) => {
       this.deck.addCardToBottom(card);
@@ -330,9 +359,9 @@ export class Player {
     // Shuffle deck
     this.deck.shuffle();
 
-    // Draw new hand
+    // Draw new hand — suppress per-draw log entries; the mulligan event above covers it.
     for (let i: number = 0; i < cardsToDraw; i++) {
-      this.drawCard();
+      this.drawCard(false);
     }
   }
 
