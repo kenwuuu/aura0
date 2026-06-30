@@ -414,6 +414,13 @@ export function PileViewerReact({
             e.preventDefault();
           }
         }}
+        onOpenAutoFocus={(e) => {
+          // Discard/exile are revealed-to-all piles opened frequently during play;
+          // stealing focus into the search box would hijack keyboard input/hotkeys.
+          if (pileType === 'discard' || pileType === 'exile') {
+            e.preventDefault();
+          }
+        }}
       >
 
         <DialogHeader className="px-6 pt-6 pb-4 border-b">
