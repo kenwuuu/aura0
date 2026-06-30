@@ -11,6 +11,7 @@ import { ChevronDown, ChevronUp, ScrollText } from 'lucide-react';
 import * as Y from 'yjs';
 import { ScrollArea } from '@/shared/ui/scroll-area';
 import { resolvePlayerName } from '@/shared/utils/resolvePlayerName';
+import { DiceControls } from '@/features/dice/DiceControls';
 import { useActionLog } from './useActionLog';
 
 interface ActionLogPanelProps {
@@ -80,7 +81,7 @@ export function ActionLogPanel({ yDoc, localPlayerId }: ActionLogPanelProps) {
 
       {/* Entry list */}
       {isOpen && (
-        <ScrollArea style={{ height: 240 }}>
+        <ScrollArea style={{ height: 200 }}>
           <div style={{ padding: '4px 0' }}>
             {entries.length === 0 ? (
               <p style={{
@@ -132,6 +133,12 @@ export function ActionLogPanel({ yDoc, localPlayerId }: ActionLogPanelProps) {
             <div ref={bottomRef} />
           </div>
         </ScrollArea>
+      )}
+
+      {isOpen && (
+        <div style={{ borderTop: '1px solid rgba(255,255,255,0.07)' }}>
+          <DiceControls yDoc={yDoc} localPlayerId={localPlayerId} />
+        </div>
       )}
 
       {/* Future: message composer goes here */}
