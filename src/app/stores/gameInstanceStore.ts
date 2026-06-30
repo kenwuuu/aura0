@@ -160,9 +160,17 @@ export const useGameInstance = create<GameInstanceStore>((set, get) => ({
 
     if (tokenService && card.scryfallId) {
       const result = await tokenService.createTokensForCard(card.scryfallId, { x: cardX, y: cardY });
-      result.tokens.forEach((token, i) => {
-        yCards.set(token.id, { ...token, zIndex: maxZ + 2 + i, ownerId: playerId });
-      });
+      // A face-down card's tokens would reveal what it is, so keep them off the
+      // battlefield and give the player the token cards in hand instead.
+      if (card.isFlipped) {
+        result.tokens.forEach((token) => {
+          player.placeCardInPile(token, 'hand');
+        });
+      } else {
+        result.tokens.forEach((token, i) => {
+          yCards.set(token.id, { ...token, zIndex: maxZ + 2 + i, ownerId: playerId });
+        });
+      }
       if (result.errors.length > 0) {
         console.warn(`Token creation errors for ${card.name}:`, result.errors);
       }
