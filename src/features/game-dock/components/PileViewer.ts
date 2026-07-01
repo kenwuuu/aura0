@@ -19,6 +19,10 @@ export interface PileViewerCallbacks {
   onMoveToDiscard?: (card: Card) => void;
   onMoveToDeckTop?: (card: Card) => void;
   onMoveToDeckBottom?: (card: Card) => void;
+  /** Deck viewer: close the viewer and shuffle the deck. */
+  onShuffleDeck?: () => void;
+  /** Discard viewer: move all discard cards to exile. */
+  onExileAll?: () => void;
 }
 
 export class PileViewer {

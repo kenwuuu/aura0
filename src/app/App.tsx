@@ -37,6 +37,9 @@ import { WelcomeModal } from '@/app/WelcomeModal';
 import { AnnouncementModal } from '@/app/AnnouncementModal';
 import { ActionLogPanel } from '@/features/action-log/ActionLogPanel';
 import { logAction } from '@/features/action-log/actionLog';
+import { GameActionsToolbar } from '@/features/game-actions/GameActionsToolbar';
+import { NumberPromptManager } from '@/features/game-actions/NumberPromptManager';
+import { TokenCardSearchModal } from '@/features/game-actions/TokenCardSearchModal';
 import { Toaster } from '@/shared/ui/sonner';
 import { AnnouncementsService } from '@/shared/services/announcements/AnnouncementsService';
 import { HelpButton, HotkeysButton, DiscordButton } from './ToolbarButtons';
@@ -177,6 +180,9 @@ export function App({ yDoc, yjsNetworkProvider, player, roomManager, playerId, c
       <LocalPileTiles />
       <OpponentPileViewers yDoc={yDoc} localPlayerId={playerId} />
       <ActionLogPanel yDoc={yDoc} localPlayerId={playerId} />
+      <GameActionsToolbar />
+      <NumberPromptManager />
+      <TokenCardSearchModal cardLookup={cardLookup} />
       <CardPreview />
       <HotkeyMenu />
       <GameHotkeysManager />

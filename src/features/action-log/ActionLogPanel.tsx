@@ -116,7 +116,7 @@ export function ActionLogPanel({ yDoc, localPlayerId }: ActionLogPanelProps) {
                     }}>
                       {name}
                     </span>
-                    <span style={{ color: 'rgba(255,255,255,1)' }}>
+                    <span style={{ color: entry.tone ?? 'rgba(255,255,255,1)' }}>
                       {entry.text}
                     </span>
                     <span style={{

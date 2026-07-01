@@ -1,17 +1,17 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ScryModal } from './ScryModal';
 import { PileViewer } from './components/PileViewer';
 import { useScryStore } from './scryStore';
+import { useSurveilStore } from './surveilStore';
 import { useGameInstance } from '@/app/stores/gameInstanceStore';
 import { logAction } from '@/features/action-log/actionLog';
+import { useNumberPromptStore } from '@/features/game-actions/numberPromptStore';
 
 export function ScryManager() {
   const player = useGameInstance((s) => s.player);
   const yDoc = useGameInstance((s) => s.yDoc);
   const playerId = useGameInstance((s) => s.playerId);
-  const [isOpen, setIsOpen] = useState(false);
-  const [maxCards, setMaxCards] = useState(0);
   const viewerRef = useRef<PileViewer | null>(null);
+  const actionTypeRef = useRef<'scry' | 'surveil'>('scry');
 
   // Lazy-init the PileViewer — must be stable across renders.
   const getViewer = (): PileViewer => {
@@ -37,14 +37,39 @@ export function ScryManager() {
     return viewerRef.current;
   };
 
+  const openPromptFor = (type: 'scry' | 'surveil') => {
+    if (!player) return;
+    actionTypeRef.current = type;
+    const maxCards = player.getDeck().getCardCount();
+    useNumberPromptStore.getState().open({
+      title: type === 'scry' ? 'Scry' : 'Surveil',
+      label: 'How many cards?',
+      min: 1,
+      max: maxCards,
+      defaultValue: 1,
+      confirmLabel: type === 'scry' ? 'Scry' : 'Surveil',
+      onConfirm: (count) => handleConfirm(count, type),
+    });
+  };
+
   useEffect(() => {
     const unsub = useScryStore.subscribe((state) => {
       if (!state.requested || !player) return;
       useScryStore.getState().consume();
-      setMaxCards(player.getDeck().getCardCount());
-      setIsOpen(true);
+      openPromptFor('scry');
     });
     return unsub;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [player]);
+
+  useEffect(() => {
+    const unsub = useSurveilStore.subscribe((state) => {
+      if (!state.requested || !player) return;
+      useSurveilStore.getState().consume();
+      openPromptFor('surveil');
+    });
+    return unsub;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [player]);
 
   useEffect(() => {
@@ -58,9 +83,8 @@ export function ScryManager() {
     return () => window.removeEventListener('scryViewer closing', handleViewerClose);
   }, [player]);
 
-  const handleConfirm = (count: number) => {
+  const handleConfirm = (count: number, type: 'scry' | 'surveil') => {
     if (!player) return;
-    setIsOpen(false);
 
     const deck = player.getDeck();
     const scryPile = player.getScryPile();
@@ -74,13 +98,15 @@ export function ScryManager() {
     cards.forEach((card) => scryPile.addCardToTop(card));
 
     if (yDoc && playerId) {
-      logAction(yDoc, { actorId: playerId, type: 'scry', text: `scried ${count} card${count === 1 ? '' : 's'}` });
+      logAction(yDoc, {
+        actorId: playerId,
+        type,
+        text: `${type === 'scry' ? 'scried' : 'surveiled'} ${count} card${count === 1 ? '' : 's'}`,
+      });
     }
 
     getViewer().show(scryPile.getCards(), 'scry');
   };
 
-  return (
-    <ScryModal isOpen={isOpen} maxCards={maxCards} onConfirm={handleConfirm} onCancel={() => setIsOpen(false)} />
-  );
+  return null;
 }

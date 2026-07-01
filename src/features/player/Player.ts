@@ -352,6 +352,79 @@ export class Player {
     });
   }
 
+  /** Draw N cards from the top of the deck into hand. */
+  public drawCards(n: number): void {
+    let drawn = 0;
+    for (let i = 0; i < n; i++) {
+      if (this.drawCard(false)) drawn++;
+    }
+    if (drawn > 0) {
+      logAction(this.yDoc, {
+        actorId: this.playerId,
+        type: 'draw',
+        text: `drew ${drawn} card${drawn === 1 ? '' : 's'}`,
+      });
+    }
+  }
+
+  /** Mill the top N cards from the deck into the discard pile. */
+  public mill(n: number): void {
+    let milled = 0;
+    for (let i = 0; i < n; i++) {
+      const card = this.deck.drawCard();
+      if (!card) break;
+      this.discard.addCardToTop(card);
+      milled++;
+    }
+    if (milled > 0) {
+      logAction(this.yDoc, {
+        actorId: this.playerId,
+        type: 'mill',
+        text: `milled ${milled} card${milled === 1 ? '' : 's'}`,
+      });
+    }
+  }
+
+  /** Move the top card of the deck to exile. */
+  public exileTopOfDeck(): void {
+    const card = this.deck.drawCard();
+    if (!card) return;
+    this.exile.addCardToTop(card);
+    logAction(this.yDoc, {
+      actorId: this.playerId,
+      type: 'move_to_pile',
+      text: `exiled ${cardLogName(card)} from the top of their deck`,
+    });
+  }
+
+  /** Discard a random card from hand. */
+  public randomDiscard(): void {
+    const hand = this.hand.getCards();
+    if (hand.length === 0) return;
+    const idx = Math.floor(Math.random() * hand.length);
+    const card = hand[idx];
+    this.hand.removeCardById(card.id);
+    this.discard.addCardToTop(card);
+    logAction(this.yDoc, {
+      actorId: this.playerId,
+      type: 'random_discard',
+      text: `randomly discarded ${cardLogName(card)}`,
+    });
+  }
+
+  /** Move all cards from the discard pile to exile. */
+  public exileAllDiscard(): void {
+    const cards = this.discard.getCards();
+    if (cards.length === 0) return;
+    this.discard.clear();
+    cards.forEach((card) => this.exile.addCardToTop(card));
+    logAction(this.yDoc, {
+      actorId: this.playerId,
+      type: 'move_to_pile',
+      text: `exiled all ${cards.length} card${cards.length === 1 ? '' : 's'} from discard`,
+    });
+  }
+
   public mulligan(cardsToDraw: number = 7): void {
     const handSizeBefore = this.hand.getCards().length;
     posthog.capture('mulligan_taken', {

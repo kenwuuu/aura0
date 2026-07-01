@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef } from 'react';
 import { PileViewer } from './components/PileViewer';
 import { useGameInstance } from '@/app/stores/gameInstanceStore';
 import { usePileViewerOpenStore } from './pileViewerOpenStore';
+import { DeckPersistenceService } from '@/infrastructure/persistence';
 
 /**
  * Headless component: manages PileViewer instances and bridges the
@@ -10,10 +11,15 @@ import { usePileViewerOpenStore } from './pileViewerOpenStore';
  */
 export function LocalPileTiles() {
   const player = useGameInstance((s) => s.player);
+  const roomManager = useGameInstance((s) => s.roomManager);
   const playerRef = useRef(player);
+  const roomManagerRef = useRef(roomManager);
   useEffect(() => {
     playerRef.current = player;
   }, [player]);
+  useEffect(() => {
+    roomManagerRef.current = roomManager;
+  }, [roomManager]);
 
   const deckViewerRef = useRef<PileViewer | null>(null);
   const exileViewerRef = useRef<PileViewer | null>(null);
@@ -58,6 +64,13 @@ export function LocalPileTiles() {
           if (!p) return;
           p.movePileCard(card, 'deck', 'deck', 0);
           deckViewerRef.current?.updateCards(p.getDeckCards());
+        },
+        onShuffleDeck: () => {
+          const p = playerRef.current;
+          if (!p) return;
+          p.shuffleDeck();
+          const rm = roomManagerRef.current;
+          if (rm) DeckPersistenceService.saveDeckForRoom(rm.getRoomName(), p.getDeck());
         },
       });
     }
@@ -135,6 +148,12 @@ export function LocalPileTiles() {
           const p = playerRef.current;
           if (!p) return;
           p.movePileCard(card, 'discard', 'deck', 0);
+          discardViewerRef.current?.updateCards(p.getState().discardPile);
+        },
+        onExileAll: () => {
+          const p = playerRef.current;
+          if (!p) return;
+          p.exileAllDiscard();
           discardViewerRef.current?.updateCards(p.getState().discardPile);
         },
       });

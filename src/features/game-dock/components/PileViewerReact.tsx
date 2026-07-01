@@ -19,6 +19,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/shared/ui/dialog';
+import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
 import {
   Select,
@@ -45,6 +46,10 @@ export interface PileViewerCallbacks {
   onMoveToDiscard?: (card: Card) => void;
   onMoveToDeckTop?: (card: Card) => void;
   onMoveToDeckBottom?: (card: Card) => void;
+  /** Deck viewer: close the viewer and shuffle the deck. */
+  onShuffleDeck?: () => void;
+  /** Discard viewer: move all discard cards to exile. */
+  onExileAll?: () => void;
 }
 
 export interface PileViewerReactProps {
@@ -483,6 +488,33 @@ export function PileViewerReact({
                 />
               </div>
             </div>
+          )}
+
+          {/* Close & Shuffle (deck only) */}
+          {pileType === 'deck' && callbacks.onShuffleDeck && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                callbacks.onShuffleDeck!();
+                onClose();
+              }}
+              className="ml-auto"
+            >
+              Close &amp; Shuffle
+            </Button>
+          )}
+
+          {/* Exile all (discard only) */}
+          {pileType === 'discard' && callbacks.onExileAll && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => callbacks.onExileAll!()}
+              className="ml-auto"
+            >
+              Exile All
+            </Button>
           )}
         </div>
 

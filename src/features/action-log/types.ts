@@ -23,6 +23,10 @@ export type ActionLogType =
   | 'untap_all'
   | 'add_card'
   | 'scry'
+  | 'surveil'
+  | 'mill'
+  | 'random_discard'
+  | 'pass_turn'
   | 'reveal'
   | 'search'
   | 'token_count'
@@ -35,4 +39,8 @@ export interface ActionLogEntry {
   type: ActionLogType;
   text: string;        // human string, e.g. "played Lightning Bolt"
   ts: number;          // Date.now() at the time of the action
+  // Optional CSS color for the message text. Lets a few special events (e.g. a
+  // turn pass) stand out from the default white. Generic on purpose so future
+  // entry kinds can colorize without a new render branch per type.
+  tone?: string;
 }
