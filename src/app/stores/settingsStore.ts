@@ -43,6 +43,10 @@ interface SettingsStore {
   previewZoom: number;
   setHandZoom: (zoom: number) => void;
   setPreviewZoom: (zoom: number) => void;
+  // When true, battlefield cards/tokens always snap to the grid while dragging.
+  // When false, the snap-to-grid hotkey (hold Alt) still works per-drag.
+  snapToGridEnabled: boolean;
+  setSnapToGridEnabled: (enabled: boolean) => void;
   // Ephemeral demo state — set while Display settings is open so the main window
   // shows live-resizing sample cards for users with an empty hand or no hovered card.
   demoHandCards: Card[] | null;
@@ -57,13 +61,19 @@ export const useSettingsStore = create<SettingsStore>()(
       previewZoom: clampPreviewZoom(legacyFloat('card-preview-zoom', 1)),
       setHandZoom: (zoom) => set({ handZoom: clampHandZoom(zoom) }),
       setPreviewZoom: (zoom) => set({ previewZoom: clampPreviewZoom(zoom) }),
+      snapToGridEnabled: false,
+      setSnapToGridEnabled: (enabled) => set({ snapToGridEnabled: enabled }),
       demoHandCards: null,
       setDemoHandCards: (cards) => set({ demoHandCards: cards }),
     }),
     {
       name: 'aura:settings',
       // Only persist user preferences — demo state is always ephemeral.
-      partialize: (state) => ({ handZoom: state.handZoom, previewZoom: state.previewZoom }),
+      partialize: (state) => ({
+        handZoom: state.handZoom,
+        previewZoom: state.previewZoom,
+        snapToGridEnabled: state.snapToGridEnabled,
+      }),
     },
   ),
 );

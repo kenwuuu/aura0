@@ -32,6 +32,7 @@ import type { Player } from '@/features/player';
 import type { TokenService } from '@/infrastructure/cards';
 import { useHotkeyMenuStore } from '@/features/hotkeys/hotkeyMenuStore';
 import { useGameInstance } from '@/app/stores/gameInstanceStore';
+import { useSettingsStore } from '@/app/stores/settingsStore';
 import { SettingsButton } from '@/features/settings/SettingsButton';
 
 const nodeTypes = {
@@ -153,15 +154,17 @@ function BattlefieldCanvasInner({ yDoc, localPlayerId, player, tokenService }: B
     useGameInstance.getState().setScreenToFlowPosition(screenToFlowPosition);
   }, [screenToFlowPosition]);
 
-  // Hold Alt to snap dragged cards/tokens to a sub-card grid.
-  const [snapActive, setSnapActive] = useState(false);
+  // Snap-to-grid is either always on (persisted setting) or held on with Alt.
+  const snapToGridEnabled = useSettingsStore((s) => s.snapToGridEnabled);
+  const [altHeld, setAltHeld] = useState(false);
   useEffect(() => {
-    const onDown = (e: KeyboardEvent) => { if (e.key === 'Alt') setSnapActive(true); };
-    const onUp = (e: KeyboardEvent) => { if (e.key === 'Alt') setSnapActive(false); };
+    const onDown = (e: KeyboardEvent) => { if (e.key === 'Alt') setAltHeld(true); };
+    const onUp = (e: KeyboardEvent) => { if (e.key === 'Alt') setAltHeld(false); };
     window.addEventListener('keydown', onDown);
     window.addEventListener('keyup', onUp);
     return () => { window.removeEventListener('keydown', onDown); window.removeEventListener('keyup', onUp); };
   }, []);
+  const snapActive = snapToGridEnabled || altHeld;
 
   // Center the camera on the local player's mat, and keep following it while the
   // seating settles during initial peer sync. When a player first loads in, only

@@ -8,6 +8,7 @@
  */
 import React from 'react';
 import { Slider } from '@/shared/ui/slider';
+import { Checkbox } from '@/shared/ui/checkbox';
 import {
   useSettingsStore,
   HAND_ZOOM_MIN,
@@ -76,6 +77,8 @@ export function DisplaySection() {
   const previewZoom = useSettingsStore((s) => s.previewZoom);
   const setHandZoom = useSettingsStore((s) => s.setHandZoom);
   const setPreviewZoom = useSettingsStore((s) => s.setPreviewZoom);
+  const snapToGridEnabled = useSettingsStore((s) => s.snapToGridEnabled);
+  const setSnapToGridEnabled = useSettingsStore((s) => s.setSnapToGridEnabled);
 
   return (
     <div className={styles.section}>
@@ -109,6 +112,17 @@ export function DisplaySection() {
             useCardPreviewStore.getState().updatePosition(0, 0);
           }}
           onEnd={() => useCardPreviewStore.getState().hide()}
+        />
+      </SettingRow>
+
+      <p className={styles.sectionTitle}>Board</p>
+      <SettingRow
+        label="Always snap to grid"
+        description="Cards and tokens snap to the grid while dragging. When off, hold Alt during a drag to snap instead."
+      >
+        <Checkbox
+          checked={snapToGridEnabled}
+          onCheckedChange={(checked) => setSnapToGridEnabled(checked === true)}
         />
       </SettingRow>
     </div>
