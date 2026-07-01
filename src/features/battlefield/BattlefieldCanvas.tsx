@@ -26,8 +26,8 @@ import { WhiteboardCard } from './types';
 import { KeywordToken } from '@/features/keyword-tokens/types';
 import { attachedChildren, findParent, nodeCenter, nodeContainsPoint } from './nodeAttachment';
 import { spawnTokenAtPosition, getMaxZIndex } from './spawnToken';
-import { YDOC_CARDS_ON_BOARD, YDOC_KEYWORD_TOKENS, CARD_WIDTH, CARD_HEIGHT } from '@/constants';
-import { MIN_ZOOM, MAX_ZOOM, MAT_WIDTH, MAT_HEIGHT } from './boardWorld';
+import { YDOC_CARDS_ON_BOARD, YDOC_KEYWORD_TOKENS } from '@/constants';
+import { MIN_ZOOM, MAX_ZOOM, MAT_WIDTH, MAT_HEIGHT, BACKGROUND_GRID_GAP } from './boardWorld';
 import type { Player } from '@/features/player';
 import type { TokenService } from '@/infrastructure/cards';
 import { useHotkeyMenuStore } from '@/features/hotkeys/hotkeyMenuStore';
@@ -454,7 +454,7 @@ function BattlefieldCanvasInner({ yDoc, localPlayerId, player, tokenService }: B
           if (event) hasUserMovedRef.current = true;
         }}
         snapToGrid={snapActive}
-        snapGrid={[Math.round(CARD_WIDTH / 4), Math.round(CARD_HEIGHT / 5)]}
+        snapGrid={[BACKGROUND_GRID_GAP, BACKGROUND_GRID_GAP]}
         minZoom={MIN_ZOOM}
         maxZoom={MAX_ZOOM}
         deleteKeyCode={null}
@@ -464,7 +464,11 @@ function BattlefieldCanvasInner({ yDoc, localPlayerId, player, tokenService }: B
         elevateNodesOnSelect={false} // react-flow adds +1000 to selected nodes by default, which overrides our manual z-ordering and pushes dragged cards above their attached tokens
         style={{ background: '#1a1a1a' }}
       >
-        <Background color="#2d2d2d" gap={40} />
+        <Background
+          size={1}
+          color="#777777"
+          gap={BACKGROUND_GRID_GAP}
+        />
         <Controls position="bottom-right" />
         <Panel position="bottom-left">
           <SettingsButton />

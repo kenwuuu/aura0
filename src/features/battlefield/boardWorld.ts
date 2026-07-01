@@ -83,3 +83,8 @@ export const WORLD_MAX_Y = 2 * MAT_HEIGHT + MAT_ROW_GAP + 500;
 
 export const MIN_ZOOM = 0.1;
 export const MAX_ZOOM = 20;
+
+// ── Background grid ──────────────────────────────────────────────────────────
+// Shared by <Background> dot spacing and node drag snapGrid so dragged nodes
+// visually lock onto the dots.
+export const BACKGROUND_GRID_GAP = 15.75;
