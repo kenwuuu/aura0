@@ -55,6 +55,17 @@ export const HealthDisplay: React.FC<HealthDisplayProps> = ({
     window.dispatchEvent(new CustomEvent(showModal ? 'modalOpen' : 'modalClosed'));
   }, [showModal]);
 
+  const handleMouseEnter = () => {
+    setIsHovered(true);
+
+    // Emit custom event for opponent board opacity control
+    if (variant === 'opponent' && playerId) {
+      window.dispatchEvent(new CustomEvent('opponentBoardHover', {
+        detail: { playerId, isHovered: true }
+      }));
+    }
+  };
+
   const handleMouseLeave = () => {
     setIsHovered(false);
     if (isOpponent && playerId) {
@@ -73,6 +84,7 @@ export const HealthDisplay: React.FC<HealthDisplayProps> = ({
       <div
         className={`${styles.healthContainer} ${isOpponent ? styles.opponent : ''} ${expandClass}`}
         data-player-id={playerId}
+        onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
         onClick={handleClick}
       >
