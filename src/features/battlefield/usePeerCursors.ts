@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import * as Y from 'yjs';
 import type { Awareness } from 'y-protocols/awareness';
-import { colorForPeer, type CursorState } from './awareness';
-import { YDOC_PLAYER, YSTATE_PLAYER_NAME } from '@/constants';
+import type { CursorState } from './awareness';
+import { colorFromPlayerId } from '@/features/player';
+import { YDOC_PLAYER, YSTATE_PLAYER_NAME, YSTATE_PLAYER_COLOR } from '@/constants';
 
 export interface PeerCursor {
   clientId: number;
@@ -24,11 +25,11 @@ export function usePeerCursors(awareness: Awareness | null, yDoc: Y.Doc | null):
         const cursor = state.cursor as CursorState | null | undefined;
         if (!cursor) return;
         const playerId = state.playerId as string | undefined;
-        const yjsName = playerId && yDoc
-          ? (yDoc.getMap(YDOC_PLAYER(playerId)).get(YSTATE_PLAYER_NAME) as string | undefined)
-          : undefined;
+        const playerMap = playerId && yDoc ? yDoc.getMap(YDOC_PLAYER(playerId)) : null;
+        const yjsName = playerMap?.get(YSTATE_PLAYER_NAME) as string | undefined;
+        const yjsColor = playerMap?.get(YSTATE_PLAYER_COLOR) as string | undefined;
         const name = yjsName ?? (state.name as string | undefined) ?? `peer-${clientId}`;
-        const color = (state.color as string | undefined) ?? colorForPeer(playerId ?? String(clientId));
+        const color = yjsColor ?? colorFromPlayerId(playerId ?? String(clientId));
         next.push({ clientId, x: cursor.x, y: cursor.y, name, color });
       });
       setCursors(next);

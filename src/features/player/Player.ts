@@ -14,10 +14,12 @@ import {
   YSTATE_CUSTOM_COUNTERS,
   YSTATE_DECK, YDOC_KEYWORD_TOKENS,
   YSTATE_PLAYER_NAME,
+  YSTATE_PLAYER_COLOR,
   YSTATE_JOINED_AT,
   YSTATE_CAN_VIEW_HAND,
 } from "@/constants";
 import { getStoredPlayerName, setStoredPlayerName } from "@/infrastructure/networking/persistence";
+import { colorFromPlayerId } from './playerColor';
 import {PileType} from '@/features/game-dock/components';
 import { CardPile } from './CardPile';
 import {SavedDeck} from "@/features/player/types";
@@ -68,6 +70,9 @@ export class Player {
     // The local player owns this state, so localStorage (the name that follows the
     // user across rooms) is authoritative; fall back to a short slice of the ID.
     this.yPlayerState.set(YSTATE_PLAYER_NAME, getStoredPlayerName() ?? this.getDefaultName());
+    // Seed a stable identity color. Deterministic from playerId so it's consistent
+    // without needing localStorage. A future picker can call setColor() to override.
+    this.yPlayerState.set(YSTATE_PLAYER_COLOR, colorFromPlayerId(playerId));
 
     // Create CardPile instances that reference yPlayerState
     this.deck = new CardPile(this.yPlayerState, YSTATE_DECK);
@@ -169,6 +174,15 @@ export class Player {
     const newName = trimmed.length > 0 ? trimmed : this.getDefaultName();
     this.yPlayerState.set(YSTATE_PLAYER_NAME, newName);
     setStoredPlayerName(newName);
+  }
+
+  public getColor(): string {
+    return (this.yPlayerState.get(YSTATE_PLAYER_COLOR) as string | undefined) ?? colorFromPlayerId(this.playerId);
+  }
+
+  /** Override the identity color. Syncs to peers via Yjs. */
+  public setColor(color: string): void {
+    this.yPlayerState.set(YSTATE_PLAYER_COLOR, color);
   }
 
   public getState(): PlayerState {
