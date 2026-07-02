@@ -13,7 +13,6 @@ import { useDroppable } from '@dnd-kit/core';
 import '@xyflow/react/dist/style.css';
 import './reactFlowControls.css';
 import * as Y from 'yjs';
-import posthog from 'posthog-js';
 
 import { CardNode } from './nodes/CardNode';
 import { TokenNode } from './nodes/TokenNode';
@@ -138,7 +137,7 @@ function finalizeTokenDrag(
   yTokens.set(node.id, { ...token, x: node.position.x, y: node.position.y, zIndex: finalZ, attachedTo: newParentId });
 }
 
-function BattlefieldCanvasInner({ yDoc, localPlayerId, player, tokenService }: BattlefieldCanvasProps) {
+function BattlefieldCanvasInner({ yDoc, localPlayerId }: BattlefieldCanvasProps) {
   const yCards = yDoc.getMap<WhiteboardCard>(YDOC_CARDS_ON_BOARD);
   const yTokens = yDoc.getMap<KeywordToken>(YDOC_KEYWORD_TOKENS);
   const awareness = useGameInstance((s) => s.awareness);
