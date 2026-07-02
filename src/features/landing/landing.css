@@ -1,0 +1,389 @@
+/* ─────────────────────────────────────────────────────────────────────────────
+ * landing.css — scoped stylesheet for the marketing landing page entry.
+ *
+ * Isolated from the game app (index.html/style.css). Pulls in Tailwind + the
+ * global design tokens, maps the tokens into Tailwind's theme so utilities read
+ * them, and defines the signature Manabase effects (glow buttons, conic border
+ * trace, dot-grid, card states, motion primitives) as scoped component classes.
+ * Tokens stay global (tokens.css); component styling stays local (here).
+ * ────────────────────────────────────────────────────────────────────────────*/
+
+@import 'tailwindcss';
+@import '../../tokens.css';
+
+/* Map tokens → Tailwind theme so `bg-bg`, `text-accent`, `border-line`, etc.
+   generate utilities that reference the single-source-of-truth variables. */
+@theme {
+  --color-bg: var(--bg);
+  --color-bg-2: var(--bg-2);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-line: var(--line);
+  --color-line-2: var(--line-2);
+
+  --color-text: var(--text);
+  --color-text-dim: var(--text-dim);
+  --color-text-mute: var(--text-mute);
+
+  --color-accent: var(--accent);
+  --color-accent-2: var(--accent-2);
+  --color-accent-pink: var(--accent-pink);
+
+  --color-good: var(--good);
+  --color-danger: var(--danger);
+  --color-warn: var(--warn);
+
+  --color-mana-w: var(--mana-w);
+  --color-mana-u: var(--mana-u);
+  --color-mana-b: var(--mana-b);
+  --color-mana-r: var(--mana-r);
+  --color-mana-g: var(--mana-g);
+
+  --font-display: var(--font-display);
+  --font-mono: var(--font-mono);
+
+  --radius-chip: var(--r-chip);
+  --radius-mb: var(--r);
+  --radius-mb-md: var(--r-md);
+  --radius-mb-lg: var(--r-lg);
+}
+
+/* ── Base ─────────────────────────────────────────────────────────────────── */
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-display);
+  font-weight: 300;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  /* Ambient purple energy: a soft top-glow that recedes into near-black. */
+  background-image:
+    radial-gradient(1200px 620px at 50% -8%, rgba(155, 92, 255, 0.12), transparent 60%),
+    radial-gradient(900px 500px at 88% 0%, rgba(110, 123, 255, 0.06), transparent 55%);
+  background-attachment: fixed;
+}
+
+::selection {
+  background: var(--accent-soft);
+  color: var(--text);
+}
+
+/* HUD label — Space Mono, uppercase, tracked. */
+.mb-label {
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-size: 11px;
+  color: var(--text-mute);
+}
+
+.mb-mono {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Buttons ──────────────────────────────────────────────────────────────── */
+.mb-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 600;
+  padding: 11px 20px;
+  border-radius: var(--r);
+  border: 1px solid transparent;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: transform var(--t-micro) var(--ease),
+    box-shadow var(--t-micro) var(--ease), border-color var(--t-micro) var(--ease),
+    background-color var(--t-micro) var(--ease), color var(--t-micro) var(--ease);
+}
+.mb-btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 1px var(--accent-line), 0 0 18px var(--glow);
+}
+
+.mb-btn--primary {
+  background: var(--accent);
+  color: #0a0410;
+  box-shadow: 0 0 0 1px var(--accent-line), 0 0 18px var(--glow);
+}
+.mb-btn--primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 0 0 1px var(--accent), 0 6px 22px var(--glow-strong);
+}
+
+.mb-btn--secondary {
+  background: var(--surface);
+  color: var(--text);
+  border-color: var(--line-2);
+}
+.mb-btn--secondary:hover {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent-line), 0 0 16px var(--glow);
+}
+
+.mb-btn--ghost {
+  background: transparent;
+  color: var(--text-dim);
+}
+.mb-btn--ghost:hover {
+  background: var(--surface);
+  color: var(--text);
+  border-color: var(--line);
+}
+
+/* ── Panels & hairline surfaces ───────────────────────────────────────────── */
+.mb-panel {
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+}
+
+/* Animated clockwise conic-gradient border trace (player-panel signature).
+   A ~52° bright arc (accent-2 → accent → white hot-tip) sweeps clockwise once
+   every 3.4s over a static --line-2 rim. Structure (see PlayerPanel.tsx):
+     .mb-trace  (padding:1px, bg:--line-2, overflow:hidden)
+       └ .mb-trace__spin  (absolute, inset:-70%, conic, spins)
+       └ .mb-trace__inner (relative, bg:--bg-2 — masks the spinner interior)  */
+.mb-trace {
+  position: relative;
+  border-radius: var(--r-md);
+  padding: 1px;
+  background: var(--line-2);
+  overflow: hidden;
+}
+.mb-trace__spin {
+  position: absolute;
+  inset: -70%;
+  background: conic-gradient(
+    from 0deg,
+    transparent 0deg,
+    transparent 244deg,
+    var(--accent-2) 296deg,
+    var(--accent) 338deg,
+    #ffffff 356deg,
+    transparent 360deg
+  );
+  animation: mb-spin 3.4s linear infinite;
+}
+.mb-trace__inner {
+  position: relative;
+  border-radius: calc(var(--r-md) - 1px);
+  background: var(--bg-2);
+  overflow: hidden;
+}
+@keyframes mb-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Hairline card that lights up (glow, not shadow) on hover — feature tiles. */
+.mb-feature {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  transition: transform var(--t-micro) var(--ease),
+    border-color var(--t-micro) var(--ease), box-shadow var(--t-micro) var(--ease),
+    background-color var(--t-micro) var(--ease);
+}
+.mb-feature:hover {
+  transform: translateY(-3px);
+  background: var(--surface-2);
+  border-color: var(--accent-line);
+  box-shadow: 0 0 28px var(--glow);
+}
+
+/* ── Dot-grid board background (section 09 aesthetic) ─────────────────────── */
+.mb-dotgrid {
+  background-color: var(--bg-2);
+  background-image: radial-gradient(circle at 1px 1px, var(--line-2) 1.4px, transparent 0);
+  background-size: 22px 22px;
+  position: relative;
+}
+.mb-dotgrid::after {
+  /* Vignette so the grid fades at the edges. */
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(ellipse at 50% 50%, transparent 40%, rgba(0, 0, 0, 0.35));
+}
+
+/* Cover header dot grid — sparser (26px), faded toward the bottom. */
+.mb-covergrid {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: radial-gradient(circle at 1px 1px, var(--line) 1px, transparent 0);
+  background-size: 26px 26px;
+  opacity: 0.6;
+  -webkit-mask-image: linear-gradient(to bottom, black, transparent 85%);
+  mask-image: linear-gradient(to bottom, black, transparent 85%);
+}
+
+/* ── Card states (section 06) ─────────────────────────────────────────────── */
+.mb-card {
+  border-radius: var(--r);
+  border: 1px solid var(--line-2);
+  background: var(--bg);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45);
+  transition: transform 0.18s var(--ease), box-shadow 0.18s ease,
+    border-color 0.18s ease;
+  transform-origin: center;
+  overflow: hidden;
+}
+.mb-card--hover:hover {
+  transform: translateY(-10px);
+  border-color: var(--accent);
+  box-shadow: 0 22px 46px rgba(0, 0, 0, 0.6), 0 0 0 1px var(--accent),
+    0 0 32px var(--glow);
+}
+.mb-card--tapped {
+  transform: rotate(20deg);
+  opacity: 0.85;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+}
+.mb-card--targeted {
+  border-color: var(--accent);
+  animation: mb-pulse-glow 1.2s ease-in-out infinite;
+}
+
+/* Priority / target breathing aura (verbatim pulseGlow). */
+@keyframes mb-pulse-glow {
+  0%,
+  100% {
+    box-shadow: 0 0 0 1px var(--accent), 0 0 10px var(--glow);
+  }
+  50% {
+    box-shadow: 0 0 0 1px var(--accent), 0 0 28px var(--glow-strong);
+  }
+}
+
+/* Rotating dashed target reticle. */
+.mb-reticle {
+  border: 1.5px dashed var(--accent);
+  border-radius: var(--r-md);
+  animation: mb-spin 6s linear infinite;
+}
+
+/* ── Foil / holo (SUBSCRIBER cosmetic, section 10) ────────────────────────── */
+/* Luminance-aware holographic treatment that works over any art with no masking.
+   Layers (bottom→top): art → color-dodge rainbow → overlay sheen. A blurred
+   rainbow conic sits behind the card as an edge trace. Crossfade on toggle. */
+.mb-foil-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  transition: opacity 0.45s ease;
+}
+.mb-foil-holo {
+  background: linear-gradient(115deg, #ff2fb0, #ff8c00, #ffed00, #12ffa0, #17b3ff, #9b5cff, #ff2fb0);
+  background-size: 220% 220%;
+  mix-blend-mode: color-dodge;
+  animation: mb-holo-shift 7s linear infinite;
+}
+.mb-foil-sheen {
+  background: linear-gradient(115deg, transparent 40%, rgba(255, 255, 255, 0.6) 50%, transparent 60%);
+  background-size: 300% 300%;
+  mix-blend-mode: overlay;
+  animation: mb-sheen 4s ease-in-out infinite;
+}
+.mb-foil-edge {
+  position: absolute;
+  inset: -70%;
+  background: conic-gradient(from 0deg, #ff2fb0, #ff8c00, #ffed00, #12ffa0, #17b3ff, #9b5cff, #ff2fb0);
+  animation: mb-rainbow-spin 4s linear infinite;
+  filter: blur(1px);
+  transition: opacity 0.45s ease;
+}
+@keyframes mb-holo-shift {
+  0% {
+    background-position: 0% 50%;
+  }
+  100% {
+    background-position: 200% 50%;
+  }
+}
+@keyframes mb-sheen {
+  0% {
+    background-position: -140% 0;
+  }
+  100% {
+    background-position: 240% 0;
+  }
+}
+@keyframes mb-rainbow-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ── Entrance / ambient motion ────────────────────────────────────────────── */
+@keyframes mb-rise {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.mb-rise {
+  animation: mb-rise 620ms var(--ease) both;
+}
+
+@keyframes mb-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+.mb-float {
+  animation: mb-float 6s ease-in-out infinite;
+}
+
+/* Blinking connection pip (mono status). */
+@keyframes mb-blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.25;
+  }
+}
+.mb-pip {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: var(--good);
+  box-shadow: 0 0 8px var(--good);
+  animation: mb-blink 2.4s ease-in-out infinite;
+}
+
+/* Respect reduced-motion: still calm, just no ambient loops. */
+@media (prefers-reduced-motion: reduce) {
+  .mb-trace::before,
+  .mb-card--targeted,
+  .mb-float,
+  .mb-pip,
+  .mb-reticle,
+  .mb-rise {
+    animation: none !important;
+  }
+  html {
+    scroll-behavior: auto;
+  }
+}

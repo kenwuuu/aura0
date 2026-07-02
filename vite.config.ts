@@ -34,6 +34,14 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     sourcemap: true,
+    rollupOptions: {
+      input: {
+        // Marketing landing page for first-time visitors — the site root.
+        main: path.resolve(__dirname, 'index.html'),
+        // Game app (boots straight into the whiteboard) at /play.html.
+        play: path.resolve(__dirname, 'play.html'),
+      },
+    },
   },
   resolve: {
     alias: {

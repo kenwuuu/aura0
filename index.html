@@ -1,30 +1,54 @@
 <!DOCTYPE html>
 <html lang="en" class="dark">
   <head>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orestbida/cookieconsent@3.1.0/dist/cookieconsent.css">
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="icon" href="/assets/aura_favicon.png" type="image/x-icon">
-    <title>Aura - Play MTG, Instantly</title>
-    <meta name="description" content="The fastest way to play Magic. No accounts, no downloads. Just instantaneous magic.
-    Aura is the sleekest, fastest fan-made app you've ever seen.">
+    <link rel="icon" href="/assets/aura_favicon.png" type="image/x-icon" />
+    <title>Aura — Play Magic, Instantly</title>
+    <meta
+      name="description"
+      content="The fastest way to play Magic: The Gathering online. No accounts, no downloads — share a link and you're dealing. A sleek, HUD-fast play interface."
+    />
+    <meta property="og:title" content="Aura — Play Magic, Instantly" />
+    <meta
+      property="og:description"
+      content="No accounts, no downloads. Share a link and play Magic in seconds."
+    />
+    <meta property="og:type" content="website" />
+
+    <!-- Google Analytics (gtag) with Consent Mode v2. Storage defaults to DENIED
+         until the visitor accepts analytics via CookieConsent (see consent.ts). -->
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag() { dataLayer.push(arguments); }
+      gtag('consent', 'default', {
+        ad_storage: 'denied',
+        ad_user_data: 'denied',
+        ad_personalization: 'denied',
+        analytics_storage: 'denied',
+        wait_for_update: 500,
+      });
+      gtag('js', new Date());
+      gtag('config', 'G-75HGHP3J4M');
+    </script>
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-75HGHP3J4M"></script>
+
+    <!-- Consent gate: vanilla-cookieconsent v3 (same version the app references).
+         Classic (non-deferred) script so window.CookieConsent is ready before the
+         deferred module entry runs initConsent(). -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orestbida/cookieconsent@3.1.0/dist/cookieconsent.css" />
+    <script src="https://cdn.jsdelivr.net/gh/orestbida/cookieconsent@3.1.0/dist/cookieconsent.umd.js"></script>
+
+    <!-- Design system type: Space Grotesk (display/UI) + Space Mono (HUD data) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600&family=Space+Mono:wght@400;700&display=swap"
+      rel="stylesheet"
+    />
   </head>
   <body>
-    <div id="app-react-root"></div>
-    <script type="module" src="/src/app/main.ts"></script>
-
-    <script type='text/javascript' src='https://storage.ko-fi.com/cdn/widget/Widget_2.js'></script>
-    <script type='text/javascript'>kofiwidget2.init('Support me on Ko-fi', '#72a4f2', 'Z8Z11OOHFX');kofiwidget2.draw();</script>
-
-    <!-- Google tag (gtag.js) -->
-    <script async
-            src="https://www.googletagmanager.com/gtag/js?id=G-75HGHP3J4M"></script>
-    <script>
-        window.dataLayer = window.dataLayer || [];
-        function gtag(){dataLayer.push(arguments);}
-        gtag('js', new Date());
-
-        gtag('config', 'G-75HGHP3J4M');
-    </script>
+    <div id="landing-root"></div>
+    <script type="module" src="/src/features/landing/landing-main.tsx"></script>
   </body>
 </html>

@@ -62,6 +62,8 @@ Each feature owns its UI, business logic, and types.
 
 **No more window events for cross-module communication.** Battlefield→dock card moves (`features/battlefield/battlefieldActions.ts`), pile-viewer open requests, and the scry viewer's close handling all go through Zustand stores, direct Yjs access, or plain component state.
 
+**The game runs at `play.html`; `index.html` is the marketing landing page.**
+
 **`src/components/`** holds modals and cross-feature UI (used by more than one feature). Feature-specific UI belongs in `src/features/<feature>/`. Generic primitives and shadcn components belong in `src/shared/`.
 
 ## Testing

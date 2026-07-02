@@ -1,0 +1,72 @@
+/* ─────────────────────────────────────────────────────────────────────────────
+ * tokens.css — Manabase design system, single source of truth.
+ *
+ * Every primitive value lives here as a CSS custom property. Components read the
+ * variables; they never hard-code hex. Dark-mode only — there is no light theme.
+ *
+ * `--glow` / `--glow-strong` are DERIVED from `--accent` at runtime. To retheme,
+ * call setAccent(hex, mult) (see accentTheme.ts) which rewrites the glow vars.
+ * The values below are the defaults for the canonical purple accent (#9B5CFF).
+ * ────────────────────────────────────────────────────────────────────────────*/
+
+:root {
+  /* Surfaces */
+  --bg: #08080c;                       /* base background (near-black, cool)   */
+  --bg-2: #0d0d14;                     /* raised panels                        */
+  --surface: rgba(255, 255, 255, 0.03);
+  --surface-2: rgba(255, 255, 255, 0.055);
+  --line: rgba(255, 255, 255, 0.08);   /* hairline border (rest)               */
+  --line-2: rgba(255, 255, 255, 0.14); /* hairline border (stronger)           */
+
+  /* Text */
+  --text: #ECECF2;
+  --text-dim: #9A9AAB;
+  --text-mute: #5E5E6C;
+
+  /* Brand — purple is the ONLY brand energy; blue/pink are rare */
+  --accent: #9B5CFF;
+  --accent-2: #6E7BFF;
+  --accent-pink: #FF5CAD;
+  --accent-soft: rgba(155, 92, 255, 0.14);
+  --accent-line: rgba(155, 92, 255, 0.45);
+
+  /* Derived glow (from accent; elevation = light, not shadow) */
+  --glow: rgba(155, 92, 255, 0.5);
+  --glow-strong: rgba(155, 92, 255, 0.85);
+
+  /* State */
+  --good: #39D98A;
+  --danger: #FF5C7A;
+  --warn: #FFC46B;
+
+  /* Mana identity — DATA ONLY (pips, filters, log tags). Never chrome. */
+  --mana-w: #EFE9CE;
+  --mana-u: #4A90E2;
+  --mana-b: #3B3B44;
+  --mana-r: #E5484D;
+  --mana-g: #3AA76D;
+
+  /* Radius — base 4px, sharp not soft */
+  --r-chip: 2px;
+  --r: 4px;
+  --r-md: 6px;
+  --r-lg: 8px;
+
+  /* Spacing — 4px grid, compact pro-tool density */
+  --s-1: 4px;
+  --s-2: 8px;
+  --s-3: 12px;
+  --s-4: 16px;
+  --s-6: 24px;
+  --s-8: 32px;
+
+  /* Motion */
+  --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --ease-spring: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --t-micro: 160ms;   /* micro-interactions: 120–180ms */
+  --t-moment: 550ms;  /* big moments: 400–700ms        */
+
+  /* Type families */
+  --font-display: 'Space Grotesk', system-ui, sans-serif;
+  --font-mono: 'Space Mono', ui-monospace, monospace;
+}
