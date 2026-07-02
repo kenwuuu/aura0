@@ -6,6 +6,7 @@ import { usePlayerStore } from '@/app/stores/playerStore';
 import { useHotkeyStore } from '@/app/stores/hotkeyStore';
 import { useTooltipStore } from '@/app/stores/uiStore';
 import { useCardPreviewStore } from '@/features/card-preview/cardPreviewStore';
+import { useHotkeyMenuStore } from '@/features/hotkeys/hotkeyMenuStore';
 
 /**
  * Reset all module-singleton Zustand stores between tests so state never leaks
@@ -24,5 +25,13 @@ afterEach(() => {
     isVisible: false,
     mouseX: 0,
     mouseY: 0,
+  });
+  useHotkeyMenuStore.setState({
+    isOpen: false,
+    mode: 'menu',
+    context: null,
+    cardId: null,
+    title: undefined,
+    onSelect: null,
   });
 });

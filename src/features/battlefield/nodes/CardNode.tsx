@@ -8,7 +8,8 @@ import { useCardPreviewStore } from '@/features/card-preview/cardPreviewStore';
 import { useHotkeyMenuStore } from '@/features/hotkeys/hotkeyMenuStore';
 import { HotkeyContext } from '@/features/hotkeys/hotkeys';
 import { executeBattlefieldCardAction } from '../battlefieldCardActions';
-import { DEFAULT_CARD_BACK, CARD_WIDTH, CARD_HEIGHT } from '@/constants';
+import { resolveCardFace, resolveCardRotation } from './cardNodeLogic';
+import { CARD_WIDTH, CARD_HEIGHT } from '@/constants';
 
 interface CardNodeData extends WhiteboardCard {
   yCards: Y.Map<WhiteboardCard>;
@@ -39,9 +40,7 @@ export const CardNode = memo(function CardNode({ data, id }: NodeProps) {
   const card = data as unknown as CardNodeData;
   const { yCards, yTokens, localPlayerId } = card;
 
-  const imageSrc = card.isFlipped
-    ? (card.images?.back?.normal || DEFAULT_CARD_BACK)
-    : (card.images?.front?.normal || null);
+  const face = resolveCardFace(card);
 
   const handleMouseEnter = useCallback((e: React.MouseEvent) => {
     useHotkeyStore.getState().setHoveredBattlefieldCard(id);
@@ -72,7 +71,7 @@ export const CardNode = memo(function CardNode({ data, id }: NodeProps) {
   }, [id, yCards, localPlayerId]);
 
   // tap + rotation transform
-  const rotation = (card.rotation ?? 0) + (card.isTapped ? 90 : 0);
+  const rotation = resolveCardRotation(card);
   const transform = rotation ? `rotate(${rotation}deg)` : undefined;
 
   return (
@@ -83,10 +82,10 @@ export const CardNode = memo(function CardNode({ data, id }: NodeProps) {
       onMouseLeave={handleMouseLeave}
       onContextMenu={handleContextMenu}
     >
-      {imageSrc ? (
+      {face.src ? (
         <img
-          src={imageSrc}
-          alt={card.isFlipped ? 'Card Back' : (card.name || `Card #${card.cardNumber}`)}
+          src={face.src}
+          alt={face.alt}
           style={{ width: '100%', height: '100%', objectFit: 'cover', pointerEvents: 'none', display: 'block', borderRadius: 3 }}
           draggable={false}
         />

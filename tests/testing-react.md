@@ -11,11 +11,11 @@ geometry, or WebRTC sync, it's **e2e** (`tests/e2e/`, Playwright). Everything el
 
 ## The three tiers
 
-| Tier | Files | Renders? | Example |
-|------|-------|----------|---------|
-| **Logic** | `*.test.ts` | no | `Player.test.ts`, `Deck.test.ts`, `diceActions.test.ts` |
-| **Component / integration** | `*.test.tsx` | yes (RTL) | `CardPreview.test.tsx` |
-| **E2e** | `tests/e2e/*.spec.ts` | Playwright | `card_tooltips.spec.ts` |
+| Tier                        | Files                 | Renders?   | Example                                                 |
+|-----------------------------|-----------------------|------------|---------------------------------------------------------|
+| **Logic**                   | `*.test.ts`           | no         | `Player.test.ts`, `Deck.test.ts`, `diceActions.test.ts` |
+| **Component / integration** | `*.test.tsx`          | yes (RTL)  | `CardPreview.test.tsx`                                  |
+| **E2e**                     | `tests/e2e/*.spec.ts` | Playwright | `card_tooltips.spec.ts`                                 |
 
 Logic tests exercise domain objects (`Player`, `Deck`, store actions) directly against a real
 `Y.Doc`. Component tests render a React tree and assert on what the **user** sees. Reach for a
@@ -125,23 +125,38 @@ See `deck-manager/DeckImportModal.test.tsx` for the worked example.
 
 ## The harness (`src/test/`)
 
-> **Status: planned, not yet built.** Until it lands, follow the inline pattern in
-> `CardPreview.test.tsx` (local `makeCard()` factory + real `Y.Doc`). When it exists, prefer it.
-
-Target shape — one source of truth so the good pattern is the path of least resistance:
+One source of truth so the good pattern is the path of least resistance:
 
 ```
 src/test/
-  setup.ts        # jest-dom + global afterEach store reset (existing file, extended)
+  setup.ts        # jest-dom + global afterEach store reset
   harness.tsx     # renderWithGame(ui, opts) — RTL render + seeded stores
-  factories.ts    # makeCard(), makeToken(), makeDeck()
-  seedGame.ts     # makeTestDoc() -> { yDoc, player, playerId } wired to a real Player
-  mocks/          # canonical I/O mocks: cardLookup, posthog, idb
+  nodeHarness.tsx # renderNode(Node, data, opts) — render one react-flow node in isolation
+  factories.ts    # makeCard() (+ makeCards)
+  seedGame.ts     # seedGame() -> { yDoc, player, playerId } wired to a real Player
+  mocks/          # canonical I/O mocks: cardLookup, posthog, idb (add as needed)
 ```
 
 `renderWithGame(<CardPreview />, { hand: [makeCard()] })` seeds a real `Y.Doc` + `Player` into
 `gameInstanceStore` / `playerStore`, then renders — so a component under test hits real Yjs and
 real stores without prop-drilling.
+
+### Testing react-flow nodes
+
+Nodes read only `id`/`data` and touch **no** react-flow context, so `renderNode` deliberately has
+**no `ReactFlowProvider`** — it just fills the wide `NodeProps` type with inert defaults and renders
+via `renderWithGame`. But a node's markup is redesign-fragile; its *behavior* isn't. So push the
+durable logic **down**, and keep only the wiring seam at the node:
+
+1. **Extract pure logic** (which face shows, rotation math, which viewer opens) into a plain `*.ts`
+   module → cheap `.test.ts` unit tests, no harness, immune to the redesign. See
+   `battlefield/nodes/cardNodeLogic.ts` + its test.
+2. **Keep one node-level test** through `renderNode` for the data-cast + store-wiring seam (hover
+   drives the preview store, right-click opens the hotkey menu). See `CardNode.test.tsx`.
+
+When refactoring an existing node, write the node-level characterization tests **first** (assert
+observable behavior via accessible queries), get them green, *then* extract underneath — the
+unchanged green bar is the proof the extraction was safe.
 
 ## Copyable skeleton
 
