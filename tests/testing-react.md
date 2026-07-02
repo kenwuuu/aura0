@@ -99,6 +99,28 @@ Wait on a condition, not a timer. `await screen.findByText(...)` or
 Skip (or push to e2e/visual): CSS-module class names, pixel layout/positioning, and third-party
 internals (Radix, react-flow, dnd-kit). Assert on the behavior they produce, not their markup.
 
+### 8. Radix modals: a backgrounded dialog leaves the accessibility tree
+
+When a Radix dialog opens on top of another (e.g. the Help dialog over the Import modal), Radix marks
+the modal underneath `aria-hidden`. That is correct behavior — but it means the backgrounded modal
+**drops out of the accessibility tree**, so `getByRole` / name-based queries can no longer see it, and
+its accessible *name* resolves to `""` (its title is hidden too). This is the trap the old
+`getAllByText('Import Deck')[1]` hack was papering over: text queries ignore `aria-hidden`, role
+queries don't.
+
+Rules for nested dialogs:
+
+- **Foreground dialog** — query normally by role/name: `screen.getByRole('dialog', { name: /help/i })`.
+  Scope queries into it with `within(...)` so they can't match the backgrounded one.
+- **Background dialog, "is it still mounted / not dismissed?"** — don't query it by role or name.
+  Assert a **label-associated form field** (`getByLabelText('Deck Name')`) or other text that stays
+  in the DOM regardless of `aria-hidden`, and assert the dismiss callback was **not** called
+  (`expect(onClose).not.toHaveBeenCalled()`).
+- Reserve `{ hidden: true }` on a role query for elements that are hidden but still have a stable
+  accessible name; it won't help when the name itself has collapsed to `""`.
+
+See `deck-manager/DeckImportModal.test.tsx` for the worked example.
+
 ---
 
 ## The harness (`src/test/`)

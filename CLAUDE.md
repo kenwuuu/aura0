@@ -15,7 +15,7 @@ npm run test:run     # run unit tests once (vitest)
 npm test             # vitest watch mode
 npx vitest run src/path/to/file.test.ts   # single test file
 npx playwright test  # e2e tests (requires dev server running)
-npx tsc --noEmit     # type-check (one pre-existing error in BoardInverter.tsx — ignore it)
+npx tsc --noEmit     # type-check
 ```
 
 ## Architecture
