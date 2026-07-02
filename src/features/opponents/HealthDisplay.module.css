@@ -6,7 +6,7 @@
   border-radius: 4px;
   padding: 6px 10px;
   display: flex;
-  flex-direction: row-reverse;
+  flex-direction: row;
   align-items: center;
   gap: 6px;
   width: fit-content;
@@ -100,18 +100,6 @@
   width: 100%;
   overflow: hidden;
   transition: all 0.3s ease;
-}
-
-.expandLeft .expandedContent {
-  direction: rtl;
-}
-
-.expandLeft .expandedContent > * {
-  direction: ltr;
-}
-
-.expandRight .expandedContent {
-  direction: ltr;
 }
 
 /* ── Add counter button ─────────────────────────────────────────────── */

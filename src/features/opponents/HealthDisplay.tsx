@@ -17,13 +17,6 @@ interface HealthDisplayProps {
   onAddCounter?: (title: string, icon: string) => void;
   onModifyCounter?: (counterId: string, delta: number) => void;
   onRemoveCounter?: (counterId: string) => void;
-  exileCount?: number;
-  discardCount?: number;
-  handCount?: number;
-  allowViewHand?: boolean;
-  onViewExile?: () => void;
-  onViewDiscard?: () => void;
-  onViewHand?: () => void;
 }
 
 export const HealthDisplay: React.FC<HealthDisplayProps> = ({
@@ -37,56 +30,19 @@ export const HealthDisplay: React.FC<HealthDisplayProps> = ({
   onAddCounter,
   onModifyCounter,
   onRemoveCounter,
-  exileCount = 0,
-  discardCount = 0,
-  handCount = 0,
-  allowViewHand = false,
-  onViewExile,
-  onViewDiscard,
-  onViewHand,
 }) => {
   const [isHovered, setIsHovered] = useState(false);
   const [showModal, setShowModal] = useState(false);
 
   const isOpponent = variant === 'opponent';
-  const expandClass = isOpponent ? styles.expandLeft : styles.expandRight;
-
-  React.useEffect(() => {
-    window.dispatchEvent(new CustomEvent(showModal ? 'modalOpen' : 'modalClosed'));
-  }, [showModal]);
-
-  const handleMouseEnter = () => {
-    setIsHovered(true);
-
-    // Emit custom event for opponent board opacity control
-    if (variant === 'opponent' && playerId) {
-      window.dispatchEvent(new CustomEvent('opponentBoardHover', {
-        detail: { playerId, isHovered: true }
-      }));
-    }
-  };
-
-  const handleMouseLeave = () => {
-    setIsHovered(false);
-    if (isOpponent && playerId) {
-      window.dispatchEvent(new CustomEvent('opponentBoardHover', { detail: { playerId, isHovered: false } }));
-    }
-  };
-
-  const handleClick = () => {
-    if (isOpponent && playerId) {
-      window.dispatchEvent(new CustomEvent('opponentBoardPin', { detail: { playerId } }));
-    }
-  };
 
   return (
     <>
       <div
-        className={`${styles.healthContainer} ${isOpponent ? styles.opponent : ''} ${expandClass}`}
+        className={`${styles.healthContainer} ${isOpponent ? styles.opponent : ''}`}
         data-player-id={playerId}
-        onMouseEnter={handleMouseEnter}
-        onMouseLeave={handleMouseLeave}
-        onClick={handleClick}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
       >
         <div className={styles.health}>
           {onRename ? (
@@ -100,27 +56,6 @@ export const HealthDisplay: React.FC<HealthDisplayProps> = ({
             <button onClick={() => onModifyHealth(1)}>+</button>
           </div>
         </div>
-
-        {isOpponent && isHovered && (
-          <>
-            <div
-              className="resource-pile hand-pile"
-              onClick={allowViewHand ? onViewHand : undefined}
-              style={{ cursor: allowViewHand ? 'pointer' : 'default', opacity: allowViewHand ? 1 : 0.7 }}
-            >
-              <div className="pile-label">Hand</div>
-              <div className="pile-count">{handCount}</div>
-            </div>
-            <div className="resource-pile exile-pile" onClick={onViewExile}>
-              <div className="pile-label">Exile</div>
-              <div className="pile-count">{exileCount}</div>
-            </div>
-            <div className="resource-pile discard-pile" onClick={onViewDiscard}>
-              <div className="pile-label">Discard</div>
-              <div className="pile-count">{discardCount}</div>
-            </div>
-          </>
-        )}
 
         {isHovered && (
           <div className={styles.expandedContent}>
@@ -157,13 +92,11 @@ export const HealthDisplay: React.FC<HealthDisplayProps> = ({
         )}
       </div>
 
-      {showModal && (
-        <PlayerCounterModal
-          onAdd={(title, icon) => { onAddCounter?.(title, icon); setShowModal(false); }}
-          onCancel={() => setShowModal(false)}
-          openedFromBottom={!isOpponent}
-        />
-      )}
+      <PlayerCounterModal
+        isOpen={showModal}
+        onAdd={(title, icon) => { onAddCounter?.(title, icon); setShowModal(false); }}
+        onCancel={() => setShowModal(false)}
+      />
     </>
   );
 };

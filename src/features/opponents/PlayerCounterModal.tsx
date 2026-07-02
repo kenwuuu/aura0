@@ -1,30 +1,27 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/shared/ui/dialog';
 import styles from './PlayerCounterModal.module.css';
 
 interface CounterModalProps {
+  isOpen: boolean;
   onAdd: (title: string, icon: string) => void;
   onCancel: () => void;
-  openedFromBottom: boolean;
 }
 
 const COMMON_ICONS = ['☠️', '⚡', '🔥', '🩸', '☢️', '⭐', '💎', '👑', '⚔️', '🛡️'];
 
-export const PlayerCounterModal: React.FC<CounterModalProps> = ({ onAdd, onCancel, openedFromBottom }) => {
+export const PlayerCounterModal: React.FC<CounterModalProps> = ({ isOpen, onAdd, onCancel }) => {
   const [title, setTitle] = useState('');
   const [icon, setIcon] = useState('☠️');
   const [customIcon, setCustomIcon] = useState('');
 
-  // Handle ESC key to close modal
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        onCancel();
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [onCancel]);
+    if (isOpen) {
+      setTitle('');
+      setIcon('☠️');
+      setCustomIcon('');
+    }
+  }, [isOpen]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,12 +30,18 @@ export const PlayerCounterModal: React.FC<CounterModalProps> = ({ onAdd, onCance
     }
   };
 
-  return (
-    <div className={styles.modalOverlay} onClick={onCancel}>
-      <div className={openedFromBottom ? styles.modalFromBottom : styles.modal} onClick={(e) => e.stopPropagation()}>
-        <h2 className={styles.title}>Add Custom Counter</h2>
+  const handleOpenChange = (open: boolean) => {
+    if (!open) onCancel();
+  };
 
-        <form onSubmit={handleSubmit} className={styles.form}>
+  return (
+    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
+      <DialogContent className="max-w-[450px] w-[90%]">
+        <DialogHeader>
+          <DialogTitle>Add Custom Counter</DialogTitle>
+        </DialogHeader>
+
+        <form onSubmit={handleSubmit} className={`${styles.form} p-6 pt-0`}>
           <div className={styles.field}>
             <label className={styles.label}>Title</label>
             <input
@@ -97,7 +100,7 @@ export const PlayerCounterModal: React.FC<CounterModalProps> = ({ onAdd, onCance
             </button>
           </div>
         </form>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 };
