@@ -5,6 +5,7 @@ import { KeywordToken } from '@/features/keyword-tokens/types';
 import { useHotkeyStore } from '@/app/stores/hotkeyStore';
 import { useHotkeyMenuStore } from '@/features/hotkeys/hotkeyMenuStore';
 import { HotkeyContext } from '@/features/hotkeys/hotkeys';
+import { isOwnToken, applyTokenDelta } from './tokenNodeLogic';
 
 export const TOKEN_SIZE = 20;
 export const FONT_SCALE = 30 / 40 ;
@@ -17,14 +18,13 @@ interface TokenNodeData extends KeywordToken {
 export const TokenNode = memo(function TokenNode({ data, id }: NodeProps) {
   const token = data as unknown as TokenNodeData;
   const { yTokens, localPlayerId } = token;
-  const isOwn = token.ownerId === localPlayerId;
+  const isOwn = isOwnToken(token.ownerId, localPlayerId);
 
   const modifyCount = useCallback((delta: number) => {
     if (!isOwn) return;
     const latest = yTokens.get(id);
     if (!latest) return;
-    const next = (latest.count ?? 0) + delta;
-    yTokens.set(id, { ...latest, count: next });
+    yTokens.set(id, { ...latest, count: applyTokenDelta(latest.count, delta) });
   }, [id, yTokens, isOwn]);
 
   const handleClick = useCallback((e: React.MouseEvent) => {

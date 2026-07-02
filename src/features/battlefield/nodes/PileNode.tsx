@@ -6,6 +6,7 @@ import { usePileViewerOpenStore } from '@/features/game-dock/pileViewerOpenStore
 import { useGameInstance } from '@/app/stores/gameInstanceStore';
 import { useHotkeyStore } from '@/app/stores/hotkeyStore';
 import { HotkeyTooltip } from '@/features/hotkeys/HotkeyTooltip';
+import { isHandViewDisabled, resolvePileOpenRequest } from './pileNodeLogic';
 
 export type PileKind = 'deck' | 'exile' | 'discard' | 'hand';
 
@@ -34,7 +35,7 @@ export const PileNode = memo(function PileNode({ data }: NodeProps) {
 
   const isHandPile = pileKind === 'hand';
   const isOpponentHand = isHandPile && !isLocal;
-  const handDisabled = isOpponentHand && !allowViewHand;
+  const handDisabled = isHandViewDisabled({ isLocal, pileKind, allowViewHand });
 
   // Register as a dnd-kit droppable for hand cards dragged from the FloatingHand.
   // Only local non-hand piles accept drops; disabled elsewhere.
@@ -49,17 +50,8 @@ export const PileNode = memo(function PileNode({ data }: NodeProps) {
 
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (handDisabled) return;
-
-    if (isLocal) {
-      if (pileKind !== 'hand') {
-        usePileViewerOpenStore.getState().open({ scope: 'local', pile: pileKind });
-      }
-    } else {
-      if (pileKind === 'exile' || pileKind === 'discard' || pileKind === 'hand') {
-        usePileViewerOpenStore.getState().open({ scope: 'opponent', playerId: ownerId, pile: pileKind });
-      }
-    }
+    const request = resolvePileOpenRequest({ ownerId, isLocal, pileKind, allowViewHand });
+    if (request) usePileViewerOpenStore.getState().open(request);
   };
 
   const handleMouseEnter = (e: React.MouseEvent) => {

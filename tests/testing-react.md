@@ -154,6 +154,13 @@ durable logic **down**, and keep only the wiring seam at the node:
 2. **Keep one node-level test** through `renderNode` for the data-cast + store-wiring seam (hover
    drives the preview store, right-click opens the hotkey menu). See `CardNode.test.tsx`.
 
+Two more worked examples of the same split:
+
+- `TokenNode` — `tokenNodeLogic.ts` (`isOwnToken`, `applyTokenDelta`) + `TokenNode.test.tsx` (click/
+  right-click gated by ownership, hover shows the hotkey hint).
+- `PileNode` — `pileNodeLogic.ts` (`isHandViewDisabled`, `resolvePileOpenRequest`) +
+  `PileNode.test.tsx` (click routes to the local vs. opponent viewer, the draw button).
+
 When refactoring an existing node, write the node-level characterization tests **first** (assert
 observable behavior via accessible queries), get them green, *then* extract underneath — the
 unchanged green bar is the proof the extraction was safe.

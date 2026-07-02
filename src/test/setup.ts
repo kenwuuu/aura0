@@ -7,6 +7,7 @@ import { useHotkeyStore } from '@/app/stores/hotkeyStore';
 import { useTooltipStore } from '@/app/stores/uiStore';
 import { useCardPreviewStore } from '@/features/card-preview/cardPreviewStore';
 import { useHotkeyMenuStore } from '@/features/hotkeys/hotkeyMenuStore';
+import { usePileViewerOpenStore } from '@/features/game-dock/pileViewerOpenStore';
 
 /**
  * Reset all module-singleton Zustand stores between tests so state never leaks
@@ -34,4 +35,5 @@ afterEach(() => {
     title: undefined,
     onSelect: null,
   });
+  usePileViewerOpenStore.setState({ request: null });
 });

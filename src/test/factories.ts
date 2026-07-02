@@ -6,6 +6,7 @@
  */
 
 import type { Card } from '@/features/player/types';
+import type { KeywordToken } from '@/features/keyword-tokens/types';
 
 let cardSeq = 0;
 
@@ -38,4 +39,23 @@ export function makeCards(
   return Array.from({ length: n }, (_, i) =>
     makeCard(typeof overrides === 'function' ? overrides(i) : overrides),
   );
+}
+
+let tokenSeq = 0;
+
+/** A battlefield keyword token with sensible defaults. Override only what the test asserts on. */
+export function makeToken(overrides: Partial<KeywordToken> = {}): KeywordToken {
+  tokenSeq += 1;
+  return {
+    id: `token-${tokenSeq}`,
+    ownerId: 'p1',
+    x: 0,
+    y: 0,
+    zIndex: 0,
+    rotation: 0,
+    title: 'Flying',
+    backgroundColor: '#123456',
+    count: 1,
+    ...overrides,
+  };
 }
