@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { CustomCounter } from '@/features/player/types';
-import { PlayerCounterModal } from './PlayerCounterModal';
-import styles from './HealthDisplay.module.css';
+import { Stat } from './Stat';
+import { PlayerCounters } from './PlayerCounters';
 import { EditableHealth } from './EditableHealth';
 import { EditableName } from './EditableName';
+import styles from './HealthDisplay.module.css';
 
 interface HealthDisplayProps {
   label: string;
@@ -19,6 +20,11 @@ interface HealthDisplayProps {
   onRemoveCounter?: (counterId: string) => void;
 }
 
+/**
+ * Per-player widget: the health readout plus any custom counters. Health and
+ * counters are both {@link Stat}s; the only difference is orientation and that
+ * counters can be added/removed. The counter strip is revealed on hover.
+ */
 export const HealthDisplay: React.FC<HealthDisplayProps> = ({
   label,
   health,
@@ -32,71 +38,30 @@ export const HealthDisplay: React.FC<HealthDisplayProps> = ({
   onRemoveCounter,
 }) => {
   const [isHovered, setIsHovered] = useState(false);
-  const [showModal, setShowModal] = useState(false);
-
   const isOpponent = variant === 'opponent';
 
   return (
-    <>
-      <div
-        className={`${styles.healthContainer} ${isOpponent ? styles.opponent : ''}`}
-        data-player-id={playerId}
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
-      >
-        <div className={styles.health}>
-          {onRename ? (
-            <EditableName name={label} onRename={onRename} className={styles.healthLabel} />
-          ) : (
-            <div className={styles.healthLabel}>{label}</div>
-          )}
-          <EditableHealth health={health} onModifyHealth={onModifyHealth} className={styles.healthValue} />
-          <div className={styles.healthControls}>
-            <button onClick={() => onModifyHealth(-1)}>-</button>
-            <button onClick={() => onModifyHealth(1)}>+</button>
-          </div>
-        </div>
-
-        {isHovered && (
-          <div className={styles.expandedContent}>
-            {customCounters.map((counter) => (
-              <div key={counter.id} className={styles.customCounter}>
-                <span className={styles.counterIcon}>{counter.icon}</span>
-                <div className={styles.counterInfo}>
-                  <div className={styles.counterTitle}>{counter.title}</div>
-                  <div className={styles.counterValue}>{counter.value}</div>
-                </div>
-                <div className={styles.counterControls}>
-                  <button onClick={() => onModifyCounter?.(counter.id, -1)}>-</button>
-                  <button onClick={() => onModifyCounter?.(counter.id, 1)}>+</button>
-                </div>
-                <button
-                  className={styles.deleteButton}
-                  onClick={() => onRemoveCounter?.(counter.id)}
-                  title="Remove counter"
-                >
-                  ×
-                </button>
-              </div>
-            ))}
-            {onAddCounter && (
-              <button
-                className={styles.addCounterButton}
-                onClick={() => setShowModal(true)}
-                title="Add custom counter"
-              >
-                +
-              </button>
-            )}
-          </div>
-        )}
-      </div>
-
-      <PlayerCounterModal
-        isOpen={showModal}
-        onAdd={(title, icon) => { onAddCounter?.(title, icon); setShowModal(false); }}
-        onCancel={() => setShowModal(false)}
+    <div
+      className={`${styles.healthContainer} ${isOpponent ? styles.opponent : ''}`}
+      data-player-id={playerId}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
+      <Stat
+        orientation="vertical"
+        name="health"
+        label={onRename ? <EditableName name={label} onRename={onRename} /> : label}
+        value={<EditableHealth health={health} onModifyHealth={onModifyHealth} />}
+        onModify={onModifyHealth}
       />
-    </>
+
+      <PlayerCounters
+        counters={customCounters}
+        onAdd={onAddCounter}
+        onModify={(id, delta) => onModifyCounter?.(id, delta)}
+        onRemove={(id) => onRemoveCounter?.(id)}
+        visible={isHovered}
+      />
+    </div>
   );
 };

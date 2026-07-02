@@ -1,0 +1,125 @@
+.stat {
+  display: flex;
+}
+
+/* Vertical: the prominent health readout — caption, big value, stepper below. */
+.vertical {
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-width: 56px;
+}
+
+/* Horizontal: a self-contained counter chip. */
+.horizontal {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  background-color: color-mix(in srgb, var(--accent) 15%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+  border-radius: 8px;
+}
+
+.icon {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.info {
+  display: flex;
+  flex-direction: column;
+}
+
+.horizontal .info {
+  gap: 1px;
+}
+
+.label {
+  color: #9ca3af;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.vertical .label {
+  font-size: 9px;
+  max-width: 10ch;
+  text-align: center;
+}
+
+.horizontal .label {
+  font-size: 8px;
+}
+
+.value {
+  font-weight: bold;
+  color: var(--accent);
+  font-family: 'Courier New', monospace;
+}
+
+.vertical .value {
+  font-size: 22px;
+}
+
+.horizontal .value {
+  font-size: 13px;
+}
+
+/* Editable inputs (health / name) render as bare text that inherits the slot's
+   typography instead of looking like form fields. */
+.label input,
+.value input {
+  width: auto;
+  color: inherit;
+  font: inherit;
+  text-align: inherit;
+  background: transparent;
+  border: none;
+  outline: none;
+  padding: 0;
+  box-sizing: content-box;
+}
+
+.vertical .label input {
+  width: 10ch;
+  text-align: center;
+}
+
+.vertical .value input {
+  width: 3ch;
+  text-align: center;
+}
+
+.controls {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.horizontal .controls {
+  margin-left: auto;
+}
+
+.remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  color: #ef4444;
+  background-color: transparent;
+  border: 1px solid #4a4a4a;
+  border-radius: 4px;
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.remove:hover {
+  background-color: rgba(239, 68, 68, 0.2);
+  border-color: #ef4444;
+}

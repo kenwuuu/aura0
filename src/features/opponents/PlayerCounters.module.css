@@ -1,0 +1,29 @@
+.counters {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.addButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  color: #9ca3af;
+  background-color: #2d2d2d;
+  border: 2px dashed color-mix(in srgb, var(--accent) 40%, transparent);
+  border-radius: 8px;
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.addButton:hover {
+  color: var(--accent);
+  background-color: color-mix(in srgb, var(--accent) 20%, transparent);
+  border-color: var(--accent);
+}

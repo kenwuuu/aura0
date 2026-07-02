@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/shared/ui/dialog';
+import { COUNTER_ICONS } from './iconOptions';
 import styles from './PlayerCounterModal.module.css';
 
 interface CounterModalProps {
@@ -7,8 +8,6 @@ interface CounterModalProps {
   onAdd: (title: string, icon: string) => void;
   onCancel: () => void;
 }
-
-const COMMON_ICONS = ['☠️', '⚡', '🔥', '🩸', '☢️', '⭐', '💎', '👑', '⚔️', '🛡️'];
 
 export const PlayerCounterModal: React.FC<CounterModalProps> = ({ isOpen, onAdd, onCancel }) => {
   const [title, setTitle] = useState('');
@@ -58,10 +57,12 @@ export const PlayerCounterModal: React.FC<CounterModalProps> = ({ isOpen, onAdd,
           <div className={styles.field}>
             <label className={styles.label}>Icon (select or enter custom)</label>
             <div className={styles.iconGrid}>
-              {COMMON_ICONS.map((emoji) => (
+              {COUNTER_ICONS.map((emoji) => (
                 <button
                   key={emoji}
                   type="button"
+                  aria-label={`Use ${emoji} icon`}
+                  aria-pressed={icon === emoji && !customIcon}
                   className={`${styles.iconButton} ${icon === emoji && !customIcon ? styles.selected : ''}`}
                   onClick={() => {
                     setIcon(emoji);
