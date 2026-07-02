@@ -6,6 +6,7 @@ import {
   Controls,
   Panel,
   Node,
+  ViewportPortal,
   useReactFlow,
   type OnNodeDrag,
 } from '@xyflow/react';
@@ -20,6 +21,9 @@ import { PlaymatNode } from './nodes/PlaymatNode';
 import { HealthNode } from './nodes/HealthNode';
 import { PileNode } from './nodes/PileNode';
 import { useBattlefieldNodes, type DragNodeState } from './useBattlefieldNodes';
+import { usePeerCursors } from './usePeerCursors';
+import { PeerCursor } from './nodes/PeerCursor';
+import { AWARENESS_CURSOR } from './awareness';
 import { usePlaymatNodes } from './usePlaymatNodes';
 import { WhiteboardCard } from './types';
 import { KeywordToken } from '@/features/keyword-tokens/types';
@@ -152,6 +156,29 @@ function BattlefieldCanvasInner({ yDoc, localPlayerId }: BattlefieldCanvasProps)
   useEffect(() => {
     useGameInstance.getState().setScreenToFlowPosition(screenToFlowPosition);
   }, [screenToFlowPosition]);
+
+  const peers = usePeerCursors(awareness, yDoc);
+  const rafRef = useRef<number | null>(null);
+  useEffect(() => () => { if (rafRef.current !== null) cancelAnimationFrame(rafRef.current); }, []);
+
+  const onPointerMove = useCallback((e: React.PointerEvent) => {
+    if (rafRef.current !== null) return;
+    const clientX = e.clientX;
+    const clientY = e.clientY;
+    rafRef.current = requestAnimationFrame(() => {
+      rafRef.current = null;
+      const pos = screenToFlowPosition({ x: clientX, y: clientY });
+      awareness?.setLocalStateField(AWARENESS_CURSOR, pos);
+    });
+  }, [awareness, screenToFlowPosition]);
+
+  const onPointerLeave = useCallback(() => {
+    if (rafRef.current !== null) {
+      cancelAnimationFrame(rafRef.current);
+      rafRef.current = null;
+    }
+    awareness?.setLocalStateField(AWARENESS_CURSOR, null);
+  }, [awareness]);
 
   // Snap-to-grid is either always on (persisted setting) or held on with Alt.
   const snapToGridEnabled = useSettingsStore((s) => s.snapToGridEnabled);
@@ -431,7 +458,7 @@ function BattlefieldCanvasInner({ yDoc, localPlayerId }: BattlefieldCanvasProps)
   const allNodes: Node[] = [...playmatNodes, ...cardTokenNodes];
 
   return (
-    <div ref={setBattlefieldRef} style={{ width: '100%', height: '100%' }}>
+    <div ref={setBattlefieldRef} style={{ width: '100%', height: '100%' }} onPointerMove={onPointerMove} onPointerLeave={onPointerLeave}>
       <ReactFlow
         nodes={allNodes}
         edges={[]}
@@ -475,6 +502,15 @@ function BattlefieldCanvasInner({ yDoc, localPlayerId }: BattlefieldCanvasProps)
         <Panel position="bottom-left">
           <SettingsButton />
         </Panel>
+        <ViewportPortal>
+          <div style={{ position: 'absolute', inset: 0, zIndex: 9999, pointerEvents: 'none' }}>
+            {peers.map(p => (
+              <div key={p.clientId} style={{ position: 'absolute', transform: `translate(${p.x}px, ${p.y}px)` }}>
+                <PeerCursor color={p.color} name={p.name} />
+              </div>
+            ))}
+          </div>
+        </ViewportPortal>
       </ReactFlow>
     </div>
   );

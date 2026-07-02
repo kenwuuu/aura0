@@ -80,7 +80,10 @@ export async function bootstrapGame(): Promise<GameContext> {
   useGameInstance.getState().setPlayerId(playerId);
   useGameInstance.getState().setRoomManager(roomManager);
   useGameInstance.getState().setTokenService(tokenService);
-  useGameInstance.getState().setAwareness(yjsNetworkProvider.getAwareness());
+  const awareness = yjsNetworkProvider.getAwareness();
+  useGameInstance.getState().setAwareness(awareness);
+  // Broadcast playerId so peers can look up this player's Yjs name from the cursor overlay.
+  awareness.setLocalStateField('playerId', playerId);
 
   // ── 6. Deck seeding + auto-load ────────────────────────────────────────────
   const storage = new DeckStorageService();

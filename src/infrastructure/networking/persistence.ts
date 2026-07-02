@@ -45,6 +45,7 @@ const STORAGE_KEYS = {
 export interface AwarenessState {
   name?: string;
   color?: string;
+  playerId?: string;
   [key: string]: unknown;
 }
 
@@ -99,7 +100,8 @@ export function getOrCreatePeerId(): string {
  */
 export function saveAwarenessState(state: AwarenessState): void {
   try {
-    localStorage.setItem(STORAGE_KEYS.AWARENESS_STATE, JSON.stringify(state));
+    const { name, color, playerId } = state; // identity only — never persist transient fields (drag, cursor)
+    localStorage.setItem(STORAGE_KEYS.AWARENESS_STATE, JSON.stringify({ name, color, playerId }));
   } catch (error) {
     console.error('Failed to save awareness state:', error);
   }

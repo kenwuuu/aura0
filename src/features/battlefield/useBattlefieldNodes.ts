@@ -3,6 +3,7 @@ import { Node, NodeChange, applyNodeChanges } from '@xyflow/react';
 import * as Y from 'yjs';
 import type { Awareness } from 'y-protocols/awareness';
 import { WhiteboardCard } from './types';
+import type { BattlefieldAwareness } from './awareness';
 import { KeywordToken } from '@/features/keyword-tokens/types';
 
 export interface DragNodeState {
@@ -100,7 +101,7 @@ export function useBattlefieldNodes(
       const overrides = new Map<string, DragNodeState>();
       awareness.getStates().forEach((state, clientId) => {
         if (clientId === awareness.clientID) return;
-        const drag = state.drag as { nodes: DragNodeState[] } | null | undefined;
+        const drag = (state as BattlefieldAwareness).drag;
         drag?.nodes?.forEach((node) => overrides.set(node.id, node));
       });
       setPeerDragOverrides(overrides);
