@@ -19,7 +19,6 @@ import { HotkeyMenu } from '@/features/hotkeys/HotkeyMenu';
 import { GameHotkeysManager } from '@/features/hotkeys/GameHotkeysManager';
 import { OpponentPileViewers } from '@/features/opponents/OpponentPileViewers';
 import { FloatingHand } from '@/features/game-dock/FloatingHand';
-import { FloatingControlsMenu } from '@/features/game-dock/controls/FloatingControlsMenu';
 import { ScryManager } from '@/features/game-dock/ScryManager';
 import { LocalPileTiles } from '@/features/game-dock/LocalPileTiles';
 import { DeckManager } from '@/features/deck-manager';
@@ -175,7 +174,6 @@ export function App({ yDoc, yjsNetworkProvider, player, roomManager, playerId, c
 
       {/* ── Fixed-position overlays ── */}
       <FloatingHand />
-      <FloatingControlsMenu />
       <ScryManager />
       <LocalPileTiles />
       <OpponentPileViewers yDoc={yDoc} localPlayerId={playerId} />
