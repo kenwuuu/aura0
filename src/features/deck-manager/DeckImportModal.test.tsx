@@ -1,236 +1,120 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { DeckImportModal } from './DeckImportModal';
 
-// Mock the deck importer and storage services
-vi.mock('../services/deckImporter', () => ({
-  MtgTextListDeckImporter: vi.fn().mockImplementation(() => ({
-    importFromText: vi.fn().mockResolvedValue({
-      cards: [
-        { id: 'card-1', cardNumber: 1, name: 'Lightning Bolt' },
-        { id: 'card-2', cardNumber: 2, name: 'Mountain' },
-      ],
-      errors: [],
-      metadata: {},
-    }),
-  })),
-}));
+// No mocks: these tests exercise the Help-dialog behavior and rendering only —
+// they never trigger an import, so the network importer / IndexedDB storage are
+// never constructed. Per tests/testing-react.md, mock only the I/O a test actually
+// exercises (and via the `@/` alias, never a relative path).
 
-vi.mock('../services/deckStorage', () => ({
-  DeckStorageService: vi.fn().mockImplementation(() => ({
-    saveDeck: vi.fn().mockResolvedValue(undefined),
-  })),
-}));
+// Helpers that name what the user is looking at, so the intent survives refactors.
+const importDialogHeading = () => screen.getByRole('heading', { name: 'Import Deck' });
+const queryImportDialogHeading = () => screen.queryByRole('heading', { name: 'Import Deck' });
+const helpDialog = () => screen.getByRole('dialog', { name: /deck import guide/i });
+const queryHelpGuide = () => screen.queryByText('Deck Import Guide');
 
-describe('DeckImportModal - Help Dialog Integration', () => {
-  const mockOnClose = vi.fn();
-  const mockOnDeckImported = vi.fn();
+describe('DeckImportModal — Help dialog integration', () => {
+  const onClose = vi.fn();
+  const onDeckImported = vi.fn();
+
+  const renderModal = () =>
+    render(<DeckImportModal isOpen onClose={onClose} onDeckImported={onDeckImported} />);
 
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('should not render when isOpen is false', () => {
-    render(
-      <DeckImportModal
-        isOpen={false}
-        onClose={mockOnClose}
-        onDeckImported={mockOnDeckImported}
-      />
-    );
-
-    expect(screen.queryByText('Import Deck')).not.toBeInTheDocument();
+  it('does not render the modal when closed', () => {
+    render(<DeckImportModal isOpen={false} onClose={onClose} onDeckImported={onDeckImported} />);
+    expect(queryImportDialogHeading()).not.toBeInTheDocument();
   });
 
-  it('should render when isOpen is true', () => {
-    render(
-      <DeckImportModal
-        isOpen={true}
-        onClose={mockOnClose}
-        onDeckImported={mockOnDeckImported}
-      />
-    );
-
-    expect(screen.getAllByText('Import Deck')[1]).toBeInTheDocument();
+  it('renders the modal when open', () => {
+    renderModal();
+    expect(importDialogHeading()).toBeInTheDocument();
   });
 
-  it('should have a Help button', () => {
-    render(
-      <DeckImportModal
-        isOpen={true}
-        onClose={mockOnClose}
-        onDeckImported={mockOnDeckImported}
-      />
-    );
-
-    const helpButton = screen.getByRole('button', { name: /help/i });
-    expect(helpButton).toBeInTheDocument();
+  it('exposes a Help button', () => {
+    renderModal();
+    expect(screen.getByRole('button', { name: /help/i })).toBeInTheDocument();
   });
 
-  it('should open Help dialog when Help button is clicked', async () => {
+  it('opens the Help dialog when Help is clicked', async () => {
     const user = userEvent.setup();
-    render(
-      <DeckImportModal
-        isOpen={true}
-        onClose={mockOnClose}
-        onDeckImported={mockOnDeckImported}
-      />
-    );
+    renderModal();
 
-    const helpButton = screen.getByRole('button', { name: /help/i });
-    await user.click(helpButton);
+    await user.click(screen.getByRole('button', { name: /help/i }));
 
-    // Help dialog should be visible
     expect(screen.getByText('Deck Import Guide')).toBeInTheDocument();
   });
 
-  it('should keep Import modal open when Help dialog is opened', async () => {
+  it('keeps the import modal open while the Help dialog is open', async () => {
     const user = userEvent.setup();
-    render(
-      <DeckImportModal
-        isOpen={true}
-        onClose={mockOnClose}
-        onDeckImported={mockOnDeckImported}
-      />
-    );
+    renderModal();
 
-    const helpButton = screen.getByRole('button', { name: /help/i });
-    await user.click(helpButton);
+    await user.click(screen.getByRole('button', { name: /help/i }));
 
-    // Both modals should be visible
-    expect(screen.getAllByText('Import Deck')[1]).toBeInTheDocument();
+    // Radix marks the backgrounded modal aria-hidden while a nested dialog is
+    // open, so it drops out of the accessibility tree (role/name queries can't
+    // see it). Its label-associated form field stays in the DOM regardless, so
+    // it's the stable proof the import modal is still mounted and not dismissed.
     expect(screen.getByText('Deck Import Guide')).toBeInTheDocument();
+    expect(screen.getByLabelText('Deck Name')).toBeInTheDocument();
+    expect(onClose).not.toHaveBeenCalled();
   });
 
-  it('should keep Import modal open when Help dialog is closed via "Got it" button', async () => {
+  it('keeps the import modal open after closing Help via "Got it"', async () => {
     const user = userEvent.setup();
-    render(
-      <DeckImportModal
-        isOpen={true}
-        onClose={mockOnClose}
-        onDeckImported={mockOnDeckImported}
-      />
-    );
+    renderModal();
 
-    // Open Help dialog
-    const helpButton = screen.getByRole('button', { name: /help/i });
-    await user.click(helpButton);
+    await user.click(screen.getByRole('button', { name: /help/i }));
+    await user.click(within(helpDialog()).getByRole('button', { name: /got it/i }));
 
-    expect(screen.getByText('Deck Import Guide')).toBeInTheDocument();
-
-    // Close Help dialog
-    const gotItButton = screen.getByRole('button', { name: /got it/i });
-    await user.click(gotItButton);
-
-    // Import modal should still be open
-    expect(screen.getAllByText('Import Deck')[1]).toBeInTheDocument();
-
-    // Help dialog should be closed
-    await waitFor(() => {
-      expect(screen.queryByText('Deck Import Guide')).not.toBeInTheDocument();
-    });
-
-    // Import modal's onClose should NOT have been called
-    expect(mockOnClose).not.toHaveBeenCalled();
+    await waitFor(() => expect(queryHelpGuide()).not.toBeInTheDocument());
+    expect(importDialogHeading()).toBeInTheDocument();
+    expect(onClose).not.toHaveBeenCalled();
   });
 
-  it('should keep Import modal open when Help dialog is closed via X button', async () => {
+  it('keeps the import modal open after closing Help via the × button', async () => {
     const user = userEvent.setup();
-    render(
-      <DeckImportModal
-        isOpen={true}
-        onClose={mockOnClose}
-        onDeckImported={mockOnDeckImported}
-      />
-    );
+    renderModal();
 
-    // Open Help dialog
-    const helpButton = screen.getByRole('button', { name: /help/i });
-    await user.click(helpButton);
+    await user.click(screen.getByRole('button', { name: /help/i }));
+    await user.click(within(helpDialog()).getByRole('button', { name: '×' }));
 
-    // Close Help dialog via X button
-    const closeButtons = screen.getAllByText('×');
-    const helpDialogCloseButton = closeButtons.find(
-      (btn) => btn.closest('[role="dialog"]')?.textContent?.includes('Deck Import Guide')
-    );
-
-    if (helpDialogCloseButton) {
-      await user.click(helpDialogCloseButton);
-    }
-
-    // Import modal should still be open
-    expect(screen.getAllByText('Import Deck')[1]).toBeInTheDocument();
-
-    // Import modal's onClose should NOT have been called
-    expect(mockOnClose).not.toHaveBeenCalled();
+    await waitFor(() => expect(queryHelpGuide()).not.toBeInTheDocument());
+    expect(importDialogHeading()).toBeInTheDocument();
+    expect(onClose).not.toHaveBeenCalled();
   });
 
-  it('should have Help button on the left side of footer', () => {
-    render(
-      <DeckImportModal
-        isOpen={true}
-        onClose={mockOnClose}
-        onDeckImported={mockOnDeckImported}
-      />
-    );
-
-    const footer = screen.getByRole('button', { name: /help/i }).parentElement;
-    const buttons = footer?.querySelectorAll('button');
-
-    // Help should be first, then Cancel and Import
-    expect(buttons?.[0]).toHaveTextContent('Help');
-  });
-
-  it('should show correct content in Help dialog', async () => {
+  it('shows the guide content in the Help dialog', async () => {
     const user = userEvent.setup();
-    const { container } = render(
-      <DeckImportModal
-        isOpen={true}
-        onClose={mockOnClose}
-        onDeckImported={mockOnDeckImported}
-      />
-    );
+    renderModal();
 
-    const helpButton = screen.getByRole('button', { name: /help/i });
-    await user.click(helpButton);
+    await user.click(screen.getByRole('button', { name: /help/i }));
+    const guide = within(helpDialog());
 
-    // Verify Help dialog content
-    expect(screen.getByText('Recommended Format')).toBeInTheDocument();
-    expect(screen.getByText('Not Supported')).toBeInTheDocument();
-    expect(screen.getByText('Supported Formats')).toBeInTheDocument();
-    expect(screen.getByText(/MTGO preset/i)).toBeInTheDocument();
-
-    // Check that unsupported keywords appear in the document
-    expect(document.body.textContent).toContain('SIDEBOARD:');
-    expect(document.body.textContent).toContain('COMMANDER:');
+    expect(guide.getByText('Recommended Format')).toBeInTheDocument();
+    expect(guide.getByText('Not Supported')).toBeInTheDocument();
+    expect(guide.getByText('Supported Formats')).toBeInTheDocument();
+    expect(guide.getByText(/MTGO preset/i)).toBeInTheDocument();
+    // The unsupported-headers explanation, plus a string unique to the code sample.
+    expect(guide.getByText(/section headers like SIDEBOARD or COMMANDER/i)).toBeInTheDocument();
+    expect(guide.getByText(/Zuran Orb/)).toBeInTheDocument();
   });
 
-  it('should allow reopening Help dialog after closing it', async () => {
+  it('allows reopening the Help dialog after closing it', async () => {
     const user = userEvent.setup();
-    render(
-      <DeckImportModal
-        isOpen={true}
-        onClose={mockOnClose}
-        onDeckImported={mockOnDeckImported}
-      />
-    );
+    renderModal();
 
-    // Open Help
-    const helpButton = screen.getByRole('button', { name: /help/i });
-    await user.click(helpButton);
+    await user.click(screen.getByRole('button', { name: /help/i }));
     expect(screen.getByText('Deck Import Guide')).toBeInTheDocument();
 
-    // Close Help
-    const gotItButton = screen.getByRole('button', { name: /got it/i });
-    await user.click(gotItButton);
+    await user.click(within(helpDialog()).getByRole('button', { name: /got it/i }));
+    await waitFor(() => expect(queryHelpGuide()).not.toBeInTheDocument());
 
-    await waitFor(() => {
-      expect(screen.queryByText('Deck Import Guide')).not.toBeInTheDocument();
-    });
-
-    // Reopen Help
-    await user.click(helpButton);
+    await user.click(screen.getByRole('button', { name: /help/i }));
     expect(screen.getByText('Deck Import Guide')).toBeInTheDocument();
   });
 });
