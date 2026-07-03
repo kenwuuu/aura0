@@ -42,8 +42,14 @@ Branch: `feature/manabase-design-system` (unified trunk after Phase 0 merge).
       logic tier. Also removed the redundant manual `useCardPreviewStore.setState(...)` +
       `localStorage.clear()` in its `beforeEach` — both are already handled by the central
       `afterEach` in `src/test/setup.ts`.
-- [ ] Rewrite `DeckImportModal.test.tsx` on the harness
-- [ ] Confirm no tests written around orphaned `CardCounter` path
+- [x] Rewrite `DeckImportModal.test.tsx` on the harness — already rebuilt in a prior session
+      (commit `9d4e73a`): good label/role queries, no index-based selectors, documents a Radix
+      nested-dialog `aria-hidden` gotcha. Only covers Help-dialog wiring (8 tests) today; the
+      core import flow (validation, `handleImport`, progress, cancel) needs I/O mocks
+      (`MtgTextListDeckImporter`, `DeckStorageService`) and a render, so that expansion is
+      Tier-2 work — tracked under Phase 2, not re-done here.
+- [x] Confirm no tests written around orphaned `CardCounter` path — grepped the repo, zero
+      references in any `*.test.ts(x)`. Nothing to delete.
 
 ## Phase 1 — Tier-1 logic coverage
 - [ ] `Player` methods: drawCard, mulligan, shuffleDeck, setAllowViewHand/reveal, reorderHand,
@@ -97,5 +103,7 @@ Branch: `feature/manabase-design-system` (unified trunk after Phase 0 merge).
 - 2026-07-03: `CardPreview.test.tsx` fix done. New `cardPreviewLogic.ts`/`.test.ts` (pure
   `shouldShowOnLeft`), redundant per-test store resets removed. tsc clean, full suite
   261/261 green (258 + 4 new logic tests − 1 folded placement test = net +3).
-  Next: decide DeckImportModal.test.tsx scope (light expansion now vs. full defer to Phase 2),
-  then confirm no tests exist around the orphaned CardCounter path, then close out Task #2.
+- 2026-07-03: Confirmed `DeckImportModal.test.tsx` already meets convention (prior-session
+  rewrite); deferred the import-flow coverage expansion to Phase 2 rather than duplicating work.
+  Grepped for orphaned `CardCounter` test references — none found. **Existing-test audit
+  complete — Task #2 done.** Starting Phase 1 (Tier-1 logic coverage) next.
