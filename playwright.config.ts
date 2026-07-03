@@ -22,7 +22,9 @@ export default defineConfig({
   /* Opt out of parallel tests on CI. Use 50% of logical cores on local. */
   workers: process.env.CI ? 1 : '50%',
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
-  reporter: process.env.CI ? 'list' : [['html', { open: 'never' }]],
+  reporter: process.env.CI
+    ? [['list'], ['html', { open: 'never' }]]
+    : [['html', { open: 'never' }]],
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
     /* Base URL to use in actions like `await page.goto('')`. */

@@ -1,6 +1,6 @@
 # E2E Harness for Autonomous Verification — Progress
 
-## Status: Phase 3 done (2026-07-03), Phase 4 next
+## Status: Phase 4 done (2026-07-03), Phase 5 next
 
 Branch: `e2e-harness-autonomy`. Full plan: `/Users/kenwu/.claude/plans/idempotent-dancing-panda.md`
 (also mirrored here as context below). This is item 4 of
@@ -23,7 +23,7 @@ round. Rebuilding the harness fresh on master, mining (not merging) the stale
       `mouseDrag` primitive, semantic waits, domain assertions, scenario library.
 - [x] **Phase 2** — Smoke suite (`@smoke`, ~5 specs) green locally.
 - [x] **Phase 3** — Rehab broader behavior suite onto the harness (advisory tier).
-- [ ] **Phase 4** — CI wiring: `test:e2e`/`test:e2e:smoke` scripts,
+- [x] **Phase 4** — CI wiring: `test:e2e`/`test:e2e:smoke` scripts,
       `e2e-smoke` (blocking) + `e2e-full` (advisory) jobs in `test.yml`.
 - [ ] **Phase 5** — Docs: `docs/testing/e2e.md` contract, update `tests/testing.md`,
       pointer from `CLAUDE.md`.
@@ -177,3 +177,23 @@ round. Rebuilding the harness fresh on master, mining (not merging) the stale
      "Actions > Reveal Hand toggle off logs the stop-revealing message"
      (split out of the original combined on/off test, whose "on" half still
      passes and stays active).
+- 2026-07-03: Phase 4 complete. Verified Phase 3's fork output first (trust
+  but verify): reran `tests/e2e/app` myself — confirmed 100/72/0/28 matches
+  exactly, two full-suite reruns; reran `@smoke` — still 5/5; reran unit
+  suite + typecheck — still 385/385 and clean. Then wired CI: added
+  `e2e-smoke` (blocking, `npm run test:e2e:smoke`) and `e2e-full` (advisory,
+  `continue-on-error: true`, `npm run test:e2e`) jobs to `test.yml`, each with
+  its own checkout/Node-20/`npm ci`/`playwright install --with-deps chromium`
+  preamble, uploading the Playwright HTML report as an artifact on failure.
+  Pinned both `test:e2e`/`test:e2e:smoke` npm scripts to `--project=chromium`
+  — firefox/webkit are configured but were never exercised against this
+  harness (mouse-event drags, `elementFromPoint` hit-testing, react-flow
+  specifics), so defaulting CI/local scripts to an unverified 3-browser matrix
+  would be dishonest about what's actually been checked; they stay available
+  for manual `--project=firefox`/`webkit` runs. Fixed `playwright.config.ts`'s
+  CI reporter — it was `'list'`-only, which produces no HTML output at all,
+  making the artifact-upload step a no-op; now `[['list'], ['html', {open:
+  'never'}]]` on CI. Verified locally with `CI=true` that the HTML report
+  still generates. YAML validated. Next real milestone: once `e2e-full` has
+  run clean in CI for a while, promote it to blocking (drop
+  `continue-on-error`) per the plan's Notes/risks section.
