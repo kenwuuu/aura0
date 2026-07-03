@@ -88,7 +88,13 @@ Branch: `feature/manabase-design-system` (unified trunk after Phase 0 merge).
       `opponentPlayerMutations.test.ts` only covered the health debounce) — added 4 tests for
       those directly rather than through HealthNode's hover-gated counter UI, which would have
       needed brittle structural queries to trigger.
-- [ ] `GameActionsToolbar.test.tsx` (highest-value UI test)
+- [x] `GameActionsToolbar.test.tsx` — one representative action per surface (toolbar button:
+      Draw/Untap All/Pass, Actions dropdown: Mulligan, Create dropdown: Token Card), plus the
+      ctx-not-ready guard (renders nothing before the game instance is seeded). Confirmed Radix
+      `DropdownMenu`/`Popover` work fine under happy-dom with plain `userEvent.click` — no
+      pointer-capture polyfill needed, unlike the common jsdom gotcha. Per-action dispatch
+      contract is already covered at Tier-1 (`gameActions.test.ts`), so this file deliberately
+      doesn't re-test every action — only proves the wiring seam once per surface.
 - [ ] `HandCardsContainer.test.tsx` / `FloatingHand`
 - [ ] `ActionLogPanel.test.tsx`
 - [ ] `SettingsModal` display section
@@ -147,3 +153,5 @@ Branch: `feature/manabase-design-system` (unified trunk after Phase 0 merge).
   `opponentPlayerMutations.test.ts` rather than through HealthNode's hover-gated counter UI.
   tsc clean, full suite 337/337 green. Next: `GameActionsToolbar.test.tsx` (highest-value UI
   test per the plan).
+- 2026-07-03: `GameActionsToolbar.test.tsx` added (6 tests). tsc clean, full suite 343/343
+  green, stable across 3 consecutive runs. Next: `HandCardsContainer.test.tsx`/`FloatingHand`.

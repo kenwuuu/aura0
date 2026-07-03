@@ -1,0 +1,85 @@
+import { describe, it, expect } from 'vitest';
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { GameActionsToolbar } from './GameActionsToolbar';
+import { renderWithGame } from '@/test/harness';
+import { getActionLog } from '@/features/action-log/actionLog';
+import { useTokenCardSearchStore } from './tokenCardSearchStore';
+import { YDOC_CARDS_ON_BOARD } from '@/constants';
+import type { WhiteboardCard } from '@/features/battlefield/types';
+
+/**
+ * GameActionsToolbar is a thin dispatcher: it builds a GameActionContext from
+ * useGameInstance and routes clicks to GAME_ACTIONS by id. The dispatch
+ * contract for every action is already covered at the logic tier
+ * (gameActions.test.ts); these tests only confirm the wiring seam — one
+ * representative action per surface (toolbar button, Actions dropdown,
+ * Create dropdown) reaches the registry through real clicks.
+ */
+describe('GameActionsToolbar', () => {
+  it('renders nothing until the game instance is seeded', () => {
+    render(<GameActionsToolbar />);
+    expect(screen.queryByTestId('game-actions-toolbar')).not.toBeInTheDocument();
+  });
+
+  it('toolbar button: Draw draws a card via the seeded player', async () => {
+    const user = userEvent.setup();
+    const { player } = renderWithGame(<GameActionsToolbar />, {
+      deck: [{ id: 'c1' } as any],
+    });
+
+    await user.click(screen.getByRole('button', { name: 'Draw' }));
+
+    expect(player.getState().hand).toHaveLength(1);
+  });
+
+  it('toolbar button: Untap All untaps the player\'s tapped board cards and logs it', async () => {
+    const user = userEvent.setup();
+    const { yDoc, playerId } = renderWithGame(<GameActionsToolbar />);
+    const yCards = yDoc.getMap<WhiteboardCard>(YDOC_CARDS_ON_BOARD);
+    yCards.set('card-1', {
+      id: 'card-1', cardNumber: 1, x: 0, y: 0, rotation: 0, isTapped: true, isFlipped: false,
+      counters: [], zIndex: 1, ownerId: playerId,
+    });
+
+    await user.click(screen.getByRole('button', { name: 'Untap All' }));
+
+    expect(yCards.get('card-1')!.isTapped).toBe(false);
+    const log = getActionLog(yDoc).toArray();
+    expect(log.some((e) => e.type === 'untap_all')).toBe(true);
+  });
+
+  it('Actions dropdown: Mulligan draws a fresh 7-card hand', async () => {
+    const user = userEvent.setup();
+    const { player } = renderWithGame(<GameActionsToolbar />, {
+      deck: Array.from({ length: 20 }, (_, i) => ({ id: `c${i}` }) as any),
+    });
+
+    await user.click(screen.getByRole('button', { name: /Actions/ }));
+    await user.click(await screen.findByRole('menuitem', { name: 'Mulligan' }));
+
+    expect(player.getState().hand).toHaveLength(7);
+  });
+
+  it('Create dropdown: Token Card opens the token card search store', async () => {
+    const user = userEvent.setup();
+    renderWithGame(<GameActionsToolbar />);
+
+    await user.click(screen.getByRole('button', { name: /Create/ }));
+    await user.click(await screen.findByRole('menuitem', { name: 'Token Card' }));
+
+    expect(useTokenCardSearchStore.getState().isOpen).toBe(true);
+  });
+
+  it('logs a pass_turn entry when Pass is clicked, without touching player state', async () => {
+    const user = userEvent.setup();
+    const { yDoc, player } = renderWithGame(<GameActionsToolbar />);
+    const healthBefore = player.getState().health;
+
+    await user.click(screen.getByRole('button', { name: 'Pass' }));
+
+    const log = getActionLog(yDoc).toArray();
+    expect(log.some((e) => e.type === 'pass_turn')).toBe(true);
+    expect(player.getState().health).toBe(healthBefore);
+  });
+});
