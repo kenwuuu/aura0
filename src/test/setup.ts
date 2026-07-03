@@ -5,9 +5,15 @@ import { useGameInstance } from '@/app/stores/gameInstanceStore';
 import { usePlayerStore } from '@/app/stores/playerStore';
 import { useHotkeyStore } from '@/app/stores/hotkeyStore';
 import { useTooltipStore } from '@/app/stores/uiStore';
+import { useSettingsStore } from '@/app/stores/settingsStore';
 import { useCardPreviewStore } from '@/features/card-preview/cardPreviewStore';
 import { useHotkeyMenuStore } from '@/features/hotkeys/hotkeyMenuStore';
 import { usePileViewerOpenStore } from '@/features/game-dock/pileViewerOpenStore';
+import { usePileViewerHotkeyStore } from '@/features/game-dock/pileViewerHotkeyStore';
+import { useScryStore } from '@/features/game-dock/scryStore';
+import { useSurveilStore } from '@/features/game-dock/surveilStore';
+import { useTokenCardSearchStore } from '@/features/game-actions/tokenCardSearchStore';
+import { useNumberPromptStore } from '@/features/game-actions/numberPromptStore';
 
 /**
  * Reset all module-singleton Zustand stores between tests so state never leaks
@@ -36,4 +42,16 @@ afterEach(() => {
     onSelect: null,
   });
   usePileViewerOpenStore.setState({ request: null });
+  usePileViewerHotkeyStore.setState({ actionHandler: null });
+  useScryStore.setState({ requested: false });
+  useSurveilStore.setState({ requested: false });
+  useTokenCardSearchStore.setState({ isOpen: false });
+  useNumberPromptStore.setState({ request: null });
+  useSettingsStore.setState({
+    handZoom: 1,
+    previewZoom: 1,
+    snapToGridEnabled: false,
+    demoHandCards: null,
+  });
+  localStorage.clear();
 });
