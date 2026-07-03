@@ -109,7 +109,12 @@ Branch: `feature/manabase-design-system` (unified trunk after Phase 0 merge).
       Tested at the `FloatingHand` level (not raw `HandCardsContainer`) since that's the
       store-wired composition root, matching the `HealthNode`/`renderNode` precedent of testing
       the real wiring rather than a prop-driven leaf.
-- [ ] `ActionLogPanel.test.tsx`
+- [x] `ActionLogPanel.test.tsx` — empty-state placeholder, entries render by resolved actor
+      name/text in document order (via `compareDocumentPosition`, not index-based
+      `getAllByText()[n]`), the unnamed-actor id-truncation fallback, live updates as new
+      entries are logged to the same `Y.Doc` (had to wrap the direct `logAction` call in
+      `act(...)` — calling it outside `userEvent`, which auto-wraps, left the Yjs-observer-driven
+      `setState` outside React's act boundary), and collapse/re-expand on header click.
 - [ ] `SettingsModal` display section
 - [ ] `DeckImportModal.test.tsx` rewrite (may already be covered by audit item)
 
@@ -171,3 +176,5 @@ Branch: `feature/manabase-design-system` (unified trunk after Phase 0 merge).
 - 2026-07-03: `FloatingHand.test.tsx` added (6 tests), plus a `data-testid` added to
   `HandCardsContainer.tsx` to support the handZoom check. tsc clean, full suite 349/349 green,
   stable across 3 consecutive runs. Next: `ActionLogPanel.test.tsx`.
+- 2026-07-03: `ActionLogPanel.test.tsx` added (5 tests). tsc clean, full suite 354/354 green,
+  stable across 3 consecutive runs. Next: `SettingsModal` display section.
