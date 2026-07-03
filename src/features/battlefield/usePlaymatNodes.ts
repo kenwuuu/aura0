@@ -86,7 +86,7 @@ export function buildPlaymatNodes(yDoc: Y.Doc, localPlayerId: string): Node[] {
       type: 'health',
       position: positions.health,
       data: { ownerId: playerId, isLocal, name, health, customCounters, yDoc },
-      zIndex: 0,
+      zIndex: 1, // explicitly above the playmat's 0 — don't rely on push-order tiebreaking
       draggable: false,
       width: HEALTH_WIDGET_WIDTH,
       height: HEALTH_WIDGET_HEIGHT,
