@@ -131,7 +131,29 @@ Branch: `feature/manabase-design-system` (unified trunk after Phase 0 merge).
       pass's scope — flagging here rather than fixing inline. The demo-toggle behavior itself is
       pointer-drag/timing territory the plan already routes to E2E, so it's untested here either
       way.
-- [ ] `DeckImportModal.test.tsx` rewrite (may already be covered by audit item)
+- [x] `DeckImportModal.test.tsx` import-flow expansion (10 new tests added to the existing 8
+      Help-dialog tests, 18 total): validation (Import Deck disabled until both fields are
+      non-empty), progress-bar rendering from the importer's progress callback, success path
+      (saves via `DeckStorageService`, shows the success message, hands off the deck + closes
+      after the 1s delay via `vi.advanceTimersByTime`), the importer's reported-errors path, the
+      zero-cards fallback error, a thrown-exception path, Cancel (clears + closes without
+      importing), and the importing-disables-the-form state. Mocked `MtgTextListDeckImporter`/
+      `DeckStorageService` (the I/O boundary) with deferred promises so progress/success/error
+      states could each be observed instead of racing past them.
+      **Found and worked around a real module-caching trap:** mocking the concrete submodule
+      path (`@/infrastructure/persistence/DeckStorageService`) silently did nothing — the real
+      constructor still ran and threw a real `indexedDB is not defined` error, because
+      `src/test/setup.ts` loads `useGameInstance` globally, which imports `DeckPersistenceService`
+      from the same `@/infrastructure/persistence` barrel, pre-caching the real
+      `DeckStorageService` module before this file's `vi.mock` could apply to it. Confirmed via a
+      throwaway call-count probe that the mocked reference in the test file and the one
+      `DeckImportModal.tsx` actually used were different module instances. Fixed by mocking the
+      barrel path itself (`vi.mock('@/infrastructure/persistence', async (importOriginal) => ...)`
+      with `importOriginal` spreading in every other real export) instead of the concrete
+      submodule — same fix applied to `@/features/deck-manager`/`MtgTextListDeckImporter` for
+      consistency. **Lesson for future barrel-adjacent mocks:** if a class lives behind a barrel
+      that something in `setup.ts`'s import graph also touches, mock the barrel path the
+      component itself imports from, not the concrete file.
 
 ## Phase 3 — CD gates
 - [ ] `vitest.config.ts` coverage.thresholds scoped to critical modules (>=80%)
@@ -198,3 +220,9 @@ Branch: `feature/manabase-design-system` (unified trunk after Phase 0 merge).
   not fix a keyboard-only demo-toggle ordering bug in `DisplaySection.tsx` (see checklist entry
   for detail) — out of scope for this pass. tsc clean, full suite 358/358 green, stable across
   3 consecutive runs. Next: `DeckImportModal.test.tsx` import-flow expansion (last Phase 2 item).
+- 2026-07-03: `DeckImportModal.test.tsx` import-flow expansion done (8 → 18 tests). Hit and
+  fixed a module-caching trap where mocking the concrete `DeckStorageService`/
+  `MtgTextListDeckImporter` submodule paths silently didn't apply — see checklist entry for the
+  root cause and fix (mock the barrel path with `importOriginal`, not the concrete file). tsc
+  clean, full suite 367/367 green, stable across 3 consecutive runs. **Phase 2 complete.**
+  Starting Phase 3 (CD gates and coverage visibility) next.
