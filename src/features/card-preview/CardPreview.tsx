@@ -12,6 +12,7 @@ import { DEFAULT_CARD_BACK } from '@/constants';
 import type { Card } from '@/features/player/types';
 import { useCardPreviewStore } from './cardPreviewStore';
 import { useSettingsStore } from '@/app/stores/settingsStore';
+import { shouldShowOnLeft } from './cardPreviewLogic';
 
 const BASE_WIDTH = 300;
 const BASE_HEIGHT = 419; // Magic card aspect ratio (~1.4:1)
@@ -44,8 +45,7 @@ function CardPreviewPopup() {
   const width = BASE_WIDTH * zoom;
   const height = BASE_HEIGHT * zoom;
 
-  // Flip the preview to the left side when the cursor sits where the card would cover it.
-  const showOnLeft = mouseX > window.innerWidth - width * 1.1 && mouseY < height * 1.1;
+  const showOnLeft = shouldShowOnLeft(mouseX, mouseY, width, height, window.innerWidth);
 
   const popupStyle: React.CSSProperties = {
     position: 'fixed',

@@ -20,12 +20,28 @@ Branch: `feature/manabase-design-system` (unified trunk after Phase 0 merge).
       `localStorage.clear()` since settingsStore uses `persist`. Committed `0039f80`.
 
 ## Existing-test audit
-- [ ] Keep-as-is set confirmed green: `PlayerGameActions.test.ts`, `actionLog.test.ts`,
+- [x] Keep-as-is set confirmed green: `PlayerGameActions.test.ts`, `actionLog.test.ts`,
       `nodeAttachment.test.ts`, `usePlaymatNodes.test.ts`, `opponentPlayerMutations.test.ts`,
       `diceActions.test.ts`, `DeckListParser.test.ts`, `MtgTextListDeckImporter.test.ts`,
       `cardPreviewStore.test.ts`, ported node tests
-- [ ] Fix flaky shuffle assertions: `Player.test.ts`, `Deck.test.ts` (deterministic multiset check)
-- [ ] Fix `CardPreview.test.tsx` (drop querySelector/style reads, use role/text)
+- [x] Fix flaky shuffle assertions: `Player.test.ts`, `Deck.test.ts`/`CardPile.test.ts`
+      (deterministic multiset + seeded-RNG-order check). Also discovered `Deck`'s runtime
+      methods (shuffle/draw/add/remove) are dead code — only constructor + `getCards()` are
+      used in production (via `Player.ts`/`DeckPersistenceService.ts`); `CardPile` is the real
+      runtime pile class. Trimmed `Deck.test.ts` to constructor+getCards (~60 → 14 tests) and
+      wrote a new `CardPile.test.ts` (19 tests) covering the actual mutation surface. Added
+      `src/test/seededRandom.ts` (mulberry32) so shuffle tests assert "order changed"
+      deterministically instead of probabilistically — a constant-0 mock was tried first and
+      degenerated Fisher-Yates into a plain reversal for sorted input, so seeded was necessary,
+      not just nice-to-have.
+- [x] Fix `CardPreview.test.tsx` (drop querySelector/style reads, use role/text). Extracted the
+      inline left/right placement math into `cardPreviewLogic.ts` (`shouldShowOnLeft`) with its
+      own `cardPreviewLogic.test.ts` (4 tests, pure logic, no render). Simplified
+      `CardPreview.test.tsx`'s "left/right placement" describe block to a single wiring-seam test
+      (renders correctly regardless of cursor position) now that the geometry is covered at the
+      logic tier. Also removed the redundant manual `useCardPreviewStore.setState(...)` +
+      `localStorage.clear()` in its `beforeEach` — both are already handled by the central
+      `afterEach` in `src/test/setup.ts`.
 - [ ] Rewrite `DeckImportModal.test.tsx` on the harness
 - [ ] Confirm no tests written around orphaned `CardCounter` path
 
@@ -72,3 +88,14 @@ Branch: `feature/manabase-design-system` (unified trunk after Phase 0 merge).
 - 2026-07-03: Audited all Zustand stores repo-wide, added 6 missing resets + localStorage.clear()
   to `src/test/setup.ts`. tsc clean, suite still 285/285 green. Committed `0039f80`.
   **Phase 0 complete.** Starting existing-test audit next.
+- 2026-07-03: Deck/CardPile audit. Confirmed `Deck`'s non-constructor methods are dead code
+  (superseded at runtime by `CardPile`). Trimmed `Deck.test.ts` (60→14 tests), added
+  `CardPile.test.ts` (19 tests), added `seededRandom.ts` and fixed 4 probabilistic shuffle
+  assertions in `Player.test.ts` plus 1 in `CardPile.test.ts`. Full suite: 258/258 passing
+  (285 − 46 deleted dead-code tests + 19 new CardPile tests), stable across repeated runs.
+  Next: `CardPreview.test.tsx` (extract placement logic, drop querySelector/style reads).
+- 2026-07-03: `CardPreview.test.tsx` fix done. New `cardPreviewLogic.ts`/`.test.ts` (pure
+  `shouldShowOnLeft`), redundant per-test store resets removed. tsc clean, full suite
+  261/261 green (258 + 4 new logic tests − 1 folded placement test = net +3).
+  Next: decide DeckImportModal.test.tsx scope (light expansion now vs. full defer to Phase 2),
+  then confirm no tests exist around the orphaned CardCounter path, then close out Task #2.
