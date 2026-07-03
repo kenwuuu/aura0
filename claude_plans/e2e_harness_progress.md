@@ -1,6 +1,6 @@
 # E2E Harness for Autonomous Verification — Progress
 
-## Status: Phase 1 done (2026-07-03), Phase 2 next
+## Status: Phase 2 done (2026-07-03), Phase 3 next
 
 Branch: `e2e-harness-autonomy`. Full plan: `/Users/kenwu/.claude/plans/idempotent-dancing-panda.md`
 (also mirrored here as context below). This is item 4 of
@@ -21,7 +21,7 @@ round. Rebuilding the harness fresh on master, mining (not merging) the stale
 - [x] **Phase 1** — Harness layer (`tests/e2e/harness/`): fixtures rewrite,
       playwright.config cleanup, selectors, page objects/domain helpers,
       `mouseDrag` primitive, semantic waits, domain assertions, scenario library.
-- [ ] **Phase 2** — Smoke suite (`@smoke`, ~5 specs) green locally.
+- [x] **Phase 2** — Smoke suite (`@smoke`, ~5 specs) green locally.
 - [ ] **Phase 3** — Rehab broader behavior suite onto the harness (advisory tier).
 - [ ] **Phase 4** — CI wiring: `test:e2e`/`test:e2e:smoke` scripts,
       `e2e-smoke` (blocking) + `e2e-full` (advisory) jobs in `test.yml`.
@@ -74,3 +74,18 @@ round. Rebuilding the harness fresh on master, mining (not merging) the stale
   transport is pinned. Bug lives in product code (`FeatureFlags.ts` /
   infra) — out of scope to fix this round; harness-side block is the correct
   E2E-side mitigation regardless of whether/when that's fixed upstream.
+- 2026-07-03: Phase 2 complete. Five `@smoke`-tagged specs under
+  `tests/e2e/smoke/`: `load_and_import` (fresh-session opening hand +
+  deck-import flow), `draw_and_play` (deck draw + play-to-battlefield),
+  `move_zone` (battlefield card -> pile), `pile_viewer` (open deck viewer,
+  wait on `data-rendering-complete`, all 92 cards render), `two_player_sync`
+  (real WebRTC, second browser context, Alice's play appears on Bob's board).
+  Added `test:e2e`/`test:e2e:smoke` npm scripts (pulled forward from Phase 4
+  since Phase 2's own verification step needs them). All 5 green locally,
+  3 consecutive full-suite runs with no flake, one `--headed` run to eyeball
+  the drags. Two harness bugs found and fixed via dogfooding: `data-pile-count`
+  lives on the pile's nested `.pile-count` child, not the `[data-testid="pile"]`
+  root (added a `pileCount()` page object) — `expectPileCount` and
+  `moveBetweenZones` were reading the wrong node. `drawCard` needed to scope
+  its "Draw" button lookup to the deck pile node — the game-actions toolbar
+  has an unrelated same-named button, making an unscoped role lookup ambiguous.
