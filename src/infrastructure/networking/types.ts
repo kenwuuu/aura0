@@ -5,32 +5,25 @@
  */
 
 /**
- * Configuration for WebRTC provider
+ * Configuration shared by every Yjs network transport
  *
  * @property roomName - Unique identifier for the collaboration session (from URL param)
- * @property signalingServers - WebSocket URLs for peer discovery (defaults to Railway deployment)
- * @property iceServers - STUN/TURN servers for NAT traversal (defaults to Google STUN)
  * @property peerId - Optional persistent peer ID to maintain identity across reloads
  */
-export interface WebRTCConfig {
+export interface NetworkConfig {
   roomName: string;
-  signalingServers?: string[];
-  iceServers?: RTCIceServer[];
-  peerId?: string; // Optional persistent peer ID
-}
-
-export interface WebsocketConfig {
-  roomName: string;
-  peerId?: string; // Optional persistent peer ID
+  peerId?: string;
 }
 
 /**
- * Real-time connection status
+ * Configuration for WebRTC provider
  *
- * @property isConnected - True if at least one peer is connected
- * @property peersCount - Number of active peer connections
+ * @property signalingServers - WebSocket URLs for peer discovery (defaults to Railway deployment)
+ * @property iceServers - STUN/TURN servers for NAT traversal (defaults to Google STUN)
  */
-export interface ConnectionStatus {
-  isConnected: boolean;
-  peersCount: number;
+export interface WebRTCConfig extends NetworkConfig {
+  signalingServers?: string[];
+  iceServers?: RTCIceServer[];
 }
+
+export type WebsocketConfig = NetworkConfig;

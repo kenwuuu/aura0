@@ -46,28 +46,9 @@
 import * as Y from 'yjs';
 import { WebrtcProvider } from 'y-webrtc';
 import { IndexeddbPersistence } from 'y-indexeddb';
-import { WebRTCConfig, ConnectionStatus } from './types';
+import { WebRTCConfig } from './types';
 import { restoreAwarenessState, setupAwarenessStatePersistence, AwarenessState } from './persistence';
 import {YjsNetworkProvider} from "@/infrastructure/networking/YjsNetworkFactory";
-
-
-async function fetchCloudFlareIceServers(): Promise<RTCIceServer[]> {
-  try {
-    const response = await fetch('https://cloudflare-turn-config-fetcher.kenqiwu-1b0.workers.dev/ice-servers');
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`);
-    }
-    const data = await response.json();
-    console.log('CloudFlare ICE servers fetched successfully');
-    return data['iceServers'];
-  } catch (error) {
-    console.warn('Failed to fetch CloudFlare ICE servers, using fallback STUN servers:', error);
-    return [
-      { urls: 'stun:stun.l.google.com:19302' },
-      { urls: 'stun:global.stun.twilio.com:3478' }
-    ];
-  }
-}
 
 /**
  * Main WebRTC provider class that manages peer-to-peer connections
@@ -78,7 +59,6 @@ export class WebRTCProvider implements YjsNetworkProvider{
   private provider: WebrtcProvider;
   private persistence: IndexeddbPersistence;
   private config: WebRTCConfig;
-  private statusCallbacks: Set<(status: ConnectionStatus) => void> = new Set();
   private cleanupAwarenessPersistence?: () => void;
 
   status(): string {
@@ -136,14 +116,6 @@ export class WebRTCProvider implements YjsNetworkProvider{
   }
 
   private setupEventListeners(): void {
-    this.provider.on('peers', (event: { added: string[]; removed: string[]; webrtcPeers: string[] }) => {
-      const status: ConnectionStatus = {
-        isConnected: event.webrtcPeers.length > 0,
-        peersCount: event.webrtcPeers.length
-      };
-      this.notifyStatusChange(status);
-    });
-
     this.provider.on('synced', (event: { synced: boolean }) => {
       console.log('Yjs synced:', event.synced);
     });
@@ -173,30 +145,6 @@ export class WebRTCProvider implements YjsNetworkProvider{
     });
   }
 
-  public onStatusChange(callback: (status: ConnectionStatus) => void): void {
-    this.statusCallbacks.add(callback);
-  }
-
-  public offStatusChange(callback: (status: ConnectionStatus) => void): void {
-    this.statusCallbacks.delete(callback);
-  }
-
-  private notifyStatusChange(status: ConnectionStatus): void {
-    this.statusCallbacks.forEach(callback => callback(status));
-  }
-
-  public getConnectionStatus(): ConnectionStatus {
-    const peersCount = this.provider.room?.webrtcConns.size ?? 0;
-    return {
-      isConnected: peersCount > 0,
-      peersCount
-    };
-  }
-
-  public getRoomName(): string {
-    return this.config.roomName;
-  }
-
   public getAwareness() {
     return this.provider.awareness;
   }
@@ -209,6 +157,5 @@ export class WebRTCProvider implements YjsNetworkProvider{
 
     this.provider.destroy();
     this.persistence.destroy();
-    this.statusCallbacks.clear();
   }
 }

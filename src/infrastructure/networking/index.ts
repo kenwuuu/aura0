@@ -1,5 +1,5 @@
 export { yjsNetworkFactory } from './YjsNetworkFactory';
-export type { WebRTCConfig, ConnectionStatus } from './types';
+export type { WebRTCConfig } from './types';
 export {
   getOrCreatePlayerId,
   getOrCreatePeerId,

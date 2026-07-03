@@ -28,7 +28,7 @@
 import * as Y from 'yjs';
 import { WebsocketProvider as WsProvider } from "y-websocket";
 import { IndexeddbPersistence } from 'y-indexeddb';
-import { WebRTCConfig } from './types';
+import { WebsocketConfig } from './types';
 import { restoreAwarenessState, setupAwarenessStatePersistence, AwarenessState } from './persistence';
 import {YjsNetworkProvider} from "@/infrastructure/networking/YjsNetworkFactory";
 
@@ -40,7 +40,7 @@ export class WebsocketProvider implements YjsNetworkProvider{
   private yDoc: Y.Doc;
   private provider: WsProvider;
   private persistence: IndexeddbPersistence;
-  private config: WebRTCConfig;
+  private config: WebsocketConfig;
   private cleanupAwarenessPersistence?: () => void;
 
   status(): string {
@@ -58,7 +58,7 @@ export class WebsocketProvider implements YjsNetworkProvider{
     });
   }
 
-  constructor(yDoc: Y.Doc, config: WebRTCConfig) {
+  constructor(yDoc: Y.Doc, config: WebsocketConfig) {
     this.yDoc = yDoc;
     this.config = {
       roomName: config.roomName,

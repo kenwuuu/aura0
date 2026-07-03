@@ -13,6 +13,7 @@ import { CardLookupService, TokenService } from '@/infrastructure/cards';
 import { yjsNetworkFactory } from '@/infrastructure/networking';
 import { YjsNetworkProvider } from '@/infrastructure/networking/YjsNetworkFactory';
 import { getOrCreatePlayerId, getOrCreatePeerId } from '@/infrastructure/networking';
+import { resolveNetworkTransport } from '@/infrastructure/analytics/FeatureFlags';
 import { DeckPersistenceService, DeckStorageService } from '@/infrastructure/persistence';
 import { useGameInstance } from '@/app/stores/gameInstanceStore';
 import { usePlayerStore } from '@/app/stores/playerStore';
@@ -51,10 +52,11 @@ export async function bootstrapGame(): Promise<GameContext> {
 
   // ── 2. Networking ──────────────────────────────────────────────────────────
   const peerId = getOrCreatePeerId();
+  const transport = await resolveNetworkTransport();
   const yjsNetworkProvider = await yjsNetworkFactory.create(yDoc, {
     roomName: roomManager.getRoomName(),
     peerId,
-  });
+  }, transport);
 
   // ── 3. Player ──────────────────────────────────────────────────────────────
   // Wait for the local IndexedDB copy to load before constructing Player, which

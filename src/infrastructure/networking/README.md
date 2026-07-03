@@ -1,15 +1,24 @@
-# WebRTC Module
+# Networking Module
 
-Real-time peer-to-peer synchronization for Aura using Yjs and WebRTC.
+Real-time synchronization for Aura using Yjs, over either WebRTC or WebSocket.
 
 ## Overview
 
 This module handles all networking and persistence for the application:
 
-- **Peer-to-peer connections** via WebRTC (no game state server needed)
+- **Peer-to-peer connections** via WebRTC, or a central relay via WebSocket (no game state server either way)
 - **CRDT-based state sync** using Yjs for conflict-free merging
 - **Local persistence** via IndexedDB for instant restoration on reload
 - **Session persistence** to maintain player identity across page reloads
+
+## Transport selection
+
+`yjsNetworkFactory.create(yDoc, config, transport)` builds a `WebRTCProvider` or
+`WebsocketProvider` depending on `transport` (`'webrtc'` | `'websocket'`, defaults to `'webrtc'`).
+`bootstrap.ts` decides which one to pass by resolving the `network-transport-websocket` PostHog
+flag via `resolveNetworkTransport()` in `infrastructure/analytics/FeatureFlags.ts` before
+constructing the provider. Both providers implement the same `YjsNetworkProvider` interface, so
+nothing downstream (`Player`, `App.tsx`, hotkeys, etc.) needs to know which transport is active.
 
 ## Architecture
 
@@ -65,8 +74,8 @@ const provider = new WebRTCProvider(yDoc, {
 });
 
 // Listen for connection status changes
-provider.onStatusChange((status) => {
-  console.log(`Connected to ${status.peersCount} peers`);
+provider.on('status', (event) => {
+  console.log(`Status: ${event.status}`);
 });
 
 // Clean up on exit
@@ -103,8 +112,9 @@ clearPersistedSession();
 TypeScript interfaces for WebRTC configuration and connection status.
 
 **Interfaces:**
+- `NetworkConfig` - Fields shared by every transport (`roomName`, `peerId`)
 - `WebRTCConfig` - Configuration for WebRTCProvider constructor
-- `ConnectionStatus` - Current peer connection state
+- `WebsocketConfig` - Configuration for WebsocketProvider constructor
 - `AwarenessState` - User presence metadata (extensible)
 
 ## How WebRTC Works in Aura

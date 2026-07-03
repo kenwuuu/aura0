@@ -4,6 +4,8 @@ import { WebRTCConfig } from './types';
 import {WebRTCProvider} from "@/infrastructure/networking/WebRTCProvider";
 import {WebsocketProvider} from "@/infrastructure/networking/WebsocketProvider";
 
+export type NetworkTransport = 'webrtc' | 'websocket';
+
 export interface YjsNetworkProvider{
   status(): string;
   on(event: 'status', callback: (event: { status: string }) => void): void;
@@ -15,6 +17,7 @@ export interface YjsNetworkProvider{
    */
   whenSynced(): Promise<void>;
   getAwareness(): Awareness;
+  destroy(): void;
 }
 
 /**
@@ -44,24 +47,18 @@ async function fetchCloudFlareIceServers(): Promise<RTCIceServer[]> {
  * and document persistence
  */
 export class yjsNetworkFactory {
-  static async create(yDoc: Y.Doc, config: WebRTCConfig): Promise<YjsNetworkProvider> {
+  static async create(yDoc: Y.Doc, config: WebRTCConfig, transport: NetworkTransport = 'webrtc'): Promise<YjsNetworkProvider> {
+    if (transport === 'websocket') {
+      console.log('Using WebSocket transport');
+      return new WebsocketProvider(yDoc, config);
+    }
+
     const iceServers = config.iceServers ?? await fetchCloudFlareIceServers();
 
-    const roomName = config.roomName;
-    const lastChar = roomName.charAt(roomName.length - 1);
-    const firstEighteenLetters = [
-      'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i',
-      'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r'
-    ];
-    // if (firstEighteenLetters.includes(lastChar)) {
-    //   console.log('Using Websockets')
-    //   return new WebsocketProvider(yDoc, config);
-    // } else {
-    console.log('Using WebRTC')
+    console.log('Using WebRTC transport');
     return new WebRTCProvider(yDoc, {
       ...config,
       iceServers
     });
-    // }
   }
 }
