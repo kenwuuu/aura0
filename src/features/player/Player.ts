@@ -23,7 +23,7 @@ import { colorFromPlayerId } from './playerColor';
 import {PileType} from '@/features/game-dock/components';
 import { CardPile } from './CardPile';
 import {SavedDeck} from "@/features/player/types";
-import {trackHealthChange} from "@/infrastructure/analytics/PosthogFunctions"
+import {trackHealthChange, trackPlayerCounterChange} from "@/infrastructure/analytics/PosthogFunctions"
 import { logAction, cardLogName } from '@/features/action-log/actionLog';
 
 export class Player {
@@ -45,6 +45,9 @@ export class Player {
 
   // posthog
   private healthEventTimer: ReturnType<typeof setTimeout> | null = null;
+  private healthBeforeBurst: number | null = null;
+  private counterEventTimers: Map<string, ReturnType<typeof setTimeout>> = new Map();
+  private counterBeforeBurst: Map<string, number> = new Map();
 
   constructor(
     playerId: string,
@@ -343,6 +346,9 @@ export class Player {
     const currentHealth: number = this.yPlayerState.get(YSTATE_HEALTH) ?? this.config.initialHealth;
     this.yPlayerState.set(YSTATE_HEALTH, currentHealth + delta);
 
+    // Capture the health at the start of the burst, not just the immediately-preceding call.
+    if (this.healthBeforeBurst === null) this.healthBeforeBurst = currentHealth;
+
     if (this.healthEventTimer) clearTimeout(this.healthEventTimer);
     this.healthEventTimer = setTimeout(() => {
       const newHealth = this.yPlayerState.get(YSTATE_HEALTH) as number;
@@ -351,10 +357,11 @@ export class Player {
       logAction(this.yDoc, {
         actorId: this.playerId,
         type: 'health',
-        text: `life total is now ${newHealth}`,
+        text: `changed their life from ${this.healthBeforeBurst} to ${newHealth}`,
       });
       this.healthEventTimer = null;
-    }, 1000);
+      this.healthBeforeBurst = null;
+    }, 500);
   }
 
   public shuffleDeck(): void {
@@ -525,18 +532,51 @@ export class Player {
 
   public modifyCustomCounter(counterId: string, delta: number): void {
     const counters = this.yPlayerState.get(YSTATE_CUSTOM_COUNTERS) ?? [];
-    const updatedCounters = counters.map((counter: CustomCounter) =>
-      counter.id === counterId
-        ? { ...counter, value: counter.value + delta }
-        : counter
+    const counter = counters.find((c: CustomCounter) => c.id === counterId);
+    if (!counter) return;
+
+    const updatedCounters = counters.map((c: CustomCounter) =>
+      c.id === counterId
+        ? { ...c, value: c.value + delta }
+        : c
     );
     this.yPlayerState.set(YSTATE_CUSTOM_COUNTERS, updatedCounters);
+
+    // Capture the value at the start of the burst, not just the immediately-preceding call.
+    if (!this.counterBeforeBurst.has(counterId)) {
+      this.counterBeforeBurst.set(counterId, counter.value);
+    }
+
+    const existingTimer = this.counterEventTimers.get(counterId);
+    if (existingTimer) clearTimeout(existingTimer);
+
+    // Debounced log: rapid +/- presses collapse into a single entry.
+    this.counterEventTimers.set(counterId, setTimeout(() => {
+      const latest = (this.yPlayerState.get(YSTATE_CUSTOM_COUNTERS) ?? [])
+        .find((c: CustomCounter) => c.id === counterId);
+      const previousValue = this.counterBeforeBurst.get(counterId);
+      if (latest && previousValue !== undefined) {
+        trackPlayerCounterChange(latest.title, latest.value);
+        logAction(this.yDoc, {
+          actorId: this.playerId,
+          type: 'counter',
+          text: `changed ${latest.title} from ${previousValue} to ${latest.value}`,
+        });
+      }
+      this.counterEventTimers.delete(counterId);
+      this.counterBeforeBurst.delete(counterId);
+    }, 500));
   }
 
   public removeCustomCounter(counterId: string): void {
     const counters = this.yPlayerState.get(YSTATE_CUSTOM_COUNTERS) ?? [];
     const updatedCounters = counters.filter((counter: CustomCounter) => counter.id !== counterId);
     this.yPlayerState.set(YSTATE_CUSTOM_COUNTERS, updatedCounters);
+
+    const pendingTimer = this.counterEventTimers.get(counterId);
+    if (pendingTimer) clearTimeout(pendingTimer);
+    this.counterEventTimers.delete(counterId);
+    this.counterBeforeBurst.delete(counterId);
   }
 
   public reorderHand(newOrder: Card[]): void {

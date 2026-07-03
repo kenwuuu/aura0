@@ -9,6 +9,15 @@ export function trackHealthChange(currentHealth: any): void {
   });
 }
 
+// CUSTOM COUNTERS
+
+export function trackPlayerCounterChange(counterTitle: string, currentValue: number): void {
+  posthog.capture('player_counter_changed', {
+    counter_title: counterTitle,
+    counter_value: currentValue,
+  });
+}
+
 // DECK IMPORTER
 
 export type ImportFailureReason =

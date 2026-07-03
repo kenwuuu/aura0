@@ -17,6 +17,7 @@ export type ActionLogType =
   | 'delete'
   | 'spawn_token'
   | 'health'
+  | 'counter'
   | 'shuffle'
   | 'mulligan'
   | 'reset'
