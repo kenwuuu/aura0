@@ -8,10 +8,12 @@ import tailwindcss from '@tailwindcss/vite'
 export default defineConfig({
   plugins: [
     react(),
-    sentryVitePlugin({
-      org: "ken-zw",
-      project: "javascript-react"
-    }),
+    // Only upload source maps when a real Sentry auth token is configured —
+    // otherwise CI/agent builds (which run `vite build` just to verify it
+    // compiles) would spam the production Sentry project with WIP releases.
+    ...(process.env.SENTRY_AUTH_TOKEN
+      ? [sentryVitePlugin({ org: "ken-zw", project: "javascript-react" })]
+      : []),
     tailwindcss(),
   ],
   server: {
