@@ -121,6 +121,42 @@ Rules for nested dialogs:
 
 See `deck-manager/DeckImportModal.test.tsx` for the worked example.
 
+### 9. `vi.mock` a module by the path your component actually imports, not the concrete file
+
+A `vi.mock('concrete/submodule/path')` can silently fail to apply if a **globally-loaded
+`setupFiles` entry** (or anything it transitively imports) already imported and cached that module
+via a **barrel** re-export before your test file's own hoisted `vi.mock` calls register. The
+symptom is confusing: no error, the mock is just never used — a real constructor/function runs
+instead, and you'll see its real side effects (e.g. a real `ReferenceError: indexedDB is not
+defined` from deep inside a service you thought you'd mocked).
+
+Fix: mock the **barrel path** the consuming component actually imports from (e.g. `@/features/
+deck-manager`, not `@/features/deck-manager/MtgTextListDeckImporter`), and preserve the rest of
+the barrel's real exports with `importOriginal`:
+
+```ts
+vi.mock('@/features/deck-manager', async (importOriginal) => ({
+  ...(await importOriginal()),
+  MtgTextListDeckImporter: vi.fn(),
+}));
+```
+
+If you mock a class this way and production code calls it with `new`, use a regular `function`
+expression in `mockImplementation`, not an arrow function — arrow functions have no `[[Construct]]`
+and throw `"... is not a constructor"` the moment production code instantiates them.
+
+### 10. Radix `Slider`: `aria-label` must land on the `Thumb`, not the `Root`
+
+`role="slider"` lives on Radix's `Thumb` subcomponent, not `Root`. An `aria-label` passed to
+`<Slider aria-label="..." />` and forwarded only to `Root` (the common shape for a thin wrapper) is
+invisible to accessible-name computation — `getByRole('slider', { name: '...' })` won't find it,
+and accessibility tooling won't see a name either. Thread `aria-label` explicitly onto
+`SliderPrimitive.Thumb` in the shared wrapper (`src/shared/ui/slider.tsx`) if you add a new slider
+or a new `aria-label` prop.
+
+See `deck-manager/DeckImportModal.test.tsx` for the module-mocking pattern, and
+`settings/sections/DisplaySection.test.tsx` for a slider tested by accessible name.
+
 ---
 
 ## The harness (`src/test/`)

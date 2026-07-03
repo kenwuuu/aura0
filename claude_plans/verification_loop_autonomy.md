@@ -1,20 +1,42 @@
 # Closing the Verification Loop for Autonomous Coding Agents
 
-## Status: items 1 and 3 done (2026-07-03); items 2, 4, 5, 6, 7 not started — restart here
+## Status: items 1, 2, 3, 5, 6, 7 done (2026-07-03); only item 4 (E2E) remains, by design
 
 Done so far:
 - **Item 1**: `vite.config.ts` now only includes `sentryVitePlugin` when
   `SENTRY_AUTH_TOKEN` is set in the environment. Verified `npm run build`
   with the token unset still builds cleanly (exit 0) with no upload attempt,
   and with the token present the upload still fires as before.
+- **Item 2**: deleted the untracked `.github/workflows/playwright.yml`. It
+  wasn't present in the `worktree-e2e-tests` worktree either, so nothing was
+  lost — it was a stray landmine, not in-progress work.
 - **Item 3**: added a `typecheck` script (`tsc --noEmit`) to `package.json`
   and wired it into `.github/workflows/test.yml` as the first step, before
   `test:run`/`test:coverage`. Verified `npm run typecheck` passes clean.
+- **Item 5**: added `src/infrastructure/cards/CardLookupService.test.ts` (9
+  tests) covering the Aura→Scryfall fallback policy — the highest-risk pure
+  logic in `infrastructure/`, with the two `CardApiClient` dependencies
+  injected as fakes rather than module-mocked. Added a scoped 90%
+  lines/functions threshold on that one file in `vitest.config.ts`, and
+  documented in a comment why `persistence/**` and `networking/**` stay
+  unthresholded (I/O boundary, low unit-test value, covered by E2E smoke
+  per the original plan's philosophy — not a gap, a decision).
+- **Item 6**: added rules 9 and 10 to `tests/testing-react.md` — the vitest
+  barrel/`setupFiles` module-caching trap, and Radix `Slider`'s
+  `role="slider"` living on `Thumb` not `Root`.
+- **Item 7**: added `"verify": "npm run typecheck && npm run test:coverage
+  && npm run build"` to `package.json`. Verified end-to-end with
+  `SENTRY_AUTH_TOKEN` unset (simulating a bare CI/agent environment): exit 0,
+  no Sentry upload attempted.
 
-Still open: item 2 (delete/hold the untracked `playwright.yml`), item 4 (E2E
-rehab — the big one), item 5 (coverage threshold judgment call on
-`infrastructure/**`), item 6 (document the two test gotchas), item 7 (a
-combined `npm run verify` script).
+All of the above verified together: 385/385 tests green, `tsc --noEmit`
+clean, coverage thresholds pass, `npm run verify` exits 0 from a clean
+environment.
+
+**Only item 4 remains, and it remains deliberately** — E2E rehabilitation is
+a real, separate project (fixing `fixtures.ts`'s dock-readiness gate,
+reselecting locators, regenerating stale Playwright auth state) owned by the
+`worktree-e2e-tests` worktree, not a quick fix like the other six items.
 
 ## Context
 

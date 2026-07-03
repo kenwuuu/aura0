@@ -25,11 +25,18 @@ export default defineConfig({
       ],
       // Scoped to the modules with real Tier-1/Tier-2 test investment, not a
       // gamed global number (see claude_plans/test_foundation_progress.md).
+      //
+      // src/infrastructure/{persistence,networking}/** are deliberately NOT
+      // held to a threshold: they're I/O-boundary code (IndexedDB, WebRTC/
+      // WebSocket transport) with low unit-test value per the original
+      // plan's philosophy — covered by E2E smoke instead, not vitest. See
+      // claude_plans/verification_loop_autonomy.md item 5.
       thresholds: {
         'src/features/player/**': { lines: 80, functions: 80 },
         'src/features/battlefield/**': { lines: 80, functions: 80 },
         'src/features/action-log/**': { lines: 80, functions: 80 },
         'src/features/game-actions/**': { lines: 80, functions: 80 },
+        'src/infrastructure/cards/CardLookupService.ts': { lines: 90, functions: 90 },
       },
     },
   },
