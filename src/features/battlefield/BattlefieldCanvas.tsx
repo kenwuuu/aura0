@@ -9,6 +9,7 @@ import {
   ViewportPortal,
   useReactFlow,
   type OnNodeDrag,
+  type NodeMouseHandler,
 } from '@xyflow/react';
 import { useDroppable } from '@dnd-kit/core';
 import '@xyflow/react/dist/style.css';
@@ -25,6 +26,7 @@ import { usePeerCursors } from './usePeerCursors';
 import { PeerCursor } from './nodes/PeerCursor';
 import { AWARENESS_CURSOR } from './awareness';
 import { usePlaymatNodes } from './usePlaymatNodes';
+import { applyHealthHoverElevation } from './healthNodeHover';
 import { WhiteboardCard } from './types';
 import { KeywordToken } from '@/features/keyword-tokens/types';
 import { attachedChildren, findParent, nodeCenter, nodeContainsPoint } from './nodeAttachment';
@@ -454,8 +456,26 @@ function BattlefieldCanvasInner({ yDoc, localPlayerId }: BattlefieldCanvasProps)
     }
   }, [screenToFlowPosition, yCards, yTokens, localPlayerId]);
 
+  // A hovered health widget is raised above every card/token so a player can
+  // always see and interact with it, even when cards are stacked on top.
+  // Leaving hover restores it to whatever zIndex usePlaymatNodes assigned it.
+  const [hoveredHealthNodeId, setHoveredHealthNodeId] = useState<string | null>(null);
+
+  const onNodeMouseEnter: NodeMouseHandler = useCallback((_, node) => {
+    if (node.type === 'health') setHoveredHealthNodeId(node.id);
+  }, []);
+
+  const onNodeMouseLeave: NodeMouseHandler = useCallback((_, node) => {
+    if (node.type === 'health') {
+      setHoveredHealthNodeId((current) => (current === node.id ? null : current));
+    }
+  }, []);
+
   // Playmat nodes first (lowest z-order by zIndex, not array position)
-  const allNodes: Node[] = [...playmatNodes, ...cardTokenNodes];
+  const allNodes: Node[] = applyHealthHoverElevation(
+    [...playmatNodes, ...cardTokenNodes],
+    hoveredHealthNodeId,
+  );
 
   return (
     <div ref={setBattlefieldRef} style={{ width: '100%', height: '100%' }} onPointerMove={onPointerMove} onPointerLeave={onPointerLeave}>
@@ -472,7 +492,9 @@ function BattlefieldCanvasInner({ yDoc, localPlayerId }: BattlefieldCanvasProps)
         nodeTypes={nodeTypes}
         onDragOver={onDragOver}
         onDrop={onDrop}
-        onNodeMouseEnter={() => {}} // keeps pointer-events:all on non-draggable/selectable nodes (enemy cards/tokens)
+        // The handler also keeps pointer-events:all on non-draggable/selectable nodes (enemy cards/tokens).
+        onNodeMouseEnter={onNodeMouseEnter}
+        onNodeMouseLeave={onNodeMouseLeave}
         onPaneClick={() => useHotkeyMenuStore.getState().close()}
         onMoveStart={(event) => {
           useHotkeyMenuStore.getState().close();
