@@ -13,6 +13,7 @@ function Slider({
   value,
   min = 0,
   max = 100,
+  'aria-label': ariaLabel,
   ...props
 }: React.ComponentProps<typeof SliderPrimitive.Root>) {
   const _values = React.useMemo(
@@ -51,6 +52,9 @@ function Slider({
         <SliderPrimitive.Thumb
           data-slot="slider-thumb"
           key={i}
+          // role="slider" lives on the Thumb, not the Root — an aria-label on
+          // the Root wouldn't be picked up by the accessible-name computation.
+          aria-label={ariaLabel}
           className="border-[#3b82f6] bg-white ring-offset-background focus-visible:ring-[#3b82f6]/50 block size-4 shrink-0 rounded-full border-2 shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50"
         />
       ))}

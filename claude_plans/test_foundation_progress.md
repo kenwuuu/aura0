@@ -115,7 +115,22 @@ Branch: `feature/manabase-design-system` (unified trunk after Phase 0 merge).
       entries are logged to the same `Y.Doc` (had to wrap the direct `logAction` call in
       `act(...)` — calling it outside `userEvent`, which auto-wraps, left the Yjs-observer-driven
       `setState` outside React's act boundary), and collapse/re-expand on header click.
-- [ ] `SettingsModal` display section
+- [x] `DisplaySection.test.tsx` (the `SettingsModal` display section) — reflects current
+      handZoom/previewZoom via `aria-valuenow`, arrow-key adjusts each through the real setter,
+      checkbox toggles `snapToGridEnabled`. Added `aria-label` to the Radix `Slider`'s Thumb
+      (shared/ui/slider.tsx — had to move it off the Root, since role="slider" lives on the
+      Thumb and accessible-name computation doesn't climb to ancestors) and to the Checkbox —
+      a real a11y gap these controls had (unlabeled for screen readers), not just a test seam.
+      **Found and deliberately left unfixed:** for keyboard-driven slider steps, Radix fires
+      `onValueCommit` *before* `onValueChange` (confirmed by a throwaway spy probe) — the
+      reverse of the mouse-drag path (`onSlideStart`→`Move`→`End`). `DisplaySection`'s
+      onStart/onEnd demo-toggle (`setDemoHandCards`/`cardPreviewStore.show`) assumes the mouse
+      ordering, so a keyboard zoom adjustment leaves the live demo overlay stuck visible instead
+      of clearing it. This is a real keyboard-accessibility bug, but fixing it means a product
+      decision (debounce? skip the demo entirely for keyboard input?) outside this test-coverage
+      pass's scope — flagging here rather than fixing inline. The demo-toggle behavior itself is
+      pointer-drag/timing territory the plan already routes to E2E, so it's untested here either
+      way.
 - [ ] `DeckImportModal.test.tsx` rewrite (may already be covered by audit item)
 
 ## Phase 3 — CD gates
@@ -178,3 +193,8 @@ Branch: `feature/manabase-design-system` (unified trunk after Phase 0 merge).
   stable across 3 consecutive runs. Next: `ActionLogPanel.test.tsx`.
 - 2026-07-03: `ActionLogPanel.test.tsx` added (5 tests). tsc clean, full suite 354/354 green,
   stable across 3 consecutive runs. Next: `SettingsModal` display section.
+- 2026-07-03: `DisplaySection.test.tsx` added (4 tests). Added `aria-label`s to the shared
+  `Slider`/`Checkbox` usages (real a11y fix, not just a test hook). Found but deliberately did
+  not fix a keyboard-only demo-toggle ordering bug in `DisplaySection.tsx` (see checklist entry
+  for detail) — out of scope for this pass. tsc clean, full suite 358/358 green, stable across
+  3 consecutive runs. Next: `DeckImportModal.test.tsx` import-flow expansion (last Phase 2 item).

@@ -48,6 +48,7 @@ function ZoomSlider({
   onChange,
   onStart,
   onEnd,
+  ariaLabel,
 }: {
   value: number;
   min: number;
@@ -56,10 +57,12 @@ function ZoomSlider({
   onChange: (v: number) => void;
   onStart?: () => void;
   onEnd?: () => void;
+  ariaLabel: string;
 }) {
   return (
     <div className={styles.sliderContainer}>
       <Slider
+        aria-label={ariaLabel}
         min={min}
         max={max}
         step={step}
@@ -88,6 +91,7 @@ export function DisplaySection() {
         description="Scale of cards in your hand at the bottom of the screen."
       >
         <ZoomSlider
+          ariaLabel="Hand card size"
           value={handZoom}
           min={HAND_ZOOM_MIN}
           max={HAND_ZOOM_MAX}
@@ -102,6 +106,7 @@ export function DisplaySection() {
         description="Scale of the card hover-preview that appears when you mouse over a card."
       >
         <ZoomSlider
+          ariaLabel="Card preview size"
           value={previewZoom}
           min={PREVIEW_ZOOM_MIN}
           max={PREVIEW_ZOOM_MAX}
@@ -121,6 +126,7 @@ export function DisplaySection() {
         description="Cards and tokens snap to the grid while dragging. When off, hold Alt during a drag to snap instead."
       >
         <Checkbox
+          aria-label="Always snap to grid"
           checked={snapToGridEnabled}
           onCheckedChange={(checked) => setSnapToGridEnabled(checked === true)}
         />
