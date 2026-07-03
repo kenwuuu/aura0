@@ -4,9 +4,10 @@
  * Uses vanilla-cookieconsent v3 (loaded as `window.CookieConsent` from the CDN in
  * index.html — the same version the rest of the app references) and gates Google
  * Analytics through Consent Mode v2. gtag storage defaults to `denied` in
- * index.html; here we flip it to `granted` only for the categories the visitor
- * accepts, and back to `denied` if they revoke. Translations are reused from
- * /config/cookie_consent_modal/translations/*.json (served from public/).
+ * index.html. Behavior depends on the CONSENT_DIALOG_ENABLED flag:
+ *   - flag OFF (current): no dialog, so we default collection ON — grant analytics.
+ *   - flag ON: run the dialog and grant/deny per the visitor's choice (opt-in).
+ * Translations are reused from /config/cookie_consent_modal/translations/*.json.
  */
 
 type CookieConsentApi = {
@@ -39,9 +40,16 @@ function syncGoogleConsent(cc: CookieConsentApi): void {
 }
 
 export function initConsent(): void {
-  // Feature-flagged off until we're ready to launch consent UI. While off, gtag
-  // stays at its Consent Mode default (denied) — no dialog, no cookies.
-  if (!CONSENT_DIALOG_ENABLED) return;
+  // Feature-flagged off until we're ready to launch the consent UI. While off,
+  // there's no dialog to ask, so we default data collection ON: grant analytics
+  // (the Consent Mode default in index.html is `denied`, so this flip is what
+  // actually turns collection on). Ad storage stays denied — we run no ads.
+  // When the flag is enabled later, this branch is skipped and the dialog gates
+  // consent as a proper opt-in (starting from the denied default).
+  if (!CONSENT_DIALOG_ENABLED) {
+    window.gtag?.('consent', 'update', { analytics_storage: 'granted' });
+    return;
+  }
 
   const cc = window.CookieConsent;
   if (!cc) {

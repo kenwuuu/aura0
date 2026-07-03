@@ -22,7 +22,8 @@ Vite entry fully isolated from the game app.
   gtag consent to `granted` per accepted category via `onConsent`/`onChange`.
   `landing-main.tsx` calls `initConsent()`, which is **feature-flagged off** via
   `CONSENT_DIALOG_ENABLED` in `flags.ts` (env: `VITE_CONSENT_DIALOG_ENABLED`).
-  While off, no dialog renders and gtag stays denied; flip the flag to launch it.
+  While off, no dialog renders and collection **defaults ON** (`initConsent()`
+  grants analytics); flip the flag to launch the dialog as a proper opt-in.
   Note: cookieconsent's `hideFromBots`
   suppresses the banner when `navigator.webdriver` is true — mask it to test the
   modal under Playwright/headless.

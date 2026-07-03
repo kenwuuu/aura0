@@ -17,7 +17,8 @@
     <meta property="og:type" content="website" />
 
     <!-- Google Analytics (gtag) with Consent Mode v2. Storage defaults to DENIED
-         until the visitor accepts analytics via CookieConsent (see consent.ts). -->
+         here; consent.ts then updates it: granted-by-default while the consent
+         dialog is flagged off, or per the visitor's choice once it's enabled. -->
     <script>
       window.dataLayer = window.dataLayer || [];
       function gtag() { dataLayer.push(arguments); }
