@@ -1,10 +1,11 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import * as Y from 'yjs';
 import { Player } from './Player';
 import { Deck } from './Deck';
 import {Card, SavedDeck} from './types';
 import {YDOC_CARDS_ON_BOARD} from "@/constants";
 import { seededRandom } from '@/test/seededRandom';
+import { getActionLog } from '@/features/action-log/actionLog';
 
 describe('Player.reset()', () => {
   let yDoc: Y.Doc;
@@ -904,5 +905,233 @@ describe('Player.onStateChange()', () => {
     player.drawCard();
 
     expect(callCount).toBeGreaterThanOrEqual(3);
+  });
+});
+
+describe('Player.setAllowViewHand() / getAllowViewHand()', () => {
+  let player: Player;
+
+  beforeEach(() => {
+    const yDoc = new Y.Doc();
+    const deck = new Deck(undefined, 5);
+    player = new Player('test-player', yDoc, deck, { initialHealth: 40 });
+  });
+
+  it('defaults to false before it is ever set', () => {
+    expect(player.getAllowViewHand()).toBe(false);
+  });
+
+  it('reflects the value passed to setAllowViewHand', () => {
+    player.setAllowViewHand(true);
+    expect(player.getAllowViewHand()).toBe(true);
+
+    player.setAllowViewHand(false);
+    expect(player.getAllowViewHand()).toBe(false);
+  });
+});
+
+describe('Player.reorderHand()', () => {
+  let player: Player;
+
+  beforeEach(() => {
+    const yDoc = new Y.Doc();
+    const deck = new Deck(undefined, 5);
+    player = new Player('test-player', yDoc, deck, { initialHealth: 40 });
+  });
+
+  it('replaces the hand with the given order', () => {
+    player.drawCards(3);
+    const [a, b, c] = player.getState().hand;
+
+    player.reorderHand([c, a, b]);
+
+    expect(player.getState().hand.map((card) => card.id)).toEqual([c.id, a.id, b.id]);
+  });
+});
+
+describe('Player.flipHandCard()', () => {
+  let player: Player;
+
+  beforeEach(() => {
+    const yDoc = new Y.Doc();
+    const deck = new Deck(undefined, 5);
+    player = new Player('test-player', yDoc, deck, { initialHealth: 40 });
+  });
+
+  it('toggles isFlipped on the matching hand card', () => {
+    player.drawCard();
+    const card = player.getState().hand[0];
+    expect(card.isFlipped).toBe(false);
+
+    player.flipHandCard(card.id);
+    expect(player.getState().hand[0].isFlipped).toBe(true);
+
+    player.flipHandCard(card.id);
+    expect(player.getState().hand[0].isFlipped).toBe(false);
+  });
+
+  it('leaves the hand untouched when the card id is not found', () => {
+    player.drawCard();
+    const before = player.getState().hand;
+
+    player.flipHandCard('missing-id');
+
+    expect(player.getState().hand).toEqual(before);
+  });
+});
+
+describe('Player.movePileCard()', () => {
+  let yDoc: Y.Doc;
+  let player: Player;
+
+  beforeEach(() => {
+    yDoc = new Y.Doc();
+    const deck = new Deck(undefined, 5);
+    player = new Player('test-player', yDoc, deck, { initialHealth: 40 });
+  });
+
+  it('moves a card from one pile to another and logs the move', () => {
+    const card = player.drawCard()!;
+
+    player.movePileCard(card, 'hand', 'discard');
+
+    expect(player.getState().hand).toHaveLength(0);
+    expect(player.getState().discardPile).toContainEqual(card);
+    const log = getActionLog(yDoc).toArray();
+    expect(log.some((e) => e.type === 'move_to_pile' && e.text.includes('discard'))).toBe(true);
+  });
+
+  it('logs "top of deck" when moved to deck at the default position', () => {
+    const card = player.drawCard()!;
+
+    player.movePileCard(card, 'hand', 'deck');
+
+    expect(player.getDeck().getCards()).toContainEqual(card);
+    const log = getActionLog(yDoc).toArray();
+    expect(log.some((e) => e.type === 'move_to_pile' && e.text.includes('top of deck'))).toBe(true);
+  });
+
+  it('logs "bottom of deck" when moved to deck at position 0', () => {
+    const card = player.drawCard()!;
+
+    player.movePileCard(card, 'hand', 'deck', 0);
+
+    expect(player.getDeck().getCards()[0]).toEqual(card);
+    const log = getActionLog(yDoc).toArray();
+    expect(log.some((e) => e.type === 'move_to_pile' && e.text.includes('bottom of deck'))).toBe(true);
+  });
+});
+
+describe('Player.drawCardFromPile() / removeCardFromPileById()', () => {
+  let player: Player;
+
+  beforeEach(() => {
+    const yDoc = new Y.Doc();
+    const deck = new Deck(undefined, 5);
+    player = new Player('test-player', yDoc, deck, { initialHealth: 40 });
+  });
+
+  it('drawCardFromPile draws the top card from the given pile', () => {
+    const deckSizeBefore = player.getDeck().getCardCount();
+
+    const drawn = player.drawCardFromPile('deck');
+
+    expect(drawn).not.toBeNull();
+    expect(player.getDeck().getCardCount()).toBe(deckSizeBefore - 1);
+  });
+
+  it('drawCardFromPile returns null when the pile is empty', () => {
+    while (player.drawCardFromPile('deck') !== null) {
+      /* drain the deck */
+    }
+    expect(player.drawCardFromPile('deck')).toBeNull();
+  });
+
+  it('removeCardFromPileById removes a specific card from a named pile', () => {
+    const card = player.drawCard()!;
+    player.placeCardInPile(card, 'exile');
+
+    const removed = player.removeCardFromPileById(card.id, 'exile');
+
+    expect(removed).toEqual(card);
+    expect(player.getState().exilePile).not.toContainEqual(card);
+  });
+
+  it('removeCardFromPileById returns null when the id is not present', () => {
+    expect(player.removeCardFromPileById('missing-id', 'discard')).toBeNull();
+  });
+});
+
+describe('Player.addCustomCounter() / modifyCustomCounter() / removeCustomCounter()', () => {
+  let yDoc: Y.Doc;
+  let player: Player;
+
+  beforeEach(() => {
+    yDoc = new Y.Doc();
+    const deck = new Deck(undefined, 5);
+    player = new Player('test-player', yDoc, deck, { initialHealth: 40 });
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('adds a counter with the given title/icon starting at 0', () => {
+    player.addCustomCounter('Poison', '☠');
+
+    const counters = player.getState().customCounters;
+    expect(counters).toHaveLength(1);
+    expect(counters[0]).toMatchObject({ title: 'Poison', icon: '☠', value: 0 });
+    expect(counters[0].id).toBeTruthy();
+  });
+
+  it('modifies the counter value by delta', () => {
+    player.addCustomCounter('Poison', '☠');
+    const id = player.getState().customCounters[0].id;
+
+    player.modifyCustomCounter(id, 3);
+    expect(player.getState().customCounters[0].value).toBe(3);
+
+    player.modifyCustomCounter(id, -1);
+    expect(player.getState().customCounters[0].value).toBe(2);
+  });
+
+  it('does nothing when the counter id does not exist', () => {
+    player.addCustomCounter('Poison', '☠');
+    const before = player.getState().customCounters;
+
+    player.modifyCustomCounter('missing-id', 5);
+
+    expect(player.getState().customCounters).toEqual(before);
+  });
+
+  it('logs a single debounced entry after rapid modifications settle', () => {
+    vi.useFakeTimers();
+    player.addCustomCounter('Poison', '☠');
+    const id = player.getState().customCounters[0].id;
+
+    player.modifyCustomCounter(id, 1);
+    player.modifyCustomCounter(id, 1);
+    player.modifyCustomCounter(id, 1);
+    vi.advanceTimersByTime(500);
+
+    const log = getActionLog(yDoc).toArray();
+    const entries = log.filter((e) => e.type === 'counter');
+    expect(entries).toHaveLength(1);
+    expect(entries[0].text).toContain('Poison from 0 to 3');
+  });
+
+  it('removes a counter and cancels its pending debounce timer', () => {
+    vi.useFakeTimers();
+    player.addCustomCounter('Poison', '☠');
+    const id = player.getState().customCounters[0].id;
+    player.modifyCustomCounter(id, 1);
+
+    player.removeCustomCounter(id);
+    vi.advanceTimersByTime(500);
+
+    expect(player.getState().customCounters).toHaveLength(0);
+    const log = getActionLog(yDoc).toArray();
+    expect(log.filter((e) => e.type === 'counter')).toHaveLength(0);
   });
 });

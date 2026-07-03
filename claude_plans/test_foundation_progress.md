@@ -52,13 +52,31 @@ Branch: `feature/manabase-design-system` (unified trunk after Phase 0 merge).
       references in any `*.test.ts(x)`. Nothing to delete.
 
 ## Phase 1 — Tier-1 logic coverage
-- [ ] `Player` methods: drawCard, mulligan, shuffleDeck, setAllowViewHand/reveal, reorderHand,
-      flipHandCard, modifyHealth/setHealth, movePileCard, addCustomCounter
-- [ ] `battlefieldCardActions.test.ts`: untapAll, addCounter, tap/flip, moveTo*
-- [ ] `spawnToken.test.ts`
-- [ ] `gameActions.test.ts` (GAME_ACTIONS registry dispatch incl. pass)
-- [ ] `settingsStore.test.ts`
-- [ ] Extend `actionLog.test.ts` if new entry types appeared in the merge
+- [x] `Player` methods: drawCard, mulligan, shuffleDeck, setAllowViewHand/reveal, reorderHand,
+      flipHandCard, modifyHealth/setHealth, movePileCard, addCustomCounter — extended
+      `Player.test.ts` with 18 new tests: setAllowViewHand/getAllowViewHand, reorderHand,
+      flipHandCard, movePileCard (incl. "top of deck" vs "bottom of deck" log text branches),
+      drawCardFromPile/removeCardFromPileById, and addCustomCounter/modifyCustomCounter/
+      removeCustomCounter (incl. the 500ms debounced counter-change log via `vi.useFakeTimers`).
+- [x] `battlefieldCardActions.test.ts` — untapAll (+ownership filter), tap, flip (face-down hides
+      the name / face-up reveals it), copy, addCounter, delete, and all 5 moveTo* cases incl.
+      token detachment. moveTo* tests wire a real `seedGame()` player into `useGameInstance` since
+      those branches delegate through the Zustand store to `Player`.
+- [x] `spawnToken.test.ts` — token shape/position, parent-attachment via `findParent`, zIndex
+      stacking above the max of cards+tokens, and the `spawn_token` log entry; plus
+      `getMaxZIndex` directly.
+- [x] `gameActions.test.ts` — registry shape (unique ids, known surfaces) + dispatch contract for
+      every action: untap-all, draw, pass (log-only, verified no player-state side effect),
+      draw-x/mill (number-prompt open + onConfirm effect), exile-top, random-discard,
+      reveal-hand (both toggle directions + log text), shuffle, mulligan, scry/surveil,
+      look-at-top (async dynamic-import path, awaited via `vi.waitFor`), create-token-card, and
+      the disabled create-token/create-label no-ops.
+- [x] `settingsStore.test.ts` — setHandZoom/setPreviewZoom clamping at both bounds,
+      setSnapToGridEnabled, setDemoHandCards, and the legacy-key migration seed (`hand-zoom`/
+      `card-preview-zoom` → clamped initial state) via `vi.resetModules()` + dynamic re-import.
+- [x] Extend `actionLog.test.ts` if new entry types appeared in the merge — already confirmed
+      during the audit that the test is generic and doesn't enumerate `ActionLogType`, so the
+      merge's new `'counter'` type needed no update.
 
 ## Phase 2 — Tier-2 component/seam coverage
 - [ ] `HealthNode.test.tsx`
@@ -107,3 +125,10 @@ Branch: `feature/manabase-design-system` (unified trunk after Phase 0 merge).
   rewrite); deferred the import-flow coverage expansion to Phase 2 rather than duplicating work.
   Grepped for orphaned `CardCounter` test references — none found. **Existing-test audit
   complete — Task #2 done.** Starting Phase 1 (Tier-1 logic coverage) next.
+- 2026-07-03: Phase 1 done. Added 18 tests to `Player.test.ts` (hand ops, pile moves, custom
+  counters), plus 4 new files: `battlefieldCardActions.test.ts` (15 tests), `spawnToken.test.ts`
+  (7), `gameActions.test.ts` (18 — full GAME_ACTIONS dispatch contract), `settingsStore.test.ts`
+  (11, incl. legacy-key migration via `vi.resetModules()`). `actionLog.test.ts` needed no
+  changes (already generic re: entry types). tsc clean; full suite 329/329 green (was 261),
+  stable across 3 consecutive runs. **Phase 1 complete.** Starting Phase 2 (Tier-2 component/
+  seam coverage) next.
