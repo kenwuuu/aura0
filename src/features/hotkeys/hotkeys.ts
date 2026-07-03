@@ -97,20 +97,20 @@ export const HOTKEYS: Hotkey[] = [
 
   // Battlefield card shortcuts
   {
+    key: 'Space',
+    keys: ['space'],
+    context: ['battlefield'],
+    shortDescription: 'Tap',
+    longDescription: 'Tap card',
+    action: 'tap',
+  },
+  {
     key: 'X',
     keys: ['x'],
     context: ['global', 'battlefield'],
     shortDescription: 'Untap all',
     longDescription: 'Untap all your cards',
     action: 'untapAll',
-  },
-  {
-    key: 'Space',
-    keys: ['space'],
-    context: ['battlefield'],
-    shortDescription: 'Tap/Untap',
-    longDescription: 'Tap/Untap card',
-    action: 'tap',
   },
   {
     key: 'F',
@@ -123,8 +123,8 @@ export const HOTKEYS: Hotkey[] = [
   {
     key: 'U',
     keys: ['u'],
-    context: ['global'],
-    shortDescription: '+1/+1 counter',
+    context: ['global', 'battlefield'],
+    shortDescription: 'Counter',
     longDescription: 'Spawn +1/+1 counter token at cursor',
     action: 'addCounter',
   },
@@ -161,7 +161,7 @@ export const HOTKEYS: Hotkey[] = [
     action: 'moveToHand',
   },
   {
-    key: '▲ / Left Click',
+    key: 'Left Click',
     keys: ['arrowup'],
     context: ['kwToken'],
     shortDescription: '+1',
@@ -169,7 +169,7 @@ export const HOTKEYS: Hotkey[] = [
     action: 'tokenIncrement',
   },
   {
-    key: '▼ / Right Click',
+    key: 'Right Click',
     keys: ['arrowdown'],
     context: ['kwToken'],
     shortDescription: '-1',

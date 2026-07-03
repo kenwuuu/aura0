@@ -9,10 +9,11 @@ import * as Y from 'yjs';
 import { WhiteboardCard } from './types';
 import { KeywordToken } from '@/features/keyword-tokens/types';
 import { YDOC_KEYWORD_TOKENS } from '@/constants';
-import { attachedChildren } from './nodeAttachment';
+import { attachedChildren, nodeCenter } from './nodeAttachment';
 import { useHotkeyMenuStore } from '@/features/hotkeys/hotkeyMenuStore';
 import { useGameInstance } from '@/app/stores/gameInstanceStore';
 import { logAction, cardLogName } from '@/features/action-log/actionLog';
+import { spawnTokenAtPosition } from './spawnToken';
 
 /** Clear `attachedTo` on any token that was attached to the given card. */
 function detachTokens(cardId: string, yTokens: Y.Map<KeywordToken>) {
@@ -90,6 +91,16 @@ export function executeBattlefieldCardAction(
       }
       break;
     }
+    // Todo: counters added this way will delete themselves when they detect they're <= 0
+      // counters that are added by dragging in from the grid will not delete themselves. nor the ones
+      // added with the I/U hotkeys
+    case 'addCounter':
+      spawnTokenAtPosition(
+        { title: '+1/+1', backgroundColor: '#e8e1df', count: 1 },
+        nodeCenter(card, 'card'),
+        yCards, yTokens, playerId,
+      );
+      break;
     case 'delete':
       useHotkeyMenuStore.getState().close();
       detachTokens(cardId, yTokens);

@@ -107,7 +107,7 @@ export function GameActionsToolbar() {
       data-testid="game-actions-toolbar"
       style={{
         position: 'fixed',
-        top: 48,
+        top: 60,
         // 8px margin + 280px action log panel + 8px gap
         left: 296,
         zIndex: 40,
