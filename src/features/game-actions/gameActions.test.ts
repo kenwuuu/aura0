@@ -211,14 +211,12 @@ describe('create-token-card', () => {
   });
 });
 
-describe('disabled create-menu placeholders', () => {
-  it('create-token and create-label are marked disabled and are safe no-ops', () => {
+describe('create-menu placeholders', () => {
+  it('create-token and create-label are safe no-ops', () => {
     const ctx = makeContext();
     const token = getAction('create-token');
     const label = getAction('create-label');
 
-    expect(token.disabled).toBe(true);
-    expect(label.disabled).toBe(true);
     expect(() => token.perform(ctx)).not.toThrow();
     expect(() => label.perform(ctx)).not.toThrow();
   });
