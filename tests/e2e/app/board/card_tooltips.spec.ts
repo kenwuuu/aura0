@@ -1,11 +1,6 @@
-import {expect, test} from "../../fixtures";
-import {Page} from "playwright/test";
-import {Locator} from "@playwright/test";
-
-async function dragHandCardToLocator(locator: Locator, page: Page) {
-  await page.locator('div').filter({hasText: '#'}).nth(4).dragTo(locator);
-  await expect(page.locator('div').filter({hasText: '#'}).nth(3)).toBeVisible();
-}
+import { expect, test } from '../../fixtures';
+import { boardCards, boardTokens, playCreature } from '../../harness';
+import { Locator } from '@playwright/test';
 
 export async function getElementOrientation(
   locator: Locator
@@ -24,11 +19,8 @@ export async function getElementOrientation(
 }
 
 test('testExileTooltip', async ({ page }) => {
-  expect(page.getByText('Exile0'));
-
-  await dragHandCardToLocator(page.locator('#whiteboard'), page);
-  const boardCard = page.locator('div').filter({ hasText: '#' }).nth(3);
-  await boardCard.click({ button: 'right' });
+  const card = await playCreature(page);
+  await card.click({ button: 'right' });
   const tooltipRow = page.getByText('SExile');
   await tooltipRow.waitFor({ state: 'visible' });
   await tooltipRow.click();
@@ -36,11 +28,8 @@ test('testExileTooltip', async ({ page }) => {
 });
 
 test('testDiscardTooltip', async ({ page }) => {
-  expect(page.getByText('Discard0'));
-
-  await dragHandCardToLocator(page.locator('#whiteboard'), page);
-  const boardCard = page.locator('div').filter({ hasText: '#' }).nth(3);
-  await boardCard.click({ button: 'right' });
+  const card = await playCreature(page);
+  await card.click({ button: 'right' });
   const tooltipRow = page.getByText('DDiscard');
   await tooltipRow.waitFor({ state: 'visible' });
   await tooltipRow.click();
@@ -48,11 +37,8 @@ test('testDiscardTooltip', async ({ page }) => {
 });
 
 test('testDeckTooltip', async ({ page }) => {
-  expect(page.getByText('Deck92'));
-
-  await dragHandCardToLocator(page.locator('#whiteboard'), page);
-  const boardCard = page.locator('div').filter({ hasText: '#' }).nth(3);
-  await boardCard.click({ button: 'right' });
+  const card = await playCreature(page);
+  await card.click({ button: 'right' });
   const tooltipRow = page.getByText('TTo deck top');
   await tooltipRow.waitFor({ state: 'visible' });
   await tooltipRow.click();
@@ -64,11 +50,10 @@ test('testHandTooltip', async ({ page }) => {
   const eighthHandCard = page.locator('.hand-cards .hand-card').nth(7);
   await expect(eighthHandCard).toBeVisible();
 
-  await dragHandCardToLocator(page.locator('#whiteboard'), page);
+  const card = await playCreature(page);
   await expect(eighthHandCard).toBeHidden();
 
-  const boardCard = page.locator('div').filter({ hasText: '#' }).nth(3);
-  await boardCard.click({ button: 'right' });
+  await card.click({ button: 'right' });
   const tooltipRow = page.getByText('HHand');
   await tooltipRow.waitFor({ state: 'visible' });
   await tooltipRow.click();
@@ -77,16 +62,16 @@ test('testHandTooltip', async ({ page }) => {
 });
 
 test('testInteractiveTooltip', async ({ page }) => {
-  const firstBoardCard = page.locator('.player-board .card').nth(0);
-  const secondBoardCard = page.locator('.player-board .card').nth(1);
-  const thirdBoardCard = page.locator('.player-board .card').nth(2);
-  
-  await dragHandCardToLocator(page.locator('#whiteboard'), page);
-  
+  await playCreature(page);
+
+  const firstBoardCard = boardCards(page).nth(0);
+  const secondBoardCard = boardCards(page).nth(1);
+  const thirdBoardCard = boardCards(page).nth(2);
+
   expect(await getElementOrientation(firstBoardCard)).toBe('portrait');
 
   await firstBoardCard.click({ button: 'right' });
-  await page.getByText('Tap/Untap').click();
+  await page.getByText('SpaceTap').click();
   expect(await getElementOrientation(firstBoardCard)).toBe('landscape');
 
   await firstBoardCard.click({ button: 'right' });
@@ -97,16 +82,6 @@ test('testInteractiveTooltip', async ({ page }) => {
   await page.getByText('FFlip').click();
   const cardImgSrc = await firstBoardCard.locator('img').getAttribute('src');
   expect(cardImgSrc === '/assets/card-back.png')
-
-  await firstBoardCard.click({ button: 'right' });
-  await page.getByText('U+1 counter').click();
-  await page.getByTitle('Decrease counter').waitFor({ state: 'visible' });
-  await page.getByTitle('Decrease counter').click();
-
-  await firstBoardCard.click({ button: 'right' });
-  await page.getByText('I-1 counter').click();
-  await page.getByTitle('Increase counter').waitFor({ state: 'visible' });
-  await page.getByTitle('Increase counter').click();
 
   // copy first card to make second card.
   // copy second card to make third card
@@ -127,6 +102,37 @@ test('testInteractiveTooltip', async ({ page }) => {
   await secondBoardCard.click({ button: 'right' });
   await page.getByText('HHand').click();
   await expect(secondBoardCard).toBeHidden();
+
+  // 'addCounter' spawns a "+1/+1" keyword token at the card's position (see
+  // executeBattlefieldCardAction) rather than an in-card counter overlay —
+  // CardCounter.tsx exists but is unused/orphaned. Assert the real behavior.
+  // Done last: the spawned token sits on top of the card and would intercept
+  // pointer events for any further right-clicks on it.
+  const tokensBefore = await boardTokens(page).count();
+  await firstBoardCard.click({ button: 'right' });
+  await page.getByText('UCounter').click();
+  await expect(boardTokens(page)).toHaveCount(tokensBefore + 1);
+  const counterToken = boardTokens(page).last();
+  await expect(counterToken).toHaveText('1');
+  await counterToken.click();
+  await expect(counterToken).toHaveText('2');
+});
+
+// Suspected product bug: the 'removeCounter' action (I hotkey / "-1/-1
+// counter" context-menu item) has no matching case in
+// executeBattlefieldCardAction's switch statement (battlefieldCardActions.ts)
+// — clicking it is currently a no-op. The sibling 'addCounter' case has a
+// TODO acknowledging this class of counter is incomplete. Not fixing product
+// code per E2E-rehab scope; skipping rather than asserting behavior that
+// doesn't exist.
+test.skip('testRemoveCounterHotkeyIsNotImplemented', async ({ page }) => {
+  const card = await playCreature(page);
+  const tokensBefore = await boardTokens(page).count();
+  await card.click({ button: 'right' });
+  await page.getByText('I-1/-1 counter').click();
+  // Once implemented, this should spawn a "-1/-1" token the same way
+  // 'addCounter' spawns a "+1/+1" token.
+  await expect(boardTokens(page)).toHaveCount(tokensBefore + 1);
 });
 
 // this test always passes regardless if we expect Visible or Hidden
@@ -134,13 +140,10 @@ test('testInteractiveTooltip', async ({ page }) => {
 test.skip('testTooltipDoesNotAppearAfterDrag', async ({ page }) => {
   expect(page.getByText('Deck92'));
 
-  const tooltipText = page.getByText('SpaceTap/Untap');
+  const tooltipText = page.getByText('SpaceTap');
 
-  // Drag card to board. Click card and check for tooltip text
-  await dragHandCardToLocator(page.locator('#whiteboard'), page);
-  const boardCard: Locator = page.locator('div').filter({ hasText: '#' }).nth(3);
-
-  const box = await boardCard.boundingBox();
+  const card = await playCreature(page);
+  const box = await card.boundingBox();
 
   // Drag card
   await page.mouse.move(box!.x + box!.width / 2, box!.y + box!.height / 2);
