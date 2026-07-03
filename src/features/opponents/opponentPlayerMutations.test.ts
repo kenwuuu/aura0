@@ -9,10 +9,16 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import * as Y from 'yjs';
-import { modifyOpponentHealth } from './opponentPlayerMutations';
+import {
+  modifyOpponentHealth,
+  addOpponentCounter,
+  modifyOpponentCounter,
+  removeOpponentCounter,
+} from './opponentPlayerMutations';
 import { getActionLog } from '@/features/action-log/actionLog';
 import { useGameInstance } from '@/app/stores/gameInstanceStore';
-import { YDOC_PLAYER, YSTATE_PLAYER_NAME } from '@/constants';
+import { YDOC_PLAYER, YSTATE_PLAYER_NAME, YSTATE_CUSTOM_COUNTERS } from '@/constants';
+import type { CustomCounter } from '@/features/player/types';
 
 function makeDoc(): Y.Doc {
   return new Y.Doc();
@@ -89,5 +95,56 @@ describe('modifyOpponentHealth debounced logging', () => {
     const entries = getActionLog(doc).toArray();
     expect(entries).toHaveLength(1);
     expect(entries[0].text).toContain('now 38');
+  });
+});
+
+describe('addOpponentCounter / modifyOpponentCounter / removeOpponentCounter', () => {
+  it('adds a counter with the given title/icon starting at 0', () => {
+    const doc = makeDoc();
+
+    addOpponentCounter(doc, 'opponent-a', 'Poison', '☠️');
+
+    const counters = doc.getMap(YDOC_PLAYER('opponent-a')).get(YSTATE_CUSTOM_COUNTERS) as CustomCounter[];
+    expect(counters).toHaveLength(1);
+    expect(counters[0]).toMatchObject({ title: 'Poison', icon: '☠️', value: 0 });
+  });
+
+  it('modifies the matching counter by delta, leaving others untouched', () => {
+    const doc = makeDoc();
+    addOpponentCounter(doc, 'opponent-a', 'Poison', '☠️');
+    addOpponentCounter(doc, 'opponent-a', 'Energy', '⚡');
+    const [poison, energy] = doc.getMap(YDOC_PLAYER('opponent-a')).get(YSTATE_CUSTOM_COUNTERS) as CustomCounter[];
+
+    modifyOpponentCounter(doc, 'opponent-a', poison.id, 3);
+
+    const counters = doc.getMap(YDOC_PLAYER('opponent-a')).get(YSTATE_CUSTOM_COUNTERS) as CustomCounter[];
+    expect(counters.find((c) => c.id === poison.id)!.value).toBe(3);
+    expect(counters.find((c) => c.id === energy.id)!.value).toBe(0);
+  });
+
+  it('removes the matching counter only', () => {
+    const doc = makeDoc();
+    addOpponentCounter(doc, 'opponent-a', 'Poison', '☠️');
+    addOpponentCounter(doc, 'opponent-a', 'Energy', '⚡');
+    const [poison, energy] = doc.getMap(YDOC_PLAYER('opponent-a')).get(YSTATE_CUSTOM_COUNTERS) as CustomCounter[];
+
+    removeOpponentCounter(doc, 'opponent-a', poison.id);
+
+    const counters = doc.getMap(YDOC_PLAYER('opponent-a')).get(YSTATE_CUSTOM_COUNTERS) as CustomCounter[];
+    expect(counters.map((c) => c.id)).toEqual([energy.id]);
+  });
+
+  it('keeps counters scoped to the target opponent', () => {
+    const doc = makeDoc();
+
+    addOpponentCounter(doc, 'opponent-a', 'Poison', '☠️');
+    addOpponentCounter(doc, 'opponent-b', 'Energy', '⚡');
+
+    const aCounters = doc.getMap(YDOC_PLAYER('opponent-a')).get(YSTATE_CUSTOM_COUNTERS) as CustomCounter[];
+    const bCounters = doc.getMap(YDOC_PLAYER('opponent-b')).get(YSTATE_CUSTOM_COUNTERS) as CustomCounter[];
+    expect(aCounters).toHaveLength(1);
+    expect(bCounters).toHaveLength(1);
+    expect(aCounters[0].title).toBe('Poison');
+    expect(bCounters[0].title).toBe('Energy');
   });
 });

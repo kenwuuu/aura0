@@ -79,7 +79,15 @@ Branch: `feature/manabase-design-system` (unified trunk after Phase 0 merge).
       merge's new `'counter'` type needed no update.
 
 ## Phase 2 — Tier-2 component/seam coverage
-- [ ] `HealthNode.test.tsx`
+- [x] `HealthNode.test.tsx` — health inc/dec routes to `Player` (local) vs directly to the
+      opponent's Yjs map via `opponentPlayerMutations` (opponent), and rename affordance
+      present/absent per variant. Kept intentionally scoped to the routing seam — the mutation
+      logic itself (`Player.addCustomCounter` family, `modifyOpponentHealth` debounce) already
+      has dedicated Tier-1 coverage. While here, found `addOpponentCounter`/
+      `modifyOpponentCounter`/`removeOpponentCounter` had zero test coverage (the existing
+      `opponentPlayerMutations.test.ts` only covered the health debounce) — added 4 tests for
+      those directly rather than through HealthNode's hover-gated counter UI, which would have
+      needed brittle structural queries to trigger.
 - [ ] `GameActionsToolbar.test.tsx` (highest-value UI test)
 - [ ] `HandCardsContainer.test.tsx` / `FloatingHand`
 - [ ] `ActionLogPanel.test.tsx`
@@ -132,3 +140,10 @@ Branch: `feature/manabase-design-system` (unified trunk after Phase 0 merge).
   changes (already generic re: entry types). tsc clean; full suite 329/329 green (was 261),
   stable across 3 consecutive runs. **Phase 1 complete.** Starting Phase 2 (Tier-2 component/
   seam coverage) next.
+- 2026-07-03: `HealthNode.test.tsx` added (4 tests, routing seam only: local→Player,
+  opponent→opponentPlayerMutations, both for health +/- and the rename affordance). Also closed
+  a coverage gap found along the way: `addOpponentCounter`/`modifyOpponentCounter`/
+  `removeOpponentCounter` had no tests at all — added 4 directly to
+  `opponentPlayerMutations.test.ts` rather than through HealthNode's hover-gated counter UI.
+  tsc clean, full suite 337/337 green. Next: `GameActionsToolbar.test.tsx` (highest-value UI
+  test per the plan).
