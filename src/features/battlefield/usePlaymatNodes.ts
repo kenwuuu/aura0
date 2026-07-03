@@ -86,7 +86,7 @@ export function buildPlaymatNodes(yDoc: Y.Doc, localPlayerId: string): Node[] {
       type: 'health',
       position: positions.health,
       data: { ownerId: playerId, isLocal, name, health, customCounters, yDoc },
-      zIndex: 10,
+      zIndex: 0,
       draggable: false,
       width: HEALTH_WIDGET_WIDTH,
       height: HEALTH_WIDGET_HEIGHT,
