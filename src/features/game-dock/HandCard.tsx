@@ -22,6 +22,7 @@ export const HandCard: React.FC<HandCardProps> = ({ card, onMouseEnter, onMouseM
     <div
       ref={setNodeRef}
       className="hand-card"
+      data-testid="hand-card"
       data-card-id={card.id}
       style={{
         transform: CSS.Transform.toString(transform),

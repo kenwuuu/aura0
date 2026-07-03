@@ -165,7 +165,7 @@ export function DeckImportModal({ isOpen, onClose, onDeckImported }: DeckImportM
     <Dialog.Root open={isOpen} onOpenChange={onClose}>
       <Dialog.Portal>
         <Dialog.Overlay style={styles.overlay} />
-        <Dialog.Content style={styles.content}>
+        <Dialog.Content style={styles.content} data-testid="deck-import-modal">
           <div style={styles.header}>
             <Dialog.Title style={styles.title}>Import Deck</Dialog.Title>
             <Dialog.Close style={styles.closeButton} onClick={handleClose}>×</Dialog.Close>

@@ -76,6 +76,8 @@ export const CardNode = memo(function CardNode({ data, id }: NodeProps) {
 
   return (
     <div
+      data-testid="battlefield-card"
+      data-card-id={id}
       style={{ ...CARD_STYLE, transform }}
       onMouseEnter={handleMouseEnter}
       onMouseMove={handleMouseMove}
