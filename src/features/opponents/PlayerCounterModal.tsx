@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/shared/ui/dialog';
 import { COUNTER_ICONS } from './iconOptions';
 import styles from './PlayerCounterModal.module.css';
+import { trackCustomCounterCreated } from '@/infrastructure/analytics/PosthogFunctions';
 
 interface CounterModalProps {
   isOpen: boolean;
@@ -25,7 +26,9 @@ export const PlayerCounterModal: React.FC<CounterModalProps> = ({ isOpen, onAdd,
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (title.trim()) {
-      onAdd(title.trim(), customIcon || icon);
+      const chosenIcon = customIcon || icon;
+      trackCustomCounterCreated(title.trim(), chosenIcon);
+      onAdd(title.trim(), chosenIcon);
     }
   };
 

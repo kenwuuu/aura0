@@ -18,6 +18,13 @@ export function trackPlayerCounterChange(counterTitle: string, currentValue: num
   });
 }
 
+export function trackCustomCounterCreated(counterTitle: string, counterIcon: string): void {
+  posthog.capture('custom_counter_created', {
+    counter_title: counterTitle,
+    counter_icon: counterIcon,
+  });
+}
+
 // DECK IMPORTER
 
 export type ImportFailureReason =
