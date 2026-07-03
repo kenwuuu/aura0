@@ -81,6 +81,7 @@ export const HandCardsContainer: React.FC<HandCardsContainerProps> = ({
       ref={scrollRef}
       className="hand-scroll"
       data-hand={playerId}
+      data-testid="hand-cards-container"
       onWheel={handleWheel}
       style={{
         height: containerHeight,

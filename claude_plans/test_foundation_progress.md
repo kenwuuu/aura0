@@ -95,7 +95,20 @@ Branch: `feature/manabase-design-system` (unified trunk after Phase 0 merge).
       pointer-capture polyfill needed, unlike the common jsdom gotcha. Per-action dispatch
       contract is already covered at Tier-1 (`gameActions.test.ts`), so this file deliberately
       doesn't re-test every action — only proves the wiring seam once per surface.
-- [ ] `HandCardsContainer.test.tsx` / `FloatingHand`
+- [x] `FloatingHand.test.tsx` — renders seeded hand cards by alt text; ctx-not-ready guard;
+      handZoom reflected into the `--card-zoom` CSS var (the actual mechanism `style.css`
+      uses to scale cards, confirmed by grep — not an arbitrary style read); hover sets
+      `hotkeyStore.hoverTarget` + shows `cardPreviewStore`, unhover clears both (confirmed
+      `useSortable` from dnd-kit renders fine with no `DndContext` ancestor, and that a
+      `userEvent.hover` on a nested `<img>` still fires the ancestor div's `onMouseEnter` since
+      the pointer crosses that div's boundary — a different case from the earlier HealthNode
+      finding, which was about two *sibling* elements each needing their own handler); the
+      `demoHandCards` fallback only applies when the real hand is empty. Added a
+      `data-testid="hand-cards-container"` to `HandCardsContainer.tsx` (mirrors
+      `GameActionsToolbar`'s existing `data-testid`) to give the zoom check a stable seam.
+      Tested at the `FloatingHand` level (not raw `HandCardsContainer`) since that's the
+      store-wired composition root, matching the `HealthNode`/`renderNode` precedent of testing
+      the real wiring rather than a prop-driven leaf.
 - [ ] `ActionLogPanel.test.tsx`
 - [ ] `SettingsModal` display section
 - [ ] `DeckImportModal.test.tsx` rewrite (may already be covered by audit item)
@@ -155,3 +168,6 @@ Branch: `feature/manabase-design-system` (unified trunk after Phase 0 merge).
   test per the plan).
 - 2026-07-03: `GameActionsToolbar.test.tsx` added (6 tests). tsc clean, full suite 343/343
   green, stable across 3 consecutive runs. Next: `HandCardsContainer.test.tsx`/`FloatingHand`.
+- 2026-07-03: `FloatingHand.test.tsx` added (6 tests), plus a `data-testid` added to
+  `HandCardsContainer.tsx` to support the handZoom check. tsc clean, full suite 349/349 green,
+  stable across 3 consecutive runs. Next: `ActionLogPanel.test.tsx`.
