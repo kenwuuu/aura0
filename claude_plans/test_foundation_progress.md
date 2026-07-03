@@ -13,8 +13,11 @@ Branch: `feature/manabase-design-system` (unified trunk after Phase 0 merge).
       conflict markers needed in `GameActionsToolbar.tsx`)
 - [x] `npx tsc --noEmit` clean (0 errors — the previously-noted BoardInverter.tsx error is gone)
 - [x] `npm run test:run` green — 22 files, 285 passed, 1 pre-existing skip (unrelated, see below)
-- [ ] Confirm `src/test/setup.ts` central `afterEach` resets every store touched by new tests
-      (revisit as Phase 1/2 tests are added — check as we go, not a one-shot gate)
+- [x] Confirm `src/test/setup.ts` central `afterEach` resets every store touched by new tests —
+      audited all `zustand` stores in the repo, found 6 uncovered (settingsStore,
+      pileViewerHotkeyStore, scryStore, surveilStore, tokenCardSearchStore, numberPromptStore),
+      added resets for all proactively (Phase 1/2 will touch several of these). Also added
+      `localStorage.clear()` since settingsStore uses `persist`. Committed `0039f80`.
 
 ## Existing-test audit
 - [ ] Keep-as-is set confirmed green: `PlayerGameActions.test.ts`, `actionLog.test.ts`,
@@ -65,4 +68,7 @@ Branch: `feature/manabase-design-system` (unified trunk after Phase 0 merge).
   tsc clean, full suite green (285/285, 1 pre-existing skip in `DeckListParser.test.ts` for a
   known set-formatting parser limitation — not introduced by this branch, left as-is).
   Merge commit is on top of `bf48180`, pulling in the networking cleanup, add-counter action,
-  and health-logging commits from master.
+  and health-logging commits from master. Merge commit: `f036068`.
+- 2026-07-03: Audited all Zustand stores repo-wide, added 6 missing resets + localStorage.clear()
+  to `src/test/setup.ts`. tsc clean, suite still 285/285 green. Committed `0039f80`.
+  **Phase 0 complete.** Starting existing-test audit next.

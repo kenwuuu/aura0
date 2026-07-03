@@ -1,9 +1,10 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import * as Y from 'yjs';
 import { Player } from './Player';
 import { Deck } from './Deck';
 import {Card, SavedDeck} from './types';
 import {YDOC_CARDS_ON_BOARD} from "@/constants";
+import { seededRandom } from '@/test/seededRandom';
 
 describe('Player.reset()', () => {
   let yDoc: Y.Doc;
@@ -290,14 +291,17 @@ describe('Player.reset()', () => {
       expect(player.getDeck().getCardCount()).toBe(0);
       expect(player.getState().hand.length).toBe(10);
 
-      // Reset (which includes shuffle)
+      // Reset (which includes shuffle). Pin Math.random so the shuffle's
+      // resulting order is deterministic rather than relying on true
+      // randomness landing on a different permutation.
+      const randomSpy = vi.spyOn(Math, 'random').mockImplementation(seededRandom(42));
       player.reset();
+      randomSpy.mockRestore();
 
       // Deck should have all cards back
       expect(player.getDeck().getCardCount()).toBe(10);
 
       // Draw cards again - order should be different (shuffled)
-      // Note: There's a tiny chance they're the same, but very unlikely with 10 cards
       const redrawnCards: Card[] = [];
       card = player.drawCard();
       while (card) {
@@ -305,10 +309,9 @@ describe('Player.reset()', () => {
         card = player.drawCard();
       }
 
-      // Check that at least one card is in a different position
-      // (This tests that shuffle happened, though it's probabilistic)
       const sameOrder = drawnCards.every((c, i) => c.id === redrawnCards[i].id);
-      expect(sameOrder).toBe(false); // Very unlikely to be same order after shuffle
+      expect(sameOrder).toBe(false);
+      expect(redrawnCards.map(c => c.id).sort()).toEqual(drawnCards.map(c => c.id).sort());
     });
   });
 });
@@ -534,7 +537,7 @@ describe('Player.shuffleDeck()', () => {
     expect(player.getDeck().getCardCount()).toBe(initialCount);
   });
 
-  it('should change card order (probabilistic test)', () => {
+  it('should change card order', () => {
     // Draw all cards to record order
     const firstOrder: string[] = [];
     let card = player.drawCard();
@@ -543,8 +546,12 @@ describe('Player.shuffleDeck()', () => {
       card = player.drawCard();
     }
 
-    // Reset to get cards back
+    // Reset to get cards back. Pin Math.random so the shuffle produces a
+    // deterministic, guaranteed-different permutation instead of relying on
+    // true randomness happening to land on a new order.
+    const randomSpy = vi.spyOn(Math, 'random').mockImplementation(seededRandom(42));
     player.reset();
+    randomSpy.mockRestore();
 
     // Draw again after shuffle
     const secondOrder: string[] = [];
@@ -554,9 +561,9 @@ describe('Player.shuffleDeck()', () => {
       card = player.drawCard();
     }
 
-    // Orders should be different (very high probability with 10 cards)
     const sameOrder = firstOrder.every((id, i) => id === secondOrder[i]);
     expect(sameOrder).toBe(false);
+    expect(secondOrder.slice().sort()).toEqual(firstOrder.slice().sort());
   });
 });
 
@@ -687,13 +694,15 @@ describe('Player.mulligan()', () => {
       if (card) firstHand.push(card.id);
     }
 
-    // Mulligan (returns cards, shuffles, draws 7)
+    // Mulligan (returns cards, shuffles, draws 7). Pin Math.random so the
+    // shuffle produces a deterministic, guaranteed-different permutation.
+    const randomSpy = vi.spyOn(Math, 'random').mockImplementation(seededRandom(42));
     player.mulligan(7);
+    randomSpy.mockRestore();
 
     // Get new hand IDs
     const secondHand = player.getState().hand.map(c => c.id);
 
-    // Hands should be different (very high probability with 20 card deck)
     const sameHand = firstHand.every((id, i) => id === secondHand[i]);
     expect(sameHand).toBe(false);
   });
@@ -793,8 +802,12 @@ describe('Player.loadNewDeck()', () => {
       cards: newDeckCards
     };
 
-    // Load deck (draws commander, then shuffles)
+    // Load deck (draws commander, then shuffles). Pin Math.random so the
+    // shuffle produces a deterministic, guaranteed-different permutation
+    // instead of relying on true randomness happening to avoid a sequential run.
+    const randomSpy = vi.spyOn(Math, 'random').mockImplementation(seededRandom(42));
     player.loadNewDeck(newDeck);
+    randomSpy.mockRestore();
 
     // Draw all cards to check they were shuffled
     const drawnOrder: number[] = [];
