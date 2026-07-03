@@ -1,6 +1,6 @@
 # E2E Harness for Autonomous Verification — Progress
 
-## Status: Phase 4 done (2026-07-03), Phase 5 next
+## Status: All phases done (2026-07-03) — E2E harness rehab complete
 
 Branch: `e2e-harness-autonomy`. Full plan: `/Users/kenwu/.claude/plans/idempotent-dancing-panda.md`
 (also mirrored here as context below). This is item 4 of
@@ -25,7 +25,7 @@ round. Rebuilding the harness fresh on master, mining (not merging) the stale
 - [x] **Phase 3** — Rehab broader behavior suite onto the harness (advisory tier).
 - [x] **Phase 4** — CI wiring: `test:e2e`/`test:e2e:smoke` scripts,
       `e2e-smoke` (blocking) + `e2e-full` (advisory) jobs in `test.yml`.
-- [ ] **Phase 5** — Docs: `docs/testing/e2e.md` contract, update `tests/testing.md`,
+- [x] **Phase 5** — Docs: `docs/testing/e2e.md` contract, update `tests/testing.md`,
       pointer from `CLAUDE.md`.
 - [ ] **Deferred (documented, not built)** — `window.__aura` yDoc accessor +
       `serializeGameState()` for state-based sync/persistence-race assertions.
@@ -197,3 +197,31 @@ round. Rebuilding the harness fresh on master, mining (not merging) the stale
   still generates. YAML validated. Next real milestone: once `e2e-full` has
   run clean in CI for a while, promote it to blocking (drop
   `continue-on-error`) per the plan's Notes/risks section.
+- 2026-07-03: Phase 5 complete — all 6 phases of the plan now done. Wrote
+  `docs/testing/e2e.md`: the full contract (never `waitForTimeout`,
+  harness-only interaction, stable testids only, `.dragTo()` banned except
+  `dragCountedTokenToBoard`, one behavior per test, DOM-default/state-deferred
+  assertion split, `@smoke` tagging rule), a directory-layout reference, the
+  PostHog-blocking rationale, the CI wiring summary (including the
+  chromium-only scoping decision), the deferred state-accessor design
+  (verbatim from the plan's own "Deferred follow-up" section), and a pointer
+  to the 6 suspected product bugs Phase 3 surfaced. Rewrote `tests/testing.md`
+  down to a short pointer at the contract doc plus two mechanics notes
+  (PileViewer batch-render internals, dnd-kit/react-flow drag mechanics) that
+  are still accurate background for anyone editing the harness itself — the
+  old file's actual test instructions (click text "Deck", `waitForTimeout(500)`
+  fallback) were stale post-redesign and are now superseded by the harness.
+  Updated `CLAUDE.md`'s Testing section and Additional Reference list to point
+  at the new contract doc first.
+
+## Remaining follow-ups (not part of this plan, tracked here for visibility)
+
+- Promote `e2e-full` from advisory to blocking once it's proven stable in CI.
+- Build the deferred `window.__aura`/`serializeGameState()` state-accessor
+  (see `docs/testing/e2e.md`) when there's a concrete sync/persistence-race
+  regression to guard against.
+- Triage the 6 suspected product bugs Phase 3 surfaced (listed in
+  `docs/testing/e2e.md` and in full in the Phase 3 log entry above) — none
+  were fixed as part of this rehab.
+- Close/clean up `.claude/worktrees/e2e-tests` — mined for reference during
+  Phase 1, never merged, now superseded by the harness on this branch.

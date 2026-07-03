@@ -74,11 +74,12 @@ Each feature owns its UI, business logic, and types:
 
 Unit tests: vitest + happy-dom + React Testing Library. Files live next to source (`*.test.ts` / `*.test.tsx`). Test helpers for Yjs: create a real `Y.Doc` rather than mocking it. Conventions (query ladder, mocking policy, harness, reference examples) are in `tests/testing-react.md` — follow `CardPreview.test.tsx`, not `DeckImportModal.test.tsx`.
 
-E2e tests: Playwright under `tests/e2e/`. See `tests/testing.md` for PileViewer patterns, dnd-kit drag simulation (use manual mouse events, not `dragTo()`), and card-grid batch-rendering waits.
+E2e tests: Playwright under `tests/e2e/`. Write specs through `tests/e2e/harness/` (page objects, interactions, semantic waits, domain assertions, scenarios) — never raw selectors, `dragTo()`, or `waitForTimeout`. Full contract in `docs/testing/e2e.md`; `tests/testing.md` has PileViewer/dnd-kit mechanics notes.
 
 ## Additional Reference
 
 - `@tests/testing-react.md` — unit/component test conventions: query ladder, real-Yjs rule, mocking policy, harness
-- `@tests/testing.md` — PileViewer selectors, dnd-kit drag-and-drop patterns, batch-rendering waits
+- `@docs/testing/e2e.md` — E2E testing contract: harness-first rules, banned patterns, CI wiring, deferred state-assertion design
+- `@tests/testing.md` — PileViewer selectors, dnd-kit drag-and-drop mechanics
 - `@src/infrastructure/cards/CLAUDE.md` — CardLookupService architecture (Aura→Scryfall fallback)
 - `@claude_plans/react_refactor_screaming_architecture.md` — full migration plan and phase completion status
