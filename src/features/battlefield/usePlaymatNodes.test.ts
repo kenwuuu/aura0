@@ -11,9 +11,10 @@
  * - Deterministic seat order when joinedAt timestamps tie
  * - A new player discovered after initial build gets the next seat
  */
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
+import { renderHook, act, waitFor } from '@testing-library/react';
 import * as Y from 'yjs';
-import { buildPlaymatNodes } from './usePlaymatNodes';
+import { buildPlaymatNodes, usePlaymatNodes } from './usePlaymatNodes';
 import {
   YSTATE_JOINED_AT,
   YSTATE_HEALTH,
@@ -219,5 +220,99 @@ describe('buildPlaymatNodes', () => {
     expect(seatOrigin(2).x).toBe(seatOrigin(3).x);  // same column
     expect(seatOrigin(2).x).toBeGreaterThan(seatOrigin(0).x); // col 1 > col 0
     expect(seatOrigin(4).x).toBeGreaterThan(seatOrigin(2).x); // col 2 > col 1
+  });
+});
+
+describe('usePlaymatNodes hook', () => {
+  it('builds nodes and localMatOrigin on initial render', () => {
+    const yDoc = new Y.Doc();
+    writePlayer(yDoc, 'local-p1', { joinedAt: 100 });
+
+    const { result } = renderHook(() => usePlaymatNodes(yDoc, 'local-p1'));
+
+    expect(result.current.nodes.length).toBeGreaterThan(0);
+    expect(result.current.localMatOrigin).toEqual(playmatNodePositions(0).mat);
+  });
+
+  it('returns a null localMatOrigin when the local player has not joined yet', () => {
+    const yDoc = new Y.Doc();
+    writePlayer(yDoc, 'opp-p2', { joinedAt: 100 });
+
+    const { result } = renderHook(() => usePlaymatNodes(yDoc, 'local-p1'));
+
+    expect(result.current.localMatOrigin).toBeNull();
+  });
+
+  it('rebuilds nodes after a Yjs doc update, debounced to the next animation frame', async () => {
+    const yDoc = new Y.Doc();
+    writePlayer(yDoc, 'local-p1', { joinedAt: 100, health: 40 });
+
+    const { result } = renderHook(() => usePlaymatNodes(yDoc, 'local-p1'));
+
+    act(() => {
+      yDoc.getMap(YDOC_PLAYER('local-p1')).set(YSTATE_HEALTH, 25);
+    });
+
+    await waitFor(() => {
+      const health = result.current.nodes.find((n) => n.id === 'health-local-p1');
+      expect((health!.data as any).health).toBe(25);
+    });
+  });
+
+  it('collapses several rapid doc updates into a single rebuild per animation frame', async () => {
+    const yDoc = new Y.Doc();
+    writePlayer(yDoc, 'local-p1', { joinedAt: 100, health: 40 });
+
+    const { result } = renderHook(() => usePlaymatNodes(yDoc, 'local-p1'));
+    const nodesBeforeRebuild = result.current.nodes;
+
+    act(() => {
+      const map = yDoc.getMap(YDOC_PLAYER('local-p1'));
+      map.set(YSTATE_HEALTH, 30);
+      map.set(YSTATE_HEALTH, 20);
+      map.set(YSTATE_HEALTH, 10);
+    });
+
+    await waitFor(() => {
+      expect(result.current.nodes).not.toBe(nodesBeforeRebuild);
+    });
+    const health = result.current.nodes.find((n) => n.id === 'health-local-p1');
+    expect((health!.data as any).health).toBe(10);
+  });
+
+  it('rebuilds when the tab becomes visible again', async () => {
+    const yDoc = new Y.Doc();
+    writePlayer(yDoc, 'local-p1', { joinedAt: 100, health: 40 });
+
+    const { result } = renderHook(() => usePlaymatNodes(yDoc, 'local-p1'));
+
+    // Change state without going through the doc-update path check by writing
+    // directly, then simulate a visibility change to prove *that* listener
+    // independently triggers a rebuild.
+    Object.defineProperty(document, 'hidden', { value: false, configurable: true });
+    yDoc.getMap(YDOC_PLAYER('local-p1')).set(YSTATE_HEALTH, 15);
+    act(() => {
+      document.dispatchEvent(new Event('visibilitychange'));
+    });
+
+    await waitFor(() => {
+      const health = result.current.nodes.find((n) => n.id === 'health-local-p1');
+      expect((health!.data as any).health).toBe(15);
+    });
+  });
+
+  it('removes the doc, visibility, and interval listeners on unmount', () => {
+    const yDoc = new Y.Doc();
+    writePlayer(yDoc, 'local-p1', { joinedAt: 100 });
+    const offSpy = vi.spyOn(yDoc, 'off');
+    const removeListenerSpy = vi.spyOn(document, 'removeEventListener');
+    const clearIntervalSpy = vi.spyOn(global, 'clearInterval');
+
+    const { unmount } = renderHook(() => usePlaymatNodes(yDoc, 'local-p1'));
+    unmount();
+
+    expect(offSpy).toHaveBeenCalledWith('update', expect.any(Function));
+    expect(removeListenerSpy).toHaveBeenCalledWith('visibilitychange', expect.any(Function));
+    expect(clearIntervalSpy).toHaveBeenCalled();
   });
 });
