@@ -416,8 +416,10 @@ export function PileViewerReact({
         data-testid="pile-viewer"
         data-pile-type={pileType}
         onPointerDownOutside={(e) => {
-          // If the user clicks inside the tooltip, don’t close the modal
-          if (e.target instanceof HTMLElement && e.target.closest('.hotkey-tooltip-container-battlefield')) {
+          // The HotkeyMenu context-menu popover renders in a separate React
+          // root (App's), so Radix sees clicks on its rows as "outside" this
+          // Dialog and would otherwise dismiss it — don't close the modal.
+          if (e.target instanceof HTMLElement && e.target.closest('[data-hotkey-menu-content]')) {
             e.preventDefault();
           }
         }}

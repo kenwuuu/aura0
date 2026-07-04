@@ -544,3 +544,22 @@ test('testPileViewerDoesNotCloseAfterClickingTooltip', async ({ page }) => {
   await page.getByText('HHand').click();
   await expect(page.getByRole('dialog', { name: 'Search Deck' })).toBeVisible();
 });
+
+test('testPileViewerDoesNotCloseAfterMovingCardToDeckTop', async ({ page }) => {
+  // Regression: selecting a context-menu action used to close the pile
+  // viewer (Radix Dialog dismiss, then a focus-trap/portal interaction that
+  // could swallow the click entirely) even though the equivalent hotkey
+  // stays open. Exercise it from the discard viewer, where "to deck top"
+  // actually fires — from the deck viewer's own menu it's a no-op, so a
+  // silently-blocked action and a real one are indistinguishable.
+  await millCardsFromDeck(page, 'd', 7);
+  await expectPileCount(page, 'discard', 7);
+
+  await openPileViewer(page, 'discard');
+  await waitForPileViewerReady(page);
+  await secondCard(page).click({ button: 'right' });
+  await page.getByText('TTo deck top').click();
+
+  await expect(page.getByRole('dialog', { name: 'Discard Pile' })).toBeVisible();
+  await expectPileCount(page, 'discard', 6);
+});
