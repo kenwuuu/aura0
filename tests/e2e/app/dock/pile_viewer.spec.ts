@@ -381,27 +381,7 @@ test('testScryViewerCardToDiscardHotkey', async ({ page }) => {
   await expectPileCount(page, 'discard', 1);
 });
 
-// Newly-surfaced product bug (found while verifying the pile-viewer-closing
-// fix above, distinct from it): a right-click context menu opened over a
-// card in the Scry viewer works and is clickable, but clicking any row
-// (confirmed for both this and testScryViewerCardToDeckTopTooltip below)
-// closes the HotkeyMenu popover itself before its onClick handler runs — no
-// explicit close() call in the trace, no console error; Radix's own
-// onDismiss fires on the click. The equivalent keyboard hotkey path
-// (testScryViewerCardToDiscardHotkey) is unaffected. Reproduced directly:
-// the menu opens and stays open/stable if left alone (even for 1s+), but the
-// moment its own row is clicked, it dismisses instead of firing onSelect.
-// Not reproducible for deck/discard/exile pile viewers (their context menus
-// click normally) — the difference is that Scry's viewer opens immediately
-// after the NumberPrompt dialog closes, so two Radix Dialog/Popover
-// instances transition in quick succession; a wait before interacting does
-// not help (confirmed: even a stable, long-since-settled menu still
-// dismisses on its own row's click), so this isn't a simple settle-time
-// race — likely a deeper Radix dismissable-layer conflict between the
-// pile-viewer's Dialog (kept open by the fix above, as intended) and the
-// HotkeyMenu's separately-portaled Popover. Out of scope to fix here; needs
-// its own investigation. Not fixing product code.
-test.skip('testScryViewerCardToDiscardTooltip', async ({ page }) => {
+test('testScryViewerCardToDiscardTooltip', async ({ page }) => {
   await expectPileCount(page, 'discard', 0);
   await expectPileCount(page, 'deck', 92);
 
@@ -424,13 +404,7 @@ test('testScryViewerCardToDeckTopHotkey', async ({ page }) => {
   await expectPileCount(page, 'deck', 83);
 });
 
-// Same newly-surfaced Scry-specific HotkeyMenu-popover-dismiss bug documented
-// at testScryViewerCardToDiscardTooltip above. The premature pile-viewer-close
-// bug this test was originally written for (the deck over-crediting +11
-// instead of +1) is fixed — the dialog no longer closes on a hotkey-menu
-// click — but the click itself now can't land at all for Scry specifically,
-// so this can't be verified end-to-end yet.
-test.skip('testScryViewerCardToDeckTopTooltip', async ({ page }) => {
+test('testScryViewerCardToDeckTopTooltip', async ({ page }) => {
   await expectPileCount(page, 'deck', 92);
   await openScry(page, 10);
   await expectPileCount(page, 'deck', 82);

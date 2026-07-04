@@ -1,5 +1,5 @@
 import { expect, test } from '../../fixtures';
-import { boardCards, boardTokens, playCreature } from '../../harness';
+import {boardCards, boardTokens, expectPileCount, playCreature} from '../../harness';
 import { Locator } from '@playwright/test';
 
 export async function getElementOrientation(
@@ -24,7 +24,7 @@ test('testExileTooltip', async ({ page }) => {
   const tooltipRow = page.getByText('SExile');
   await tooltipRow.waitFor({ state: 'visible' });
   await tooltipRow.click();
-  await expect(page.getByText('Exile1')).toBeVisible();
+  await expectPileCount(page, 'exile', 1);
 });
 
 test('testDiscardTooltip', async ({ page }) => {
@@ -33,7 +33,7 @@ test('testDiscardTooltip', async ({ page }) => {
   const tooltipRow = page.getByText('DDiscard');
   await tooltipRow.waitFor({ state: 'visible' });
   await tooltipRow.click();
-  await expect(page.getByText('Discard1')).toBeVisible();
+  await expectPileCount(page, 'discard', 1);
 });
 
 test('testDeckTooltip', async ({ page }) => {
@@ -43,7 +43,7 @@ test('testDeckTooltip', async ({ page }) => {
   await tooltipRow.waitFor({ state: 'visible' });
   await tooltipRow.click();
 
-  await expect(page.getByText('Deck93')).toBeVisible();
+  await expectPileCount(page, 'deck', 93);
 });
 
 test('testHandTooltip', async ({ page }) => {
@@ -126,28 +126,4 @@ test('testRemoveCounterContextMenuItem', async ({ page }) => {
   await expect(boardTokens(page)).toHaveCount(tokensBefore + 1);
   const counterToken = boardTokens(page).last();
   await expect(counterToken).toHaveText('-1');
-});
-
-// this test always passes regardless if we expect Visible or Hidden
-// we want to get this working eventually
-test.skip('testTooltipDoesNotAppearAfterDrag', async ({ page }) => {
-  expect(page.getByText('Deck92'));
-
-  const tooltipText = page.getByText('SpaceTap');
-
-  const card = await playCreature(page);
-  const box = await card.boundingBox();
-
-  // Drag card
-  await page.mouse.move(box!.x + box!.width / 2, box!.y + box!.height / 2);
-  await page.mouse.down();
-  await page.mouse.move(box!.x + 100, box!.y + 100); // drag to new position
-  await page.mouse.move(box!.x - 100, box!.y - 100); // drag to new position
-  await expect(tooltipText).toBeHidden();
-  await page.mouse.up();
-
-  // Confirm that tooltip text doesn't show up. Wait for visible because if
-  // we don't, Playwright expect resolves faster than the tooltip can render
-  await page.waitForTimeout(200);
-  await expect(tooltipText).toBeVisible();
 });

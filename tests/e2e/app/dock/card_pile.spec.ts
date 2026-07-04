@@ -37,13 +37,3 @@ test('testDragBattlefieldCardToHand', async ({ page }) => {
   await dragBoardCardToHand(page, card);
   await expect(handCards(page)).toHaveCount(8);
 });
-
-// Piles are react-flow nodes now (PileNode), not drop targets for each other —
-// pile-to-pile drag was a pre-redesign #local-dock interaction and has no
-// equivalent today.
-test.skip('testDragExileToDiscard', async ({ page }) => {});
-test.skip('testDragDiscardToExile', async ({ page }) => {});
-test.skip('testDragDeckToExile', async ({ page }) => {});
-test.skip('testDragDeckToDiscard', async ({ page }) => {});
-test.skip('testDragExileToDeck', async ({ page }) => {});
-test.skip('testDragDiscardToDeck', async ({ page }) => {});

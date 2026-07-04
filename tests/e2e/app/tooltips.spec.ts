@@ -22,8 +22,3 @@ test('testTooltipShowsOnDiscard', async ({page}) => {
   await expect(page.getByText('To deck top', { exact: true })).toBeVisible();
   await expect(page.getByText('To deck bottom', { exact: true })).toBeVisible();
 });
-
-test.skip('testTooltipDoesNotDisappearWhenHoveringSecondElement', async ({ page }) => {
-
-});
-

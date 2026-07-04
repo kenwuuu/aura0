@@ -151,19 +151,13 @@ test('Actions > Reveal Hand logs reveal', async ({ page }) => {
   await expect(page.locator('text=revealed their hand')).toBeVisible({ timeout: 3000 });
 });
 
-// Suspected product bug: reopening the Actions dropdown a second time (right
-// after toggling Reveal Hand once) closes it again before a click can land —
-// confirmed directly: `getByRole('menuitem', { name: 'Reveal Hand' })` reports
-// visible immediately after reopening, but the very next `.click()` on that
-// same locator times out, and a screenshot taken right after shows the
-// dropdown fully closed with no click having registered. Toggling Reveal
-// Hand is the only stateful (non-one-shot) action in this menu, so it's
-// plausible that its state change re-renders something that resets the
-// dropdown's own `open` state. Not fixing product code per E2E-rehab scope.
-test.skip('Actions > Reveal Hand toggle off logs the stop-revealing message', async ({ page }) => {
+test('Actions > Reveal Hand toggle off logs the stop-revealing message', async ({ page }) => {
   await toolbar(page).getByText('Actions').click();
   await page.getByRole('menuitem', { name: 'Reveal Hand' }).click();
   await expect(page.locator('text=revealed their hand')).toBeVisible({ timeout: 3000 });
+
+  // sleep 250ms because if we click actions again too quickly, it fails
+  await page.waitForTimeout(250);
 
   await toolbar(page).getByText('Actions').click();
   await page.getByRole('menuitem', { name: 'Reveal Hand' }).click();

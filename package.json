@@ -83,6 +83,7 @@
     "@vitejs/plugin-react": "^5.1.1",
     "@vitest/coverage-v8": "^4.0.10",
     "@vitest/ui": "^4.0.10",
+    "baseline-browser-mapping": "^2.10.41",
     "dependency-cruiser": "^16.10.4",
     "happy-dom": "^20.0.7",
     "husky": "^9.1.7",
