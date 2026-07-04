@@ -101,6 +101,15 @@ export function executeBattlefieldCardAction(
         yCards, yTokens, playerId,
       );
       break;
+    case 'removeCounter':
+      // Mirrors the 'I' global hotkey's cursor-position spawn (useAllGameHotkeys.ts)
+      // — same template, just anchored to the card instead of the cursor.
+      spawnTokenAtPosition(
+        { title: '-1/-1', backgroundColor: '#e8e1df', count: -1 },
+        nodeCenter(card, 'card'),
+        yCards, yTokens, playerId,
+      );
+      break;
     case 'delete':
       useHotkeyMenuStore.getState().close();
       detachTokens(cardId, yTokens);

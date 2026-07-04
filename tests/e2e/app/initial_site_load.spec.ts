@@ -27,20 +27,12 @@ test('testDragCardToBoard', async ({ page }) => {
   await expect(card).toBeVisible();
 });
 
-// Suspected product bug: the toolbar's Create > Token popover
-// (TokenSubItem in GameActionsToolbar.tsx) never opens — its trigger's
-// data-state stays "closed" on both click and keyboard activation (verified
-// directly; likely a conflict between the nested Popover/DropdownMenuItem
-// Radix primitives sharing one DOM node). dragCountedTokenToBoard is
-// implemented against the correct/intended DOM shape and will work once
-// that's fixed. Not fixing product code per E2E-rehab scope.
-
-test.skip('testDragTokenToBoard', async ({ page }) => {
+test('testDragTokenToBoard', async ({ page }) => {
   await dragCountedTokenToBoard(page);
   await expect(boardToken(page)).toBeVisible();
 });
 
-test.skip('testIncrementTokenOnBoard', async ({ page }) => {
+test('testIncrementTokenOnBoard', async ({ page }) => {
   await dragCountedTokenToBoard(page);
   const token = boardToken(page);
   await expect(token).toHaveText('1');
@@ -54,7 +46,7 @@ test.skip('testIncrementTokenOnBoard', async ({ page }) => {
   await expect(token).toHaveText('4');
 });
 
-test.skip('testDecrementTokenOnBoard', async ({ page }) => {
+test('testDecrementTokenOnBoard', async ({ page }) => {
   await dragCountedTokenToBoard(page);
   const token = boardToken(page);
   await expect(token).toHaveText('1');

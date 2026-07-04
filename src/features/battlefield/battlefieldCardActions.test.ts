@@ -151,6 +151,19 @@ describe('executeBattlefieldCardAction', () => {
     });
   });
 
+  describe('removeCounter', () => {
+    it('spawns a -1/-1 token centered on the card', () => {
+      yCards.set('card-1', makeWhiteboardCard({ x: 100, y: 100 }));
+
+      executeBattlefieldCardAction('removeCounter', 'card-1', yCards, yTokens, 'p1');
+
+      const tokens = Array.from(yTokens.values());
+      expect(tokens).toHaveLength(1);
+      expect(tokens[0].title).toBe('-1/-1');
+      expect(tokens[0].attachedTo).toBe('card-1');
+    });
+  });
+
   describe('delete', () => {
     it('removes the card, detaches its tokens, and logs the removal', () => {
       yCards.set('card-1', makeWhiteboardCard({ name: 'Lightning Bolt' }));

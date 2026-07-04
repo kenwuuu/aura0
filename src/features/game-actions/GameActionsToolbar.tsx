@@ -26,7 +26,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/shared/ui/dropdown-menu';
-import { Popover, PopoverContent, PopoverTrigger } from '@/shared/ui/popover';
+import { Popover, PopoverAnchor, PopoverContent } from '@/shared/ui/popover';
 import { useGameInstance } from '@/app/stores/gameInstanceStore';
 import { YDOC_CARDS_ON_BOARD, YDOC_KEYWORD_TOKENS } from '@/constants';
 import type { WhiteboardCard } from '@/features/battlefield/types';
@@ -219,7 +219,13 @@ function TokenSubItem() {
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
+      {/* PopoverAnchor, not PopoverTrigger: we already control `open` explicitly
+          via onSelect below. A Trigger would compose its own click->onOpenChange
+          handler onto this same DropdownMenuItem, double-toggling `open` (once
+          from our onSelect, once from the Trigger's own click handling) and
+          netting out to "never opens." Anchor only supplies position, no
+          click behavior of its own. */}
+      <PopoverAnchor asChild>
         <DropdownMenuItem
           onSelect={(e) => {
             // Prevent the dropdown from closing when the popover opens.
@@ -230,7 +236,7 @@ function TokenSubItem() {
           Token
           <ChevronDown size={12} style={{ marginLeft: 'auto', opacity: 0.6, transform: open ? 'rotate(180deg)' : undefined }} />
         </DropdownMenuItem>
-      </PopoverTrigger>
+      </PopoverAnchor>
       <PopoverContent
         side="right"
         align="start"

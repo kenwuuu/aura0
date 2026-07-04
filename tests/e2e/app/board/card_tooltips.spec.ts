@@ -118,21 +118,14 @@ test('testInteractiveTooltip', async ({ page }) => {
   await expect(counterToken).toHaveText('2');
 });
 
-// Suspected product bug: the 'removeCounter' action (I hotkey / "-1/-1
-// counter" context-menu item) has no matching case in
-// executeBattlefieldCardAction's switch statement (battlefieldCardActions.ts)
-// — clicking it is currently a no-op. The sibling 'addCounter' case has a
-// TODO acknowledging this class of counter is incomplete. Not fixing product
-// code per E2E-rehab scope; skipping rather than asserting behavior that
-// doesn't exist.
-test.skip('testRemoveCounterHotkeyIsNotImplemented', async ({ page }) => {
+test('testRemoveCounterContextMenuItem', async ({ page }) => {
   const card = await playCreature(page);
   const tokensBefore = await boardTokens(page).count();
   await card.click({ button: 'right' });
   await page.getByText('I-1/-1 counter').click();
-  // Once implemented, this should spawn a "-1/-1" token the same way
-  // 'addCounter' spawns a "+1/+1" token.
   await expect(boardTokens(page)).toHaveCount(tokensBefore + 1);
+  const counterToken = boardTokens(page).last();
+  await expect(counterToken).toHaveText('-1');
 });
 
 // this test always passes regardless if we expect Visible or Hidden

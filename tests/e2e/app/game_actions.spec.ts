@@ -172,14 +172,7 @@ test.skip('Actions > Reveal Hand toggle off logs the stop-revealing message', as
 
 // ── Create: Token ─────────────────────────────────────────────────────────────
 
-// Suspected product bug: TokenSubItem (GameActionsToolbar.tsx) wraps a
-// DropdownMenuItem in a PopoverTrigger asChild and toggles `open` from the
-// item's onSelect, but the trigger's data-state never transitions to "open"
-// on click or keyboard activation (verified directly — see
-// tests/e2e/harness/interactions.ts's dragCountedTokenToBoard doc comment,
-// which depends on this same popover and is skipped for the same reason).
-// Not fixing product code per E2E-rehab scope.
-test.skip('Create > Token opens the ability-token grid', async ({ page }) => {
+test('Create > Token opens the ability-token grid', async ({ page }) => {
   await toolbar(page).getByText('Create').click();
   await page.getByRole('menuitem', { name: 'Token', exact: true }).click();
   // Keyword token grid should appear in a popover
