@@ -34,6 +34,7 @@ import { RoomConnectionStatus } from '@/features/room/RoomConnectionStatus';
 import { AddCardManager } from '@/features/deck-manager/AddCardManager';
 import { WelcomeModal } from '@/app/WelcomeModal';
 import { AnnouncementModal } from '@/app/AnnouncementModal';
+import { SettingsModal } from '@/features/settings/SettingsModal';
 import { ActionLogPanel } from '@/features/action-log/ActionLogPanel';
 import { logAction } from '@/features/action-log/actionLog';
 import { GameActionsToolbar } from '@/features/game-actions/GameActionsToolbar';
@@ -185,6 +186,7 @@ export function App({ yDoc, yjsNetworkProvider, player, roomManager, playerId, c
       <HotkeyMenu />
       <GameHotkeysManager />
       <Toaster />
+      <SettingsModal />
       {!isDevEnv && <WelcomeModal />}
       {AnnouncementsService.shouldShowAnnouncement() && (
         <AnnouncementModal onClose={() => AnnouncementsService.markAnnouncementAsSeen()} />

@@ -1,30 +1,58 @@
-import React, {useState} from 'react';
-import {YjsNetworkProvider} from "@/infrastructure/networking/YjsNetworkFactory";
+import React, { useEffect, useState } from 'react';
+import { NetworkStatusEvent, YjsNetworkProvider } from '@/infrastructure/networking/YjsNetworkFactory';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/shared/ui/tooltip';
+import { useSettingsModalStore } from '@/app/stores/settingsModalStore';
 
 interface ConnectionStatusProps {
   yjsNetworkProvider: YjsNetworkProvider,
 }
 
-export const RoomConnectionStatus: React.FC<ConnectionStatusProps> = ({yjsNetworkProvider}) => {
-  const getConnectedString = 'Connected';
-  const notConnectedString = 'Waiting for players...';
+const STATUS_TEXT: Record<NetworkStatusEvent['status'], string> = {
+  connected: 'Connected',
+  connecting: 'Waiting for players...',
+  error: "Can't reach server",
+};
 
-  const [connected, setConnected] = useState(false);
+const STATUS_COLOR: Record<NetworkStatusEvent['status'], string> = {
+  connected: '#4ade80',
+  connecting: '#facc15',
+  error: '#f87171',
+};
 
-  yjsNetworkProvider.on('status', event => {
-    if (event.status === 'connected') {
-      setConnected(true);
-    } else if (event.status === 'disconnected') {
-      setConnected(false);
-    }
-  });
+export const RoomConnectionStatus: React.FC<ConnectionStatusProps> = ({ yjsNetworkProvider }) => {
+  const [event, setEvent] = useState<NetworkStatusEvent>({ status: 'connecting' });
+  const openSettings = useSettingsModalStore((s) => s.open);
+
+  useEffect(() => {
+    const handleStatus = (next: NetworkStatusEvent) => setEvent(next);
+    yjsNetworkProvider.on('status', handleStatus);
+    return () => yjsNetworkProvider.off('status', handleStatus);
+  }, [yjsNetworkProvider]);
+
+  const label = (
+    <span style={{ color: STATUS_COLOR[event.status], cursor: event.status === 'error' ? 'pointer' : undefined }}>
+      {STATUS_TEXT[event.status]}
+    </span>
+  );
+
+  if (event.status !== 'error') {
+    return label;
+  }
 
   return (
-    <div style={{ color: connected ? '#4ade80' : '#facc15' }}>
-      {connected ?
-        getConnectedString :
-        notConnectedString}
-    </div>
-  )
-  return (<></>)
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <button
+          onClick={() => openSettings('network')}
+          style={{ background: 'none', border: 'none', padding: 0, font: 'inherit' }}
+          aria-label={`${event.message ?? 'Connection error'}. Click to open network settings.`}
+        >
+          {label}
+        </button>
+      </TooltipTrigger>
+      <TooltipContent>
+        {event.message} Click to open Settings.
+      </TooltipContent>
+    </Tooltip>
+  );
 }

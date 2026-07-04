@@ -16,6 +16,8 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { Card } from '@/features/player/types';
+import type { NetworkTransport } from '@/infrastructure/networking/YjsNetworkFactory';
+import { isManualTransportOverrideEnabled, resolveNetworkTransport } from '@/infrastructure/analytics/FeatureFlags';
 
 // --- Zoom bounds (duplicated from their original homes so the store is self-contained) ---
 export const HAND_ZOOM_MIN = 0.5;
@@ -51,6 +53,15 @@ interface SettingsStore {
   // shows live-resizing sample cards for users with an empty hand or no hovered card.
   demoHandCards: Card[] | null;
   setDemoHandCards: (cards: Card[] | null) => void;
+  // Manual override of which Yjs transport to connect with. Persisted, so it
+  // survives reloads. null means "no manual preference" — defer to the
+  // network-transport-websocket PostHog flag (see getEffectiveNetworkTransport).
+  networkTransport: NetworkTransport | null;
+  setNetworkTransport: (transport: NetworkTransport | null) => void;
+  // Overrides networkTransport for the current tab only (never persisted) —
+  // for "try WebRTC just for this session" without changing the saved default.
+  sessionNetworkTransportOverride: NetworkTransport | null;
+  setSessionNetworkTransportOverride: (transport: NetworkTransport | null) => void;
 }
 
 export const useSettingsStore = create<SettingsStore>()(
@@ -65,15 +76,36 @@ export const useSettingsStore = create<SettingsStore>()(
       setSnapToGridEnabled: (enabled) => set({ snapToGridEnabled: enabled }),
       demoHandCards: null,
       setDemoHandCards: (cards) => set({ demoHandCards: cards }),
+      networkTransport: null,
+      setNetworkTransport: (transport) => set({ networkTransport: transport }),
+      sessionNetworkTransportOverride: null,
+      setSessionNetworkTransportOverride: (transport) => set({ sessionNetworkTransportOverride: transport }),
     }),
     {
       name: 'aura:settings',
-      // Only persist user preferences — demo state is always ephemeral.
+      // Only persist durable user preferences — demo state and the session-only
+      // transport override are deliberately excluded so they reset on reload.
       partialize: (state) => ({
         handZoom: state.handZoom,
         previewZoom: state.previewZoom,
         snapToGridEnabled: state.snapToGridEnabled,
+        networkTransport: state.networkTransport,
       }),
     },
   ),
 );
+
+/**
+ * The transport to actually connect with. A manual override (session, then
+ * saved) wins, but only if the network-transport-manual-override flag allows
+ * it — otherwise (flag off, or no override set) falls back to whatever
+ * network-transport-websocket decides.
+ */
+export async function getEffectiveNetworkTransport(): Promise<NetworkTransport> {
+  if (await isManualTransportOverrideEnabled()) {
+    const state = useSettingsStore.getState();
+    const manual = state.sessionNetworkTransportOverride ?? state.networkTransport;
+    if (manual) return manual;
+  }
+  return resolveNetworkTransport();
+}

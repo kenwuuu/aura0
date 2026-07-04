@@ -56,6 +56,8 @@ export const TokenNode = memo(function TokenNode({ data, id }: NodeProps) {
 
   return (
     <div
+      data-testid="battlefield-token"
+      data-token-id={id}
       style={{
         width: TOKEN_SIZE,
         height: TOKEN_SIZE,

@@ -1,4 +1,5 @@
 import {test as base, expect, Locator} from '@playwright/test';
+import { blockAnalytics } from './harness/network';
 
 async function closeIfVisible(locator: Locator) {
   // Only try the click if the locator exists in the DOM
@@ -22,6 +23,7 @@ function generateRandomString(length: number): string {
 export const test = base.extend({
   page: async ({ page }, use) => {
 
+    await blockAnalytics(page);
     await page.goto(`/?room=${generateRandomString(30)}`, { waitUntil: 'networkidle' });
     await page.evaluate(() => localStorage.clear());
 
@@ -29,8 +31,11 @@ export const test = base.extend({
     await closeIfVisible(page.getByRole('button', { name: '× Close' }));
     await closeIfVisible(page.getByRole('button', { name: 'Got it' }));
 
-    // Optional: wait until the app is fully ready
-    await expect(page.locator('#local-dock').getByText('40', { exact: true })).toBeVisible();
+    // Wait until the app is fully ready: default deck loaded (40 health, 8-card
+    // opening hand). `#local-dock` no longer exists post-board-redesign — health
+    // and hand cards are now react-flow board nodes (see tests/e2e/harness/).
+    await expect(page.getByTestId('health-value')).toHaveValue('40');
+    await expect(page.locator('[data-testid="hand-card"]')).toHaveCount(8);
 
     // Provide the prepared page to the test
     await use(page);

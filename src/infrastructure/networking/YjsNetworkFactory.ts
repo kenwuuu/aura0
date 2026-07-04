@@ -6,9 +6,22 @@ import {WebsocketProvider} from "@/infrastructure/networking/WebsocketProvider";
 
 export type NetworkTransport = 'webrtc' | 'websocket';
 
+/**
+ * 'error' means the transport has been unable to connect for long enough that
+ * it's no longer "still trying" — the UI should surface it instead of quietly
+ * retrying forever. `message` is user-facing text explaining the failure.
+ */
+export type NetworkStatus = 'connected' | 'connecting' | 'error';
+
+export interface NetworkStatusEvent {
+  status: NetworkStatus;
+  message?: string;
+}
+
 export interface YjsNetworkProvider{
   status(): string;
-  on(event: 'status', callback: (event: { status: string }) => void): void;
+  on(event: 'status', callback: (event: NetworkStatusEvent) => void): void;
+  off(event: 'status', callback: (event: NetworkStatusEvent) => void): void;
   /**
    * Resolves once the local IndexedDB copy of the Y.Doc has fully loaded.
    * Callers must await this before seeding default state, otherwise a fresh

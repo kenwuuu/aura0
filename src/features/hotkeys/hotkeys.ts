@@ -131,7 +131,7 @@ export const HOTKEYS: Hotkey[] = [
   {
     key: 'I',
     keys: ['i'],
-    context: ['global'],
+    context: ['global', 'battlefield'],
     shortDescription: '-1/-1 counter',
     longDescription: 'Spawn -1/-1 counter token at cursor',
     action: 'removeCounter',
@@ -205,7 +205,7 @@ export const HOTKEYS: Hotkey[] = [
   {
     key: 'T',
     keys: ['t'],
-    context: ['battlefield', 'hand', 'exile', 'discard', 'scry'],
+    context: ['battlefield', 'hand', 'exile', 'discard', 'deckcard', 'scry'],
     shortDescription: 'To deck top',
     longDescription: 'Move card from hand/deck to top of deck',
     action: 'moveToDeckTop',
@@ -213,7 +213,7 @@ export const HOTKEYS: Hotkey[] = [
   {
     key: 'Y',
     keys: ['y'],
-    context: ['battlefield', 'hand', 'exile', 'discard', 'scry'],
+    context: ['battlefield', 'hand', 'exile', 'discard', 'deckcard', 'scry'],
     shortDescription: 'To deck bottom',
     longDescription: 'Move card from hand/deck to bottom of deck',
     action: 'moveToDeckBottom',

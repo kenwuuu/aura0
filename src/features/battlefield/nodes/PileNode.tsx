@@ -77,6 +77,7 @@ export const PileNode = memo(function PileNode({ data }: NodeProps) {
     <div
       ref={setNodeRef}
       className={`resource-pile ${pileKind}-pile nodrag`}
+      data-testid="pile"
       data-pile-type={pileKind}
       data-pile-owner={ownerId}
       style={{
@@ -102,7 +103,7 @@ export const PileNode = memo(function PileNode({ data }: NodeProps) {
         {PILE_LABELS[pileKind]}
         {isOpponentHand && !allowViewHand && ' 🔒'}
       </div>
-      <div className="pile-count" style={{ fontSize: 22, lineHeight: 1 }}>{count}</div>
+      <div className="pile-count" data-pile-count={count} style={{ fontSize: 22, lineHeight: 1 }}>{count}</div>
       {isLocal && pileKind === 'deck' && (
         <button
           className="draw-button"

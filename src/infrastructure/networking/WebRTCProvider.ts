@@ -48,7 +48,7 @@ import { WebrtcProvider } from 'y-webrtc';
 import { IndexeddbPersistence } from 'y-indexeddb';
 import { WebRTCConfig } from './types';
 import { restoreAwarenessState, setupAwarenessStatePersistence, AwarenessState } from './persistence';
-import {YjsNetworkProvider} from "@/infrastructure/networking/YjsNetworkFactory";
+import {NetworkStatusEvent, YjsNetworkProvider} from "@/infrastructure/networking/YjsNetworkFactory";
 
 /**
  * Main WebRTC provider class that manages peer-to-peer connections
@@ -60,6 +60,7 @@ export class WebRTCProvider implements YjsNetworkProvider{
   private persistence: IndexeddbPersistence;
   private config: WebRTCConfig;
   private cleanupAwarenessPersistence?: () => void;
+  private readonly statusListeners = new Map<(event: NetworkStatusEvent) => void, (peersEvent: { webrtcPeers: string[] }) => void>();
 
   status(): string {
     return this.provider.connected ? 'connected' : 'connecting';
@@ -70,11 +71,23 @@ export class WebRTCProvider implements YjsNetworkProvider{
     return this.persistence.whenSynced.then(() => undefined);
   }
 
-  public on(event: 'status', callback: (event: { status: string }) => void): void {
-    this.provider.on('peers', (peersEvent: { webrtcPeers: string[] }) => {
-      const status = peersEvent.webrtcPeers.length > 0 ? 'connected' : 'disconnected';
-      callback({ status });
-    });
+  public on(event: 'status', callback: (event: NetworkStatusEvent) => void): void {
+    // No peers yet is normal (alone in the room) — this transport has no
+    // separate "signaling server unreachable" signal, so unlike the websocket
+    // provider it never escalates to 'error'.
+    const wrapped = (peersEvent: { webrtcPeers: string[] }) => {
+      callback({ status: peersEvent.webrtcPeers.length > 0 ? 'connected' : 'connecting' });
+    };
+    this.statusListeners.set(callback, wrapped);
+    this.provider.on('peers', wrapped);
+  }
+
+  public off(event: 'status', callback: (event: NetworkStatusEvent) => void): void {
+    const wrapped = this.statusListeners.get(callback);
+    if (wrapped) {
+      this.provider.off('peers', wrapped);
+      this.statusListeners.delete(callback);
+    }
   }
 
   constructor(yDoc: Y.Doc, config: WebRTCConfig) {

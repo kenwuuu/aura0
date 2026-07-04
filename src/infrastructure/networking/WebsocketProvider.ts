@@ -30,7 +30,17 @@ import { WebsocketProvider as WsProvider } from "y-websocket";
 import { IndexeddbPersistence } from 'y-indexeddb';
 import { WebsocketConfig } from './types';
 import { restoreAwarenessState, setupAwarenessStatePersistence, AwarenessState } from './persistence';
-import {YjsNetworkProvider} from "@/infrastructure/networking/YjsNetworkFactory";
+import {NetworkStatusEvent, YjsNetworkProvider} from "@/infrastructure/networking/YjsNetworkFactory";
+
+/**
+ * How long the relay can stay unreachable before we stop calling it
+ * "connecting" and surface a real error to the user. y-websocket retries
+ * with exponential backoff forever on its own; this just decides when that
+ * background retrying has gone on long enough to be worth interrupting the
+ * user about.
+ */
+const CONNECTION_ERROR_GRACE_PERIOD_MS = 6000;
+const CONNECTION_ERROR_MESSAGE = "Can't reach the game server over WebSocket. Switch to WebRTC in Settings to keep playing.";
 
 /**
  * Main Websocket provider class that manages peer-to-peer connections
@@ -42,6 +52,8 @@ export class WebsocketProvider implements YjsNetworkProvider{
   private persistence: IndexeddbPersistence;
   private config: WebsocketConfig;
   private cleanupAwarenessPersistence?: () => void;
+  private disconnectedSince: number | null = null;
+  private readonly statusListeners = new Map<(event: NetworkStatusEvent) => void, (wsEvent: { status: string }) => void>();
 
   status(): string {
     return this.provider.wsconnected ? 'connected' : 'connecting';
@@ -52,10 +64,32 @@ export class WebsocketProvider implements YjsNetworkProvider{
     return this.persistence.whenSynced.then(() => undefined);
   }
 
-  public on(event: 'status', callback: (event: { status: string }) => void): void {
-    this.provider.on('status', (wsEvent: { status: string }) => {
-      callback({ status: wsEvent.status });
-    });
+  public on(event: 'status', callback: (event: NetworkStatusEvent) => void): void {
+    const wrapped = (wsEvent: { status: string }) => {
+      if (wsEvent.status === 'connected') {
+        this.disconnectedSince = null;
+        callback({ status: 'connected' });
+        return;
+      }
+
+      if (this.disconnectedSince === null) {
+        this.disconnectedSince = Date.now();
+      }
+      const stuck = Date.now() - this.disconnectedSince > CONNECTION_ERROR_GRACE_PERIOD_MS;
+      callback(stuck
+        ? { status: 'error', message: CONNECTION_ERROR_MESSAGE }
+        : { status: 'connecting' });
+    };
+    this.statusListeners.set(callback, wrapped);
+    this.provider.on('status', wrapped);
+  }
+
+  public off(event: 'status', callback: (event: NetworkStatusEvent) => void): void {
+    const wrapped = this.statusListeners.get(callback);
+    if (wrapped) {
+      this.provider.off('status', wrapped);
+      this.statusListeners.delete(callback);
+    }
   }
 
   constructor(yDoc: Y.Doc, config: WebsocketConfig) {
@@ -70,7 +104,7 @@ export class WebsocketProvider implements YjsNetworkProvider{
     this.persistence = new IndexeddbPersistence(this.config.roomName, this.yDoc);
 
     this.provider = new WsProvider(
-      'wss://ws.aura0.app',
+      'wss://digitalocean-ws-ipv4.aura0.app',
       config.roomName,
       yDoc,
     )

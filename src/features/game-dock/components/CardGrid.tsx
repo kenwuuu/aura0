@@ -129,10 +129,17 @@ export const CardGrid = React.memo(function CardGrid({
     onCardReorder?.(reordered);
   };
 
+  const renderingComplete = visibleCardCount >= localCards.length;
+
   // If reordering is disabled, render static grid
   if (!enableReordering) {
     return (
-      <div className="deck-pile-viewer-grid grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-4">
+      <div
+        className="deck-pile-viewer-grid grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-4"
+        data-rendering-complete={renderingComplete}
+        data-rendered-count={visibleCardCount}
+        data-cards-total={localCards.length}
+      >
         {localCards.map((card, index) => {
           // Position is just the index (cards are already sorted by parent component)
           const absoluteIndex = index;
@@ -179,7 +186,12 @@ export const CardGrid = React.memo(function CardGrid({
       measuring={measuringConfig}
     >
       <SortableContext items={localCards.map((c) => c.id)} strategy={rectSortingStrategy}>
-        <div className="deck-pile-viewer-grid grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-4">
+        <div
+          className="deck-pile-viewer-grid grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-4"
+          data-rendering-complete={renderingComplete}
+          data-rendered-count={visibleCardCount}
+          data-cards-total={localCards.length}
+        >
           {localCards.map((card, index) => {
             // Position is just the index (cards are already sorted by parent component)
             const absoluteIndex = index;

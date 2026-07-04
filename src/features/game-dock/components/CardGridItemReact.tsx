@@ -99,6 +99,7 @@ export const CardGridItemReact = React.memo(function CardGridItemReact({
     <div
       ref={cardRef}
       className={styles.cardGridItem}
+      data-testid="pile-viewer-card"
       data-card-id={card.id}
       tabIndex={0}
       onMouseEnter={handleMouseEnter}

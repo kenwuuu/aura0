@@ -24,6 +24,8 @@ export const EditableHealth: React.FC<EditableHealthProps> = ({ health, classNam
   return (
     <input
       className={className}
+      data-testid="health-value"
+      aria-label="Health"
       type="text"
       value={value}
       onChange={e => setValue(e.target.value.replace(/[^0-9-]/g, ''))}

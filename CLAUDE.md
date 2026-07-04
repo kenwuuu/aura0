@@ -4,18 +4,22 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What This Is
 
-Aura is a **peer-to-peer Magic: The Gathering tabletop app**. Players share a collaborative whiteboard via WebRTC — there is no backend for game state. All real-time sync uses **Yjs CRDTs** over **y-webrtc**. The only backend is a card-import API (Aura backend → Scryfall fallback).
+Aura is a **peer-to-peer Magic: The Gathering tabletop app**. Players share a collaborative whiteboard via WebRTC/WebSockets — there is no backend for game state. All real-time sync uses **Yjs CRDTs** over **y-webrtc**. The only backend is a card-import API (Aura backend → Scryfall fallback).
 
 ## Commands
 
 ```bash
-npm run dev          # start dev server at localhost:5173
-npm run build        # production build
-npm run test:run     # run unit tests once (vitest)
-npm test             # vitest watch mode
+npm run dev             # start dev server at localhost:5173
+npm run build           # production build
+npm run test:run        # run unit tests once (vitest)
+npm run test:coverage   # vitest run --coverage
+npm run test:e2e:smoke  # run smoke tests
+npm run test:e2e        # run e2e tests
+npm run verify          # single command for fast change verification 
+npm test                # vitest watch mode
 npx vitest run src/path/to/file.test.ts   # single test file
-npx playwright test  # e2e tests (requires dev server running)
-npx tsc --noEmit     # type-check
+npx playwright test     # e2e tests (requires dev server running)
+npx tsc --noEmit        # type-check
 ```
 
 ## Architecture
@@ -30,26 +34,13 @@ npx tsc --noEmit     # type-check
 2. **Zustand** — UI-only state (`src/stores/`). `gameInstanceStore` holds `yDoc`, `player`, `playerId`, `roomManager` so hotkeys and components don't need prop-drilling. `hotkeyStore` tracks what's hovered (`hoverTarget`) and modal state. Never put game mutations in Zustand — they belong in Yjs.
 
 ### Feature directories (`src/features/`)
-Each feature owns its UI, business logic, and types:
-- `battlefield/` — `BattlefieldCanvas.tsx` (react-flow board), `useBattlefieldNodes.ts` (Yjs↔react-flow bridge), `nodes/` (CardNode, TokenNode), `battlefieldCardActions.ts`
-- `game-dock/` — `GameResourcesDock.ts` (imperative class, mounts hand/pile UI), pile viewer, card grid
-- `player/` — `Player.ts` (owns all pile mutations + Yjs writes), `CardPile.ts`, `Deck.ts`
-- `hotkeys/` — `useAllGameHotkeys.ts` (single unified hook), `hotkeys.ts` (action→key bindings + `HotkeyContext`/`HotkeyScope`), `HotkeyMenu.tsx` (Radix Popover context menu)
-- `deck-manager/` — deck import, storage, persistence
-- `card-preview/` — `CardPreview.tsx` + `cardPreviewStore.ts` (Zustand, show/hide on hover)
-- `keyword-tokens/` — token type definitions
-- `opponents/` — opponent health display (Yjs-synced)
+Each feature owns its UI, business logic, and types.
 
 ### Battlefield (react-flow)
 `BattlefieldCanvas` wraps `<ReactFlow>` with controlled nodes driven by `useBattlefieldNodes`. The bridge observes `yCards`/`yTokens` and calls `setNodes`; drag writes back to Yjs only on `onNodeDragStop`. Board-to-dock card moves go through `gameInstanceStore.moveCardFromBattlefield`. Hand-to-board drops call `gameInstanceStore.playCardFromHand`; keyword-token drops are handled inside `BattlefieldCanvas.onDrop` via `screenToFlowPosition`.
 
 ### Hotkey system
 `useAllGameHotkeys` (mounted in `<GameHotkeysManager>`) reads `hoverTarget` from `hotkeyStore` to route contextual actions to the right surface (battlefield card, hand card, pile, token). Modal state switches between `HotkeyScope.Board` and `HotkeyScope.PileViewer` via `react-hotkeys-hook`'s `<HotkeysProvider>`. The context menu (`HotkeyMenu`) is a Radix Popover opened imperatively via `useHotkeyMenuStore.getState().openMenu(...)`.
-
-### Infrastructure (`src/infrastructure/`)
-- `cards/` — `CardLookupService` (Aura API → Scryfall fallback), `TokenService` (MTG token creation)
-- `networking/` — Yjs network factory (y-webrtc + y-websocket), player/peer ID persistence
-- `persistence/` — deck storage (IndexedDB via `idb`), deck persistence per room
 
 ### Path aliases
 `@/` maps to `src/`. Use it everywhere — no relative `../../` imports across features.
@@ -64,8 +55,6 @@ Each feature owns its UI, business logic, and types:
 
 **Yjs mutations always go through `Player`** for player-state (hand, deck, health). For battlefield objects, write directly to `yDoc.getMap(YDOC_CARDS_ON_BOARD)`. Never use `player.yPlayerState` directly from outside `Player.ts`.
 
-**`GameResourcesDock` is still an imperative class** (not yet converted to React). It mounts into `#local-dock` in `index.html`. React components in the dock use `usePlayerStore` (which holds `yPlayerState`) for reactive updates.
-
 **Window events still used** for battlefield→dock card moves (`moveCardFromBattlefield`). All other cross-module communication uses Zustand stores or direct Yjs access.
 
 **`src/components/`** holds modals and cross-feature UI (used by more than one feature). Feature-specific UI belongs in `src/features/<feature>/`. Generic primitives and shadcn components belong in `src/shared/`.
@@ -74,11 +63,10 @@ Each feature owns its UI, business logic, and types:
 
 Unit tests: vitest + happy-dom + React Testing Library. Files live next to source (`*.test.ts` / `*.test.tsx`). Test helpers for Yjs: create a real `Y.Doc` rather than mocking it. Conventions (query ladder, mocking policy, harness, reference examples) are in `tests/testing-react.md` — follow `CardPreview.test.tsx`, not `DeckImportModal.test.tsx`.
 
-E2e tests: Playwright under `tests/e2e/`. See `tests/testing.md` for PileViewer patterns, dnd-kit drag simulation (use manual mouse events, not `dragTo()`), and card-grid batch-rendering waits.
+E2e tests: Playwright under `tests/e2e/`. Write specs through `tests/e2e/harness/` (page objects, interactions, semantic waits, domain assertions, scenarios) — never raw selectors, `dragTo()`, or `waitForTimeout`. Full contract in `docs/testing/e2e.md`; `tests/testing.md` has PileViewer/dnd-kit mechanics notes.
 
 ## Additional Reference
 
 - `@tests/testing-react.md` — unit/component test conventions: query ladder, real-Yjs rule, mocking policy, harness
-- `@tests/testing.md` — PileViewer selectors, dnd-kit drag-and-drop patterns, batch-rendering waits
-- `@src/infrastructure/cards/CLAUDE.md` — CardLookupService architecture (Aura→Scryfall fallback)
-- `@claude_plans/react_refactor_screaming_architecture.md` — full migration plan and phase completion status
+- `@docs/testing/e2e.md` — E2E testing contract: harness-first rules, banned patterns, CI wiring, deferred state-assertion design
+- `@tests/testing.md` — PileViewer selectors, dnd-kit drag-and-drop mechanics

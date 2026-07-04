@@ -46,7 +46,13 @@ export function HotkeyMenu() {
           // Hints must never steal focus or swallow pointer events from the board.
           onOpenAutoFocus={(e) => e.preventDefault()}
           onCloseAutoFocus={(e) => e.preventDefault()}
+          // Selecting a row must not shift DOM focus off whatever was focused
+          // behind it (e.g. a card in an open PileViewer Dialog) — otherwise
+          // Radix's focus trap "steals" focus back mid-click and the click
+          // that would've landed on this row never fires.
+          onMouseDown={(e) => e.preventDefault()}
           className={styles.menu}
+          data-hotkey-menu-content
           style={{ pointerEvents: isHint ? 'none' : 'auto' }}
         >
           {title && <div className={styles.title}>{title}</div>}

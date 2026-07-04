@@ -12,7 +12,9 @@
     "test:run": "vitest run",
     "test:coverage": "vitest run --coverage",
     "typecheck": "tsc --noEmit",
-    "verify": "npm run typecheck && npm run test:coverage && npm run build",
+    "test:e2e": "playwright test --project=chromium",
+    "test:e2e:smoke": "playwright test --grep @smoke --project=chromium",
+    "verify": "npm run typecheck && npm run test:coverage && npm run build && npm run test:e2e:smoke",
     "prepare": "husky"
   },
   "lint-staged": {
@@ -33,6 +35,7 @@
     "@radix-ui/react-select": "^2.2.6",
     "@radix-ui/react-slider": "^1.4.1",
     "@radix-ui/react-slot": "^1.2.4",
+    "@radix-ui/react-tooltip": "^1.2.11",
     "@sentry/react": "^10.25.0",
     "@sentry/vite-plugin": "^4.6.0",
     "@tailwindcss/vite": "^4.1.17",
@@ -80,6 +83,7 @@
     "@vitejs/plugin-react": "^5.1.1",
     "@vitest/coverage-v8": "^4.0.10",
     "@vitest/ui": "^4.0.10",
+    "baseline-browser-mapping": "^2.10.41",
     "dependency-cruiser": "^16.10.4",
     "happy-dom": "^20.0.7",
     "husky": "^9.1.7",
