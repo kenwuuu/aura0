@@ -52,7 +52,7 @@ export async function bootstrapGame(): Promise<GameContext> {
 
   // ── 2. Networking ──────────────────────────────────────────────────────────
   const peerId = getOrCreatePeerId();
-  const transport = getEffectiveNetworkTransport();
+  const transport = await getEffectiveNetworkTransport();
   const yjsNetworkProvider = await yjsNetworkFactory.create(yDoc, {
     roomName: roomManager.getRoomName(),
     peerId,

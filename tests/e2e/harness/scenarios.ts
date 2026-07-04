@@ -4,7 +4,7 @@ import { PileKind } from './selectors';
 import { importDeck, playHandCardToBoard, dragBoardCardToPile } from './interactions';
 import { waitForSync } from './waits';
 import { expectPileCount, expectHandCount } from './assertions';
-import { blockAnalytics, forceWebRtcTransport } from './network';
+import { blockAnalytics } from './network';
 
 /**
  * Import a single-card deck and confirm it landed: one card in the opening
@@ -63,7 +63,6 @@ export async function connectSecondPlayer(page: Page): Promise<Page> {
   const context = await browser.newContext();
   const second = await context.newPage();
   await blockAnalytics(second);
-  await forceWebRtcTransport(second);
   await second.goto(page.url(), { waitUntil: 'networkidle' });
   await expect(healthInput(second)).toHaveValue('40', { timeout: 15000 });
   await expect(handCards(second)).toHaveCount(8, { timeout: 15000 });

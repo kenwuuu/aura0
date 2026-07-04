@@ -18,6 +18,7 @@ import {
 } from '@/shared/ui/dialog';
 import { SECTIONS } from './sections';
 import { useSettingsModalStore } from '@/app/stores/settingsModalStore';
+import { useManualTransportOverrideFlag } from './useManualTransportOverrideFlag';
 import styles from './SettingsModal.module.css';
 
 export function SettingsModal() {
@@ -25,7 +26,13 @@ export function SettingsModal() {
   const initialSectionId = useSettingsModalStore((s) => s.initialSectionId);
   const close = useSettingsModalStore((s) => s.close);
 
-  const [activeSectionId, setActiveSectionId] = useState(SECTIONS[0].id);
+  // 'network' is the one section gated behind a PostHog flag (rollout for
+  // the manual transport-override feature) — every other section in the
+  // registry is unconditionally visible.
+  const networkSectionEnabled = useManualTransportOverrideFlag();
+  const sections = SECTIONS.filter((s) => s.id !== 'network' || networkSectionEnabled);
+
+  const [activeSectionId, setActiveSectionId] = useState(sections[0].id);
 
   // Jump to the requested section each time the modal is opened.
   useEffect(() => {
@@ -34,7 +41,7 @@ export function SettingsModal() {
     }
   }, [isOpen, initialSectionId]);
 
-  const activeSection = SECTIONS.find((s) => s.id === activeSectionId) ?? SECTIONS[0];
+  const activeSection = sections.find((s) => s.id === activeSectionId) ?? sections[0];
   const ActiveComponent = activeSection.Component;
 
   return (
@@ -47,7 +54,7 @@ export function SettingsModal() {
         <div className={styles.shell}>
           {/* Sidebar nav */}
           <nav className={styles.sidebar} aria-label="Settings categories">
-            {SECTIONS.map((section) => {
+            {sections.map((section) => {
               const Icon = section.icon;
               const isActive = section.id === activeSectionId;
               return (
