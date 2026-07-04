@@ -9,8 +9,9 @@
  */
 import React from 'react';
 import type { LucideIcon } from 'lucide-react';
-import { Monitor } from 'lucide-react';
+import { Monitor, Wifi } from 'lucide-react';
 import { DisplaySection } from './sections/DisplaySection';
+import { NetworkSection } from './sections/NetworkSection';
 
 export interface SettingsSection {
   id: string;
@@ -25,6 +26,12 @@ export const SECTIONS: SettingsSection[] = [
     label: 'Display',
     icon: Monitor,
     Component: DisplaySection,
+  },
+  {
+    id: 'network',
+    label: 'Network',
+    icon: Wifi,
+    Component: NetworkSection,
   },
   // Future sections — append here:
   // { id: 'gameplay', label: 'Gameplay', icon: Gamepad2, Component: GameplaySection },

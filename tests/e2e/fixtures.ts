@@ -1,5 +1,5 @@
 import {test as base, expect, Locator} from '@playwright/test';
-import { blockAnalytics } from './harness/network';
+import { blockAnalytics, forceWebRtcTransport } from './harness/network';
 
 async function closeIfVisible(locator: Locator) {
   // Only try the click if the locator exists in the DOM
@@ -24,6 +24,7 @@ export const test = base.extend({
   page: async ({ page }, use) => {
 
     await blockAnalytics(page);
+    await forceWebRtcTransport(page);
     await page.goto(`/?room=${generateRandomString(30)}`, { waitUntil: 'networkidle' });
     await page.evaluate(() => localStorage.clear());
 
