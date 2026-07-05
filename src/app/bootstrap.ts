@@ -38,13 +38,6 @@ export async function bootstrapGame(): Promise<GameContext> {
   // ── 1. Core identifiers ────────────────────────────────────────────────────
   const yDoc = new Y.Doc();
 
-  // Log size of Yjs incremental update. We want to eventually reduce the size of updates
-  // from drawing a card (70KB). Board drags stream over awareness and now write Yjs only
-  // once, at drag-stop, so a single drag is one update rather than hundreds.
-  yDoc.on('update', (update: Uint8Array) => {
-    console.debug(`Yjs incremental update of size: ${update.byteLength} bytes`);
-  });
-
   const playerId = getOrCreatePlayerId();
   console.log('Player ID:', playerId);
 
