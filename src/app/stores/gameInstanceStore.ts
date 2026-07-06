@@ -139,7 +139,7 @@ export const useGameInstance = create<GameInstanceStore>((set, get) => ({
     const cardY = position.y - CARD_HEIGHT / 2;
 
     const yCards = yDoc.getMap<WhiteboardCard>(YDOC_CARDS_ON_BOARD);
-    let maxZ = 0;
+    let maxZ = 1;
     yCards.forEach((c) => { if (c.zIndex > maxZ) maxZ = c.zIndex; });
     yCards.set(card.id, { ...card, x: cardX, y: cardY, zIndex: maxZ + 1, ownerId: playerId });
     posthog.capture('card_played_to_battlefield', { card_name: card.name, is_flipped: card.isFlipped });
@@ -181,7 +181,7 @@ export const useGameInstance = create<GameInstanceStore>((set, get) => ({
     const { yDoc } = get();
     if (!yDoc) return;
     const yCards = yDoc.getMap<WhiteboardCard>(YDOC_CARDS_ON_BOARD);
-    let maxZIndex = 0;
+    let maxZIndex = 1;
     yCards.forEach((c) => { if (c.zIndex > maxZIndex) maxZIndex = c.zIndex; });
     yCards.set(card.id, { ...card, zIndex: maxZIndex + 1, ownerId });
   },

@@ -74,7 +74,7 @@ export function executeBattlefieldCardAction(
       break;
     }
     case 'copy': {
-      let maxZIndex = 0;
+      let maxZIndex = 1;
       yCards.forEach((c) => { if (c.zIndex > maxZIndex) maxZIndex = c.zIndex; });
       const newCard: WhiteboardCard = {
         ...card,

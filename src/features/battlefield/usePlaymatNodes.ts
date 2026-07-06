@@ -88,8 +88,15 @@ export function buildPlaymatNodes(yDoc: Y.Doc, localPlayerId: string): Node[] {
       data: { ownerId: playerId, isLocal, name, health, customCounters, yDoc },
       zIndex: 1, // explicitly above the playmat's 0 — don't rely on push-order tiebreaking
       draggable: false,
-      width: HEALTH_WIDGET_WIDTH,
-      height: HEALTH_WIDGET_HEIGHT,
+      // initialWidth/Height (not width/height) so React Flow uses these only as a
+      // first-paint hint, then measures the real widget. The visible widget is
+      // width: fit-content and grows on hover (counter strip), so a hardcoded
+      // width/height would pin the wrapper to a fixed box wider than the content —
+      // leaving a transparent, pointer-events:all strip that blocks dragging cards
+      // beneath it. These still satisfy nodeHasDimensions() to avoid the
+      // disappear-on-tab-switch flash. See boardWorld.ts HEALTH_WIDGET_* notes.
+      initialWidth: HEALTH_WIDGET_WIDTH,
+      initialHeight: HEALTH_WIDGET_HEIGHT,
     });
 
     // Deck pile

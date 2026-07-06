@@ -6,7 +6,7 @@ import { findParent, NODE_SIZES } from './nodeAttachment';
 import { logAction } from '@/features/action-log/actionLog';
 
 export function getMaxZIndex(yCards: Y.Map<WhiteboardCard>, yTokens: Y.Map<KeywordToken>): number {
-  let max = 0;
+  let max = 1;
   yCards.forEach((c) => { if (c.zIndex > max) max = c.zIndex; });
   yTokens.forEach((t) => { if (t.zIndex > max) max = t.zIndex; });
   return max;

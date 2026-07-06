@@ -108,9 +108,9 @@ describe('spawnTokenAtPosition', () => {
 });
 
 describe('getMaxZIndex', () => {
-  it('is 0 when both maps are empty', () => {
+  it('is 1 when both maps are empty', () => {
     const yDoc = new Y.Doc();
-    expect(getMaxZIndex(yDoc.getMap('cards'), yDoc.getMap('tokens'))).toBe(0);
+    expect(getMaxZIndex(yDoc.getMap('cards'), yDoc.getMap('tokens'))).toBe(1);
   });
 
   it('returns the highest zIndex across cards and tokens', () => {
