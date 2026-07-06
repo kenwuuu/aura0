@@ -4,7 +4,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What This Is
 
-Aura is a **peer-to-peer Magic: The Gathering tabletop app**. Players share a collaborative whiteboard via WebRTC/WebSockets — there is no backend for game state. All real-time sync uses **Yjs CRDTs** over **y-webrtc**. The only backend is a card-import API (Aura backend → Scryfall fallback).
+Aura is a **peer-to-peer Magic: The Gathering tabletop app** with a goal 
+of becoming a generic card-game platform with MTG specifics (command 
+zone, commander auto-draw) as plugins. Players share 
+a collaborative whiteboard via WebRTC/WebSockets — there is no backend for 
+game state. All real-time sync uses **Yjs CRDTs** over **y-webrtc**. The 
+only backend is a card-import API (Aura backend → Scryfall fallback).
 
 ## Commands
 
