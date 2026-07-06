@@ -27,8 +27,11 @@ export default defineConfig({
     : [['html', { open: 'never' }]],
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
-    /* Base URL to use in actions like `await page.goto('')`. */
-    baseURL: 'http://localhost:5173',
+    /* Base URL to use in actions like `await page.goto('')`. Overridable via
+       PLAYWRIGHT_BASE_URL to run the @smoke suite against a deployed
+       Cloudflare Pages URL post-deploy (see
+       .github/workflows/post-deploy-smoke.yml) instead of localhost. */
+    baseURL: process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:5173',
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     trace: 'on-first-retry',
   },
@@ -82,10 +85,13 @@ export default defineConfig({
     // },
   ],
 
-  /* Run your local dev server before starting the tests */
-  webServer: {
-    command: 'npm run dev',
-    url: 'http://localhost:5173',
-    reuseExistingServer: !process.env.CI,
-  },
+  /* Run your local dev server before starting the tests — skipped when
+     PLAYWRIGHT_BASE_URL points at an already-deployed URL (nothing to boot). */
+  webServer: process.env.PLAYWRIGHT_BASE_URL
+    ? undefined
+    : {
+        command: 'npm run dev',
+        url: 'http://localhost:5173',
+        reuseExistingServer: !process.env.CI,
+      },
 });

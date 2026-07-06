@@ -1,0 +1,60 @@
+name: Post-deploy smoke test
+
+# Cloudflare Pages' GitHub integration creates a GitHub Deployment for every
+# build and reports its status here — this is the traffic-independent,
+# fastest layer of deploy-break detection (seconds, not waiting on real
+# users). It runs the same @smoke Playwright suite used in test.yml, but
+# against the just-deployed URL instead of a local dev server.
+on:
+  deployment_status:
+
+jobs:
+  smoke:
+    if: github.event.deployment_status.state == 'success'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Best-effort — a missing POSTHOG_PERSONAL_API_KEY secret skips this
+      # rather than failing the run (see script header).
+      - name: Post PostHog deploy annotation
+        continue-on-error: true
+        env:
+          POSTHOG_PERSONAL_API_KEY: ${{ secrets.POSTHOG_PERSONAL_API_KEY }}
+        run: |
+          ./scripts/post-posthog-deploy-annotation.sh \
+            "${{ github.event.deployment_status.deployment.sha }}" \
+            "${{ github.event.deployment_status.environment }}"
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Run @smoke E2E suite against deployed URL
+        env:
+          PLAYWRIGHT_BASE_URL: ${{ github.event.deployment_status.environment_url || github.event.deployment_status.target_url }}
+        run: npm run test:e2e:smoke
+
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-post-deploy-smoke
+          path: playwright-report/
+          retention-days: 7
+
+      # Notification swap point: a failed job here already emails whoever has
+      # GitHub Actions failure notifications enabled — that's the "email now"
+      # channel with no extra wiring. To add PagerDuty/Slack/webhook later,
+      # add one step here (e.g. a webhook POST) rather than touching the rest
+      # of this workflow — this is the single seam for new destinations.
