@@ -96,19 +96,33 @@ export const TokenNode = memo(function TokenNode({ data, id }: NodeProps) {
 
       {/* count overlay */}
       {token.count !== undefined && (
-        <div style={{
-          position: 'absolute',
-          top: '-35%',
-          left: '-10%',
-          fontSize: TOKEN_SIZE * FONT_SCALE,
-          fontWeight: 'bold',
-          color: 'white',
-          textShadow: '-1px -1px 0 black, 1px -1px 0 black, -1px 1px 0 black, 1px 1px 0 black',
-          pointerEvents: 'none',
-          userSelect: 'none',
-        }}>
-          {token.count}
-        </div>
+        <svg
+          style={{
+            position: 'absolute',
+            top: '-35%',
+            left: '-10%',
+            width: TOKEN_SIZE * FONT_SCALE,
+            height: TOKEN_SIZE * FONT_SCALE,
+            pointerEvents: 'none',
+            userSelect: 'none',
+          }}
+          viewBox={`0 0 ${TOKEN_SIZE * FONT_SCALE} ${TOKEN_SIZE * FONT_SCALE}`}
+        >
+          <text
+            x="50%"
+            y="50%"
+            dominantBaseline="middle"
+            textAnchor="middle"
+            fontSize={TOKEN_SIZE * FONT_SCALE}
+            fontWeight="bold"
+            fill="white"
+            stroke="black"
+            strokeWidth="1.5"
+            paintOrder="stroke"
+          >
+            {token.count}
+          </text>
+        </svg>
       )}
     </div>
   );
