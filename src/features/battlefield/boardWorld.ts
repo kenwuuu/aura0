@@ -66,15 +66,6 @@ export function playmatNodePositions(seatIndex: number) {
   };
 }
 
-// ── Legacy band constants (kept for reference; superseded by seat grid) ───────
-export const BAND_WIDTH = 2400;
-export const BAND_HEIGHT = 900;
-export const BAND_GAP = 100;
-/** @deprecated Use seatOrigin() instead. */
-export function playerBandOrigin(bandIndex: number): { x: number; y: number } {
-  return { x: 0, y: bandIndex * (BAND_HEIGHT + BAND_GAP) };
-}
-
 // ── World bounds ──────────────────────────────────────────────────────────────
 export const WORLD_MIN_X = -500;
 export const WORLD_MIN_Y = -500;

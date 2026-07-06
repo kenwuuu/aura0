@@ -27,7 +27,7 @@ npx tsc --noEmit        # type-check
 ### Entry point flow
 `src/app/main.ts` → `bootstrapGame()` (in `bootstrap.ts`) → mounts `<App>` into `#app-react-root`.
 
-`bootstrapGame()` is the imperative wiring layer: it creates `Y.Doc`, networking, `Player`, `GameResourcesDock` (still an imperative class), and services in dependency order, then populates Zustand stores before React renders. Everything returned from `bootstrapGame()` is passed as props to `<App>`.
+`bootstrapGame()` is the imperative wiring layer: it creates `Y.Doc`, networking, `Player`, and services in dependency order, then populates Zustand stores before React renders. Everything returned from `bootstrapGame()` is passed as props to `<App>`. (`PileViewer`, in `features/game-dock/`, is the last imperative UI class — it's mounted on demand from React components, not wired here.)
 
 ### State: two layers
 1. **Yjs** — source of truth for all shared game state. Access via `yDoc.getMap(YDOC_*)` constants from `src/constants.ts`. Key maps: `YDOC_CARDS_ON_BOARD` (battlefield cards), `YDOC_KEYWORD_TOKENS` (board tokens), `YDOC_PLAYER(id)` (per-player state: hand, deck, health, etc.).
@@ -55,7 +55,7 @@ Each feature owns its UI, business logic, and types.
 
 **Yjs mutations always go through `Player`** for player-state (hand, deck, health). For battlefield objects, write directly to `yDoc.getMap(YDOC_CARDS_ON_BOARD)`. Never use `player.yPlayerState` directly from outside `Player.ts`.
 
-**Window events still used** for battlefield→dock card moves (`moveCardFromBattlefield`). All other cross-module communication uses Zustand stores or direct Yjs access.
+**One window event remains**: `'scryViewer closing'` (`PileViewerReact.tsx` ↔ `ScryManager.tsx`) signals the scry pile viewer closing. All other cross-module communication — including battlefield→dock card moves (`gameInstanceStore.moveCardFromBattlefield`) — uses Zustand stores or direct Yjs access.
 
 **`src/components/`** holds modals and cross-feature UI (used by more than one feature). Feature-specific UI belongs in `src/features/<feature>/`. Generic primitives and shadcn components belong in `src/shared/`.
 

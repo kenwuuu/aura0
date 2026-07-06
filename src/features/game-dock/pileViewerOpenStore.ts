@@ -2,11 +2,12 @@
  * PileViewer Open Store
  *
  * Zustand store providing a request-based seam so components outside the dock
- * (e.g. board PileNode) can open a PileViewer without coupling to GameResourcesDock.
+ * (e.g. board PileNode) can open a PileViewer without coupling to the dock's
+ * own components.
  *
  * Flow:
  *   PileNode click → open({ scope: 'local', pile: 'deck' })
- *   GameResourcesDock subscribes → calls its existing viewPile() → clears request
+ *   LocalPileTiles subscribes → opens the viewer → clears request
  *
  *   OpponentPileNode click → open({ scope: 'opponent', playerId, pile: 'exile' })
  *   OpponentPileViewers subscribes → opens read-only viewer → clears request

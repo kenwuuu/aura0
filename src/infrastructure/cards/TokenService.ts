@@ -14,14 +14,9 @@ export interface TokenCreationResult {
  */
 export class TokenService {
   private readonly lookup: CardLookupService;
-  private readonly getZoomLevel: () => number;
   private tokenCardNumberCounter = 10000;
 
-  constructor(
-    getBattlefieldZoomLevel: () => number,
-    lookup: CardLookupService = new CardLookupService(),
-  ) {
-    this.getZoomLevel = getBattlefieldZoomLevel;
+  constructor(lookup: CardLookupService = new CardLookupService()) {
     this.lookup = lookup;
   }
 
@@ -61,7 +56,7 @@ export class TokenService {
           type_line: tokenCardData.type_line,
           images: tokenCardData.imageUris,
           scryfallId: tokenCardData.scryfallId,
-          x: position ? position.x + (i + 1) * CARD_WIDTH * this.getZoomLevel() : 100,
+          x: position ? position.x + (i + 1) * CARD_WIDTH : 100,
           y: position ? position.y : 100,
           rotation: 0,
           isTapped: false,

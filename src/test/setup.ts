@@ -4,7 +4,6 @@ import { afterEach } from 'vitest';
 import { useGameInstance } from '@/app/stores/gameInstanceStore';
 import { usePlayerStore } from '@/app/stores/playerStore';
 import { useHotkeyStore } from '@/app/stores/hotkeyStore';
-import { useTooltipStore } from '@/app/stores/uiStore';
 import { useSettingsStore } from '@/app/stores/settingsStore';
 import { useCardPreviewStore } from '@/features/card-preview/cardPreviewStore';
 import { useHotkeyMenuStore } from '@/features/hotkeys/hotkeyMenuStore';
@@ -25,7 +24,6 @@ afterEach(() => {
   useGameInstance.getState().reset();
   usePlayerStore.setState({ yPlayerState: null });
   useHotkeyStore.setState({ hoverTarget: null, isModalOpen: false, addCardModalOpen: false });
-  useTooltipStore.setState({ isTooltipOpen: false });
   useCardPreviewStore.setState({
     card: null,
     source: null,

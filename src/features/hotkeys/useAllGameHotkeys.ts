@@ -224,7 +224,6 @@ export function useAllGameHotkeys() {
       onBattlefield('flip');
     } else if (isHand && player && t?.kind === 'hand') {
       player.flipHandCard(t.id);
-      player.syncToYState();
       useCardPreviewStore.getState().hide();
     }
   }, { ...board, enabled: isBattlefield || isHand });
