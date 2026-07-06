@@ -13,11 +13,13 @@ import type { Awareness } from 'y-protocols/awareness';
 import type { Player } from '@/features/player';
 import type { Card } from '@/features/player/types';
 import type { RoomManager } from '@/features/room';
-import { YDOC_CARDS_ON_BOARD, CARD_WIDTH, CARD_HEIGHT } from '@/constants';
+import { YDOC_CARDS_ON_BOARD, YDOC_KEYWORD_TOKENS, CARD_WIDTH, CARD_HEIGHT } from '@/constants';
 import { DeckPersistenceService } from '@/infrastructure/persistence';
 import type { TokenService } from '@/infrastructure/cards';
 import type { WhiteboardCard } from '@/features/battlefield/types';
+import type { KeywordToken } from '@/features/keyword-tokens/types';
 import { logAction, cardLogName } from '@/features/action-log/actionLog';
+import { getMaxZIndex } from '@/features/battlefield/spawnToken';
 
 type BattlefieldDestination = 'hand' | 'exile' | 'discard' | 'deck';
 
@@ -36,8 +38,8 @@ async function placeCardOnBattlefield(
   const cardY = position.y - CARD_HEIGHT / 2;
 
   const yCards = yDoc.getMap<WhiteboardCard>(YDOC_CARDS_ON_BOARD);
-  let maxZ = 1;
-  yCards.forEach((c) => { if (c.zIndex > maxZ) maxZ = c.zIndex; });
+  const yTokens = yDoc.getMap<KeywordToken>(YDOC_KEYWORD_TOKENS);
+  const maxZ = getMaxZIndex(yCards, yTokens);
   yCards.set(card.id, { ...card, x: cardX, y: cardY, zIndex: maxZ + 1, ownerId: playerId });
   posthog.capture('card_played_to_battlefield', { card_name: card.name, is_flipped: card.isFlipped });
 
@@ -205,8 +207,8 @@ export const useGameInstance = create<GameInstanceStore>((set, get) => ({
     const { yDoc } = get();
     if (!yDoc) return;
     const yCards = yDoc.getMap<WhiteboardCard>(YDOC_CARDS_ON_BOARD);
-    let maxZIndex = 1;
-    yCards.forEach((c) => { if (c.zIndex > maxZIndex) maxZIndex = c.zIndex; });
+    const yTokens = yDoc.getMap<KeywordToken>(YDOC_KEYWORD_TOKENS);
+    const maxZIndex = getMaxZIndex(yCards, yTokens);
     yCards.set(card.id, { ...card, zIndex: maxZIndex + 1, ownerId });
   },
 

@@ -1,5 +1,6 @@
 import { Card, CardImages } from '@/features/player/types';
 import { CardDataResult, ScryfallCard } from './types';
+import { makeCardId } from '@/shared/utils/ids';
 
 function extractImageUris(cardObj: ScryfallCard): CardImages {
   if (cardObj.image_uris) {
@@ -42,7 +43,7 @@ export function toCard(
   cardNumber: number = -1,
 ): Card {
   return {
-    id: `card-${Math.random().toString(36).substring(2, 11)}`,
+    id: makeCardId(),
     cardNumber,
     name: scryfallCard.name,
     type_line: scryfallCard.type_line,

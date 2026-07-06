@@ -10,6 +10,7 @@ import { CustomCounter } from '@/features/player/types';
 import { logAction } from '@/features/action-log/actionLog';
 import { resolvePlayerName } from '@/shared/utils/resolvePlayerName';
 import { useGameInstance } from '@/app/stores/gameInstanceStore';
+import { makeCounterId } from '@/shared/utils/ids';
 
 function getOpponentMap(yDoc: Y.Doc, playerId: string): Y.Map<any> {
   return yDoc.getMap(YDOC_PLAYER(playerId));
@@ -47,7 +48,7 @@ export function addOpponentCounter(yDoc: Y.Doc, playerId: string, title: string,
   const map = getOpponentMap(yDoc, playerId);
   const counters = (map.get(YSTATE_CUSTOM_COUNTERS) as CustomCounter[] | undefined) ?? [];
   const newCounter: CustomCounter = {
-    id: `counter-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+    id: makeCounterId(),
     title,
     icon,
     value: 0,

@@ -2,6 +2,7 @@ import { DeckImporter, DeckImportResult } from './DeckImporter';
 import { DeckLineItem, parseDecklist, validateFormat } from "@/features/deck-manager/DeckListParser";
 import { CardDataResult, CardLookupService } from '@/infrastructure/cards';
 import { Card } from '@/features/player';
+import { makeCardId } from '@/shared/utils/ids';
 import * as Sentry from "@sentry/browser";
 import {
   trackImportStarted,
@@ -193,7 +194,7 @@ export class MtgTextListDeckImporter extends DeckImporter {
 
       for (let i = 0; i < result.count; i++) {
         let card: Card = {
-          id: `card-${Math.random().toString(36).substring(2, 11)}`,
+          id: makeCardId(),
           cardNumber: cardNumberCounter++,
           name: result.name,
           type_line: result.type_line,

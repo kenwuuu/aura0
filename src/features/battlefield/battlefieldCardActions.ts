@@ -13,7 +13,8 @@ import { attachedChildren, nodeCenter } from './nodeAttachment';
 import { useHotkeyMenuStore } from '@/features/hotkeys/hotkeyMenuStore';
 import { useGameInstance } from '@/app/stores/gameInstanceStore';
 import { logAction, cardLogName } from '@/features/action-log/actionLog';
-import { spawnTokenAtPosition } from './spawnToken';
+import { spawnTokenAtPosition, getMaxZIndex } from './spawnToken';
+import { makeCardId } from '@/shared/utils/ids';
 
 /** Clear `attachedTo` on any token that was attached to the given card. */
 function detachTokens(cardId: string, yTokens: Y.Map<KeywordToken>) {
@@ -74,11 +75,10 @@ export function executeBattlefieldCardAction(
       break;
     }
     case 'copy': {
-      let maxZIndex = 1;
-      yCards.forEach((c) => { if (c.zIndex > maxZIndex) maxZIndex = c.zIndex; });
+      const maxZIndex = getMaxZIndex(yCards, yTokens);
       const newCard: WhiteboardCard = {
         ...card,
-        id: `card-${Math.random().toString(36).substring(2, 11)}`,
+        id: makeCardId(),
         ownerId: playerId,
         x: card.x + 20,
         y: card.y + 20,

@@ -1,4 +1,5 @@
 import { Card } from './types';
+import { makeCardId } from '@/shared/utils/ids';
 
 export class Deck {
   private cards: Card[] = [];
@@ -9,7 +10,7 @@ export class Deck {
       // Regenerate unique IDs for all cards to prevent collisions when multiple players use the same deck
       this.cards = cards.map(card => ({
         ...card,
-        id: `card-${Math.random().toString(36).substring(2, 11)}`,
+        id: makeCardId(),
       }));
     } else {
       this.initializeDeckWithDummyCards(numDummyCards);
@@ -19,7 +20,7 @@ export class Deck {
   private initializeDeckWithDummyCards(numDummyCards: number = 0): void {
     for (let i = 0; i < numDummyCards; i++) {
       this.cards.push({
-        id: `card-${Math.random().toString(36).substring(2, 11)}`,
+        id: makeCardId(),
         cardNumber: i + 1, // Start from 1
         x: 100,
         y: 100,

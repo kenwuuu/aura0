@@ -1,5 +1,6 @@
 import {ROOM_PREFIX} from "../../constants";
 import posthog from "posthog-js";
+import { randomIdSuffix } from '@/shared/utils/ids';
 
 /**
  * Service for managing room state and tracking
@@ -37,7 +38,7 @@ export class RoomManager {
    * Generate a random room ID
    */
   private generateRoomId(): string {
-    return ROOM_PREFIX + Math.random().toString(36).substring(2, 9);
+    return ROOM_PREFIX + randomIdSuffix(7);
   }
 
   /**

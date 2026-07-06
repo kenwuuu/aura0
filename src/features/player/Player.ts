@@ -25,6 +25,7 @@ import { CardPile } from './CardPile';
 import {SavedDeck} from "@/features/player/types";
 import {trackHealthChange, trackPlayerCounterChange} from "@/infrastructure/analytics/PosthogFunctions"
 import { logAction, cardLogName } from '@/features/action-log/actionLog';
+import { makeCounterId } from '@/shared/utils/ids';
 
 export class Player {
   private playerId: string;
@@ -506,7 +507,7 @@ export class Player {
   public addCustomCounter(title: string, icon: string): void {
     const counters = this.yPlayerState.get(YSTATE_CUSTOM_COUNTERS) ?? [];
     const newCounter: CustomCounter = {
-      id: `counter-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+      id: makeCounterId(),
       title,
       icon,
       value: 0,

@@ -11,6 +11,7 @@ import {
   AlertDescription,
   AlertTitle,
 } from "@/shared/ui/alert"
+import { randomIdSuffix } from '@/shared/utils/ids';
 
 interface DeckImportModalProps {
   isOpen: boolean;
@@ -123,7 +124,7 @@ export function DeckImportModal({ isOpen, onClose, onDeckImported }: DeckImportM
 
       const savedDeck: SavedDeck = {
         metadata: {
-          id: `deck-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+          id: `deck-${Date.now()}-${randomIdSuffix(7)}`,
           name: deckName,
           source: 'scryfall',
           cardCount: result.cards.length,

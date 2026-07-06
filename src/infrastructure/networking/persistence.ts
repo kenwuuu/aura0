@@ -1,4 +1,5 @@
 import {v4 as uuidv4} from 'uuid';
+import { randomIdSuffix } from '@/shared/utils/ids';
 
 /**
  * Session Persistence Utilities
@@ -56,7 +57,7 @@ export function getOrCreatePlayerId(): string {
   let playerId = localStorage.getItem(STORAGE_KEYS.PLAYER_ID);
 
   if (!playerId) {
-    playerId = `player-${Math.random().toString(36).substring(2, 9)}`;
+    playerId = `player-${randomIdSuffix(7)}`;
     localStorage.setItem(STORAGE_KEYS.PLAYER_ID, playerId);
   }
 

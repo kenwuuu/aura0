@@ -1,6 +1,7 @@
 import { Card } from '@/features/player';
 import { CARD_WIDTH } from '@/constants';
 import { CardLookupService } from './CardLookupService';
+import { makeTokenId } from '@/shared/utils/ids';
 
 export interface TokenCreationResult {
   tokens: Card[];
@@ -50,7 +51,7 @@ export class TokenService {
         const tokenCardData = this.lookup.createCardDataResult(tokenData);
 
         const token: Card = {
-          id: `token-${Math.random().toString(36).substring(2, 11)}`,
+          id: makeTokenId(),
           cardNumber: this.tokenCardNumberCounter++,
           name: tokenCardData.name,
           type_line: tokenCardData.type_line,
