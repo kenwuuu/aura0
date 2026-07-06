@@ -30,6 +30,7 @@ import { applyHealthHoverElevation } from './healthNodeHover';
 import { WhiteboardCard } from './types';
 import { KeywordToken } from '@/features/keyword-tokens/types';
 import { attachedChildren, findParent, nodeCenter, nodeContainsPoint } from './nodeAttachment';
+import { findDropTarget, type PileDropTarget } from './dropTargetDetection';
 import { spawnTokenAtPosition, getMaxZIndex } from './spawnToken';
 import { YDOC_CARDS_ON_BOARD, YDOC_KEYWORD_TOKENS } from '@/constants';
 import { MIN_ZOOM, MAX_ZOOM, MAT_WIDTH, MAT_HEIGHT, BACKGROUND_GRID_GAP } from './boardWorld';
@@ -53,29 +54,6 @@ interface BattlefieldCanvasProps {
   localPlayerId: string;
   player: Player;
   tokenService: TokenService;
-}
-
-interface PileDropTarget {
-  pileType: 'hand' | 'exile' | 'discard' | 'deck';
-  /** ownerId from data-pile-owner, or null for dock elements (treated as local player's). */
-  ownerId: string | null;
-}
-
-function findPileType(element: Element | null): PileDropTarget | null {
-  let current = element as HTMLElement | null;
-  while (current) {
-    // Board PileNode: sets data-pile-type and data-pile-owner
-    const pt = current.dataset?.pileType;
-    if (pt === 'exile' || pt === 'discard' || pt === 'deck' || pt === 'hand') {
-      return { pileType: pt, ownerId: current.dataset?.pileOwner ?? null };
-    }
-    // Dock hand elements (legacy; kept while the dock still exists in Phase 1)
-    if (current.classList.contains('hand-container') || current.classList.contains('hand-cards')) {
-      return { pileType: 'hand', ownerId: null };
-    }
-    current = current.parentElement;
-  }
-  return null;
 }
 
 function finalizeCardDrag(
@@ -383,11 +361,13 @@ function BattlefieldCanvasInner({ yDoc, localPlayerId }: BattlefieldCanvasProps)
       if (node.type === 'card') {
         // Check if card dropped on a pile. Use elementsFromPoint (plural) because
         // the dragged card sits on top and intercepts elementFromPoint.
-        const clientX = 'clientX' in event ? event.clientX : event.touches?.[0]?.clientX ?? 0;
-        const clientY = 'clientY' in event ? event.clientY : event.touches?.[0]?.clientY ?? 0;
+        // On touchend the finger has already lifted, so `touches` is empty —
+        // the released touch's final position lives in `changedTouches` instead.
+        const clientX = 'clientX' in event ? event.clientX : event.changedTouches?.[0]?.clientX ?? 0;
+        const clientY = 'clientY' in event ? event.clientY : event.changedTouches?.[0]?.clientY ?? 0;
         let pileTarget: PileDropTarget | null = null;
         for (const el of document.elementsFromPoint(clientX, clientY)) {
-          pileTarget = findPileType(el);
+          pileTarget = findDropTarget(el);
           if (pileTarget) break;
         }
         if (pileTarget && (pileTarget.ownerId === null || pileTarget.ownerId === localPlayerId)) {

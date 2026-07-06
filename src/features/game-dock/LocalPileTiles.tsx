@@ -32,7 +32,7 @@ export function LocalPileTiles() {
           const p = playerRef.current;
           if (!p) return;
           p.removeCardFromPileById(card.id, 'deck');
-          window.dispatchEvent(new CustomEvent('playCard', { detail: { card, playerId: p.getId() } }));
+          useGameInstance.getState().playCardFromPile(card);
           deckViewerRef.current?.updateCards(p.getDeckCards());
         },
         onMoveToHand: (card) => {
@@ -84,7 +84,7 @@ export function LocalPileTiles() {
           const p = playerRef.current;
           if (!p) return;
           p.removeCardFromPileById(card.id, 'exile');
-          window.dispatchEvent(new CustomEvent('playCard', { detail: { card, playerId: p.getId() } }));
+          useGameInstance.getState().playCardFromPile(card);
           exileViewerRef.current?.updateCards(p.getState().exilePile);
         },
         onMoveToHand: (card) => {
@@ -123,7 +123,7 @@ export function LocalPileTiles() {
           const p = playerRef.current;
           if (!p) return;
           p.removeCardFromPileById(card.id, 'discard');
-          window.dispatchEvent(new CustomEvent('playCard', { detail: { card, playerId: p.getId() } }));
+          useGameInstance.getState().playCardFromPile(card);
           discardViewerRef.current?.updateCards(p.getState().discardPile);
         },
         onMoveToHand: (card) => {

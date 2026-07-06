@@ -21,6 +21,51 @@ import { logAction, cardLogName } from '@/features/action-log/actionLog';
 
 type BattlefieldDestination = 'hand' | 'exile' | 'discard' | 'deck';
 
+// Shared by playCardFromHand and playCardFromPile: places a card at a flow
+// position, logs the play, and spawns any related tokens. Playing a card has
+// the same consequences regardless of which zone it came from — the caller
+// only decides where the card lands and is responsible for having already
+// removed it from its origin zone.
+async function placeCardOnBattlefield(
+  card: Card,
+  position: { x: number; y: number },
+  ctx: { yDoc: Y.Doc; playerId: string; player: Player; tokenService: TokenService | null },
+): Promise<void> {
+  const { yDoc, playerId, player, tokenService } = ctx;
+  const cardX = position.x - CARD_WIDTH / 2;
+  const cardY = position.y - CARD_HEIGHT / 2;
+
+  const yCards = yDoc.getMap<WhiteboardCard>(YDOC_CARDS_ON_BOARD);
+  let maxZ = 0;
+  yCards.forEach((c) => { if (c.zIndex > maxZ) maxZ = c.zIndex; });
+  yCards.set(card.id, { ...card, x: cardX, y: cardY, zIndex: maxZ + 1, ownerId: playerId });
+  posthog.capture('card_played_to_battlefield', { card_name: card.name, is_flipped: card.isFlipped });
+
+  logAction(yDoc, {
+    actorId: playerId,
+    type: 'play_card',
+    text: card.isFlipped ? `played a card face down` : `played ${card.name}`,
+  });
+
+  if (tokenService && card.scryfallId) {
+    const result = await tokenService.createTokensForCard(card.scryfallId, { x: cardX, y: cardY });
+    // A face-down card's tokens would reveal what it is, so keep them off the
+    // battlefield and give the player the token cards in hand instead.
+    if (card.isFlipped) {
+      result.tokens.forEach((token) => {
+        player.placeCardInPile(token, 'hand');
+      });
+    } else {
+      result.tokens.forEach((token, i) => {
+        yCards.set(token.id, { ...token, zIndex: maxZ + 2 + i, ownerId: playerId });
+      });
+    }
+    if (result.errors.length > 0) {
+      console.warn(`Token creation errors for ${card.name}:`, result.errors);
+    }
+  }
+}
+
 interface GameInstanceStore {
   // Game instances
   yDoc: Y.Doc | null;
@@ -60,6 +105,12 @@ interface GameInstanceStore {
 
   // Play a card from hand onto the battlefield: places the card and spawns any related tokens.
   playCardFromHand: (cardId: string, clientX: number, clientY: number) => Promise<void>;
+
+  // Play a card from a pile viewer (deck/exile/discard "play to battlefield") onto the
+  // battlefield, spawning at the viewport center. Callers must have already removed the
+  // card from its origin pile. Shares placement/logging/token-spawn with playCardFromHand
+  // so a card has the same consequences regardless of which zone it was played from.
+  playCardFromPile: (card: Card) => Promise<void>;
 
   // Reset all instances (useful for cleanup)
   reset: () => void;
@@ -135,46 +186,19 @@ export const useGameInstance = create<GameInstanceStore>((set, get) => ({
     if (!card) return;
 
     const position = screenToFlowPosition({ x: clientX, y: clientY });
-    const cardX = position.x - CARD_WIDTH / 2;
-    const cardY = position.y - CARD_HEIGHT / 2;
+    await placeCardOnBattlefield(card, position, { yDoc, playerId, player, tokenService });
+  },
 
-    const yCards = yDoc.getMap<WhiteboardCard>(YDOC_CARDS_ON_BOARD);
-    let maxZ = 0;
-    yCards.forEach((c) => { if (c.zIndex > maxZ) maxZ = c.zIndex; });
-    yCards.set(card.id, { ...card, x: cardX, y: cardY, zIndex: maxZ + 1, ownerId: playerId });
-    posthog.capture('card_played_to_battlefield', { card_name: card.name, is_flipped: card.isFlipped });
+  playCardFromPile: async (card) => {
+    const { yDoc, player, playerId, screenToFlowPosition, tokenService } = get();
+    if (!yDoc || !player || !playerId) return;
 
-    if (card.isFlipped) {
-      logAction(yDoc, {
-        actorId: playerId,
-        type: 'play_card',
-        text: `played a card face down`,
-      });
-    } else {
-      logAction(yDoc, {
-        actorId: playerId,
-        type: 'play_card',
-        text: `played ${card.name}`,
-      });
-    }
-
-    if (tokenService && card.scryfallId) {
-      const result = await tokenService.createTokensForCard(card.scryfallId, { x: cardX, y: cardY });
-      // A face-down card's tokens would reveal what it is, so keep them off the
-      // battlefield and give the player the token cards in hand instead.
-      if (card.isFlipped) {
-        result.tokens.forEach((token) => {
-          player.placeCardInPile(token, 'hand');
-        });
-      } else {
-        result.tokens.forEach((token, i) => {
-          yCards.set(token.id, { ...token, zIndex: maxZ + 2 + i, ownerId: playerId });
-        });
-      }
-      if (result.errors.length > 0) {
-        console.warn(`Token creation errors for ${card.name}:`, result.errors);
-      }
-    }
+    // No drag gesture to anchor to when playing from a pile-viewer button, so
+    // land the card at the center of the visible board.
+    const position = screenToFlowPosition
+      ? screenToFlowPosition({ x: window.innerWidth / 2, y: window.innerHeight / 2 })
+      : { x: 300, y: 300 };
+    await placeCardOnBattlefield(card, position, { yDoc, playerId, player, tokenService });
   },
 
   addCardToBoard: (card, ownerId) => {
