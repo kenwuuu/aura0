@@ -5,7 +5,10 @@ Top-level application composition.
   `Player`, `GameResourcesDock`, services) in dependency order, populates Zustand stores, and returns
   a `GameContext` for `App.tsx`. Deck domain logic lives in `features/deck-manager/deckLoading.ts`.
 - `App.tsx` — single React tree; toolbar + battlefield + overlays as direct children, no portals.
-- `ToolbarButtons.tsx` — toolbar button components (Help, Hotkeys, Discord).
+- `Toolbar.tsx` — the top menu bar. Composes deck import, Hotkeys/Help/Discord, connection
+  status, and the room-link button; owns the responsive collapse into a "⋯ More" overflow menu
+  below the `sm` breakpoint (CSS-first — see the "Toolbar responsive collapse" block in
+  `src/style.css`).
 - `WelcomeModal.tsx`, `AnnouncementModal.tsx`, `HelpModal.tsx`, `PatchNotesModal.tsx` — app-shell
   modals mounted at the app root.
 - `stores/` — Zustand stores (`gameInstanceStore`, `hotkeyStore`, `playerStore`, `uiStore`). These

@@ -12,6 +12,7 @@ import {
 } from '@dnd-kit/core';
 import { snapCenterToCursor } from '@dnd-kit/modifiers';
 import { arrayMove } from '@dnd-kit/sortable';
+import { coordinatesFromPointerEvent, coordinatesFromTouchMoveEvent } from './dragDropCoordinates';
 
 import { BattlefieldCanvas } from '@/features/battlefield/BattlefieldCanvas';
 import { CardPreview } from '@/features/card-preview';
@@ -21,16 +22,13 @@ import { OpponentPileViewers } from '@/features/opponents/OpponentPileViewers';
 import { FloatingHand } from '@/features/game-dock/FloatingHand';
 import { ScryManager } from '@/features/game-dock/ScryManager';
 import { LocalPileTiles } from '@/features/game-dock/LocalPileTiles';
-import { DeckManager } from '@/features/deck-manager';
 import { loadDeck } from '@/features/deck-manager/deckLoading';
 import { RoomManager } from '@/features/room';
-import { RoomLinkButton } from '@/features/room/RoomLinkButton';
 import { Player } from '@/features/player';
 import type { Card } from '@/features/player/types';
 import { SavedDeck } from '@/features/player/types';
 import { CardLookupService, TokenService } from '@/infrastructure/cards';
 import { YjsNetworkProvider } from '@/infrastructure/networking/YjsNetworkFactory';
-import { RoomConnectionStatus } from '@/features/room/RoomConnectionStatus';
 import { AddCardManager } from '@/features/deck-manager/AddCardManager';
 import { WelcomeModal } from '@/app/WelcomeModal';
 import { AnnouncementModal } from '@/app/AnnouncementModal';
@@ -42,7 +40,7 @@ import { NumberPromptManager } from '@/features/game-actions/NumberPromptManager
 import { TokenCardSearchModal } from '@/features/game-actions/TokenCardSearchModal';
 import { Toaster } from '@/shared/ui/sonner';
 import { AnnouncementsService } from '@/shared/services/announcements/AnnouncementsService';
-import { HelpButton, HotkeysButton, DiscordButton } from './ToolbarButtons';
+import { Toolbar } from './Toolbar';
 import { useGameInstance } from './stores/gameInstanceStore';
 import { useCardPreviewStore } from '@/features/card-preview/cardPreviewStore';
 import { useSettingsStore } from './stores/settingsStore';
@@ -85,10 +83,22 @@ export function App({ yDoc, yjsNetworkProvider, player, roomManager, playerId, c
   const [activeZoom, setActiveZoom] = useState(1);
   const lastPointerRef = useRef({ x: 0, y: 0 });
 
+  // Track the live pointer position directly rather than deriving it from
+  // dnd-kit's DragEndEvent (see dragDropCoordinates.ts for why). touchmove is
+  // tracked explicitly, not just pointermove, so this stays correct even if a
+  // browser doesn't synthesize pointer-compatibility events for a touch drag.
   useEffect(() => {
-    const track = (e: PointerEvent) => { lastPointerRef.current = { x: e.clientX, y: e.clientY }; };
-    window.addEventListener('pointermove', track);
-    return () => window.removeEventListener('pointermove', track);
+    const onPointerMove = (e: PointerEvent) => { lastPointerRef.current = coordinatesFromPointerEvent(e); };
+    const onTouchMove = (e: TouchEvent) => {
+      const pos = coordinatesFromTouchMoveEvent(e);
+      if (pos) lastPointerRef.current = pos;
+    };
+    window.addEventListener('pointermove', onPointerMove);
+    window.addEventListener('touchmove', onTouchMove, { passive: true });
+    return () => {
+      window.removeEventListener('pointermove', onPointerMove);
+      window.removeEventListener('touchmove', onTouchMove);
+    };
   }, []);
 
   const sensors = useSensors(
@@ -152,16 +162,7 @@ export function App({ yDoc, yjsNetworkProvider, player, roomManager, playerId, c
   return (
     <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
       {/* ── Toolbar ── */}
-      <div id="toolbar">
-        <DeckManager onDeckSelected={handleDeckSelected} />
-        <HotkeysButton />
-        <HelpButton />
-        <DiscordButton />
-        <span id="connection-status">
-          <RoomConnectionStatus yjsNetworkProvider={yjsNetworkProvider} />
-        </span>
-        <RoomLinkButton />
-      </div>
+      <Toolbar yjsNetworkProvider={yjsNetworkProvider} onDeckSelected={handleDeckSelected} />
 
       {/* ── Battlefield (fills remaining viewport height) ── */}
       <div id="whiteboard">

@@ -1,0 +1,70 @@
+/**
+ * Advisory coverage for the top menu bar's responsive collapse
+ * (src/app/Toolbar.tsx). Below the 640px `sm` breakpoint: Hotkeys
+ * disappears, Help/Discord move into the "⋯ More" overflow menu, the
+ * connection status collapses to its dot, and the copy-link button goes
+ * icon-only. Untagged (not @smoke) per docs/testing/e2e.md — responsive
+ * layout isn't a load-bearing subsystem.
+ */
+import { test, expect } from '../../fixtures';
+import {
+  toolbar,
+  toolbarMoreButton,
+  hotkeysButton,
+  helpButton,
+  discordButton,
+  connectionStatus,
+  roomLinkButton,
+  deckImportOpenButton,
+} from '../../harness';
+
+const DESKTOP_VIEWPORT = { width: 1280, height: 800 };
+const PHONE_VIEWPORT = { width: 390, height: 844 };
+
+test.describe('toolbar responsive collapse', () => {
+  test('desktop width shows every control on one row with no overflow menu', async ({ page }) => {
+    await page.setViewportSize(DESKTOP_VIEWPORT);
+
+    await expect(deckImportOpenButton(page)).toBeVisible();
+    await expect(hotkeysButton(page)).toBeVisible();
+    await expect(helpButton(page)).toBeVisible();
+    await expect(discordButton(page)).toBeVisible();
+    await expect(connectionStatus(page)).toBeVisible();
+    await expect(roomLinkButton(page)).toBeVisible();
+    await expect(toolbarMoreButton(page)).not.toBeVisible();
+  });
+
+  test('phone width hides Hotkeys and collapses Help/Discord into the overflow menu', async ({ page }) => {
+    await page.setViewportSize(PHONE_VIEWPORT);
+
+    await expect(deckImportOpenButton(page)).toBeVisible();
+    await expect(hotkeysButton(page)).not.toBeVisible();
+    await expect(helpButton(page)).not.toBeVisible();
+    await expect(discordButton(page)).not.toBeVisible();
+    await expect(connectionStatus(page)).toBeVisible();
+    await expect(roomLinkButton(page)).toBeVisible();
+
+    const moreButton = toolbarMoreButton(page);
+    await expect(moreButton).toBeVisible();
+    await moreButton.click();
+    await expect(page.getByRole('menuitem', { name: 'Help' })).toBeVisible();
+    await expect(page.getByRole('menuitem', { name: 'Discord' })).toBeVisible();
+  });
+
+  test('phone width keeps the right-aligned cluster flush against the right edge', async ({ page }) => {
+    await page.setViewportSize(PHONE_VIEWPORT);
+
+    // The "⋯ More" trigger is the last flex child, so on phone it's the
+    // rightmost visible element — its right edge should sit close to the
+    // toolbar's own right edge (within the toolbar's horizontal padding),
+    // confirming the `margin-left: auto` right-alignment survived the
+    // collapse.
+    const moreBox = await toolbarMoreButton(page).boundingBox();
+    const toolbarBox = await toolbar(page).boundingBox();
+    expect(moreBox).not.toBeNull();
+    expect(toolbarBox).not.toBeNull();
+
+    const rightGap = (toolbarBox!.x + toolbarBox!.width) - (moreBox!.x + moreBox!.width);
+    expect(rightGap).toBeLessThan(40);
+  });
+});

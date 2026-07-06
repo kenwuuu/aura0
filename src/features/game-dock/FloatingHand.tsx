@@ -18,7 +18,11 @@ export function FloatingHand() {
   if (!yPlayerState || !playerId) return null;
 
   return (
-    <div style={{ position: 'fixed', bottom: 8, left: '50%', transform: 'translateX(-50%)', zIndex: 950 }}>
+    <div
+      data-pile-type="hand"
+      data-pile-owner={playerId}
+      style={{ position: 'fixed', bottom: 8, left: '50%', transform: 'translateX(-50%)', zIndex: 950 }}
+    >
       <HandCardsContainer
         yPlayerState={yPlayerState}
         playerId={playerId}
