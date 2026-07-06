@@ -29,9 +29,21 @@ export const RoomConnectionStatus: React.FC<ConnectionStatusProps> = ({ yjsNetwo
     return () => yjsNetworkProvider.off('status', handleStatus);
   }, [yjsNetworkProvider]);
 
+  // The dot stays visible at every width; the text label collapses below the
+  // `sm` breakpoint (see the "Toolbar responsive collapse" block in
+  // style.css) so the status stays legible without needing the full phrase.
   const label = (
-    <span style={{ color: STATUS_COLOR[event.status], cursor: event.status === 'error' ? 'pointer' : undefined }}>
-      {STATUS_TEXT[event.status]}
+    <span
+      style={{ display: 'inline-flex', alignItems: 'center', gap: 6, cursor: event.status === 'error' ? 'pointer' : undefined }}
+      aria-label={STATUS_TEXT[event.status]}
+    >
+      <span
+        aria-hidden="true"
+        style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: STATUS_COLOR[event.status], flexShrink: 0 }}
+      />
+      <span className="toolbar-collapsible-text" style={{ color: STATUS_COLOR[event.status] }}>
+        {STATUS_TEXT[event.status]}
+      </span>
     </span>
   );
 

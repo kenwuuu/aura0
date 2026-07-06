@@ -15,6 +15,10 @@ export const TESTID = {
   pileViewerCard: 'pile-viewer-card',
   deckImportOpen: 'deck-import-open',
   deckImportModal: 'deck-import-modal',
+  toolbar: 'toolbar',
+  toolbarMore: 'toolbar-more',
+  roomLink: 'room-link',
+  connectionStatus: 'connection-status',
 } as const;
 
 export type PileKind = 'deck' | 'discard' | 'exile' | 'hand';

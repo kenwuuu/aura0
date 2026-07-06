@@ -34,7 +34,8 @@ export function DeckManager({ onDeckSelected }: DeckManagerProps) {
   return (
     <>
       <button className="toolbar-button primary" data-testid="deck-import-open" onClick={handleOpenSelection}>
-        📚 Choose Deck
+        📚 <span className="toolbar-deck-label-full">Choose Deck</span>
+        <span className="toolbar-deck-label-short">Deck</span>
       </button>
 
       <DeckSelectionModal

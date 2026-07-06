@@ -836,6 +836,58 @@ body {
   border-color: #4752C4;
 }
 
+/* ── Toolbar responsive collapse ──────────────────────────────────────────
+   See src/app/Toolbar.tsx for why this is plain (unlayered) CSS rather than
+   Tailwind's `hidden`/`sm:` utility classes: those live in `@layer utilities`,
+   and per the CSS cascade-layers spec an unlayered rule (like `.toolbar-button`
+   above) always beats a layered one regardless of specificity — so a Tailwind
+   utility class here would silently lose to `.toolbar-button`'s `display:
+   flex`. Plain rules, ordered after the base `.toolbar-button`/`#room-name`
+   rules above, sidestep that entirely.
+
+   Single breakpoint at 640px (Tailwind's `sm` — see
+   src/shared/hooks/breakpoints.ts, kept in sync by hand). Below it: Hotkeys/
+   Help/Discord disappear (Help + Discord move into the "⋯ More" menu,
+   Hotkeys just goes away — it needs a keyboard), the deck-import label
+   shortens, the connection status collapses to a dot, and the copy-link
+   button goes icon-only. */
+
+.toolbar-more-trigger {
+  display: none;
+}
+
+.toolbar-deck-label-short {
+  display: none;
+}
+
+@media (max-width: 639px) {
+  #toolbar {
+    gap: 8px;
+    padding: 8px 12px;
+  }
+
+  .toolbar-hotkeys,
+  .toolbar-collapsible,
+  .toolbar-collapsible-text,
+  .toolbar-deck-label-full,
+  .toolbar-link-label {
+    display: none;
+  }
+
+  .toolbar-more-trigger {
+    display: inline-flex;
+  }
+
+  .toolbar-deck-label-short {
+    display: inline;
+  }
+
+  #room-name {
+    min-width: 0;
+    padding: 8px 10px;
+  }
+}
+
 /* ===== Deck Pile Viewer Components ===== */
 
 /* Deck Pile Viewer Modal */

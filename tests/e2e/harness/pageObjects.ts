@@ -90,3 +90,38 @@ export function deckImportModal(page: Page): Locator {
 export function whiteboard(page: Page): Locator {
   return page.locator('#whiteboard');
 }
+
+/** The top menu bar. */
+export function toolbar(page: Page): Locator {
+  return page.getByTestId(TESTID.toolbar);
+}
+
+/** The "⋯ More" overflow trigger, visible only below the toolbar's `sm` collapse breakpoint. */
+export function toolbarMoreButton(page: Page): Locator {
+  return page.getByTestId(TESTID.toolbarMore);
+}
+
+/** The "Hotkeys" button in the top bar. Hidden below the `sm` collapse breakpoint. */
+export function hotkeysButton(page: Page): Locator {
+  return toolbar(page).getByRole('button', { name: 'Hotkeys' });
+}
+
+/** The "Help" button in the top bar (desktop row; moves into the overflow menu on phone). */
+export function helpButton(page: Page): Locator {
+  return toolbar(page).getByRole('button', { name: 'Help' });
+}
+
+/** The Discord button in the top bar (desktop row; moves into the overflow menu on phone). */
+export function discordButton(page: Page): Locator {
+  return toolbar(page).getByRole('button', { name: 'Join Discord Server' });
+}
+
+/** The room connection-status indicator (dot + label). */
+export function connectionStatus(page: Page): Locator {
+  return page.getByTestId(TESTID.connectionStatus);
+}
+
+/** The "copy game link" button. */
+export function roomLinkButton(page: Page): Locator {
+  return page.getByTestId(TESTID.roomLink);
+}
