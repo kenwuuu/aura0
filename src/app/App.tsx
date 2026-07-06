@@ -25,7 +25,7 @@ import { LocalPileTiles } from '@/features/game-dock/LocalPileTiles';
 import { loadDeck } from '@/features/deck-manager/deckLoading';
 import { RoomManager } from '@/features/room';
 import { Player } from '@/features/player';
-import type { Card } from '@/features/player/types';
+import type { Card, PileType } from '@/features/player/types';
 import { SavedDeck } from '@/features/player/types';
 import { CardLookupService, TokenService } from '@/infrastructure/cards';
 import { YjsNetworkProvider } from '@/infrastructure/networking/YjsNetworkFactory';
@@ -132,7 +132,7 @@ export function App({ yDoc, yjsNetworkProvider, player, roomManager, playerId, c
       // id format: pile-{pileKind}-{ownerId}  (ownerId may contain hyphens)
       const withoutPrefix = over.id.slice('pile-'.length);
       const dashIdx = withoutPrefix.indexOf('-');
-      const pileKind = withoutPrefix.slice(0, dashIdx) as 'exile' | 'discard' | 'deck';
+      const pileKind = withoutPrefix.slice(0, dashIdx) as Exclude<PileType, 'hand' | 'scry'>;
       const pileOwnerId = withoutPrefix.slice(dashIdx + 1);
       if (pileOwnerId !== playerId) return; // only local piles
       const card = player.getState().hand.find(c => c.id === cardId);

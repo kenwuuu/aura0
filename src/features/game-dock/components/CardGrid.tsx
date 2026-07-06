@@ -28,11 +28,10 @@ import {
   arrayMove,
   rectSortingStrategy,
 } from '@dnd-kit/sortable';
-import { Card } from '@/features/player';
+import { Card, PileType } from '@/features/player';
 import { HotkeyContext, Hotkey } from '@/features/hotkeys/hotkeys';
 import { CardGridItemReact } from './CardGridItemReact';
 import { SortableCardGridItem } from './SortableCardGridItem';
-import { PileType } from './PileViewerReact';
 import styles from './PileViewerReact.module.css';
 
 export interface CardGridProps {

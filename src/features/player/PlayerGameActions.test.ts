@@ -8,13 +8,13 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import * as Y from 'yjs';
 import { Player } from './Player';
-import { Deck } from './Deck';
 import { getActionLog } from '@/features/action-log/actionLog';
+import { makeCards } from '@/test/factories';
 
 function makePlayer(cardCount = 10) {
   const yDoc = new Y.Doc();
   const playerId = 'test-player';
-  const deck = new Deck(undefined, cardCount);
+  const deck = makeCards(cardCount);
   const player = new Player(playerId, yDoc, deck, { initialHealth: 40 });
   return { yDoc, player, playerId };
 }

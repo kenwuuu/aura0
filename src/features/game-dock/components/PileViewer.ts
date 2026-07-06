@@ -5,12 +5,12 @@
  * with existing class-based API while using React components internally.
  */
 
-import { Card } from '@/features/player';
+import { Card, PileType } from '@/features/player';
 import { createRoot, Root } from 'react-dom/client';
 import React from 'react';
 import { PileViewerReact } from './PileViewerReact';
 
-export type PileType = 'deck' | 'exile' | 'discard' | 'hand' | 'scry';
+export type { PileType };
 
 export interface PileViewerCallbacks {
   onPlayToBattlefield?: (card: Card) => void;

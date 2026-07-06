@@ -20,6 +20,7 @@ import {
   YSTATE_EXILE_PILE,
   YSTATE_HAND,
   YSTATE_PLAYER_NAME,
+  YSTATE_DECK_REVEAL_COUNT,
 } from '@/constants';
 import { Card } from '@/features/player/types';
 
@@ -70,11 +71,11 @@ export function OpponentPileViewers({ yDoc, localPlayerId }: OpponentPileViewers
         observedKeysRef.current.add(key);
 
         const opponentMap = yDoc.getMap(key);
-        let prevDeckRevealCount: number = (opponentMap.get('deckRevealCount') as number | undefined) ?? 0;
+        let prevDeckRevealCount: number = (opponentMap.get(YSTATE_DECK_REVEAL_COUNT) as number | undefined) ?? 0;
 
         const observer = (event: Y.YMapEvent<any>) => {
-          if (!event.changes.keys.has('deckRevealCount')) return;
-          const count = (opponentMap.get('deckRevealCount') as number | undefined) ?? 0;
+          if (!event.changes.keys.has(YSTATE_DECK_REVEAL_COUNT)) return;
+          const count = (opponentMap.get(YSTATE_DECK_REVEAL_COUNT) as number | undefined) ?? 0;
           if (count === prevDeckRevealCount) return;
           prevDeckRevealCount = count;
 

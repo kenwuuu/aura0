@@ -1,7 +1,11 @@
-import { Card, DeckMetadata } from '@/features/player/types';
+import { DeckMetadata, SavedDeck } from '@/features/player/types';
 
-export interface DeckImportResult {
-  cards: Card[];
+/**
+ * Result of importing a deck from text. Same shape as a `SavedDeck`, except the
+ * importer doesn't know the deck's final id/name yet (assigned when the user
+ * saves it), so metadata is partial; per-card lookup failures surface as errors.
+ */
+export interface DeckImportResult extends Omit<SavedDeck, 'metadata'> {
   metadata: Partial<DeckMetadata>;
   errors?: string[];
 }

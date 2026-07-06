@@ -8,8 +8,10 @@
  * node vs. fixed-position overlay).
  */
 
+import type { PileType } from '@/features/player';
+
 export interface PileDropTarget {
-  pileType: 'hand' | 'exile' | 'discard' | 'deck';
+  pileType: Exclude<PileType, 'scry'>;
   /** ownerId from data-pile-owner, or null if the element didn't carry one. */
   ownerId: string | null;
 }

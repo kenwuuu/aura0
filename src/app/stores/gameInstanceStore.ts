@@ -10,7 +10,7 @@ import { create } from 'zustand';
 import * as Y from 'yjs';
 import posthog from 'posthog-js';
 import type { Awareness } from 'y-protocols/awareness';
-import type { Player } from '@/features/player';
+import type { Player, PileType } from '@/features/player';
 import type { Card } from '@/features/player/types';
 import type { RoomManager } from '@/features/room';
 import { YDOC_CARDS_ON_BOARD, YDOC_KEYWORD_TOKENS, CARD_WIDTH, CARD_HEIGHT } from '@/constants';
@@ -21,7 +21,6 @@ import type { KeywordToken } from '@/features/keyword-tokens/types';
 import { logAction, cardLogName } from '@/features/action-log/actionLog';
 import { getMaxZIndex } from '@/features/battlefield/spawnToken';
 
-type BattlefieldDestination = 'hand' | 'exile' | 'discard' | 'deck';
 
 // Shared by playCardFromHand and playCardFromPile: places a card at a flow
 // position, logs the play, and spawns any related tokens. Playing a card has
@@ -95,7 +94,7 @@ interface GameInstanceStore {
   moveCardToDeckBottom: (card: Card) => void;
 
   // Drag a card from the battlefield back to a dock pile (replaces the moveCardFromBattlefield window event).
-  moveCardFromBattlefield: (cardId: string, destination: BattlefieldDestination) => void;
+  moveCardFromBattlefield: (cardId: string, destination: PileType) => void;
 
   // Add a card to the battlefield (writes to yCards)
   addCardToBoard: (card: Card, ownerId: string) => void;

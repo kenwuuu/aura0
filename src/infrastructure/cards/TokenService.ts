@@ -1,6 +1,7 @@
 import { Card } from '@/features/player';
 import { CARD_WIDTH } from '@/constants';
 import { CardLookupService } from './CardLookupService';
+import { fromCardDataResult } from './ScryfallCardAdapter';
 import { makeTokenId } from '@/shared/utils/ids';
 
 export interface TokenCreationResult {
@@ -50,20 +51,12 @@ export class TokenService {
         const tokenData = await this.lookup.fetchCardById(tokenIds[i]);
         const tokenCardData = this.lookup.createCardDataResult(tokenData);
 
-        const token: Card = {
+        const token: Card = fromCardDataResult(tokenCardData, {
           id: makeTokenId(),
           cardNumber: this.tokenCardNumberCounter++,
-          name: tokenCardData.name,
-          type_line: tokenCardData.type_line,
-          images: tokenCardData.imageUris,
-          scryfallId: tokenCardData.scryfallId,
           x: position ? position.x + (i + 1) * CARD_WIDTH : 100,
           y: position ? position.y : 100,
-          rotation: 0,
-          isTapped: false,
-          isFlipped: false,
-          counters: [],
-        };
+        });
 
         tokens.push(token);
         console.log(`Created token: ${token.name}`);

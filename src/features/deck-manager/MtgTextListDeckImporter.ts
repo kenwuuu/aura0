@@ -1,8 +1,7 @@
 import { DeckImporter, DeckImportResult } from './DeckImporter';
 import { DeckLineItem, parseDecklist, validateFormat } from "@/features/deck-manager/DeckListParser";
-import { CardDataResult, CardLookupService } from '@/infrastructure/cards';
+import { CardDataResult, CardLookupService, fromCardDataResult } from '@/infrastructure/cards';
 import { Card } from '@/features/player';
-import { makeCardId } from '@/shared/utils/ids';
 import * as Sentry from "@sentry/browser";
 import {
   trackImportStarted,
@@ -193,21 +192,7 @@ export class MtgTextListDeckImporter extends DeckImporter {
       console.log(`Importing ${result.count}x ${result.name}`);
 
       for (let i = 0; i < result.count; i++) {
-        let card: Card = {
-          id: makeCardId(),
-          cardNumber: cardNumberCounter++,
-          name: result.name,
-          type_line: result.type_line,
-          images: result.imageUris,
-          oracleText: result.oracleText,
-          scryfallId: result.scryfallId,
-          x: 100,
-          y: 100,
-          rotation: 0,
-          isTapped: false,
-          isFlipped: false,
-          counters: [],
-        }
+        const card: Card = fromCardDataResult(result, { cardNumber: cardNumberCounter++ });
         deckImportResult.cards.push(card);
       }
     }

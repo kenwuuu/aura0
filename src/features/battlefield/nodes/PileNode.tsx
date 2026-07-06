@@ -7,27 +7,26 @@ import { useGameInstance } from '@/app/stores/gameInstanceStore';
 import { useHotkeyStore } from '@/app/stores/hotkeyStore';
 import { HotkeyTooltip } from '@/features/hotkeys/HotkeyTooltip';
 import { isHandViewDisabled, resolvePileOpenRequest } from './pileNodeLogic';
-
-export type PileKind = 'deck' | 'exile' | 'discard' | 'hand';
+import type { PileType } from '@/features/player';
 
 export interface PileNodeData {
   ownerId: string;
   isLocal: boolean;
-  pileKind: PileKind;
+  pileKind: Exclude<PileType, 'scry'>;
   count: number;
   /** Relevant for opponent hand pile — gates display and opening. */
   allowViewHand: boolean;
   yDoc: Y.Doc;
 }
 
-const PILE_LABELS: Record<PileKind, string> = {
+const PILE_LABELS: Record<Exclude<PileType, 'scry'>, string> = {
   deck: 'Deck',
   exile: 'Exile',
   discard: 'Discard',
   hand: 'Hand',
 };
 
-const HOTKEY_PILE_KINDS = new Set<PileKind>(['deck', 'exile', 'discard']);
+const HOTKEY_PILE_KINDS = new Set<PileType>(['deck', 'exile', 'discard']);
 
 export const PileNode = memo(function PileNode({ data }: NodeProps) {
   const d = data as unknown as PileNodeData;
@@ -58,7 +57,7 @@ export const PileNode = memo(function PileNode({ data }: NodeProps) {
     setHovered(true);
     setMousePos({ x: e.clientX, y: e.clientY });
     if (isLocal && HOTKEY_PILE_KINDS.has(pileKind)) {
-      useHotkeyStore.getState().setHoveredPile(pileKind as 'deck' | 'exile' | 'discard');
+      useHotkeyStore.getState().setHoveredPile(pileKind);
     }
   };
 

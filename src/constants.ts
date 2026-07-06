@@ -19,6 +19,9 @@ export const YSTATE_DISCARD_PILE = 'discard-pile';
 export const YSTATE_DECK_CARD_COUNT = 'deck-card-count';
 export const YSTATE_CUSTOM_COUNTERS = 'custom-counters';
 export const YSTATE_CAN_VIEW_HAND = 'allowViewHand';
+export const YSTATE_SCRY = 'scry';
+// 0=hidden, -1=all cards revealed, N>0=top N cards revealed (deck pile-viewer scry/surveil state)
+export const YSTATE_DECK_REVEAL_COUNT = 'deckRevealCount';
 // Player-chosen display name. Synced via Yjs so other peers see it. Distinct from the
 // internal player ID (YDOC_PLAYER key / ownerId), which stays stable and private.
 export const YSTATE_PLAYER_NAME = 'playerName';

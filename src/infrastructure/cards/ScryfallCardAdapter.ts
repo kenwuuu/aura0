@@ -1,6 +1,6 @@
 import { Card, CardImages } from '@/features/player/types';
+import { makeCard } from '@/features/player/makeCard';
 import { CardDataResult, ScryfallCard } from './types';
-import { makeCardId } from '@/shared/utils/ids';
 
 function extractImageUris(cardObj: ScryfallCard): CardImages {
   if (cardObj.image_uris) {
@@ -42,19 +42,31 @@ export function toCard(
   scryfallCard: ScryfallCard,
   cardNumber: number = -1,
 ): Card {
-  return {
-    id: makeCardId(),
+  return makeCard({
     cardNumber,
     name: scryfallCard.name,
     type_line: scryfallCard.type_line,
     oracleText: scryfallCard.oracle_text,
     images: extractImageUris(scryfallCard),
     scryfallId: scryfallCard.id,
-    x: 100,
-    y: 100,
-    rotation: 0,
-    isTapped: false,
-    isFlipped: false,
-    counters: [],
-  };
+  });
+}
+
+/**
+ * Build a Card from a CardDataResult (the shape returned by CardLookupService).
+ * Shared by TokenService and MtgTextListDeckImporter so both card-creation paths
+ * agree on how a looked-up card's fields map onto a battlefield/deck Card.
+ */
+export function fromCardDataResult(
+  result: CardDataResult,
+  overrides: Partial<Card> = {},
+): Card {
+  return makeCard({
+    name: result.name,
+    type_line: result.type_line,
+    oracleText: result.oracleText,
+    scryfallId: result.scryfallId,
+    images: result.imageUris,
+    ...overrides,
+  });
 }

@@ -1,8 +1,7 @@
 import * as Y from 'yjs';
 import * as Sentry from '@sentry/browser';
 import posthog from 'posthog-js';
-import { Card } from './types';
-import { Deck } from './Deck';
+import { Card, PileType } from './types';
 import { PlayerState, PlayerConfig, CustomCounter } from './types';
 import {
   YDOC_CARDS_ON_BOARD,
@@ -17,10 +16,11 @@ import {
   YSTATE_PLAYER_COLOR,
   YSTATE_JOINED_AT,
   YSTATE_CAN_VIEW_HAND,
+  YSTATE_SCRY,
+  YSTATE_DECK_REVEAL_COUNT,
 } from "@/constants";
 import { getStoredPlayerName, setStoredPlayerName } from "@/infrastructure/networking/persistence";
 import { colorFromPlayerId } from './playerColor';
-import {PileType} from '@/features/game-dock/components';
 import { CardPile } from './CardPile';
 import {SavedDeck} from "@/features/player/types";
 import {trackHealthChange, trackPlayerCounterChange} from "@/infrastructure/analytics/PosthogFunctions"
@@ -53,7 +53,7 @@ export class Player {
   constructor(
     playerId: string,
     yDoc: Y.Doc,
-    initialDeckCards: Deck | null = null,
+    initialDeckCards: Card[] | null = null,
     config: Partial<PlayerConfig> = {}
   ) {
     this.playerId = playerId;
@@ -67,8 +67,7 @@ export class Player {
     this.yTokens = yDoc.getMap(YDOC_KEYWORD_TOKENS); // Store reference to keyword tokens
 
     // Initialize state first so yPlayerState has the arrays
-    const deck = initialDeckCards ?? new Deck();
-    this.initializeState(deck);
+    this.initializeState(initialDeckCards ?? []);
 
     // Seed this player's display name into their own Yjs state so peers see it.
     // The local player owns this state, so localStorage (the name that follows the
@@ -83,7 +82,7 @@ export class Player {
     this.hand = new CardPile(this.yPlayerState, YSTATE_HAND);
     this.exile = new CardPile(this.yPlayerState, YSTATE_EXILE_PILE);
     this.discard = new CardPile(this.yPlayerState, YSTATE_DISCARD_PILE);
-    this.scry = new CardPile(this.yPlayerState, 'scry');
+    this.scry = new CardPile(this.yPlayerState, YSTATE_SCRY);
 
     this.piles = {
       hand: this.hand,
@@ -135,16 +134,16 @@ export class Player {
     });
   }
 
-  private initializeState(initialDeckCards: Deck): void {
+  private initializeState(initialDeckCards: Card[]): void {
     if (!this.yPlayerState.has(YSTATE_HEALTH)) {
       this.yPlayerState.set(YSTATE_HEALTH, this.config.initialHealth);
-      this.yPlayerState.set(YSTATE_DECK, initialDeckCards.getCards());
+      this.yPlayerState.set(YSTATE_DECK, initialDeckCards);
       this.yPlayerState.set(YSTATE_HAND, []);
       this.yPlayerState.set(YSTATE_EXILE_PILE, []);
       this.yPlayerState.set(YSTATE_DISCARD_PILE, []);
-      this.yPlayerState.set('scry', []);
+      this.yPlayerState.set(YSTATE_SCRY, []);
       this.yPlayerState.set(YSTATE_CUSTOM_COUNTERS, []);
-      this.yPlayerState.set('deckRevealCount', 0); // 0=hidden, -1=all, N>0=top N cards
+      this.yPlayerState.set(YSTATE_DECK_REVEAL_COUNT, 0);
     }
     // Write joinedAt once — determines stable seat order across all peers.
     // Written separately so reconnecting players keep their original seat.
@@ -291,7 +290,7 @@ export class Player {
     return result;
   }
 
-  public drawCardFromPile(pileType: 'deck' | 'discard' | 'exile'): Card | null {
+  public drawCardFromPile(pileType: PileType): Card | null {
     let result: Card | null = this.piles[pileType].drawCard();
     return result;
   }
@@ -565,7 +564,7 @@ export class Player {
   }
 
   public reorderHand(newOrder: Card[]): void {
-    this.yPlayerState.set('hand', newOrder);
+    this.yPlayerState.set(YSTATE_HAND, newOrder);
   }
 
   public flipHandCard(cardId: string): void {
@@ -574,7 +573,7 @@ export class Player {
     if (card) {
       const updatedCard = { ...card, isFlipped: !card.isFlipped };
       const updatedHand = hand.map(c => c.id === cardId ? updatedCard : c);
-      this.yPlayerState.set('hand', updatedHand);
+      this.yPlayerState.set(YSTATE_HAND, updatedHand);
     }
   }
 

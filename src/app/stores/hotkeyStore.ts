@@ -12,9 +12,9 @@
 
 import { create } from 'zustand';
 import { HotkeyContext } from '@/features/hotkeys/hotkeys';
+import type { PileType } from '@/features/player';
 
 export type HoverKind = 'battlefield' | 'hand' | 'pile' | 'token' | 'pileViewer';
-export type PileType = 'deck' | 'exile' | 'discard';
 
 export interface HoverTarget {
   kind: HoverKind;

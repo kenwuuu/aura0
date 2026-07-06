@@ -12,6 +12,10 @@ export interface CardImages {
   back?: CardImageUris | null; // For double-faced cards
 }
 
+/** The full set of card zones a Player owns. The single source of truth for
+ * "which pile" across battlefield drop targets, hotkeys, and pile viewers. */
+export type PileType = 'deck' | 'exile' | 'discard' | 'hand' | 'scry';
+
 export interface Card {
   id: string;
   cardNumber: number; // Persistent numbering for stack tracking
