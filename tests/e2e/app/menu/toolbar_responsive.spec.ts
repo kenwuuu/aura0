@@ -2,8 +2,8 @@
  * Advisory coverage for the top menu bar's responsive collapse
  * (src/app/Toolbar.tsx). Below the 640px `sm` breakpoint: Hotkeys
  * disappears, Help/Discord move into the "⋯ More" overflow menu, the
- * connection status collapses to its dot, and the copy-link button goes
- * icon-only. Untagged (not @smoke) per docs/testing/e2e.md — responsive
+ * connection status collapses to its dot, and the new-game/copy-link buttons
+ * go icon-only. Untagged (not @smoke) per docs/testing/e2e.md — responsive
  * layout isn't a load-bearing subsystem.
  */
 import { test, expect } from '../../fixtures';
@@ -15,6 +15,7 @@ import {
   discordButton,
   connectionStatus,
   roomLinkButton,
+  newGameButton,
   deckImportOpenButton,
 } from '../../harness';
 
@@ -30,6 +31,7 @@ test.describe('toolbar responsive collapse', () => {
     await expect(helpButton(page)).toBeVisible();
     await expect(discordButton(page)).toBeVisible();
     await expect(connectionStatus(page)).toBeVisible();
+    await expect(newGameButton(page)).toBeVisible();
     await expect(roomLinkButton(page)).toBeVisible();
     await expect(toolbarMoreButton(page)).not.toBeVisible();
   });
@@ -42,6 +44,7 @@ test.describe('toolbar responsive collapse', () => {
     await expect(helpButton(page)).not.toBeVisible();
     await expect(discordButton(page)).not.toBeVisible();
     await expect(connectionStatus(page)).toBeVisible();
+    await expect(newGameButton(page)).toBeVisible();
     await expect(roomLinkButton(page)).toBeVisible();
 
     const moreButton = toolbarMoreButton(page);

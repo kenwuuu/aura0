@@ -2,15 +2,15 @@
  * Toolbar — the top menu bar.
  *
  * Composes deck import, secondary actions (Hotkeys/Help/Discord), connection
- * status, and the room-link button into one responsive row. Below the `sm`
- * breakpoint (640px — see `src/shared/hooks/breakpoints.ts`, which mirrors
- * Tailwind's default scale):
+ * status, and the new-game/room-link buttons into one responsive row. Below
+ * the `sm` breakpoint (640px — see `src/shared/hooks/breakpoints.ts`, which
+ * mirrors Tailwind's default scale):
  *   - Hotkeys disappears entirely (it's a keyboard-shortcut reference, not
  *     useful without a keyboard) rather than moving into the overflow menu.
  *   - Help and Discord move into a "⋯ More" overflow menu.
  *   - The deck-import label shortens, the connection status collapses to a
- *     dot (see RoomConnectionStatus), and the copy-link button goes
- *     icon-only (see RoomLinkButton).
+ *     dot (see RoomConnectionStatus), and the new-game/copy-link buttons go
+ *     icon-only (see NewGameButton/RoomLinkButton).
  * The CSS half of this lives in style.css under "Toolbar responsive
  * collapse".
  *
@@ -32,6 +32,7 @@ import { HotkeysModal } from '@/features/hotkeys/HotkeysModal';
 import { HelpModal } from '@/app/HelpModal';
 import { RoomConnectionStatus } from '@/features/room/RoomConnectionStatus';
 import { RoomLinkButton } from '@/features/room/RoomLinkButton';
+import { NewGameButton } from '@/features/room/NewGameButton';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -85,6 +86,7 @@ export function Toolbar({ yjsNetworkProvider, onDeckSelected }: ToolbarProps) {
         <RoomConnectionStatus yjsNetworkProvider={yjsNetworkProvider} />
       </span>
 
+      <NewGameButton />
       <RoomLinkButton />
 
       {/* modal={false}: the "Help" item opens a Radix Dialog from onSelect.

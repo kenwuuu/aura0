@@ -4,7 +4,7 @@
  * Covers:
  * - Toolbar buttons: Untap All, Draw, Pass
  * - Actions dropdown: Draw X, Mill, Exile Top, Random Discard, Shuffle, Mulligan,
- *   Scry, Surveil, Look at Top, Reveal Hand
+ *   Scry, Surveil, Look at Top, Reveal Hand, Reset Deck
  * - Create dropdown: Token (grid visible), Token Card (search modal), Label (disabled)
  * - PileViewer: "Close & Shuffle" in deck viewer, "Exile All" in discard viewer
  */
@@ -118,6 +118,45 @@ test('Actions > Mulligan returns hand and redraws 7', async ({ page }) => {
   await toolbar(page).getByText('Actions').click();
   await page.getByRole('menuitem', { name: 'Mulligan' }).click();
   await expect(page.locator('text=took a mulligan')).toBeVisible({ timeout: 3000 });
+});
+
+// ── Actions: Reset Deck ───────────────────────────────────────────────────────
+
+test('Actions > Reset Deck confirms, then returns all cards to the deck', async ({ page }) => {
+  // Build up some non-deck state: one card milled to discard, one exiled.
+  await toolbar(page).getByText('Actions').click();
+  await page.getByRole('menuitem', { name: 'Mill' }).click();
+  await page.getByRole('dialog').locator('input').fill('1');
+  await page.getByRole('dialog').getByRole('button', { name: 'Mill' }).click();
+  await expectPileCount(page, 'discard', 1);
+
+  await toolbar(page).getByText('Actions').click();
+  await page.getByRole('menuitem', { name: 'Exile Top' }).click();
+  await expectPileCount(page, 'exile', 1);
+
+  await toolbar(page).getByText('Actions').click();
+  await page.getByRole('menuitem', { name: 'Reset Deck' }).click();
+
+  const dialog = page.getByRole('dialog', { name: 'Reset Deck?' });
+  await expect(dialog).toBeVisible({ timeout: 3000 });
+  await dialog.getByRole('button', { name: 'Reset' }).click();
+  await expect(dialog).not.toBeVisible({ timeout: 3000 });
+
+  await expectHandCount(page, 0);
+  await expectPileCount(page, 'discard', 0);
+  await expectPileCount(page, 'exile', 0);
+});
+
+test('Actions > Reset Deck Cancel leaves state untouched', async ({ page }) => {
+  await toolbar(page).getByText('Actions').click();
+  await page.getByRole('menuitem', { name: 'Reset Deck' }).click();
+
+  const dialog = page.getByRole('dialog', { name: 'Reset Deck?' });
+  await expect(dialog).toBeVisible({ timeout: 3000 });
+  await dialog.getByRole('button', { name: 'Cancel' }).click();
+  await expect(dialog).not.toBeVisible({ timeout: 3000 });
+
+  await expectHandCount(page, 8);
 });
 
 // ── Actions: Look at Top ──────────────────────────────────────────────────────

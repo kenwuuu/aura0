@@ -39,7 +39,8 @@ body {
   margin-left: auto;
 }
 
-#room-name {
+#room-name,
+#new-game-button {
   min-width: 170px;
   color: #b1b5c5;
   font-size: 12px;
@@ -51,6 +52,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 4px;
 }
 
 
@@ -882,7 +884,8 @@ body {
     display: inline;
   }
 
-  #room-name {
+  #room-name,
+  #new-game-button {
     min-width: 0;
     padding: 8px 10px;
   }

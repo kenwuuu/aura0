@@ -15,6 +15,7 @@ import { useScryStore } from '@/features/game-dock/scryStore';
 import { useSurveilStore } from '@/features/game-dock/surveilStore';
 import { useNumberPromptStore } from './numberPromptStore';
 import { useTokenCardSearchStore } from './tokenCardSearchStore';
+import { useConfirmStore } from '@/app/stores/confirmStore';
 import { logAction } from '@/features/action-log/actionLog';
 import { YDOC_KEYWORD_TOKENS } from '@/constants';
 import * as Y from 'yjs';
@@ -176,6 +177,21 @@ const mulligan: GameAction = {
   },
 };
 
+const resetDeck: GameAction = {
+  id: 'reset-deck',
+  label: 'Reset Deck',
+  surface: 'actions',
+  perform({ player }) {
+    useConfirmStore.getState().open({
+      title: 'Reset Deck?',
+      description: 'Moves your battlefield, hand, discard, and exile back into your deck, shuffles it, and resets your health.',
+      confirmLabel: 'Reset',
+      destructive: true,
+      onConfirm: () => player.reset(),
+    });
+  },
+};
+
 // ── Create dropdown ──────────────────────────────────────────────────────────
 
 const createToken: GameAction = {
@@ -223,6 +239,7 @@ export const GAME_ACTIONS: GameAction[] = [
   revealHand,
   shuffle,
   mulligan,
+  resetDeck,
   // Create menu
   createToken,
   createTokenCard,

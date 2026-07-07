@@ -57,7 +57,7 @@ test('testDecrementTokenOnBoard', async ({ page }) => {
 });
 
 test('testCopyGameLink', async ({ page }) => {
-  await page.getByRole('button', { name: 'COPY GAME LINK' }).click();
+  await page.getByRole('button', { name: 'COPY ROOM LINK' }).click();
   await page.waitForTimeout(50);
 
   // Read from clipboard

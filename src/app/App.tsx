@@ -37,6 +37,7 @@ import { ActionLogPanel } from '@/features/action-log/ActionLogPanel';
 import { logAction } from '@/features/action-log/actionLog';
 import { GameActionsToolbar } from '@/features/game-actions/GameActionsToolbar';
 import { NumberPromptManager } from '@/features/game-actions/NumberPromptManager';
+import { ConfirmDialogManager } from '@/app/ConfirmDialogManager';
 import { TokenCardSearchModal } from '@/features/game-actions/TokenCardSearchModal';
 import { Toaster } from '@/shared/ui/sonner';
 import { AnnouncementsService } from '@/shared/services/announcements/AnnouncementsService';
@@ -181,6 +182,7 @@ export function App({ yDoc, yjsNetworkProvider, player, roomManager, playerId, c
       <ActionLogPanel yDoc={yDoc} localPlayerId={playerId} />
       <GameActionsToolbar />
       <NumberPromptManager />
+      <ConfirmDialogManager />
       <TokenCardSearchModal cardLookup={cardLookup} />
       <CardPreview />
       <HotkeyMenu />

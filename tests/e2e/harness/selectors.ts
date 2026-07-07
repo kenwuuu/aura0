@@ -18,6 +18,7 @@ export const TESTID = {
   toolbar: 'toolbar',
   toolbarMore: 'toolbar-more',
   roomLink: 'room-link',
+  newGameButton: 'new-game-button',
   connectionStatus: 'connection-status',
 } as const;
 

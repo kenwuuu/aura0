@@ -121,7 +121,12 @@ export function connectionStatus(page: Page): Locator {
   return page.getByTestId(TESTID.connectionStatus);
 }
 
-/** The "copy game link" button. */
+/** The "copy room link" button. */
 export function roomLinkButton(page: Page): Locator {
   return page.getByTestId(TESTID.roomLink);
+}
+
+/** The "new game" button that opens a fresh room. */
+export function newGameButton(page: Page): Locator {
+  return page.getByTestId(TESTID.newGameButton);
 }
