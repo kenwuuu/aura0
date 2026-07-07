@@ -16,6 +16,7 @@
 import { DndContext } from '@dnd-kit/core';
 import { BattlefieldCanvas } from '@/features/battlefield/BattlefieldCanvas';
 import { GameActionsToolbar } from '@/features/game-actions/GameActionsToolbar';
+import { FloatingHand } from '@/features/game-dock/FloatingHand';
 import { CardPreview } from '@/features/card-preview';
 import { HotkeyMenu } from '@/features/hotkeys/HotkeyMenu';
 import { NumberPromptManager } from '@/features/game-actions/NumberPromptManager';
@@ -35,6 +36,7 @@ export function DemoBoard({ instance }: { instance: LocalGameInstance }) {
         />
       </div>
       <GameActionsToolbar />
+      <FloatingHand />
       <NumberPromptManager />
       <CardPreview />
       <HotkeyMenu />

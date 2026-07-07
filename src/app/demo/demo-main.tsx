@@ -15,12 +15,21 @@ import { seedDemoBoard } from './seedDemoBoard';
 import { DEFAULT_DECK } from '@/features/deck-manager/defaultDeck';
 import '@/style.css';
 
+// Board cards must not also live in the deck — a drawn card that shares an id
+// with a board card would collide. Split the list: first 4 go on the board, the
+// rest become the deck.
+const BOARD_CARD_COUNT = 4;
+const boardCards = DEFAULT_DECK.cards.slice(0, BOARD_CARD_COUNT);
+const deckCards = DEFAULT_DECK.cards.slice(BOARD_CARD_COUNT);
+
 const instance = createLocalGameInstance({
   playerId: 'demo-player',
-  deck: DEFAULT_DECK.cards,
+  deck: deckCards,
   initialHealth: 40,
 });
-seedDemoBoard(instance.yDoc, instance.playerId);
+seedDemoBoard(instance.yDoc, instance.playerId, boardCards);
+// Deal an opening hand so the FloatingHand isn't empty on load.
+instance.player.drawCards(5);
 
 const root = document.getElementById('demo-root');
 if (root) {
