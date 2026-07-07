@@ -1,5 +1,5 @@
 import { memo, useCallback } from 'react';
-import { NodeProps } from '@xyflow/react';
+import { NodeProps, Handle, Position } from '@xyflow/react';
 import * as Y from 'yjs';
 import { WhiteboardCard } from '../types';
 import { KeywordToken } from '@/features/keyword-tokens/types';
@@ -10,6 +10,7 @@ import { HotkeyContext } from '@/features/hotkeys/hotkeys';
 import { executeBattlefieldCardAction } from '../battlefieldCardActions';
 import { resolveCardFace, resolveCardRotation } from './cardNodeLogic';
 import { CARD_WIDTH, CARD_HEIGHT } from '@/constants';
+import './attachmentHandle.css';
 
 interface CardNodeData extends WhiteboardCard {
   yCards: Y.Map<WhiteboardCard>;
@@ -84,6 +85,16 @@ export const CardNode = memo(function CardNode({ data, id }: NodeProps) {
       onMouseLeave={handleMouseLeave}
       onContextMenu={handleContextMenu}
     >
+      {/* Grab-point for drawing an attachment line to another card. Hover-revealed
+          via CSS so it never clutters the board. ConnectionMode.Loose lets this
+          single handle act as both the start and the drop target of a connection. */}
+      <Handle
+        id="attach"
+        type="source"
+        position={Position.Top}
+        className="attachment-handle"
+        style={{ left: '50%', top: -6 }}
+      />
       {face.src ? (
         <img
           src={face.src}

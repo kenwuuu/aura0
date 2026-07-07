@@ -7,9 +7,13 @@ import {
   Panel,
   Node,
   ViewportPortal,
+  ConnectionMode,
   useReactFlow,
   type OnNodeDrag,
   type NodeMouseHandler,
+  type OnConnect,
+  type IsValidConnection,
+  type EdgeMouseHandler,
 } from '@xyflow/react';
 import { useDroppable } from '@dnd-kit/core';
 import '@xyflow/react/dist/style.css';
@@ -33,7 +37,9 @@ import { attachedChildren, findParent, nodeCenter, nodeContainsPoint } from './n
 import { findDropTarget, type PileDropTarget } from './dropTargetDetection';
 import { spawnTokenAtPosition, getMaxZIndex } from './spawnToken';
 import { moveCardFromBattlefield } from './battlefieldActions';
-import { YDOC_CARDS_ON_BOARD, YDOC_KEYWORD_TOKENS } from '@/constants';
+import { AttachmentEdge, ATTACHMENT_EDGE_TYPE } from './edges/AttachmentEdge';
+import { Attachment, createAttachment, removeAttachment, useAttachmentEdges } from './attachments';
+import { YDOC_CARDS_ON_BOARD, YDOC_KEYWORD_TOKENS, YDOC_ATTACHMENTS } from '@/constants';
 import { MIN_ZOOM, MAX_ZOOM, MAT_WIDTH, MAT_HEIGHT, BACKGROUND_GRID_GAP } from './boardWorld';
 import type { Player } from '@/features/player';
 import type { TokenService } from '@/infrastructure/cards';
@@ -48,6 +54,10 @@ const nodeTypes = {
   playmat: PlaymatNode,
   health: HealthNode,
   pile: PileNode,
+};
+
+const edgeTypes = {
+  [ATTACHMENT_EDGE_TYPE]: AttachmentEdge,
 };
 
 interface BattlefieldCanvasProps {
@@ -125,7 +135,11 @@ function finalizeTokenDrag(
 function BattlefieldCanvasInner({ yDoc, localPlayerId }: BattlefieldCanvasProps) {
   const yCards = yDoc.getMap<WhiteboardCard>(YDOC_CARDS_ON_BOARD);
   const yTokens = yDoc.getMap<KeywordToken>(YDOC_KEYWORD_TOKENS);
+  const yAttachments = yDoc.getMap<Attachment>(YDOC_ATTACHMENTS);
   const awareness = useGameInstance((s) => s.awareness);
+
+  // User-drawn card→card attachment lines, synced to peers via the Yjs doc.
+  const attachmentEdges = useAttachmentEdges(yAttachments);
 
   const { nodes: cardTokenNodes, onNodesChange, elevateNodes, translateNodes, setDraggingNodeIds } = useBattlefieldNodes(yCards, yTokens, localPlayerId, awareness);
   const { nodes: playmatNodes, localMatOrigin } = usePlaymatNodes(yDoc, localPlayerId);
@@ -437,6 +451,36 @@ function BattlefieldCanvasInner({ yDoc, localPlayerId }: BattlefieldCanvasProps)
     }
   }, [screenToFlowPosition, yCards, yTokens, localPlayerId]);
 
+  // A connection line may only be drawn between two distinct cards.
+  const isValidConnection: IsValidConnection = useCallback(
+    (c) => !!c.source && !!c.target && c.source !== c.target,
+    [],
+  );
+
+  // Persist a user-drawn attachment line to the shared doc (visible to peers).
+  const onConnect: OnConnect = useCallback(
+    (c) => {
+      if (!c.source || !c.target || c.source === c.target) return;
+      createAttachment(yAttachments, c.source, c.target);
+    },
+    [yAttachments],
+  );
+
+  // Click an attachment line to detach it.
+  const onEdgeClick: EdgeMouseHandler = useCallback(
+    (_, edge) => removeAttachment(yAttachments, edge.id),
+    [yAttachments],
+  );
+
+  // While a connection drag is in flight, reveal every card's handle so the drop
+  // target is discoverable (see attachmentHandle.css `.attachment-connecting`).
+  const onConnectStart = useCallback(() => {
+    document.body.classList.add('attachment-connecting');
+  }, []);
+  const onConnectEnd = useCallback(() => {
+    document.body.classList.remove('attachment-connecting');
+  }, []);
+
   // A hovered health widget is raised above every card/token so a player can
   // always see and interact with it, even when cards are stacked on top.
   // Leaving hover restores it to whatever zIndex usePlaymatNodes assigned it.
@@ -462,7 +506,7 @@ function BattlefieldCanvasInner({ yDoc, localPlayerId }: BattlefieldCanvasProps)
     <div ref={setBattlefieldRef} style={{ width: '100%', height: '100%' }} onPointerMove={onPointerMove} onPointerLeave={onPointerLeave}>
       <ReactFlow
         nodes={allNodes}
-        edges={[]}
+        edges={attachmentEdges}
         onNodesChange={onNodesChange}
         onNodeDragStart={onNodeDragStart}
         onNodeDrag={onNodeDrag}
@@ -471,6 +515,14 @@ function BattlefieldCanvasInner({ yDoc, localPlayerId }: BattlefieldCanvasProps)
         onSelectionDrag={onSelectionDrag}
         onSelectionDragStop={onSelectionDragStop}
         nodeTypes={nodeTypes}
+        edgeTypes={edgeTypes}
+        onConnect={onConnect}
+        onConnectStart={onConnectStart}
+        onConnectEnd={onConnectEnd}
+        isValidConnection={isValidConnection}
+        onEdgeClick={onEdgeClick}
+        connectionMode={ConnectionMode.Loose}
+        connectionRadius={60}
         onDragOver={onDragOver}
         onDrop={onDrop}
         // The handler also keeps pointer-events:all on non-draggable/selectable nodes (enemy cards/tokens).

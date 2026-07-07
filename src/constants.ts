@@ -10,6 +10,10 @@ export const DEFAULT_CARD_BACK = '/assets/card-back.png';
 // yDoc constants
 export const YDOC_CARDS_ON_BOARD = 'cards-on-board';
 export const YDOC_KEYWORD_TOKENS = 'tokens';
+// User-drawn card→card attachment lines (aura/equipment/enchantment enchants creature).
+// A declared, persistent relationship keyed by attachment id — independent of card
+// position, unlike token `attachedTo` which is spatial stacking. This map IS the edge list.
+export const YDOC_ATTACHMENTS = 'attachments';
 export function YDOC_PLAYER(playerId: string): string { return `player-${playerId}` }
 export const YSTATE_HEALTH = 'health';
 export const YSTATE_DECK = 'deck';

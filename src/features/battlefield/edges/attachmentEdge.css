@@ -1,0 +1,35 @@
+/*
+ * Attachment edge theming. All visual params flow through CSS custom properties
+ * so the upcoming redesign can re-skin every attachment line by overriding these
+ * on :root (or a scoped container) without touching component code.
+ */
+:root {
+  --attachment-edge-color: #b58cff;
+  --attachment-edge-width: 2px;
+  --attachment-edge-opacity: 0.9;
+}
+
+/* className 'attachment-edge' is applied to the edge <g> (see buildAttachmentEdges). */
+.react-flow__edge.attachment-edge .react-flow__edge-path {
+  stroke: var(--attachment-edge-color);
+  stroke-width: var(--attachment-edge-width);
+  opacity: var(--attachment-edge-opacity);
+  stroke-linecap: round;
+}
+
+/* react-flow's `animated: true` adds `.animated`, which animates stroke-dashoffset.
+   Give it a dash pattern here so the built-in animation has something to march. */
+.react-flow__edge.attachment-edge.animated .react-flow__edge-path {
+  stroke-dasharray: 6 4;
+}
+
+/* Widen the invisible hit area so the thin line is easy to click-to-detach. */
+.react-flow__edge.attachment-edge .react-flow__edge-interaction {
+  stroke-width: 20px;
+}
+
+.react-flow__edge.attachment-edge:hover .react-flow__edge-path {
+  opacity: 1;
+  --attachment-edge-width: 3px;
+  cursor: pointer;
+}

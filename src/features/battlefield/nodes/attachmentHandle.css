@@ -1,0 +1,29 @@
+/*
+ * Connection handle for drawing attachment lines. Hidden until the card is
+ * hovered (or a connection is in progress) so it never clutters the board.
+ * Small, centered nub — the rest of the card body stays grabbable for moving.
+ */
+.attachment-handle.react-flow__handle {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: var(--attachment-edge-color, #b58cff);
+  border: 1.5px solid #fff;
+  opacity: 0;
+  transition: opacity 0.12s ease, transform 0.12s ease;
+  z-index: 5;
+}
+
+/* Reveal on card hover, and while any connection drag is in progress so the
+   target card's handle is a visible drop cue. */
+.react-flow__node:hover .attachment-handle.react-flow__handle,
+.react-flow__handle.connectingfrom,
+.react-flow__handle.connectingto,
+body.attachment-connecting .attachment-handle.react-flow__handle {
+  opacity: 1;
+}
+
+.attachment-handle.react-flow__handle:hover {
+  transform: scale(1.25);
+  cursor: crosshair;
+}

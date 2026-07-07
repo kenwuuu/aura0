@@ -1,19 +1,20 @@
 /**
  * `renderNode` — render a single react-flow battlefield node in isolation.
  *
- * Aura's nodes read only `id` and `data` off their props; none of them touch
- * react-flow context (no `useReactFlow`, `Handle`, `useNodeId`, …). So there is
- * deliberately **no `ReactFlowProvider`** here — it would wrap a context nothing
- * reads. The only friction `NodeProps` adds is that it's a wide type (ten fields
- * the components never look at); `makeNodeProps` fills those with inert defaults
- * so a test states just the `id`/`data` it cares about.
+ * Nodes are wrapped in a `ReactFlowProvider` because some now render react-flow
+ * primitives that read its context — e.g. `CardNode`'s attachment `Handle`, which
+ * throws "Seems like you have not used ReactFlowProvider" without a provider
+ * ancestor. The provider adds no DOM node, so `container.firstChild` is still the
+ * node's own root element. `NodeProps` is a wide type (ten fields the components
+ * never look at); `makeNodeProps` fills those with inert defaults so a test states
+ * just the `id`/`data` it cares about.
  *
  * Layered on `renderWithGame` so the nodes' imperative `getState()` store reads
  * inside event handlers hit a real seeded `Player`/`Y.Doc`, same as production.
  */
 
 import type { ComponentType } from 'react';
-import type { NodeProps } from '@xyflow/react';
+import { ReactFlowProvider, type NodeProps } from '@xyflow/react';
 import { renderWithGame, type RenderWithGameOptions, type RenderWithGameResult } from './harness';
 
 /** Build a complete `NodeProps`, defaulting every field the nodes don't read. */
@@ -53,5 +54,10 @@ export function renderNode(
   data: Record<string, unknown>,
   { nodeProps, ...gameOptions }: RenderNodeOptions = {},
 ): RenderWithGameResult {
-  return renderWithGame(<Node {...makeNodeProps(data, nodeProps)} />, gameOptions);
+  return renderWithGame(
+    <ReactFlowProvider>
+      <Node {...makeNodeProps(data, nodeProps)} />
+    </ReactFlowProvider>,
+    gameOptions,
+  );
 }
