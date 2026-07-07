@@ -50,7 +50,11 @@ export const HandCardsContainer: React.FC<HandCardsContainerProps> = ({
     prevHandLenRef.current = displayHand.length;
   }, [displayHand.length, prefersReducedMotion]);
 
+  const hoveredCardIdRef = useRef<string | null>(null);
+  const lastMousePosRef = useRef<{ x: number; y: number } | null>(null);
+
   const handleMouseEnter = useCallback((cardId: string) => {
+    hoveredCardIdRef.current = cardId;
     onHoveredCardChange(cardId);
     const card = displayHand.find(c => c.id === cardId);
     if (card) {
@@ -62,13 +66,32 @@ export const HandCardsContainer: React.FC<HandCardsContainerProps> = ({
   }, [displayHand, onHoveredCardChange, yPlayerState]);
 
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
+    lastMousePosRef.current = { x: e.clientX, y: e.clientY };
     useCardPreviewStore.getState().updatePosition(e.clientX, e.clientY);
   }, []);
 
   const handleMouseLeave = useCallback(() => {
+    hoveredCardIdRef.current = null;
     onHoveredCardChange(null);
     useCardPreviewStore.getState().hide();
   }, [onHoveredCardChange]);
+
+  // A hotkey can move the hovered card out of the hand; the sibling that reflows
+  // into its screen slot never fires a real mouseenter because the pointer itself
+  // didn't move. Re-derive hover from the last known pointer position so the next
+  // hotkey press lands on whatever card is now under the cursor.
+  useEffect(() => {
+    const hoveredId = hoveredCardIdRef.current;
+    if (!hoveredId || displayHand.some(c => c.id === hoveredId)) return;
+    const pos = lastMousePosRef.current;
+    const el = pos ? document.elementFromPoint(pos.x, pos.y) : null;
+    const nextCardId = el instanceof Element ? el.closest<HTMLElement>('[data-card-id]')?.dataset.cardId : undefined;
+    if (nextCardId) {
+      handleMouseEnter(nextCardId);
+    } else {
+      handleMouseLeave();
+    }
+  }, [displayHand, handleMouseEnter, handleMouseLeave]);
 
   const handleWheel = useCallback((e: React.WheelEvent<HTMLDivElement>) => {
     if (scrollRef.current) {
