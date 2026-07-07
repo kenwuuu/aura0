@@ -57,8 +57,7 @@ Alert**.
   threshold on % decrease → email.
 - **Import-failure alert**: same flow, Trends with formula `A/B`
   (`deck_import_failed` / `deck_import_started`) → alert above ~20%.
-- **Dashboard**: Dashboards → New → add the two insights above plus boots/hr
-  and the current `app_version` breakdown.
+- **Dashboard**: Dashboards → New → add the two insights above plus boots/hr.
 
 ## 4. Rotate the Cloudflare TURN token
 
