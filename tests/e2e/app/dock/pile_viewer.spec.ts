@@ -501,8 +501,8 @@ test('testPileViewerDoesNotCloseAfterMovingCardToDeckTop', async ({ page }) => {
   // viewer (Radix Dialog dismiss, then a focus-trap/portal interaction that
   // could swallow the click entirely) even though the equivalent hotkey
   // stays open. Exercise it from the discard viewer, where "to deck top"
-  // actually fires — from the deck viewer's own menu it's a no-op, so a
-  // silently-blocked action and a real one are indistinguishable.
+  // moves a real card across piles, so the pile count assertion below
+  // actually distinguishes a fired move from a swallowed click.
   await millCardsFromDeck(page, 'd', 7);
   await expectPileCount(page, 'discard', 7);
 
@@ -515,24 +515,17 @@ test('testPileViewerDoesNotCloseAfterMovingCardToDeckTop', async ({ page }) => {
   await expectPileCount(page, 'discard', 6);
 });
 
-// SUSPECTED PRODUCT BUG (as of this writing): CardGridItemReact has the same
-// onMouseEnter/onMouseLeave-only hover wiring as the hand row did before the
-// HandCardsContainer fix, in a grid that reflows on removal. Confirmed via a
-// left-click (which — like a real click — moves focus off the viewer's
-// auto-focused search input, the only way any per-card hotkey fires at all):
-// hover card 2, press 'd' twice with no mouse movement between presses, and
-// only the first press registers — the second silently no-ops because
-// hoverTarget still points at the now-gone card id. The existing
-// right-click-based hotkey tests in this file don't catch it because
-// right-click's context-menu popover opening/closing happens to force an
-// incidental hit-test refresh — but that's timing-dependent, not a fix: with
-// `--repeat-each=3 --retries=0` the right-click path itself flaked 1/3 runs
-// with the identical symptom (discard count stuck at 1, not 2).
-test.skip('pressing a hotkey twice on a viewer card without moving the mouse moves both', async ({ page }) => {
+// Regression: CardGridItemReact had the same bare onMouseEnter/onMouseLeave
+// hover wiring as the hand row did before HandCardsContainer's fix, in a grid
+// that reflows on card removal. Hover card 2, press 'd' twice with no mouse
+// movement between presses — the second press used to silently no-op because
+// hoverTarget still pointed at the now-gone card id. Fixed via the shared
+// useReflowSafeHover hook (PileViewerReact + CardGrid).
+test('testDeckViewerHotkeyTwiceWithoutMouseMove', async ({ page }) => {
   await openPileViewer(page, 'deck');
   await waitForPileViewerReady(page);
 
-  await pileViewerCards(page).nth(1).click();
+  await secondCard(page).hover();
   await page.keyboard.press('d');
   await page.keyboard.press('d');
 
