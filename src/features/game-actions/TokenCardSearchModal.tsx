@@ -19,6 +19,7 @@ import {
 import { Input } from '@/shared/ui/input';
 import { useTokenCardSearchStore } from './tokenCardSearchStore';
 import { useGameInstance } from '@/app/stores/gameInstanceStore';
+import { addCardToBoard } from '@/features/battlefield/battlefieldActions';
 import { CardLookupService, toCard } from '@/infrastructure/cards';
 import { logAction } from '@/features/action-log/actionLog';
 import posthog from 'posthog-js';
@@ -33,7 +34,6 @@ export function TokenCardSearchModal({ cardLookup }: TokenCardSearchModalProps) 
 
   const yDoc = useGameInstance((s) => s.yDoc);
   const playerId = useGameInstance((s) => s.playerId);
-  const addCardToBoard = useGameInstance((s) => s.addCardToBoard);
   const screenToFlowPosition = useGameInstance((s) => s.screenToFlowPosition);
 
   const [cardName, setCardName] = useState('');

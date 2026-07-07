@@ -1,16 +1,16 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import * as Y from 'yjs';
 import { Player } from './Player';
-import { Deck } from './Deck';
 import {Card, SavedDeck} from './types';
 import {YDOC_CARDS_ON_BOARD} from "@/constants";
 import { seededRandom } from '@/test/seededRandom';
 import { getActionLog } from '@/features/action-log/actionLog';
+import { makeCards } from '@/test/factories';
 
 describe('Player.reset()', () => {
   let yDoc: Y.Doc;
   let player: Player;
-  let deck: Deck;
+  let deck: Card[];
   let playerId: string;
 
   beforeEach(() => {
@@ -18,9 +18,7 @@ describe('Player.reset()', () => {
     yDoc = new Y.Doc();
     playerId = 'test-player-123';
 
-    // Create a deck with default initialization (60 cards, no commander)
-    // This avoids the cards[99] commander logic in Deck constructor
-    deck = new Deck(undefined, 10);
+    deck = makeCards(10);
 
     // Create player with initial health of 40
     player = new Player(playerId, yDoc, deck, { initialHealth: 40 });
@@ -320,11 +318,11 @@ describe('Player.reset()', () => {
 describe('Player.drawCard()', () => {
   let yDoc: Y.Doc;
   let player: Player;
-  let deck: Deck;
+  let deck: Card[];
 
   beforeEach(() => {
     yDoc = new Y.Doc();
-    deck = new Deck(undefined, 5);
+    deck = makeCards(5);
     player = new Player('test-player', yDoc, deck, { initialHealth: 40 });
   });
 
@@ -365,7 +363,7 @@ describe('Player.playCardFromHand()', () => {
 
   beforeEach(() => {
     yDoc = new Y.Doc();
-    const deck = new Deck(undefined, 5);
+    const deck = makeCards(5);
     player = new Player('test-player', yDoc, deck, { initialHealth: 40 });
   });
 
@@ -399,7 +397,7 @@ describe('Player.moveCardToDiscard()', () => {
 
   beforeEach(() => {
     yDoc = new Y.Doc();
-    const deck = new Deck(undefined, 5);
+    const deck = makeCards(5);
     player = new Player('test-player', yDoc, deck, { initialHealth: 40 });
   });
 
@@ -435,7 +433,7 @@ describe('Player.placeCardInPile()', () => {
 
   beforeEach(() => {
     yDoc = new Y.Doc();
-    const deck = new Deck(undefined, 5);
+    const deck = makeCards(5);
     player = new Player('test-player', yDoc, deck, { initialHealth: 40 });
   });
 
@@ -471,7 +469,7 @@ describe('Player.setHealth()', () => {
 
   beforeEach(() => {
     yDoc = new Y.Doc();
-    const deck = new Deck(undefined, 5);
+    const deck = makeCards(5);
     player = new Player('test-player', yDoc, deck, { initialHealth: 40 });
   });
 
@@ -497,7 +495,7 @@ describe('Player.modifyHealth()', () => {
 
   beforeEach(() => {
     yDoc = new Y.Doc();
-    const deck = new Deck(undefined, 5);
+    const deck = makeCards(5);
     player = new Player('test-player', yDoc, deck, { initialHealth: 40 });
   });
 
@@ -526,7 +524,7 @@ describe('Player.shuffleDeck()', () => {
 
   beforeEach(() => {
     yDoc = new Y.Doc();
-    const deck = new Deck(undefined, 10);
+    const deck = makeCards(10);
     player = new Player('test-player', yDoc, deck, { initialHealth: 40 });
   });
 
@@ -574,7 +572,7 @@ describe('Player.moveCardToDeckTop()', () => {
 
   beforeEach(() => {
     yDoc = new Y.Doc();
-    const deck = new Deck(undefined, 5);
+    const deck = makeCards(5);
     player = new Player('test-player', yDoc, deck, { initialHealth: 40 });
   });
 
@@ -610,7 +608,7 @@ describe('Player.moveCardToDeckBottom()', () => {
 
   beforeEach(() => {
     yDoc = new Y.Doc();
-    const deck = new Deck(undefined, 3);
+    const deck = makeCards(3);
     player = new Player('test-player', yDoc, deck, { initialHealth: 40 });
   });
 
@@ -650,7 +648,7 @@ describe('Player.mulligan()', () => {
 
   beforeEach(() => {
     yDoc = new Y.Doc();
-    const deck = new Deck(undefined, 20);
+    const deck = makeCards(20);
     player = new Player('test-player', yDoc, deck, { initialHealth: 40 });
   });
 
@@ -744,7 +742,7 @@ describe('Player.loadNewDeck()', () => {
 
   beforeEach(() => {
     yDoc = new Y.Doc();
-    const deck = new Deck(undefined, 5);
+    const deck = makeCards(5);
     player = new Player('test-player', yDoc, deck, { initialHealth: 40 });
   });
 
@@ -834,7 +832,7 @@ describe('Player.getId()', () => {
 
   beforeEach(() => {
     yDoc = new Y.Doc();
-    const deck = new Deck(undefined, 5);
+    const deck = makeCards(5);
     player = new Player('test-player-123', yDoc, deck, { initialHealth: 40 });
   });
 
@@ -849,7 +847,7 @@ describe('Player.getDeckCards()', () => {
 
   beforeEach(() => {
     yDoc = new Y.Doc();
-    const deck = new Deck(undefined, 5);
+    const deck = makeCards(5);
     player = new Player('test-player', yDoc, deck, { initialHealth: 40 });
   });
 
@@ -873,7 +871,7 @@ describe('Player.onStateChange()', () => {
 
   beforeEach(() => {
     yDoc = new Y.Doc();
-    const deck = new Deck(undefined, 5);
+    const deck = makeCards(5);
     player = new Player('test-player', yDoc, deck, { initialHealth: 40 });
   });
 
@@ -913,7 +911,7 @@ describe('Player.setAllowViewHand() / getAllowViewHand()', () => {
 
   beforeEach(() => {
     const yDoc = new Y.Doc();
-    const deck = new Deck(undefined, 5);
+    const deck = makeCards(5);
     player = new Player('test-player', yDoc, deck, { initialHealth: 40 });
   });
 
@@ -935,7 +933,7 @@ describe('Player.reorderHand()', () => {
 
   beforeEach(() => {
     const yDoc = new Y.Doc();
-    const deck = new Deck(undefined, 5);
+    const deck = makeCards(5);
     player = new Player('test-player', yDoc, deck, { initialHealth: 40 });
   });
 
@@ -954,7 +952,7 @@ describe('Player.flipHandCard()', () => {
 
   beforeEach(() => {
     const yDoc = new Y.Doc();
-    const deck = new Deck(undefined, 5);
+    const deck = makeCards(5);
     player = new Player('test-player', yDoc, deck, { initialHealth: 40 });
   });
 
@@ -986,7 +984,7 @@ describe('Player.movePileCard()', () => {
 
   beforeEach(() => {
     yDoc = new Y.Doc();
-    const deck = new Deck(undefined, 5);
+    const deck = makeCards(5);
     player = new Player('test-player', yDoc, deck, { initialHealth: 40 });
   });
 
@@ -1027,7 +1025,7 @@ describe('Player.drawCardFromPile() / removeCardFromPileById()', () => {
 
   beforeEach(() => {
     const yDoc = new Y.Doc();
-    const deck = new Deck(undefined, 5);
+    const deck = makeCards(5);
     player = new Player('test-player', yDoc, deck, { initialHealth: 40 });
   });
 
@@ -1068,7 +1066,7 @@ describe('Player.addCustomCounter() / modifyCustomCounter() / removeCustomCounte
 
   beforeEach(() => {
     yDoc = new Y.Doc();
-    const deck = new Deck(undefined, 5);
+    const deck = makeCards(5);
     player = new Player('test-player', yDoc, deck, { initialHealth: 40 });
   });
 

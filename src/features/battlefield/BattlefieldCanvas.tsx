@@ -32,6 +32,7 @@ import { KeywordToken } from '@/features/keyword-tokens/types';
 import { attachedChildren, findParent, nodeCenter, nodeContainsPoint } from './nodeAttachment';
 import { findDropTarget, type PileDropTarget } from './dropTargetDetection';
 import { spawnTokenAtPosition, getMaxZIndex } from './spawnToken';
+import { moveCardFromBattlefield } from './battlefieldActions';
 import { YDOC_CARDS_ON_BOARD, YDOC_KEYWORD_TOKENS } from '@/constants';
 import { MIN_ZOOM, MAX_ZOOM, MAT_WIDTH, MAT_HEIGHT, BACKGROUND_GRID_GAP } from './boardWorld';
 import type { Player } from '@/features/player';
@@ -371,7 +372,7 @@ function BattlefieldCanvasInner({ yDoc, localPlayerId }: BattlefieldCanvasProps)
           if (pileTarget) break;
         }
         if (pileTarget && (pileTarget.ownerId === null || pileTarget.ownerId === localPlayerId)) {
-          useGameInstance.getState().moveCardFromBattlefield(node.id, pileTarget.pileType);
+          moveCardFromBattlefield(node.id, pileTarget.pileType);
           attachOffsetsRef.current.clear();
           return;
         }

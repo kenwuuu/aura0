@@ -1,6 +1,8 @@
 import { Card } from '@/features/player';
 import { CARD_WIDTH } from '@/constants';
 import { CardLookupService } from './CardLookupService';
+import { fromCardDataResult } from './ScryfallCardAdapter';
+import { makeTokenId } from '@/shared/utils/ids';
 
 export interface TokenCreationResult {
   tokens: Card[];
@@ -14,14 +16,9 @@ export interface TokenCreationResult {
  */
 export class TokenService {
   private readonly lookup: CardLookupService;
-  private readonly getZoomLevel: () => number;
   private tokenCardNumberCounter = 10000;
 
-  constructor(
-    getBattlefieldZoomLevel: () => number,
-    lookup: CardLookupService = new CardLookupService(),
-  ) {
-    this.getZoomLevel = getBattlefieldZoomLevel;
+  constructor(lookup: CardLookupService = new CardLookupService()) {
     this.lookup = lookup;
   }
 
@@ -54,20 +51,12 @@ export class TokenService {
         const tokenData = await this.lookup.fetchCardById(tokenIds[i]);
         const tokenCardData = this.lookup.createCardDataResult(tokenData);
 
-        const token: Card = {
-          id: `token-${Math.random().toString(36).substring(2, 11)}`,
+        const token: Card = fromCardDataResult(tokenCardData, {
+          id: makeTokenId(),
           cardNumber: this.tokenCardNumberCounter++,
-          name: tokenCardData.name,
-          type_line: tokenCardData.type_line,
-          images: tokenCardData.imageUris,
-          scryfallId: tokenCardData.scryfallId,
-          x: position ? position.x + (i + 1) * CARD_WIDTH * this.getZoomLevel() : 100,
+          x: position ? position.x + (i + 1) * CARD_WIDTH : 100,
           y: position ? position.y : 100,
-          rotation: 0,
-          isTapped: false,
-          isFlipped: false,
-          counters: [],
-        };
+        });
 
         tokens.push(token);
         console.log(`Created token: ${token.name}`);

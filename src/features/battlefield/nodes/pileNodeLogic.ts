@@ -7,12 +7,12 @@
  */
 
 import type { OpenPileRequest } from '@/features/game-dock/pileViewerOpenStore';
-import type { PileKind } from './PileNode';
+import type { PileType } from '@/features/player';
 
 export interface PileNodeState {
   ownerId: string;
   isLocal: boolean;
-  pileKind: PileKind;
+  pileKind: Exclude<PileType, 'scry'>;
   /** Relevant for opponent hand pile — gates display and opening. */
   allowViewHand: boolean;
 }

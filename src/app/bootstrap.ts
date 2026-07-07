@@ -66,8 +66,7 @@ export async function bootstrapGame(): Promise<GameContext> {
 
   // ── 4. Services ────────────────────────────────────────────────────────────
   const cardLookup = new CardLookupService();
-  // TokenService no longer needs getZoomLevel — positioning is in flow coordinates
-  const tokenService = new TokenService(() => 1, cardLookup);
+  const tokenService = new TokenService(cardLookup);
 
   // ── 5. Populate game-instance store (before React renders) ─────────────────
   useGameInstance.getState().setYDoc(yDoc);

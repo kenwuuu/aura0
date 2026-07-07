@@ -2,14 +2,22 @@ import * as Y from 'yjs';
 import { WhiteboardCard } from './types';
 import { KeywordToken } from '@/features/keyword-tokens/types';
 import { KeywordTokenTemplate } from '@/features/keyword-tokens/types';
-import { findParent, NODE_SIZES } from './nodeAttachment';
+import { attachedChildren, findParent, NODE_SIZES } from './nodeAttachment';
 import { logAction } from '@/features/action-log/actionLog';
+import { makeTokenId } from '@/shared/utils/ids';
 
 export function getMaxZIndex(yCards: Y.Map<WhiteboardCard>, yTokens: Y.Map<KeywordToken>): number {
   let max = 1;
   yCards.forEach((c) => { if (c.zIndex > max) max = c.zIndex; });
   yTokens.forEach((t) => { if (t.zIndex > max) max = t.zIndex; });
   return max;
+}
+
+/** Clear `attachedTo` on any token that was attached to the given card. */
+export function detachTokens(cardId: string, yTokens: Y.Map<KeywordToken>): void {
+  attachedChildren(cardId, yTokens).forEach((token) => {
+    yTokens.set(token.id, { ...token, attachedTo: undefined });
+  });
 }
 
 export function spawnTokenAtPosition(
@@ -24,7 +32,7 @@ export function spawnTokenAtPosition(
   const tokenY = flowPos.y - NODE_SIZES.token.height / 2;
   const parentId = findParent({ x: tokenX, y: tokenY }, 'token', yCards, 'card');
   const parentCard = parentId ? yCards.get(parentId) : undefined;
-  const tokenId = `token-${Math.random().toString(36).substring(2, 11)}`;
+  const tokenId = makeTokenId();
   yTokens.set(tokenId, {
     id: tokenId,
     title: template.title,

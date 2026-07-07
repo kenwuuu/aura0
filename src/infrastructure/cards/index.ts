@@ -6,4 +6,4 @@ export { CardLookupService } from './CardLookupService';
 export type { LookupListResult } from './CardLookupService';
 export { TokenService } from './TokenService';
 export type { TokenCreationResult } from './TokenService';
-export { toCard, toCardDataResult } from './ScryfallCardAdapter';
+export { toCard, toCardDataResult, fromCardDataResult } from './ScryfallCardAdapter';

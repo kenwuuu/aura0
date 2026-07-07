@@ -54,6 +54,7 @@ if (window.location.hostname === 'localhost' || window.location.hostname === '12
 }
 
 // ── Sentry ────────────────────────────────────────────────────────────────────
+const isProd = process.env.NODE_ENV === 'production';
 Sentry.init({
   environment: sentryEnvironment,
   release: appVersion,
@@ -69,9 +70,10 @@ Sentry.init({
     }),
   ],
   // Tracing
-  tracesSampleRate: 1.0, // Capture 100% of the transactions
-  // Set 'tracePropagationTargets' to control for which URLs distributed tracing should be enabled
-  tracePropagationTargets: ['localhost', /^https:\/\/yourserver\.io\/api/],
+  tracesSampleRate: isProd ? 0.2 : 1.0,
+  // Distributed tracing to our own backend only — Scryfall is third-party and
+  // doesn't expect (or need) our trace headers.
+  tracePropagationTargets: ['localhost', /^https:\/\/digitalocean-ws-ipv4\.aura0\.app\/v1/],
   // Session Replay
   replaysSessionSampleRate: 0.1, // This sets the sample rate at 10%. You may want to change it to 100% while in development and then sample at a lower rate in production.
   replaysOnErrorSampleRate: 1.0, // If you're not already sampling the entire session, change the sample rate to 100% when sampling sessions where errors occur.

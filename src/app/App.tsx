@@ -25,7 +25,7 @@ import { LocalPileTiles } from '@/features/game-dock/LocalPileTiles';
 import { loadDeck } from '@/features/deck-manager/deckLoading';
 import { RoomManager } from '@/features/room';
 import { Player } from '@/features/player';
-import type { Card } from '@/features/player/types';
+import type { Card, PileType } from '@/features/player/types';
 import { SavedDeck } from '@/features/player/types';
 import { CardLookupService, TokenService } from '@/infrastructure/cards';
 import { YjsNetworkProvider } from '@/infrastructure/networking/YjsNetworkFactory';
@@ -41,7 +41,7 @@ import { TokenCardSearchModal } from '@/features/game-actions/TokenCardSearchMod
 import { Toaster } from '@/shared/ui/sonner';
 import { AnnouncementsService } from '@/shared/services/announcements/AnnouncementsService';
 import { Toolbar } from './Toolbar';
-import { useGameInstance } from './stores/gameInstanceStore';
+import { playCardFromHand } from '@/features/battlefield/battlefieldActions';
 import { useCardPreviewStore } from '@/features/card-preview/cardPreviewStore';
 import { useSettingsStore } from './stores/settingsStore';
 import { DEFAULT_CARD_BACK } from '@/constants';
@@ -124,7 +124,7 @@ export function App({ yDoc, yjsNetworkProvider, player, roomManager, playerId, c
 
     if (over?.id === 'battlefield') {
       const { x, y } = lastPointerRef.current;
-      useGameInstance.getState().playCardFromHand(cardId, x, y);
+      playCardFromHand(cardId, x, y);
       return;
     }
 
@@ -132,13 +132,12 @@ export function App({ yDoc, yjsNetworkProvider, player, roomManager, playerId, c
       // id format: pile-{pileKind}-{ownerId}  (ownerId may contain hyphens)
       const withoutPrefix = over.id.slice('pile-'.length);
       const dashIdx = withoutPrefix.indexOf('-');
-      const pileKind = withoutPrefix.slice(0, dashIdx) as 'exile' | 'discard' | 'deck';
+      const pileKind = withoutPrefix.slice(0, dashIdx) as Exclude<PileType, 'hand' | 'scry'>;
       const pileOwnerId = withoutPrefix.slice(dashIdx + 1);
       if (pileOwnerId !== playerId) return; // only local piles
       const card = player.getState().hand.find(c => c.id === cardId);
       if (!card) return;
-      player.removeCardFromHand(cardId);
-      player.placeCardInPile(card, pileKind);
+      player.movePileCard(card, 'hand', pileKind);
       return;
     }
 

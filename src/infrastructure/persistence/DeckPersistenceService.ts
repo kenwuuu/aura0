@@ -1,5 +1,6 @@
-import { Deck } from '@/features/player';
+import { createDeckCards } from '@/features/player';
 import { CardPile } from '@/features/player';
+import type { Card } from '@/features/player';
 
 /**
  * Service for persisting deck state per room to localStorage
@@ -12,9 +13,9 @@ export class DeckPersistenceService {
   /**
    * Restore deck state for a specific room
    * @param roomName The room identifier
-   * @returns Restored Deck instance or null if no valid state found
+   * @returns Restored deck cards (fresh ids) or null if no valid state found
    */
-  static restoreDeckForRoom(roomName: string): Deck | null {
+  static restoreDeckForRoom(roomName: string): Card[] | null {
     try {
       this.clearExpiredDecks()
 
@@ -41,7 +42,7 @@ export class DeckPersistenceService {
       }
 
       console.log(`Restored deck with ${cards.length} cards for room ${roomName}`);
-      return new Deck(cards);
+      return createDeckCards(cards);
     } catch (error) {
       console.error('Error restoring deck state:', error);
       return null;
@@ -51,13 +52,14 @@ export class DeckPersistenceService {
   /**
    * Save deck state for a specific room
    * @param roomName The room identifier
-   * @param deck The deck or card pile instance to save
+   * @param deck The card pile (or plain card list) to save
    */
-  static saveDeckForRoom(roomName: string, deck: Deck | CardPile): void {
+  static saveDeckForRoom(roomName: string, deck: CardPile | Card[]): void {
     try {
       const key = `${this.STORAGE_PREFIX}${roomName}`;
+      const cards = Array.isArray(deck) ? deck : deck.getCards();
       const state = {
-        cards: deck.getCards(),
+        cards,
         timestamp: Date.now(), // Add timestamp to track session age
       };
       localStorage.setItem(key, JSON.stringify(state));

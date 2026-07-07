@@ -10,10 +10,10 @@ const LOCAL_PLAYER = 'p1';
 const OPPONENT = 'p2';
 
 /**
- * HealthNode is a thin routing wrapper: local mutations go through the seeded
- * Player (covered by Player.test.ts), opponent mutations go through
- * opponentPlayerMutations (covered by opponentPlayerMutations.test.ts). These
- * tests only confirm the wiring — the right path is taken for the right
+ * HealthNode is a thin wrapper: both local and opponent mutations go through
+ * the seeded Player, which targets its own state or a given opponent's Yjs
+ * map (covered by Player.test.ts / Player.opponentTargeting.test.ts). These
+ * tests only confirm the wiring — the right target is used for the right
  * variant, verified through real Player/Yjs state, not internal calls.
  */
 describe('HealthNode — local player', () => {
@@ -52,10 +52,12 @@ describe('HealthNode — local player', () => {
 describe('HealthNode — opponent', () => {
   it('increasing/decreasing health writes to the opponent Yjs map, leaving the local player untouched', async () => {
     const user = userEvent.setup();
-    const yDoc = new Y.Doc();
-    const { player } = renderNode(
+    // The node's `yDoc` data field is a legacy prop HealthNode no longer reads
+    // — mutations always go through the seeded Player, which is bound to the
+    // harness's own yDoc (returned below), not this one.
+    const { player, yDoc } = renderNode(
       HealthNode,
-      { ownerId: OPPONENT, isLocal: false, name: 'Opponent', health: 40, customCounters: [], yDoc },
+      { ownerId: OPPONENT, isLocal: false, name: 'Opponent', health: 40, customCounters: [], yDoc: new Y.Doc() },
       { playerId: LOCAL_PLAYER },
     );
 

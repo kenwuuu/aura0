@@ -1,8 +1,7 @@
 import * as Y from 'yjs';
 import * as Sentry from '@sentry/browser';
 import posthog from 'posthog-js';
-import { Card } from './types';
-import { Deck } from './Deck';
+import { Card, PileType } from './types';
 import { PlayerState, PlayerConfig, CustomCounter } from './types';
 import {
   YDOC_CARDS_ON_BOARD,
@@ -17,14 +16,18 @@ import {
   YSTATE_PLAYER_COLOR,
   YSTATE_JOINED_AT,
   YSTATE_CAN_VIEW_HAND,
+  YSTATE_SCRY,
+  YSTATE_DECK_REVEAL_COUNT,
 } from "@/constants";
 import { getStoredPlayerName, setStoredPlayerName } from "@/infrastructure/networking/persistence";
 import { colorFromPlayerId } from './playerColor';
-import {PileType} from '@/features/game-dock/components';
 import { CardPile } from './CardPile';
 import {SavedDeck} from "@/features/player/types";
 import {trackHealthChange, trackPlayerCounterChange} from "@/infrastructure/analytics/PosthogFunctions"
 import { logAction, cardLogName } from '@/features/action-log/actionLog';
+import { makeCounterId } from '@/shared/utils/ids';
+import { toBaseCard } from './toBaseCard';
+import { resolvePlayerName } from '@/shared/utils/resolvePlayerName';
 
 export class Player {
   private playerId: string;
@@ -43,16 +46,19 @@ export class Player {
   // Tracks own-hand size to detect remote merges that clobber local hand state.
   private lastHandLen: number = 0;
 
-  // posthog
-  private healthEventTimer: ReturnType<typeof setTimeout> | null = null;
-  private healthBeforeBurst: number | null = null;
+  // Debounced action-log bookkeeping for health/counter changes. Keyed by
+  // target playerId (health) or counterId (counters, already globally unique
+  // via makeCounterId — no separate per-target keying needed) so rapid +/-
+  // presses on different targets never clobber each other's pending entry.
+  private healthEventTimers: Map<string, ReturnType<typeof setTimeout>> = new Map();
+  private healthBeforeBurst: Map<string, number> = new Map();
   private counterEventTimers: Map<string, ReturnType<typeof setTimeout>> = new Map();
   private counterBeforeBurst: Map<string, number> = new Map();
 
   constructor(
     playerId: string,
     yDoc: Y.Doc,
-    initialDeckCards: Deck | null = null,
+    initialDeckCards: Card[] | null = null,
     config: Partial<PlayerConfig> = {}
   ) {
     this.playerId = playerId;
@@ -66,8 +72,7 @@ export class Player {
     this.yTokens = yDoc.getMap(YDOC_KEYWORD_TOKENS); // Store reference to keyword tokens
 
     // Initialize state first so yPlayerState has the arrays
-    const deck = initialDeckCards ?? new Deck();
-    this.initializeState(deck);
+    this.initializeState(initialDeckCards ?? []);
 
     // Seed this player's display name into their own Yjs state so peers see it.
     // The local player owns this state, so localStorage (the name that follows the
@@ -82,7 +87,7 @@ export class Player {
     this.hand = new CardPile(this.yPlayerState, YSTATE_HAND);
     this.exile = new CardPile(this.yPlayerState, YSTATE_EXILE_PILE);
     this.discard = new CardPile(this.yPlayerState, YSTATE_DISCARD_PILE);
-    this.scry = new CardPile(this.yPlayerState, 'scry');
+    this.scry = new CardPile(this.yPlayerState, YSTATE_SCRY);
 
     this.piles = {
       hand: this.hand,
@@ -134,29 +139,22 @@ export class Player {
     });
   }
 
-  private initializeState(initialDeckCards: Deck): void {
+  private initializeState(initialDeckCards: Card[]): void {
     if (!this.yPlayerState.has(YSTATE_HEALTH)) {
       this.yPlayerState.set(YSTATE_HEALTH, this.config.initialHealth);
-      this.yPlayerState.set(YSTATE_DECK, initialDeckCards.getCards());
+      this.yPlayerState.set(YSTATE_DECK, initialDeckCards);
       this.yPlayerState.set(YSTATE_HAND, []);
       this.yPlayerState.set(YSTATE_EXILE_PILE, []);
       this.yPlayerState.set(YSTATE_DISCARD_PILE, []);
-      this.yPlayerState.set('scry', []);
+      this.yPlayerState.set(YSTATE_SCRY, []);
       this.yPlayerState.set(YSTATE_CUSTOM_COUNTERS, []);
-      this.yPlayerState.set('deckRevealCount', 0); // 0=hidden, -1=all, N>0=top N cards
+      this.yPlayerState.set(YSTATE_DECK_REVEAL_COUNT, 0);
     }
     // Write joinedAt once — determines stable seat order across all peers.
     // Written separately so reconnecting players keep their original seat.
     if (!this.yPlayerState.has(YSTATE_JOINED_AT)) {
       this.yPlayerState.set(YSTATE_JOINED_AT, Date.now());
     }
-  }
-
-  // Deprecated: CardPile now syncs directly to yPlayerState
-  // Keeping for backward compatibility but it's a no-op
-  public syncToYState(): void {
-    // CardPile instances now sync automatically to yPlayerState
-    // This method is kept for backward compatibility but does nothing
   }
 
   private getDefaultName(): string {
@@ -230,7 +228,6 @@ export class Player {
     if (!card) return null;
 
     this.hand.addCardToTop(card);
-    this.syncToYState();
 
     posthog.capture('card_drawn', {
       hand_size: this.hand.getCards().length,
@@ -256,9 +253,7 @@ export class Player {
     const battlefieldCards: Card[] = [];
     this.yCardsOnBoard.forEach((card: any, cardId: string) => {
       if (card.ownerId === this.playerId) {
-        // Remove WhiteboardCard-specific properties (zIndex, ownerId) to get base Card
-        const { zIndex, ownerId, ...baseCard } = card;
-        battlefieldCards.push(baseCard as Card);
+        battlefieldCards.push(toBaseCard(card));
         // Remove from battlefield
         this.yCardsOnBoard.delete(cardId);
       }
@@ -286,31 +281,32 @@ export class Player {
 
     // Step 5: Shuffle deck and sync
     this.deck.shuffle();
-    this.syncToYState();
   }
 
   public removeCardFromHand(cardId: string): Card | null {
     const card: Card | null = this.hand.removeCardById(cardId);
-    this.syncToYState();
     return card;
   }
 
   public removeCardFromPileById(cardId: string, pileType: PileType): Card | null {
     let result: Card | null = this.piles[pileType].removeCardById(cardId);
-    this.syncToYState();
     return result;
   }
 
-  public drawCardFromPile(pileType: 'deck' | 'discard' | 'exile'): Card | null {
+  public drawCardFromPile(pileType: PileType): Card | null {
     let result: Card | null = this.piles[pileType].drawCard();
-    this.syncToYState();
     return result;
+  }
+
+  /** Peek the top card of a pile without removing it — for callers that decide
+   * whether/where to move it via movePileCard(). */
+  public peekTopOfPile(pileType: PileType): Card | null {
+    return this.piles[pileType].peekTop();
   }
 
   public placeCardInPile(card: Card, pileType: PileType, position: number = Infinity): void {
     // Places card on top of pile by default
     this.piles[pileType].placeCardAtPosition(card, position);
-    this.syncToYState();
   }
 
   /**
@@ -321,7 +317,6 @@ export class Player {
   public movePileCard(card: Card, from: PileType, to: PileType, position: number = Infinity): void {
     this.piles[from].removeCardById(card.id);
     this.piles[to].placeCardAtPosition(card, position);
-    this.syncToYState();
 
     const text = to === 'deck'
       ? `put ${cardLogName(card)} on ${position === 0 ? 'bottom' : 'top'} of deck`
@@ -342,26 +337,52 @@ export class Player {
     return (this.yPlayerState.get(YSTATE_CAN_VIEW_HAND) as boolean | undefined) ?? false;
   }
 
-  public modifyHealth(delta: number): void {
-    const currentHealth: number = this.yPlayerState.get(YSTATE_HEALTH) ?? this.config.initialHealth;
-    this.yPlayerState.set(YSTATE_HEALTH, currentHealth + delta);
+  /** This player's own state map, or a specific opponent's, keyed the same way. */
+  private getPlayerStateMap(targetPlayerId: string): Y.Map<any> {
+    return targetPlayerId === this.playerId ? this.yPlayerState : this.yDoc.getMap(YDOC_PLAYER(targetPlayerId));
+  }
+
+  /**
+   * Modify a player's health — the local player by default, or a specific
+   * opponent's when targetPlayerId is given (the only mutation the local
+   * player is allowed to make on someone else's state, since there's no
+   * per-opponent Player instance). Debounces the action-log entry so rapid
+   * +/- presses collapse into a single entry, keyed per target so pressing
+   * two players' health widgets in the same window logs both independently.
+   */
+  public modifyHealth(delta: number, targetPlayerId: string = this.playerId): void {
+    const map = this.getPlayerStateMap(targetPlayerId);
+    const currentHealth: number = map.get(YSTATE_HEALTH) ?? this.config.initialHealth;
+    const newHealth = currentHealth + delta;
+    map.set(YSTATE_HEALTH, newHealth);
 
     // Capture the health at the start of the burst, not just the immediately-preceding call.
-    if (this.healthBeforeBurst === null) this.healthBeforeBurst = currentHealth;
+    if (!this.healthBeforeBurst.has(targetPlayerId)) this.healthBeforeBurst.set(targetPlayerId, currentHealth);
 
-    if (this.healthEventTimer) clearTimeout(this.healthEventTimer);
-    this.healthEventTimer = setTimeout(() => {
-      const newHealth = this.yPlayerState.get(YSTATE_HEALTH) as number;
-      trackHealthChange(newHealth);
-      // Debounced log: rapid +/- presses collapse into a single entry.
-      logAction(this.yDoc, {
-        actorId: this.playerId,
-        type: 'health',
-        text: `changed their life from ${this.healthBeforeBurst} to ${newHealth}`,
-      });
-      this.healthEventTimer = null;
-      this.healthBeforeBurst = null;
-    }, 500);
+    const existingTimer = this.healthEventTimers.get(targetPlayerId);
+    if (existingTimer) clearTimeout(existingTimer);
+
+    this.healthEventTimers.set(targetPlayerId, setTimeout(() => {
+      const finalHealth = map.get(YSTATE_HEALTH) as number;
+      const before = this.healthBeforeBurst.get(targetPlayerId);
+      if (targetPlayerId === this.playerId) {
+        trackHealthChange(finalHealth);
+        logAction(this.yDoc, {
+          actorId: this.playerId,
+          type: 'health',
+          text: `changed their life from ${before} to ${finalHealth}`,
+        });
+      } else {
+        const targetName = resolvePlayerName(this.yDoc, targetPlayerId);
+        logAction(this.yDoc, {
+          actorId: this.playerId,
+          type: 'health',
+          text: `changed ${targetName}'s life from ${before} to ${finalHealth}`,
+        });
+      }
+      this.healthEventTimers.delete(targetPlayerId);
+      this.healthBeforeBurst.delete(targetPlayerId);
+    }, 500));
   }
 
   public shuffleDeck(): void {
@@ -505,12 +526,10 @@ export class Player {
 
   public moveCardToDeckTop(card: Card): void {
     this.deck.addCardToTop(card);
-    this.syncToYState();
   }
 
   public moveCardToDeckBottom(card: Card): void {
     this.deck.addCardToBottom(card);
-    this.syncToYState();
   }
 
   public onStateChange(callback: (state: PlayerState) => void): void {
@@ -519,19 +538,28 @@ export class Player {
     });
   }
 
-  public addCustomCounter(title: string, icon: string): void {
-    const counters = this.yPlayerState.get(YSTATE_CUSTOM_COUNTERS) ?? [];
+  /** Add a custom counter — the local player's by default, or a specific opponent's. */
+  public addCustomCounter(title: string, icon: string, targetPlayerId: string = this.playerId): void {
+    const map = this.getPlayerStateMap(targetPlayerId);
+    const counters = map.get(YSTATE_CUSTOM_COUNTERS) ?? [];
     const newCounter: CustomCounter = {
-      id: `counter-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+      id: makeCounterId(),
       title,
       icon,
       value: 0,
     };
-    this.yPlayerState.set(YSTATE_CUSTOM_COUNTERS, [...counters, newCounter]);
+    map.set(YSTATE_CUSTOM_COUNTERS, [...counters, newCounter]);
   }
 
-  public modifyCustomCounter(counterId: string, delta: number): void {
-    const counters = this.yPlayerState.get(YSTATE_CUSTOM_COUNTERS) ?? [];
+  /**
+   * Modify a custom counter's value — the local player's by default, or a
+   * specific opponent's. Debounces the action-log entry so rapid +/- presses
+   * collapse into one entry; counterId is globally unique (makeCounterId), so
+   * no separate per-target keying is needed for the debounce bookkeeping.
+   */
+  public modifyCustomCounter(counterId: string, delta: number, targetPlayerId: string = this.playerId): void {
+    const map = this.getPlayerStateMap(targetPlayerId);
+    const counters = map.get(YSTATE_CUSTOM_COUNTERS) ?? [];
     const counter = counters.find((c: CustomCounter) => c.id === counterId);
     if (!counter) return;
 
@@ -540,7 +568,7 @@ export class Player {
         ? { ...c, value: c.value + delta }
         : c
     );
-    this.yPlayerState.set(YSTATE_CUSTOM_COUNTERS, updatedCounters);
+    map.set(YSTATE_CUSTOM_COUNTERS, updatedCounters);
 
     // Capture the value at the start of the burst, not just the immediately-preceding call.
     if (!this.counterBeforeBurst.has(counterId)) {
@@ -552,26 +580,27 @@ export class Player {
 
     // Debounced log: rapid +/- presses collapse into a single entry.
     this.counterEventTimers.set(counterId, setTimeout(() => {
-      const latest = (this.yPlayerState.get(YSTATE_CUSTOM_COUNTERS) ?? [])
+      const latest = (map.get(YSTATE_CUSTOM_COUNTERS) ?? [])
         .find((c: CustomCounter) => c.id === counterId);
       const previousValue = this.counterBeforeBurst.get(counterId);
       if (latest && previousValue !== undefined) {
-        trackPlayerCounterChange(latest.title, latest.value);
-        logAction(this.yDoc, {
-          actorId: this.playerId,
-          type: 'counter',
-          text: `changed ${latest.title} from ${previousValue} to ${latest.value}`,
-        });
+        const text = targetPlayerId === this.playerId
+          ? `changed ${latest.title} from ${previousValue} to ${latest.value}`
+          : `changed ${resolvePlayerName(this.yDoc, targetPlayerId)}'s ${latest.title} from ${previousValue} to ${latest.value}`;
+        if (targetPlayerId === this.playerId) trackPlayerCounterChange(latest.title, latest.value);
+        logAction(this.yDoc, { actorId: this.playerId, type: 'counter', text });
       }
       this.counterEventTimers.delete(counterId);
       this.counterBeforeBurst.delete(counterId);
     }, 500));
   }
 
-  public removeCustomCounter(counterId: string): void {
-    const counters = this.yPlayerState.get(YSTATE_CUSTOM_COUNTERS) ?? [];
+  /** Remove a custom counter — the local player's by default, or a specific opponent's. */
+  public removeCustomCounter(counterId: string, targetPlayerId: string = this.playerId): void {
+    const map = this.getPlayerStateMap(targetPlayerId);
+    const counters = map.get(YSTATE_CUSTOM_COUNTERS) ?? [];
     const updatedCounters = counters.filter((counter: CustomCounter) => counter.id !== counterId);
-    this.yPlayerState.set(YSTATE_CUSTOM_COUNTERS, updatedCounters);
+    map.set(YSTATE_CUSTOM_COUNTERS, updatedCounters);
 
     const pendingTimer = this.counterEventTimers.get(counterId);
     if (pendingTimer) clearTimeout(pendingTimer);
@@ -580,7 +609,7 @@ export class Player {
   }
 
   public reorderHand(newOrder: Card[]): void {
-    this.yPlayerState.set('hand', newOrder);
+    this.yPlayerState.set(YSTATE_HAND, newOrder);
   }
 
   public flipHandCard(cardId: string): void {
@@ -589,7 +618,7 @@ export class Player {
     if (card) {
       const updatedCard = { ...card, isFlipped: !card.isFlipped };
       const updatedHand = hand.map(c => c.id === cardId ? updatedCard : c);
-      this.yPlayerState.set('hand', updatedHand);
+      this.yPlayerState.set(YSTATE_HAND, updatedHand);
     }
   }
 

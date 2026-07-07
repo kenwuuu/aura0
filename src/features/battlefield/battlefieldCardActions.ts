@@ -8,19 +8,18 @@
 import * as Y from 'yjs';
 import { WhiteboardCard } from './types';
 import { KeywordToken } from '@/features/keyword-tokens/types';
-import { YDOC_KEYWORD_TOKENS } from '@/constants';
-import { attachedChildren, nodeCenter } from './nodeAttachment';
+import { nodeCenter } from './nodeAttachment';
 import { useHotkeyMenuStore } from '@/features/hotkeys/hotkeyMenuStore';
-import { useGameInstance } from '@/app/stores/gameInstanceStore';
 import { logAction, cardLogName } from '@/features/action-log/actionLog';
-import { spawnTokenAtPosition } from './spawnToken';
-
-/** Clear `attachedTo` on any token that was attached to the given card. */
-function detachTokens(cardId: string, yTokens: Y.Map<KeywordToken>) {
-  attachedChildren(cardId, yTokens).forEach((token) => {
-    yTokens.set(token.id, { ...token, attachedTo: undefined });
-  });
-}
+import { spawnTokenAtPosition, getMaxZIndex, detachTokens } from './spawnToken';
+import {
+  moveCardToHand,
+  moveCardToDiscard,
+  moveCardToExile,
+  moveCardToDeckTop,
+  moveCardToDeckBottom,
+} from './battlefieldActions';
+import { makeCardId } from '@/shared/utils/ids';
 
 export function executeBattlefieldCardAction(
   action: string,
@@ -74,11 +73,10 @@ export function executeBattlefieldCardAction(
       break;
     }
     case 'copy': {
-      let maxZIndex = 1;
-      yCards.forEach((c) => { if (c.zIndex > maxZIndex) maxZIndex = c.zIndex; });
+      const maxZIndex = getMaxZIndex(yCards, yTokens);
       const newCard: WhiteboardCard = {
         ...card,
-        id: `card-${Math.random().toString(36).substring(2, 11)}`,
+        id: makeCardId(),
         ownerId: playerId,
         x: card.x + 20,
         y: card.y + 20,
@@ -118,50 +116,40 @@ export function executeBattlefieldCardAction(
         logAction(yDoc, { actorId: playerId, type: 'delete', text: `removed ${cardLogName(card)}` });
       }
       break;
+    // The moveTo* actions below delegate placement, deck persistence, and
+    // logging to their matching battlefieldActions export (a complete
+    // semantic action) — this handler only owns the battlefield-specific
+    // steps: close the menu, detach any attached tokens, and remove the card
+    // from the board.
     case 'moveToHand':
       useHotkeyMenuStore.getState().close();
       detachTokens(cardId, yTokens);
-      useGameInstance.getState().moveCardToHand(card);
       yCards.delete(cardId);
-      if (yDoc) {
-        logAction(yDoc, { actorId: playerId, type: 'move_to_pile', text: `moved ${cardLogName(card)} to hand` });
-      }
+      moveCardToHand(card);
       break;
     case 'moveToDiscard':
       useHotkeyMenuStore.getState().close();
       detachTokens(cardId, yTokens);
-      useGameInstance.getState().moveCardToDiscard(card);
       yCards.delete(cardId);
-      if (yDoc) {
-        logAction(yDoc, { actorId: playerId, type: 'move_to_pile', text: `moved ${cardLogName(card)} to discard` });
-      }
+      moveCardToDiscard(card);
       break;
     case 'moveToExile':
       useHotkeyMenuStore.getState().close();
       detachTokens(cardId, yTokens);
-      useGameInstance.getState().moveCardToExile(card);
       yCards.delete(cardId);
-      if (yDoc) {
-        logAction(yDoc, { actorId: playerId, type: 'move_to_pile', text: `moved ${cardLogName(card)} to exile` });
-      }
+      moveCardToExile(card);
       break;
     case 'moveToDeckTop':
       useHotkeyMenuStore.getState().close();
       detachTokens(cardId, yTokens);
-      useGameInstance.getState().moveCardToDeckTop(card);
       yCards.delete(cardId);
-      if (yDoc) {
-        logAction(yDoc, { actorId: playerId, type: 'move_to_pile', text: `put ${cardLogName(card)} on top of deck` });
-      }
+      moveCardToDeckTop(card);
       break;
     case 'moveToDeckBottom':
       useHotkeyMenuStore.getState().close();
       detachTokens(cardId, yTokens);
-      useGameInstance.getState().moveCardToDeckBottom(card);
       yCards.delete(cardId);
-      if (yDoc) {
-        logAction(yDoc, { actorId: playerId, type: 'move_to_pile', text: `put ${cardLogName(card)} on bottom of deck` });
-      }
+      moveCardToDeckBottom(card);
       break;
   }
 }

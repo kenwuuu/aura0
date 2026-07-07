@@ -11,8 +11,9 @@
  */
 
 import * as React from 'react';
-import { Card } from '@/features/player';
+import { Card, PileType } from '@/features/player';
 import { HotkeyContext, Hotkey } from '@/features/hotkeys/hotkeys';
+import { YSTATE_DECK_REVEAL_COUNT } from '@/constants';
 import {
   Dialog,
   DialogContent,
@@ -36,8 +37,6 @@ import { useHotkeyMenuStore } from '@/features/hotkeys/hotkeyMenuStore';
 import { usePileViewerHotkeyStore } from '@/features/game-dock/pileViewerHotkeyStore';
 import { useGameInstance } from '@/app/stores/gameInstanceStore';
 import { logAction } from '@/features/action-log/actionLog';
-
-export type PileType = 'deck' | 'exile' | 'discard' | 'hand' | 'scry';
 
 export interface PileViewerCallbacks {
   onPlayToBattlefield?: (card: Card) => void;
@@ -133,7 +132,7 @@ export function PileViewerReact({
 
       // Initialize reveal state from yPlayerState
       if (pileType === 'deck' && yPlayerState) {
-        const deckRevealCount = yPlayerState.get('deckRevealCount') ?? 0;
+        const deckRevealCount = yPlayerState.get(YSTATE_DECK_REVEAL_COUNT) ?? 0;
         if (deckRevealCount === -1) {
           setRevealAll(true);
           setRevealCount(0);
@@ -158,7 +157,7 @@ export function PileViewerReact({
 
       // Clear deck reveal count in Yjs when closing
       if (pileType === 'deck' && yPlayerState) {
-        yPlayerState.set('deckRevealCount', 0);
+        yPlayerState.set(YSTATE_DECK_REVEAL_COUNT, 0);
       }
     }
   }, [isOpen, pileType, yPlayerState]);
@@ -219,13 +218,6 @@ export function PileViewerReact({
     return () => usePileViewerHotkeyStore.getState().setActionHandler(null);
   }, [isOpen, cards, callbacks]);
 
-  // Emit scry viewer closing event
-  React.useEffect(() => {
-    if (!isOpen && pileType === 'scry') {
-      window.dispatchEvent(new Event('scryViewer closing'));
-    }
-  }, [isOpen, pileType]);
-
   // Debounced search
   const handleSearchChange = (value: string) => {
     if (searchTimeoutRef.current) {
@@ -259,11 +251,11 @@ export function PileViewerReact({
     if (checked) {
       setRevealCount(0);
       if (yPlayerState) {
-        yPlayerState.set('deckRevealCount', -1);
+        yPlayerState.set(YSTATE_DECK_REVEAL_COUNT, -1);
       }
     } else {
       if (yPlayerState) {
-        yPlayerState.set('deckRevealCount', 0);
+        yPlayerState.set(YSTATE_DECK_REVEAL_COUNT, 0);
       }
     }
     if (yDoc && playerId) {
@@ -283,11 +275,11 @@ export function PileViewerReact({
     if (boundedCount > 0) {
       setRevealAll(false);
       if (yPlayerState) {
-        yPlayerState.set('deckRevealCount', boundedCount);
+        yPlayerState.set(YSTATE_DECK_REVEAL_COUNT, boundedCount);
       }
     } else {
       if (yPlayerState) {
-        yPlayerState.set('deckRevealCount', 0);
+        yPlayerState.set(YSTATE_DECK_REVEAL_COUNT, 0);
       }
     }
 

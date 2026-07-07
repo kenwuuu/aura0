@@ -30,6 +30,29 @@ export async function mouseDrag(
 }
 
 /**
+ * The hand auto-scrolls (smooth) to reveal a newly drawn/added card. If a
+ * card's on-screen position is captured while that scroll is still in
+ * flight, the coordinates go stale by the time the drag actually presses
+ * down — the mouse ends up pressing whatever card has since scrolled under
+ * those coordinates, not the one whose id was captured. Wait for
+ * `scrollLeft` to stop changing between polls before reading positions.
+ */
+async function waitForHandScrollSettled(page: Page): Promise<void> {
+  await page.evaluate((testid: string) => {
+    const el = document.querySelector(`[data-testid="${testid}"]`) as HTMLElement | null;
+    if (!el) return;
+    delete (el.dataset as any).lastScrollLeft;
+  }, TESTID.handCardsContainer);
+  await page.waitForFunction((testid: string) => {
+    const el = document.querySelector(`[data-testid="${testid}"]`) as HTMLElement | null;
+    if (!el) return true;
+    const prev = el.dataset.lastScrollLeft;
+    el.dataset.lastScrollLeft = String(el.scrollLeft);
+    return prev === String(el.scrollLeft);
+  }, TESTID.handCardsContainer);
+}
+
+/**
  * Center point + id of a hand card that is actually clickable. The hand
  * overflows and horizontally clips, so `boundingBox()` alone is not enough — a
  * clipped card still reports a box but isn't hittable. Hit-tests with
@@ -38,6 +61,7 @@ export async function mouseDrag(
 export async function visibleHandCard(
   page: Page,
 ): Promise<{ x: number; y: number; cardId: string }> {
+  await waitForHandScrollSettled(page);
   const pick = await page.evaluate((testid: string) => {
     const vw = window.innerWidth;
     const cards = [...document.querySelectorAll(`[data-testid="${testid}"]`)];

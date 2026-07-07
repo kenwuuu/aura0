@@ -32,7 +32,7 @@ npx tsc --noEmit        # type-check
 ### Entry point flow
 `src/app/main.ts` → `bootstrapGame()` (in `bootstrap.ts`) → mounts `<App>` into `#app-react-root`.
 
-`bootstrapGame()` is the imperative wiring layer: it creates `Y.Doc`, networking, `Player`, `GameResourcesDock` (still an imperative class), and services in dependency order, then populates Zustand stores before React renders. Everything returned from `bootstrapGame()` is passed as props to `<App>`.
+`bootstrapGame()` is the imperative wiring layer: it creates `Y.Doc`, networking, `Player`, and services in dependency order, then populates Zustand stores before React renders. Everything returned from `bootstrapGame()` is passed as props to `<App>`. There are no more imperative UI classes — `PileViewer` (the last one, a detached `createRoot` wrapper in `features/game-dock/`) was retired in favor of `PileViewerReact` mounted normally in the tree.
 
 ### State: two layers
 1. **Yjs** — source of truth for all shared game state. Access via `yDoc.getMap(YDOC_*)` constants from `src/constants.ts`. Key maps: `YDOC_CARDS_ON_BOARD` (battlefield cards), `YDOC_KEYWORD_TOKENS` (board tokens), `YDOC_PLAYER(id)` (per-player state: hand, deck, health, etc.).
@@ -42,7 +42,7 @@ npx tsc --noEmit        # type-check
 Each feature owns its UI, business logic, and types.
 
 ### Battlefield (react-flow)
-`BattlefieldCanvas` wraps `<ReactFlow>` with controlled nodes driven by `useBattlefieldNodes`. The bridge observes `yCards`/`yTokens` and calls `setNodes`; drag writes back to Yjs only on `onNodeDragStop`. Board-to-dock card moves go through `gameInstanceStore.moveCardFromBattlefield`. Hand-to-board drops call `gameInstanceStore.playCardFromHand`; keyword-token drops are handled inside `BattlefieldCanvas.onDrop` via `screenToFlowPosition`.
+`BattlefieldCanvas` wraps `<ReactFlow>` with controlled nodes driven by `useBattlefieldNodes`. The bridge observes `yCards`/`yTokens` and calls `setNodes`; drag writes back to Yjs only on `onNodeDragStop`. Board-to-dock card moves go through `battlefieldActions.moveCardFromBattlefield`. Hand-to-board drops call `battlefieldActions.playCardFromHand`; keyword-token drops are handled inside `BattlefieldCanvas.onDrop` via `screenToFlowPosition`.
 
 ### Hotkey system
 `useAllGameHotkeys` (mounted in `<GameHotkeysManager>`) reads `hoverTarget` from `hotkeyStore` to route contextual actions to the right surface (battlefield card, hand card, pile, token). Modal state switches between `HotkeyScope.Board` and `HotkeyScope.PileViewer` via `react-hotkeys-hook`'s `<HotkeysProvider>`. The context menu (`HotkeyMenu`) is a Radix Popover opened imperatively via `useHotkeyMenuStore.getState().openMenu(...)`.
@@ -52,7 +52,7 @@ Each feature owns its UI, business logic, and types.
 
 ## Design Philosophy
 
-**Extensible and self-documenting over simple.** When choosing where to put logic, prefer the location that makes the code correct by default for all future callers — not the one that's shortest. A store action like `playCardFromHand` names a complete game action; if callers have to remember to also trigger token creation afterward, the name lies and every new call-site is a latent bug.
+**Extensible and self-documenting over simple.** When choosing where to put logic, prefer the location that makes the code correct by default for all future callers — not the one that's shortest. An action like `playCardFromHand` names a complete game action; if callers have to remember to also trigger token creation afterward, the name lies and every new call-site is a latent bug.
 
 **Complete semantic actions.** Store actions represent full game events with all their consequences. Side effects (token creation, analytics, persistence) belong inside the action, not scattered at call sites. This means: if you add a new way to play a card from hand (hotkey, pile drag, etc.), it gets token creation for free.
 
@@ -60,7 +60,7 @@ Each feature owns its UI, business logic, and types.
 
 **Yjs mutations always go through `Player`** for player-state (hand, deck, health). For battlefield objects, write directly to `yDoc.getMap(YDOC_CARDS_ON_BOARD)`. Never use `player.yPlayerState` directly from outside `Player.ts`.
 
-**Window events still used** for battlefield→dock card moves (`moveCardFromBattlefield`). All other cross-module communication uses Zustand stores or direct Yjs access.
+**No more window events for cross-module communication.** Battlefield→dock card moves (`features/battlefield/battlefieldActions.ts`), pile-viewer open requests, and the scry viewer's close handling all go through Zustand stores, direct Yjs access, or plain component state.
 
 **`src/components/`** holds modals and cross-feature UI (used by more than one feature). Feature-specific UI belongs in `src/features/<feature>/`. Generic primitives and shadcn components belong in `src/shared/`.
 

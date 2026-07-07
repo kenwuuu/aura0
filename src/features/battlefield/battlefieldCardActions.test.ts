@@ -179,22 +179,36 @@ describe('executeBattlefieldCardAction', () => {
   });
 
   describe('moveTo* actions', () => {
-    it('moveToHand removes the card from the board and places it in the player hand pile', () => {
-      const { player, playerId } = seedGame({ playerId: 'p1' });
+    // The moveTo* cases delegate to battlefieldActions' granular move
+    // functions, which log through useGameInstance.getState().yDoc — so
+    // (unlike the other describe blocks above) these need a real seeded
+    // yDoc/player/playerId on the store, and yCards/yTokens on that SAME doc
+    // (matching production, where cards-on-board/tokens/player-state all live
+    // in one Y.Doc).
+    function seedMoveTest(playerId = 'p1') {
+      const { yDoc, player } = seedGame({ playerId });
+      const localCards = yDoc.getMap<WhiteboardCard>('cards');
+      const localTokens = yDoc.getMap<KeywordToken>('tokens');
+      useGameInstance.getState().setYDoc(yDoc);
       useGameInstance.getState().setPlayer(player);
+      useGameInstance.getState().setPlayerId(playerId);
+      return { yDoc, player, playerId, yCards: localCards, yTokens: localTokens };
+    }
+
+    it('moveToHand removes the card from the board and places it in the player hand pile', () => {
+      const { yDoc, player, playerId, yCards, yTokens } = seedMoveTest();
       yCards.set('card-1', makeWhiteboardCard({ ownerId: playerId, name: 'Lightning Bolt' }));
 
       executeBattlefieldCardAction('moveToHand', 'card-1', yCards, yTokens, playerId);
 
       expect(yCards.get('card-1')).toBeUndefined();
       expect(player.getState().hand.some((c) => c.name === 'Lightning Bolt')).toBe(true);
-      const log = getActionLog(boardDoc).toArray();
+      const log = getActionLog(yDoc).toArray();
       expect(log.some((e) => e.type === 'move_to_pile' && e.text.includes('hand'))).toBe(true);
     });
 
     it('moveToDiscard places the card in the discard pile', () => {
-      const { player, playerId } = seedGame({ playerId: 'p1' });
-      useGameInstance.getState().setPlayer(player);
+      const { player, playerId, yCards, yTokens } = seedMoveTest();
       yCards.set('card-1', makeWhiteboardCard({ ownerId: playerId, name: 'Lightning Bolt' }));
 
       executeBattlefieldCardAction('moveToDiscard', 'card-1', yCards, yTokens, playerId);
@@ -203,8 +217,7 @@ describe('executeBattlefieldCardAction', () => {
     });
 
     it('moveToExile places the card in the exile pile', () => {
-      const { player, playerId } = seedGame({ playerId: 'p1' });
-      useGameInstance.getState().setPlayer(player);
+      const { player, playerId, yCards, yTokens } = seedMoveTest();
       yCards.set('card-1', makeWhiteboardCard({ ownerId: playerId, name: 'Lightning Bolt' }));
 
       executeBattlefieldCardAction('moveToExile', 'card-1', yCards, yTokens, playerId);
@@ -213,32 +226,29 @@ describe('executeBattlefieldCardAction', () => {
     });
 
     it('moveToDeckTop puts the card on top of the deck', () => {
-      const { player, playerId } = seedGame({ playerId: 'p1' });
-      useGameInstance.getState().setPlayer(player);
+      const { yDoc, player, playerId, yCards, yTokens } = seedMoveTest();
       yCards.set('card-1', makeWhiteboardCard({ ownerId: playerId, name: 'Lightning Bolt' }));
 
       executeBattlefieldCardAction('moveToDeckTop', 'card-1', yCards, yTokens, playerId);
 
       expect(player.getDeck().peekTop()!.name).toBe('Lightning Bolt');
-      const log = getActionLog(boardDoc).toArray();
+      const log = getActionLog(yDoc).toArray();
       expect(log.some((e) => e.type === 'move_to_pile' && e.text.includes('top of deck'))).toBe(true);
     });
 
     it('moveToDeckBottom puts the card on the bottom of the deck', () => {
-      const { player, playerId } = seedGame({ playerId: 'p1' });
-      useGameInstance.getState().setPlayer(player);
+      const { yDoc, player, playerId, yCards, yTokens } = seedMoveTest();
       yCards.set('card-1', makeWhiteboardCard({ ownerId: playerId, name: 'Lightning Bolt' }));
 
       executeBattlefieldCardAction('moveToDeckBottom', 'card-1', yCards, yTokens, playerId);
 
       expect(player.getDeck().peekBottom()!.name).toBe('Lightning Bolt');
-      const log = getActionLog(boardDoc).toArray();
+      const log = getActionLog(yDoc).toArray();
       expect(log.some((e) => e.type === 'move_to_pile' && e.text.includes('bottom of deck'))).toBe(true);
     });
 
     it('detaches tokens from the moved card', () => {
-      const { player, playerId } = seedGame({ playerId: 'p1' });
-      useGameInstance.getState().setPlayer(player);
+      const { playerId, yCards, yTokens } = seedMoveTest();
       yCards.set('card-1', makeWhiteboardCard({ ownerId: playerId }));
       yTokens.set('token-1', makeToken({ attachedTo: 'card-1' }));
 

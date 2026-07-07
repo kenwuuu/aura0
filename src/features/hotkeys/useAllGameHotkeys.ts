@@ -29,7 +29,7 @@ import { YDOC_CARDS_ON_BOARD, YDOC_KEYWORD_TOKENS } from '@/constants';
 import type { WhiteboardCard } from '@/features/battlefield/types';
 import type { KeywordToken } from '@/features/keyword-tokens/types';
 import { spawnTokenAtPosition } from '@/features/battlefield/spawnToken';
-import { logAction, cardLogName } from '@/features/action-log/actionLog';
+import { logAction } from '@/features/action-log/actionLog';
 
 export function useAllGameHotkeys() {
   const { player, yDoc, playerId, roomManager } = useGameInstance();
@@ -98,21 +98,14 @@ export function useAllGameHotkeys() {
     }
   };
 
-  // Draw the top card of the hovered pile and move it elsewhere. A move into
-  // the same pile is a no-op (mirrors the old per-pile `enabled` guards).
+  // Move the top card of the hovered pile elsewhere. A move into the same
+  // pile is a no-op (mirrors the old per-pile `enabled` guards).
   const pileMove = (dest: 'hand' | 'discard' | 'exile' | 'deck', position?: number) => {
     if (!player || t?.kind !== 'pile' || !t.pileType) return;
     if (t.pileType === dest) return;
-    const card = player.drawCardFromPile(t.pileType);
+    const card = player.peekTopOfPile(t.pileType);
     if (card) {
-      if (position === undefined) player.placeCardInPile(card, dest);
-      else player.placeCardInPile(card, dest, position);
-      if (yDoc && playerId) {
-        const text = dest === 'deck'
-          ? `put ${cardLogName(card)} on ${position === 0 ? 'bottom' : 'top'} of deck`
-          : `moved ${cardLogName(card)} to ${dest}`;
-        logAction(yDoc, { actorId: playerId, type: 'move_to_pile', text });
-      }
+      player.movePileCard(card, t.pileType, dest, position);
     }
   };
 
@@ -224,7 +217,6 @@ export function useAllGameHotkeys() {
       onBattlefield('flip');
     } else if (isHand && player && t?.kind === 'hand') {
       player.flipHandCard(t.id);
-      player.syncToYState();
       useCardPreviewStore.getState().hide();
     }
   }, { ...board, enabled: isBattlefield || isHand });
