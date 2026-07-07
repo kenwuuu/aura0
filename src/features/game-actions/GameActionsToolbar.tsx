@@ -27,6 +27,7 @@ import {
   DropdownMenuTrigger,
 } from '@/shared/ui/dropdown-menu';
 import { Popover, PopoverAnchor, PopoverContent } from '@/shared/ui/popover';
+import { FloatingPanel } from '@/shared/ui/FloatingPanel';
 import { useGameInstance } from '@/app/stores/gameInstanceStore';
 import { YDOC_CARDS_ON_BOARD, YDOC_KEYWORD_TOKENS } from '@/constants';
 import type { WhiteboardCard } from '@/features/battlefield/types';
@@ -103,25 +104,13 @@ export function GameActionsToolbar() {
   };
 
   return (
-    <div
-      data-testid="game-actions-toolbar"
-      style={{
-        position: 'fixed',
-        top: 60,
-        // 8px margin + 280px action log panel + 8px gap
-        left: 296,
-        zIndex: 40,
-        display: 'flex',
-        alignItems: 'center',
-        gap: 6,
-        padding: '6px 8px',
-        borderRadius: 8,
-        background: 'rgba(18,18,24,0.92)',
-        backdropFilter: 'blur(8px)',
-        border: '1px solid rgba(255,255,255,0.08)',
-        boxShadow: '0 4px 24px rgba(0,0,0,0.5)',
-      }}
-    >
+    // Default position matches the toolbar's old fixed spot (8px margin + 280px
+    // action-log panel + 8px gap); it's now draggable and its position persists.
+    <FloatingPanel persistKey="game-actions-toolbar" defaultPosition={{ x: 296, y: 60 }} title="Game Actions">
+      <div
+        data-testid="game-actions-toolbar"
+        style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 8px' }}
+      >
       {/* Toolbar buttons */}
       {toolbarActions.map((action) => (
         <ToolbarButton
@@ -207,7 +196,8 @@ export function GameActionsToolbar() {
           })}
         </DropdownMenuContent>
       </DropdownMenu>
-    </div>
+      </div>
+    </FloatingPanel>
   );
 }
 
