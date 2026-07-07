@@ -218,13 +218,6 @@ export function PileViewerReact({
     return () => usePileViewerHotkeyStore.getState().setActionHandler(null);
   }, [isOpen, cards, callbacks]);
 
-  // Emit scry viewer closing event
-  React.useEffect(() => {
-    if (!isOpen && pileType === 'scry') {
-      window.dispatchEvent(new Event('scryViewer closing'));
-    }
-  }, [isOpen, pileType]);
-
   // Debounced search
   const handleSearchChange = (value: string) => {
     if (searchTimeoutRef.current) {

@@ -1,45 +1,22 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { PileViewer } from './components/PileViewer';
+import { useState, useEffect } from 'react';
+import { PileViewerReact } from './components/PileViewerReact';
 import { useScryStore } from './scryStore';
 import { useSurveilStore } from './surveilStore';
 import { useGameInstance } from '@/app/stores/gameInstanceStore';
 import { logAction } from '@/features/action-log/actionLog';
 import { useNumberPromptStore } from '@/features/game-actions/numberPromptStore';
+import type { Card } from '@/features/player/types';
 
 export function ScryManager() {
   const player = useGameInstance((s) => s.player);
   const yDoc = useGameInstance((s) => s.yDoc);
   const playerId = useGameInstance((s) => s.playerId);
-  const viewerRef = useRef<PileViewer | null>(null);
-  const actionTypeRef = useRef<'scry' | 'surveil'>('scry');
 
-  // Lazy-init the PileViewer — must be stable across renders.
-  const getViewer = (): PileViewer => {
-    if (!viewerRef.current) {
-      viewerRef.current = new PileViewer({
-        onMoveToDiscard: (card) => {
-          if (!player) return;
-          player.movePileCard(card, 'scry', 'discard');
-          viewerRef.current?.updateCards(player.getScryPile().getCards());
-        },
-        onMoveToDeckTop: (card) => {
-          if (!player) return;
-          player.movePileCard(card, 'scry', 'deck');
-          viewerRef.current?.updateCards(player.getScryPile().getCards());
-        },
-        onMoveToDeckBottom: (card) => {
-          if (!player) return;
-          player.movePileCard(card, 'scry', 'deck', 0);
-          viewerRef.current?.updateCards(player.getScryPile().getCards());
-        },
-      });
-    }
-    return viewerRef.current;
-  };
+  const [isOpen, setIsOpen] = useState(false);
+  const [cards, setCards] = useState<Card[]>([]);
 
   const openPromptFor = (type: 'scry' | 'surveil') => {
     if (!player) return;
-    actionTypeRef.current = type;
     const maxCards = player.getDeck().getCardCount();
     useNumberPromptStore.getState().open({
       title: type === 'scry' ? 'Scry' : 'Surveil',
@@ -72,16 +49,15 @@ export function ScryManager() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [player]);
 
-  useEffect(() => {
-    const handleViewerClose = () => {
-      if (!player) return;
-      const scryPile = player.getScryPile();
-      scryPile.getCards().forEach((card) => player.getDeck().addCardToTop(card));
-      scryPile.clear();
-    };
-    window.addEventListener('scryViewer closing', handleViewerClose);
-    return () => window.removeEventListener('scryViewer closing', handleViewerClose);
-  }, [player]);
+  // Closing the scry viewer (X button, Escape, backdrop click, or an explicit
+  // in-viewer close) returns any remaining scried cards to the top of the deck.
+  const handleClose = () => {
+    setIsOpen(false);
+    if (!player) return;
+    const scryPile = player.getScryPile();
+    scryPile.getCards().forEach((card) => player.getDeck().addCardToTop(card));
+    scryPile.clear();
+  };
 
   const handleConfirm = (count: number, type: 'scry' | 'surveil') => {
     if (!player) return;
@@ -90,12 +66,12 @@ export function ScryManager() {
     const scryPile = player.getScryPile();
     scryPile.clear();
 
-    const cards = [];
+    const drawn: Card[] = [];
     for (let i = 0; i < count; i++) {
       const card = deck.drawCard();
-      if (card) cards.unshift(card);
+      if (card) drawn.unshift(card);
     }
-    cards.forEach((card) => scryPile.addCardToTop(card));
+    drawn.forEach((card) => scryPile.addCardToTop(card));
 
     if (yDoc && playerId) {
       logAction(yDoc, {
@@ -105,8 +81,33 @@ export function ScryManager() {
       });
     }
 
-    getViewer().show(scryPile.getCards(), 'scry');
+    setCards(scryPile.getCards());
+    setIsOpen(true);
   };
 
-  return null;
+  return (
+    <PileViewerReact
+      isOpen={isOpen}
+      onClose={handleClose}
+      cards={cards}
+      pileType="scry"
+      callbacks={{
+        onMoveToDiscard: (card) => {
+          if (!player) return;
+          player.movePileCard(card, 'scry', 'discard');
+          setCards(player.getScryPile().getCards());
+        },
+        onMoveToDeckTop: (card) => {
+          if (!player) return;
+          player.movePileCard(card, 'scry', 'deck');
+          setCards(player.getScryPile().getCards());
+        },
+        onMoveToDeckBottom: (card) => {
+          if (!player) return;
+          player.movePileCard(card, 'scry', 'deck', 0);
+          setCards(player.getScryPile().getCards());
+        },
+      }}
+    />
+  );
 }
