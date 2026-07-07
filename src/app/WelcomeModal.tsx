@@ -55,7 +55,7 @@ export const WelcomeModal: React.FC = () => {
           <DialogDescription className="space-y-3 pt-2 text-md text-gray-200">
             <p>
               <strong >Start a game</strong> by sharing a game link with friends by clicking
-              the <strong>Copy Game Link</strong> button on the top right.
+              the <strong>Copy Room Link</strong> button on the top right.
             </p>
             <p>
               Import a new deck using the <strong className="text-white">Choose Deck</strong> button in the top left.

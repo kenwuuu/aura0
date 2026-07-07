@@ -7,6 +7,7 @@ import { useScryStore } from '@/features/game-dock/scryStore';
 import { useSurveilStore } from '@/features/game-dock/surveilStore';
 import { useNumberPromptStore } from './numberPromptStore';
 import { useTokenCardSearchStore } from './tokenCardSearchStore';
+import { useConfirmStore } from '@/app/stores/confirmStore';
 import { usePileViewerOpenStore } from '@/features/game-dock/pileViewerOpenStore';
 import { YDOC_CARDS_ON_BOARD, YDOC_KEYWORD_TOKENS } from '@/constants';
 import type { WhiteboardCard } from '@/features/battlefield/types';
@@ -174,6 +175,25 @@ describe('mulligan', () => {
     getAction('mulligan').perform(ctx);
 
     expect(ctx.player.getState().hand).toHaveLength(7);
+  });
+});
+
+describe('reset-deck', () => {
+  it('opens a confirmation, and onConfirm moves hand/discard/exile back into the deck', () => {
+    const ctx = makeContext({
+      hand: [{ id: 'c1' } as any],
+      deck: Array.from({ length: 5 }, (_, i) => ({ id: `c${i}` } as any)),
+    });
+
+    getAction('reset-deck').perform(ctx);
+
+    const request = useConfirmStore.getState().request;
+    expect(request).not.toBeNull();
+    expect(request!.title).toBe('Reset Deck?');
+
+    request!.onConfirm();
+    expect(ctx.player.getState().hand).toHaveLength(0);
+    expect(ctx.player.getDeck().getCardCount()).toBe(6);
   });
 });
 

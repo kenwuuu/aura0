@@ -13,6 +13,7 @@ import { useScryStore } from '@/features/game-dock/scryStore';
 import { useSurveilStore } from '@/features/game-dock/surveilStore';
 import { useTokenCardSearchStore } from '@/features/game-actions/tokenCardSearchStore';
 import { useNumberPromptStore } from '@/features/game-actions/numberPromptStore';
+import { useConfirmStore } from '@/app/stores/confirmStore';
 
 /**
  * Reset all module-singleton Zustand stores between tests so state never leaks
@@ -45,6 +46,7 @@ afterEach(() => {
   useSurveilStore.setState({ requested: false });
   useTokenCardSearchStore.setState({ isOpen: false });
   useNumberPromptStore.setState({ request: null });
+  useConfirmStore.setState({ request: null });
   useSettingsStore.setState({
     handZoom: 1,
     previewZoom: 1,

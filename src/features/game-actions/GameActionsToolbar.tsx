@@ -154,7 +154,8 @@ export function GameActionsToolbar() {
             const addSep =
               i > 0 &&
               ((action.id === 'reveal-hand' && prev.id !== 'reveal-hand') ||
-               (action.id === 'shuffle' && prev.id !== 'shuffle'));
+               (action.id === 'shuffle' && prev.id !== 'shuffle') ||
+               (action.id === 'reset-deck' && prev.id !== 'reset-deck'));
             return (
               <React.Fragment key={action.id}>
                 {addSep && <DropdownMenuSeparator />}
