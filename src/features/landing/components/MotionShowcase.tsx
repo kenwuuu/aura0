@@ -131,8 +131,8 @@ export function MotionShowcase() {
     <section id="motion" className="mx-auto max-w-[1200px] px-4 py-20 sm:px-6 lg:py-28">
       <SectionHeading
         eyebrow="Motion is first-class"
-        title="Calm at rest. Dramatic on events."
-        lede="Cast a spell — the board answers. Ripple size scales with mana cost, its hue with the card’s color. This is the real product motion, not a mockup."
+        title="Every play lands like it matters."
+        lede="Cast a spell — the board answers. Ripple size scales with mana cost, its hue with the card’s color. Go ahead — click the board."
       />
 
       {/* Live board */}

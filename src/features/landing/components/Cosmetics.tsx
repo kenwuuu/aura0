@@ -34,13 +34,13 @@ export function Cosmetics() {
           <SectionHeading
             eyebrow="Subscriber cosmetics"
             title="Make it yours. Make it shine."
-            lede="Support the project and unlock a pluggable layer of cosmetics — starting with luminance-aware foils and spellcast ripples. Pure flourish, zero pay-to-win."
+            lede="Support the project and unlock a growing set of cosmetics — starting with real holo foils and spellcast ripples. Pure flair, zero pay-to-win."
           />
           <ul className="mt-6 space-y-3">
             {[
-              ['Holographic foils', 'Real color-dodge holo that brightens the light in any art — no per-card masking.'],
+              ['Holographic foils', 'Real holographic shimmer that catches the light in any card’s art.'],
               ['Spellcast ripples', 'Cards splash onto the board with rings that scale to mana cost and glow in the card’s color.'],
-              ['More on the way', 'Playmats, sleeves, tap styles, victory screens — dropped in without touching core play.'],
+              ['More on the way', 'Playmats, sleeves, tap styles, victory screens — more landing over time.'],
             ].map(([t, d]) => (
               <li key={t} className="flex gap-3">
                 <Sparkles size={18} className="mt-0.5 shrink-0 text-[var(--accent)]" />

@@ -21,8 +21,8 @@ const FEATURES: Feature[] = [
   },
   {
     icon: Gauge,
-    title: 'HUD-fast interface',
-    body: 'Thin lines, tabular data, purple energy. The chrome stays quiet at rest and lights up only when it matters, so the card art performs.',
+    title: 'Fast, quiet interface',
+    body: 'A clean board that stays out of the way and lights up only when it matters — so your cards are the star.',
   },
   {
     icon: Layers,
@@ -31,8 +31,8 @@ const FEATURES: Feature[] = [
   },
   {
     icon: Sparkles,
-    title: 'Motion, done right',
-    body: 'Calm at rest, dramatic on events. Casts, kills and wins earn cinematic moments; everything routine stays crisp and out of the way.',
+    title: 'Plays with impact',
+    body: 'Casts, kills, and wins get a cinematic beat. Everything routine stays crisp and out of your way.',
   },
   {
     icon: Hand,
@@ -47,7 +47,7 @@ export function FeatureGrid() {
       <SectionHeading
         eyebrow="Why Aura"
         title="Everything you need to play. Nothing you don’t."
-        lede="Built to disappear. The fastest path from “want to play” to “my turn” that a browser can offer."
+        lede="The fastest path from “let’s play” to “my turn” a browser can offer."
       />
 
       <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

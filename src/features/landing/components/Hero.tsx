@@ -52,8 +52,8 @@ export function Hero() {
           <p className="mt-6 max-w-[46ch] text-[clamp(1rem,2.2vw,1.15rem)] leading-[1.55] text-text-dim">
             Aura is a sleek, peer-to-peer tabletop for Magic: The Gathering. Share
             a link and you're dealing in seconds — no sign-up, no install, no
-            server between you and the play. Just a fast, HUD-quiet board that gets
-            out of the way so the cards can perform.
+            server in the middle. Just a fast, clean board that stays out of your
+            way.
           </p>
 
           <div className="mt-8 flex flex-wrap items-center gap-3">
