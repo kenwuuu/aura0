@@ -40,6 +40,8 @@ export default defineConfig({
         main: path.resolve(__dirname, 'index.html'),
         // Game app (boots straight into the whiteboard) at /play.html.
         play: path.resolve(__dirname, 'play.html'),
+        // Task-3 spike: the real board on a networking-free instance, /demo.html.
+        demo: path.resolve(__dirname, 'demo.html'),
       },
     },
   },
