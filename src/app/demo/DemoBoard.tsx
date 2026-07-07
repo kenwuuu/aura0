@@ -27,7 +27,9 @@ export function DemoBoard({ instance }: { instance: LocalGameInstance }) {
     // GameDndProvider supplies the same DndContext + hand-drag handlers the real
     // app uses, so hand→board / hand→pile drops work here too.
     <GameDndProvider player={instance.player} playerId={instance.playerId}>
-      <div style={{ position: 'fixed', inset: 0 }}>
+      {/* id="whiteboard": the same board-surface id the real app uses, so the
+          e2e harness's drop-target helpers work against the demo too. */}
+      <div id="whiteboard" style={{ position: 'fixed', inset: 0 }}>
         <BattlefieldCanvas
           yDoc={instance.yDoc}
           localPlayerId={instance.playerId}
