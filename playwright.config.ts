@@ -31,6 +31,9 @@ export default defineConfig({
     baseURL: 'http://localhost:5173',
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     trace: 'on-first-retry',
+    /* Emulate prefers-reduced-motion so CSS/smooth-scroll animations resolve
+       instantly instead of racing fixed-coordinate drags and assertions. */
+    reducedMotion: 'reduce',
   },
 
   /* Configure projects for major browsers. No auth/storageState — the app has none. */

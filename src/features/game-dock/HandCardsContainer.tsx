@@ -4,6 +4,7 @@ import { SortableContext, horizontalListSortingStrategy } from '@dnd-kit/sortabl
 import { HandCard } from './HandCard';
 import { Card } from '@/features/player';
 import { useCardPreviewStore } from '@/features/card-preview/cardPreviewStore';
+import { useMediaQuery } from '@/shared/hooks/useMediaQuery';
 import { CARD_HEIGHT } from '@/constants';
 
 interface HandCardsContainerProps {
@@ -36,14 +37,18 @@ export const HandCardsContainer: React.FC<HandCardsContainerProps> = ({
   const displayHand = overrideCards && hand.length === 0 ? overrideCards : hand;
   const scrollRef = useRef<HTMLDivElement>(null);
   const prevHandLenRef = useRef(hand.length);
+  const prefersReducedMotion = useMediaQuery('(prefers-reduced-motion: reduce)');
 
   // Scroll to the end when a card is added to hand.
   useEffect(() => {
     if (displayHand.length > prevHandLenRef.current && scrollRef.current) {
-      scrollRef.current.scrollTo({ left: scrollRef.current.scrollWidth, behavior: 'smooth' });
+      scrollRef.current.scrollTo({
+        left: scrollRef.current.scrollWidth,
+        behavior: prefersReducedMotion ? 'auto' : 'smooth',
+      });
     }
     prevHandLenRef.current = displayHand.length;
-  }, [displayHand.length]);
+  }, [displayHand.length, prefersReducedMotion]);
 
   const handleMouseEnter = useCallback((cardId: string) => {
     onHoveredCardChange(cardId);
