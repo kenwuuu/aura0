@@ -1,12 +1,13 @@
 import { test, expect } from '../fixtures';
+import { pileTile } from '../harness';
 
 test('testTooltipShowsOnDeck', async ({page}) => {
-  await page.getByText('Deck', { exact: true }).hover();
+  await pileTile(page, 'deck').hover();
   await expect(page.getByText('Mulligan', { exact: true })).toBeVisible();
 });
 
 test('testTooltipShowsOnExile', async ({page}) => {
-  await page.getByText('Exile', { exact: true }).hover();
+  await pileTile(page, 'exile').hover();
   await expect(page.getByText('Mulligan', { exact: true })).toBeHidden();
   await expect(page.locator('span').filter({ hasText: 'Exile' })).toBeHidden();
   await expect(page.locator('span').filter({ hasText: 'Discard' })).toBeVisible();
@@ -15,7 +16,7 @@ test('testTooltipShowsOnExile', async ({page}) => {
 });
 
 test('testTooltipShowsOnDiscard', async ({page}) => {
-  await page.getByText('Discard', { exact: true }).hover();
+  await pileTile(page, 'discard').hover();
   await expect(page.getByText('Mulligan', { exact: true })).toBeHidden();
   await expect(page.locator('span').filter({ hasText: 'Discard' })).toBeHidden();
   await expect(page.locator('span').filter({ hasText: 'Exile' })).toBeVisible();
