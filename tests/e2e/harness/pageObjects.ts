@@ -12,6 +12,15 @@ export function boardCard(page: Page, id?: string): Locator {
   return boardCards(page).first();
 }
 
+/**
+ * Tapped battlefield card nodes. A tapped card renders with a `rotate(90deg)`
+ * inline transform (see `resolveCardRotation`), so we match on that rather than
+ * reaching into the DOM from a spec.
+ */
+export function tappedBoardCards(page: Page): Locator {
+  return page.locator(`[data-testid="${TESTID.battlefieldCard}"][style*="rotate(90deg)"]`);
+}
+
 /** All battlefield token nodes. */
 export function boardTokens(page: Page): Locator {
   return page.locator(`[data-testid="${TESTID.battlefieldToken}"]`);

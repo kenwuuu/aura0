@@ -12,20 +12,10 @@
  * without WebRTC flakiness.
  */
 import { test, expect } from '@playwright/test';
-import type { Page } from '@playwright/test';
-import { boardCards, handCards, playHandCardToBoard, drawCard } from '../harness';
+import { boardCards, tappedBoardCards, handCards, playHandCardToBoard, drawCard } from '../harness';
 
 const SEEDED_BOARD_CARDS = 4;
 const OPENING_HAND = 5;
-
-/** How many battlefield cards are currently tapped (rotated 90°). */
-function tappedCount(page: Page): Promise<number> {
-  return page.evaluate(() =>
-    Array.from(document.querySelectorAll('[data-testid="battlefield-card"]'))
-      .filter((el) => /rotate\(90deg\)/.test((el as HTMLElement).style.transform))
-      .length,
-  );
-}
 
 test.beforeEach(async ({ page }) => {
   await page.goto('/demo.html');
@@ -34,12 +24,12 @@ test.beforeEach(async ({ page }) => {
 });
 
 test('seeds a board with two tapped cards', async ({ page }) => {
-  expect(await tappedCount(page)).toBe(2);
+  await expect(tappedBoardCards(page)).toHaveCount(2);
 });
 
 test('Untap All untaps every tapped card', async ({ page }) => {
   await page.getByTestId('game-actions-toolbar').getByRole('button', { name: 'Untap All' }).click();
-  await expect.poll(() => tappedCount(page)).toBe(0);
+  await expect(tappedBoardCards(page)).toHaveCount(0);
 });
 
 test('Draw moves a card from the deck into the hand', async ({ page }) => {
