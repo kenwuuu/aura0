@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { describe, it, expect, vi } from 'vitest';
+import { render, screen, waitFor, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { FloatingHand } from './FloatingHand';
 import { renderWithGame } from '@/test/harness';
@@ -46,6 +46,28 @@ describe('FloatingHand', () => {
 
     expect(useHotkeyStore.getState().hoverTarget).toBeNull();
     expect(useCardPreviewStore.getState().isVisible).toBe(false);
+  });
+
+  it('re-derives hover onto the card that reflows under a stationary cursor after a hotkey move', async () => {
+    const user = userEvent.setup();
+    const hand = makeCards(2, (i) => ({ name: `Card ${i}` }));
+    const { player } = renderWithGame(<FloatingHand />, { hand });
+
+    await user.hover(screen.getByAltText('Card 0'));
+    expect(useHotkeyStore.getState().hoverTarget).toEqual({ kind: 'hand', id: hand[0].id });
+
+    // happy-dom has no layout engine, so stub elementFromPoint to report what a real
+    // browser would find under the cursor once card 0 is removed and card 1 slides
+    // into its screen slot — no mouseenter fires for that, since the pointer didn't move.
+    document.elementFromPoint = vi.fn().mockReturnValue(screen.getByAltText('Card 1'));
+
+    act(() => {
+      player.movePileCard(hand[0], 'hand', 'discard');
+    });
+
+    await waitFor(() => {
+      expect(useHotkeyStore.getState().hoverTarget).toEqual({ kind: 'hand', id: hand[1].id });
+    });
   });
 
   it('falls back to demoHandCards only when the real hand is empty', () => {
