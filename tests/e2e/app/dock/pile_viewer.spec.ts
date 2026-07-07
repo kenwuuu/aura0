@@ -514,3 +514,27 @@ test('testPileViewerDoesNotCloseAfterMovingCardToDeckTop', async ({ page }) => {
   await expect(page.getByRole('dialog', { name: 'Discard Pile' })).toBeVisible();
   await expectPileCount(page, 'discard', 6);
 });
+
+// SUSPECTED PRODUCT BUG (as of this writing): CardGridItemReact has the same
+// onMouseEnter/onMouseLeave-only hover wiring as the hand row did before the
+// HandCardsContainer fix, in a grid that reflows on removal. Confirmed via a
+// left-click (which — like a real click — moves focus off the viewer's
+// auto-focused search input, the only way any per-card hotkey fires at all):
+// hover card 2, press 'd' twice with no mouse movement between presses, and
+// only the first press registers — the second silently no-ops because
+// hoverTarget still points at the now-gone card id. The existing
+// right-click-based hotkey tests in this file don't catch it because
+// right-click's context-menu popover opening/closing happens to force an
+// incidental hit-test refresh — but that's timing-dependent, not a fix: with
+// `--repeat-each=3 --retries=0` the right-click path itself flaked 1/3 runs
+// with the identical symptom (discard count stuck at 1, not 2).
+test.skip('pressing a hotkey twice on a viewer card without moving the mouse moves both', async ({ page }) => {
+  await openPileViewer(page, 'deck');
+  await waitForPileViewerReady(page);
+
+  await pileViewerCards(page).nth(1).click();
+  await page.keyboard.press('d');
+  await page.keyboard.press('d');
+
+  await expectPileCount(page, 'discard', 2);
+});
