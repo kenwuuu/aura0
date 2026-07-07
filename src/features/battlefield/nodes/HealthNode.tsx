@@ -4,12 +4,6 @@ import * as Y from 'yjs';
 import { HealthDisplay } from '@/features/opponents/HealthDisplay';
 import { CustomCounter } from '@/features/player/types';
 import { useGameInstance } from '@/app/stores/gameInstanceStore';
-import {
-  modifyOpponentHealth,
-  addOpponentCounter,
-  modifyOpponentCounter,
-  removeOpponentCounter,
-} from '@/features/opponents/opponentPlayerMutations';
 
 export interface HealthNodeData {
   ownerId: string;
@@ -23,23 +17,20 @@ export interface HealthNodeData {
 /**
  * HealthNode — per-player health / name / custom-counter widget on the board.
  *
- * Wraps the existing HealthDisplay component. Local player mutations go through
- * the Player instance in gameInstanceStore; opponent mutations write directly to
- * their Yjs map via opponentPlayerMutations helpers.
+ * Wraps the existing HealthDisplay component. All mutations (self or opponent)
+ * go through the local Player instance — it's the only Player instance that
+ * exists, and it can target any player's Yjs map, since only the local player
+ * can click their own board widgets.
  *
  * The `nodrag` class on the wrapper prevents react-flow from treating pointer
  * events inside the widget as a node-drag gesture.
  */
 export const HealthNode = memo(function HealthNode({ data }: NodeProps) {
   const d = data as unknown as HealthNodeData;
-  const { ownerId, isLocal, name, health, customCounters, yDoc } = d;
+  const { ownerId, isLocal, name, health, customCounters } = d;
 
   const onModifyHealth = (delta: number) => {
-    if (isLocal) {
-      useGameInstance.getState().player?.modifyHealth(delta);
-    } else {
-      modifyOpponentHealth(yDoc, ownerId, delta);
-    }
+    useGameInstance.getState().player?.modifyHealth(delta, ownerId);
   };
 
   const onRename = isLocal
@@ -47,27 +38,15 @@ export const HealthNode = memo(function HealthNode({ data }: NodeProps) {
     : undefined;
 
   const onAddCounter = (title: string, icon: string) => {
-    if (isLocal) {
-      useGameInstance.getState().player?.addCustomCounter(title, icon);
-    } else {
-      addOpponentCounter(yDoc, ownerId, title, icon);
-    }
+    useGameInstance.getState().player?.addCustomCounter(title, icon, ownerId);
   };
 
   const onModifyCounter = (counterId: string, delta: number) => {
-    if (isLocal) {
-      useGameInstance.getState().player?.modifyCustomCounter(counterId, delta);
-    } else {
-      modifyOpponentCounter(yDoc, ownerId, counterId, delta);
-    }
+    useGameInstance.getState().player?.modifyCustomCounter(counterId, delta, ownerId);
   };
 
   const onRemoveCounter = (counterId: string) => {
-    if (isLocal) {
-      useGameInstance.getState().player?.removeCustomCounter(counterId);
-    } else {
-      removeOpponentCounter(yDoc, ownerId, counterId);
-    }
+    useGameInstance.getState().player?.removeCustomCounter(counterId, ownerId);
   };
 
   return (

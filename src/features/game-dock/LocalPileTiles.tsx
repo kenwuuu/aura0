@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef } from 'react';
 import { PileViewer } from './components/PileViewer';
 import { useGameInstance } from '@/app/stores/gameInstanceStore';
+import { playCardFromPile } from '@/features/battlefield/battlefieldActions';
 import { usePileViewerOpenStore } from './pileViewerOpenStore';
 import { DeckPersistenceService } from '@/infrastructure/persistence';
 
@@ -32,7 +33,7 @@ export function LocalPileTiles() {
           const p = playerRef.current;
           if (!p) return;
           p.removeCardFromPileById(card.id, 'deck');
-          useGameInstance.getState().playCardFromPile(card);
+          playCardFromPile(card);
           deckViewerRef.current?.updateCards(p.getDeckCards());
         },
         onMoveToHand: (card) => {
@@ -84,7 +85,7 @@ export function LocalPileTiles() {
           const p = playerRef.current;
           if (!p) return;
           p.removeCardFromPileById(card.id, 'exile');
-          useGameInstance.getState().playCardFromPile(card);
+          playCardFromPile(card);
           exileViewerRef.current?.updateCards(p.getState().exilePile);
         },
         onMoveToHand: (card) => {
@@ -123,7 +124,7 @@ export function LocalPileTiles() {
           const p = playerRef.current;
           if (!p) return;
           p.removeCardFromPileById(card.id, 'discard');
-          useGameInstance.getState().playCardFromPile(card);
+          playCardFromPile(card);
           discardViewerRef.current?.updateCards(p.getState().discardPile);
         },
         onMoveToHand: (card) => {
