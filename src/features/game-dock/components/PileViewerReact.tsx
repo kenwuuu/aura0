@@ -61,6 +61,31 @@ export interface PileViewerReactProps {
 
 type SortOrder = 'top-to-bottom' | 'bottom-to-top' | 'alphabetical';
 
+/**
+ * The 5 pile-viewer card moves, and the callback each dispatches to. Both the
+ * right-click menu and the pile-viewer hotkey layer route through this one
+ * table (see `dispatchPileMove`) instead of two mappings that can drift apart.
+ */
+type PileMoveAction = 'moveToHand' | 'moveToDiscard' | 'moveToExile' | 'moveToDeckTop' | 'moveToDeckBottom';
+
+const PILE_MOVE_CALLBACKS: Record<PileMoveAction, keyof PileViewerCallbacks> = {
+  moveToHand: 'onMoveToHand',
+  moveToDiscard: 'onMoveToDiscard',
+  moveToExile: 'onMoveToExile',
+  moveToDeckTop: 'onMoveToDeckTop',
+  moveToDeckBottom: 'onMoveToDeckBottom',
+};
+
+function pileTypeToHotkeyContext(pileType: PileType): HotkeyContext {
+  switch (pileType) {
+    case 'deck': return HotkeyContext.DeckCard;
+    case 'discard': return HotkeyContext.Discard;
+    case 'exile': return HotkeyContext.Exile;
+    case 'scry': return HotkeyContext.Scry;
+    default: return HotkeyContext.DeckCard;
+  }
+}
+
 export function PileViewerReact({
   isOpen,
   onClose,
@@ -76,11 +101,17 @@ export function PileViewerReact({
 
   // State
   const [searchQuery, setSearchQuery] = React.useState('');
-  const [sortOrder, setSortOrder] = useSortOrder('top-to-bottom');
-  const [hoveredCard, setHoveredCard] = React.useState<Card | null>(null);
   const [revealAll, setRevealAll] = React.useState(false);
   const [revealCount, setRevealCount] = React.useState(0);
   const [visibleCardCount, setVisibleCardCount] = React.useState(0);
+
+  const [sortOrder, setSortOrderState] = React.useState<SortOrder>('top-to-bottom');
+  // Changing sort order invalidates the previous "reveal top N" indices.
+  const setSortOrder = (newSortOrder: SortOrder) => {
+    setSortOrderState(newSortOrder);
+    setRevealCount(0);
+    setRevealAll(false);
+  };
 
   // Refs
   const searchTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
@@ -88,34 +119,50 @@ export function PileViewerReact({
   // for the "reveal top N" number input, since onChange fires per keystroke.
   const revealCountTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
 
-  // Custom hooks
-  function useSortOrder(initial: SortOrder): [SortOrder, (newSortOrder: SortOrder) => void] {
-    const [sortOrder, setSort] = React.useState<SortOrder>(initial);
+  const hotkeyContext = pileTypeToHotkeyContext(pileType);
 
-    const setSortOrder = (newSortOrder: SortOrder)  => {
-      setSort(newSortOrder);
-      setRevealCount(0);
-      setRevealAll(false);
-    };
+  // Filter and sort cards
+  const filteredAndSortedCards: Card[] = React.useMemo(() => {
+    let filtered: Card[] = cards;
 
-    return [sortOrder, setSortOrder];
-  }
-
-  // Map pile type to hotkey context
-  const getPileViewerContext = (): HotkeyContext => {
-    switch (pileType) {
-      case 'deck': return HotkeyContext.DeckCard;
-      case 'discard': return HotkeyContext.Discard;
-      case 'exile': return HotkeyContext.Exile;
-      case 'scry': return HotkeyContext.Scry;
-      default: return HotkeyContext.DeckCard;
+    // Filter by search query
+    if (searchQuery.trim()) {
+      const query: string = searchQuery.toLowerCase().trim();
+      filtered = cards.filter((card: Card) => {
+        const name: string = card.name?.toLowerCase() || '';
+        const typeLine: string = card.type_line?.toLowerCase() || '';
+        const cardNumber: string = card.cardNumber.toString();
+        const oracleText: string = card.oracleText?.toLowerCase() || '';
+        return (
+          name.includes(query) ||
+          cardNumber.includes(query) ||
+          typeLine.includes(query) ||
+          oracleText.includes(query)
+        );
+      });
     }
-  };
 
-  // Update hover handler to use hotkeyStore
+    // Sort
+    if (sortOrder === 'alphabetical') {
+      filtered = [...filtered].sort((a, b) => {
+        const nameA = a.name?.toLowerCase() || `card${a.cardNumber}`;
+        const nameB = b.name?.toLowerCase() || `card${b.cardNumber}`;
+        return nameA.localeCompare(nameB);
+      });
+    } else if (sortOrder === 'top-to-bottom') {
+      filtered = [...filtered].reverse();
+    } else if (sortOrder === 'bottom-to-top') {
+      filtered = [...filtered];
+    }
+
+    return filtered;
+  }, [cards, searchQuery, sortOrder]);
+
+  // Reflow-safety for hover after a pile-viewer hotkey moves the hovered card
+  // out of the grid lives inside CardGrid (it owns the actually-rendered card
+  // list; see useReflowSafeHover there) — this just forwards to the store.
   const handleCardHover = (card: Card | null) => {
-    setHoveredCard(card);  // Keep for local tooltip use
-    setHoveredPileViewerCard(card?.id ?? null, card ? getPileViewerContext() : null);
+    setHoveredPileViewerCard(card?.id ?? null, card ? hotkeyContext : null);
   };
 
   // Update hotkey store when modal opens/closes
@@ -128,7 +175,6 @@ export function PileViewerReact({
     if (isOpen) {
       setSearchQuery('');
       setSortOrder('top-to-bottom');
-      setHoveredCard(null);
 
       // Initialize reveal state from yPlayerState
       if (pileType === 'deck' && yPlayerState) {
@@ -151,7 +197,6 @@ export function PileViewerReact({
       // Reset state when closing
       setSearchQuery('');
       setSortOrder('top-to-bottom');
-      setHoveredCard(null);
       setRevealAll(false);
       setRevealCount(0);
 
@@ -162,25 +207,23 @@ export function PileViewerReact({
     }
   }, [isOpen, pileType, yPlayerState]);
 
-  // Right-click menu selection on a pile card → move it accordingly.
-  const handleMenuSelect = React.useCallback((hotkey: Hotkey, cardId: string) => {
+  // Single source of truth for pile-card moves. Validity is determined entirely
+  // by which callback this pile-viewer instance was given — e.g. the deck viewer
+  // wires onMoveToDeckTop/onMoveToDeckBottom to reorder within the deck itself,
+  // while discard/exile simply don't define a callback for their own pile — so
+  // no separate pileType guard is needed here.
+  const dispatchPileMove = React.useCallback((action: string, cardId: string) => {
+    const callbackKey = PILE_MOVE_CALLBACKS[action as PileMoveAction];
+    if (!callbackKey) return;
     const card = cards.find((c) => c.id === cardId);
     if (!card) return;
+    (callbacks[callbackKey] as ((card: Card) => void) | undefined)?.(card);
+  }, [cards, callbacks]);
 
-    const key = hotkey.key.toLowerCase();
-
-    if (key === 'h' && callbacks.onMoveToHand) {
-      callbacks.onMoveToHand(card);
-    } else if (key === 'd' && callbacks.onMoveToDiscard && pileType !== 'discard') {
-      callbacks.onMoveToDiscard(card);
-    } else if (key === 's' && callbacks.onMoveToExile && pileType !== 'exile') {
-      callbacks.onMoveToExile(card);
-    } else if (key === 't' && callbacks.onMoveToDeckTop && pileType !== 'deck') {
-      callbacks.onMoveToDeckTop(card);
-    } else if (key === 'y' && callbacks.onMoveToDeckBottom && pileType !== 'deck') {
-      callbacks.onMoveToDeckBottom(card);
-    }
-  }, [cards, callbacks, pileType]);
+  // Right-click menu selection on a pile card → move it accordingly.
+  const handleMenuSelect = React.useCallback((hotkey: Hotkey, cardId: string) => {
+    dispatchPileMove(hotkey.action, cardId);
+  }, [dispatchPileMove]);
 
   // Register this viewer's move handler so the global hotkey layer can route
   // pile-viewer shortcuts to it (replaces the old window 'pileViewerCardAction' bus).
@@ -188,35 +231,13 @@ export function PileViewerReact({
     if (!isOpen) return;
 
     const handlePileViewerAction = (action: string, cardId: string) => {
-      const card = cards.find(c => c.id === cardId);
-      if (!card) return;
-
       useHotkeyMenuStore.getState().close();
-
-      switch (action) {
-        case 'moveToHand':
-          callbacks.onMoveToHand?.(card);
-          break;
-        case 'moveToDiscard':
-          callbacks.onMoveToDiscard?.(card);
-          break;
-        case 'moveToExile':
-          callbacks.onMoveToExile?.(card);
-          break;
-        case 'moveToDeckTop':
-          callbacks.onMoveToDeckTop?.(card);
-          break;
-        case 'moveToDeckBottom':
-          callbacks.onMoveToDeckBottom?.(card);
-          break;
-      }
-
-      setHoveredCard(null);
+      dispatchPileMove(action, cardId);
     };
 
     usePileViewerHotkeyStore.getState().setActionHandler(handlePileViewerAction);
     return () => usePileViewerHotkeyStore.getState().setActionHandler(null);
-  }, [isOpen, cards, callbacks]);
+  }, [isOpen, dispatchPileMove]);
 
   // Debounced search
   const handleSearchChange = (value: string) => {
@@ -296,55 +317,20 @@ export function PileViewerReact({
     }, 1000);
   };
 
-  // Filter and sort cards
-  const filteredAndSortedCards: Card[] = React.useMemo(() => {
-    let filtered: Card[] = cards;
-
-    // Filter by search query
-    if (searchQuery.trim()) {
-      const query: string = searchQuery.toLowerCase().trim();
-      filtered = cards.filter((card: Card) => {
-        const name: string = card.name?.toLowerCase() || '';
-        const typeLine: string = card.type_line?.toLowerCase() || '';
-        const cardNumber: string = card.cardNumber.toString();
-        const oracleText: string = card.oracleText?.toLowerCase() || '';
-        return (
-          name.includes(query) ||
-          cardNumber.includes(query) ||
-          typeLine.includes(query) ||
-          oracleText.includes(query)
-        );
-      });
-    }
-
-    // Sort
-    if (sortOrder === 'alphabetical') {
-      filtered = [...filtered].sort((a, b) => {
-        const nameA = a.name?.toLowerCase() || `card${a.cardNumber}`;
-        const nameB = b.name?.toLowerCase() || `card${b.cardNumber}`;
-        return nameA.localeCompare(nameB);
-      });
-    } else if (sortOrder === 'top-to-bottom') {
-      filtered = [...filtered].reverse();
-    } else if (sortOrder === 'bottom-to-top') {
-      filtered = [...filtered];
-    }
-
-    return filtered;
-  }, [cards, searchQuery, sortOrder]);
-
-  // Micro-batch card mounting to prevent blocking the main thread
-  // Opens modal instantly, then progressively renders cards in small batches
+  // Micro-batch card mounting to prevent blocking the main thread. Opens modal
+  // instantly, then progressively renders cards in small batches. Only ramps
+  // *up* to the new total — a card leaving the pile (hotkey/drag move) or a
+  // search filter narrowing the list must not drop already-mounted cards back
+  // to skeletons, which would flicker and (worse) unmount the exact card a
+  // reflow-safe hover resync is trying to find.
   React.useEffect(() => {
     if (!isOpen) return;
 
-    // Reset visible count
-    setVisibleCardCount(0);
-
-    // Determine batch size based on total card count
     const totalCards = filteredAndSortedCards.length;
     const batchSize = 5;
     const batchInterval = 25; // ms between batches
+
+    setVisibleCardCount((prev) => Math.min(prev, totalCards));
 
     const intervalId = setInterval(() => {
       setVisibleCardCount((prev) => {
@@ -385,22 +371,6 @@ export function PileViewerReact({
     return 'Hover card and move to... H: Hand • D: Graveyard • S: Exile • T: Deck Top • Y: Deck Bottom';
   };
 
-  // Get hotkey context for tooltip
-  const getHotkeyContext = (): HotkeyContext => {
-    switch (pileType) {
-      case 'deck':
-        return HotkeyContext.DeckCard;
-      case 'discard':
-        return HotkeyContext.Discard;
-      case 'exile':
-        return HotkeyContext.Exile;
-      case 'scry':
-        return HotkeyContext.Scry;
-      default:
-        return HotkeyContext.DeckCard;
-    }
-  };
-
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent
@@ -416,11 +386,9 @@ export function PileViewerReact({
           }
         }}
         onOpenAutoFocus={(e) => {
-          // Discard/exile are revealed-to-all piles opened frequently during play;
-          // stealing focus into the search box would hijack keyboard input/hotkeys.
-          if (pileType === 'discard' || pileType === 'exile') {
-            e.preventDefault();
-          }
+          // Auto-focusing the search box would hijack keyboard input, so no
+          // per-card hotkey would fire until the user clicked something first.
+          e.preventDefault();
         }}
       >
 
@@ -529,7 +497,7 @@ export function PileViewerReact({
               revealAll={revealAll}
               revealCount={revealCount}
               onHover={handleCardHover}
-              hotkeyContext={getHotkeyContext()}
+              hotkeyContext={hotkeyContext}
               onMenuSelect={handleMenuSelect}
               enableReordering={pileType === 'scry'}
             />

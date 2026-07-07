@@ -17,7 +17,6 @@ import { useHotkeyStore } from '@/app/stores/hotkeyStore';
 import { useGameInstance } from '@/app/stores/gameInstanceStore';
 import {
   getKeyBindingsForAction,
-  HotkeyContext,
   HotkeyScope,
 } from '@/features/hotkeys/hotkeys';
 import { DeckPersistenceService } from '@/infrastructure/persistence';
@@ -71,7 +70,6 @@ export function useAllGameHotkeys() {
   const isPile = t?.kind === 'pile';
   const isToken = t?.kind === 'token';
   const isPileViewer = t?.kind === 'pileViewer';
-  const pvContext = t?.context;
 
   // --- Helpers ---
   const saveDeck = () => {
@@ -268,16 +266,17 @@ export function useAllGameHotkeys() {
     { ...board, enabled: isToken });
 
   // ===========================================================================
-  // Pile-viewer shortcuts — active only while the PileViewer scope is on
+  // Pile-viewer shortcuts — active only while the PileViewer scope is on.
+  // Validity per pile type (e.g. discard can't move-to-discard) is decided by
+  // PileViewerReact's dispatchPileMove, based on which callback it was given —
+  // not duplicated here.
   // ===========================================================================
   useHotkeys(getKeyBindingsForAction('moveToHand'), () => pileViewerMove('moveToHand'),
     { ...pv, enabled: isPileViewer });
-  useHotkeys(getKeyBindingsForAction('moveToDiscard'), () => {
-    if (pvContext !== HotkeyContext.Discard) pileViewerMove('moveToDiscard');
-  }, { ...pv, enabled: isPileViewer && pvContext !== HotkeyContext.Discard });
-  useHotkeys(getKeyBindingsForAction('moveToExile'), () => {
-    if (pvContext !== HotkeyContext.Exile) pileViewerMove('moveToExile');
-  }, { ...pv, enabled: isPileViewer && pvContext !== HotkeyContext.Exile });
+  useHotkeys(getKeyBindingsForAction('moveToDiscard'), () => pileViewerMove('moveToDiscard'),
+    { ...pv, enabled: isPileViewer });
+  useHotkeys(getKeyBindingsForAction('moveToExile'), () => pileViewerMove('moveToExile'),
+    { ...pv, enabled: isPileViewer });
   useHotkeys(getKeyBindingsForAction('moveToDeckTop'), () => pileViewerMove('moveToDeckTop'),
     { ...pv, enabled: isPileViewer });
   useHotkeys(getKeyBindingsForAction('moveToDeckBottom'), () => pileViewerMove('moveToDeckBottom'),

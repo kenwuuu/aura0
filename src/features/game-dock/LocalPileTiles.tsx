@@ -1,10 +1,20 @@
 import { useCallback, useEffect, useState } from 'react';
-import { PileViewerReact } from './components/PileViewerReact';
+import { PileViewerReact, type PileViewerCallbacks } from './components/PileViewerReact';
 import { useGameInstance } from '@/app/stores/gameInstanceStore';
 import { playCardFromPile } from '@/features/battlefield/battlefieldActions';
 import { usePileViewerOpenStore } from './pileViewerOpenStore';
 import { DeckPersistenceService } from '@/infrastructure/persistence';
-import type { Card } from '@/features/player/types';
+import type { Card, PileType, Player } from '@/features/player';
+
+type LocalPileType = Exclude<PileType, 'hand' | 'scry'>;
+
+function getLocalPileCards(player: Player, pile: LocalPileType): Card[] {
+  switch (pile) {
+    case 'deck': return player.getDeckCards();
+    case 'exile': return player.getState().exilePile;
+    case 'discard': return player.getState().discardPile;
+  }
+}
 
 /**
  * Renders the local deck/exile/discard pile viewers, driven by
@@ -23,19 +33,19 @@ export function LocalPileTiles() {
   const [discardOpen, setDiscardOpen] = useState(false);
   const [discardCards, setDiscardCards] = useState<Card[]>([]);
 
-  const viewPile = useCallback((pile: 'deck' | 'exile' | 'discard') => {
+  const viewPile = useCallback((pile: LocalPileType) => {
     if (!player) return;
     switch (pile) {
       case 'deck':
-        setDeckCards(player.getDeckCards());
+        setDeckCards(getLocalPileCards(player, 'deck'));
         setDeckOpen(true);
         break;
       case 'exile':
-        setExileCards(player.getState().exilePile);
+        setExileCards(getLocalPileCards(player, 'exile'));
         setExileOpen(true);
         break;
       case 'discard':
-        setDiscardCards(player.getState().discardPile);
+        setDiscardCards(getLocalPileCards(player, 'discard'));
         setDiscardOpen(true);
         break;
     }
@@ -51,6 +61,49 @@ export function LocalPileTiles() {
     return unsub;
   }, [viewPile]);
 
+  // Every local pile viewer's callbacks follow the same shape: move the card
+  // via Player.movePileCard, then refresh this pile's local cards state.
+  // onMoveTo<X> is only offered for piles other than `pile` itself — except
+  // the deck, which always offers top/bottom, since those reorder the deck
+  // even when `pile` is 'deck' itself.
+  const buildCallbacks = useCallback((pile: LocalPileType, setCards: (cards: Card[]) => void): PileViewerCallbacks => {
+    if (!player) return {};
+
+    const refresh = () => setCards(getLocalPileCards(player, pile));
+    const move = (card: Card, dest: PileType, position?: number) => {
+      player.movePileCard(card, pile, dest, position);
+      refresh();
+    };
+
+    const callbacks: PileViewerCallbacks = {
+      onPlayToBattlefield: (card) => {
+        player.removeCardFromPileById(card.id, pile);
+        playCardFromPile(card);
+        refresh();
+      },
+      onMoveToHand: (card) => move(card, 'hand'),
+      onMoveToDeckTop: (card) => move(card, 'deck'),
+      onMoveToDeckBottom: (card) => move(card, 'deck', 0),
+    };
+    if (pile !== 'discard') callbacks.onMoveToDiscard = (card) => move(card, 'discard');
+    if (pile !== 'exile') callbacks.onMoveToExile = (card) => move(card, 'exile');
+
+    if (pile === 'deck') {
+      callbacks.onShuffleDeck = () => {
+        player.shuffleDeck();
+        if (roomManager) DeckPersistenceService.saveDeckForRoom(roomManager.getRoomName(), player.getDeck());
+      };
+    }
+    if (pile === 'discard') {
+      callbacks.onExileAll = () => {
+        player.exileAllDiscard();
+        refresh();
+      };
+    }
+
+    return callbacks;
+  }, [player, roomManager]);
+
   return (
     <>
       <PileViewerReact
@@ -58,117 +111,21 @@ export function LocalPileTiles() {
         onClose={() => setDeckOpen(false)}
         cards={deckCards}
         pileType="deck"
-        callbacks={{
-          onPlayToBattlefield: (card) => {
-            if (!player) return;
-            player.removeCardFromPileById(card.id, 'deck');
-            playCardFromPile(card);
-            setDeckCards(player.getDeckCards());
-          },
-          onMoveToHand: (card) => {
-            if (!player) return;
-            player.movePileCard(card, 'deck', 'hand');
-            setDeckCards(player.getDeckCards());
-          },
-          onMoveToDiscard: (card) => {
-            if (!player) return;
-            player.movePileCard(card, 'deck', 'discard');
-            setDeckCards(player.getDeckCards());
-          },
-          onMoveToExile: (card) => {
-            if (!player) return;
-            player.movePileCard(card, 'deck', 'exile');
-            setDeckCards(player.getDeckCards());
-          },
-          onMoveToDeckTop: (card) => {
-            if (!player) return;
-            player.movePileCard(card, 'deck', 'deck');
-            setDeckCards(player.getDeckCards());
-          },
-          onMoveToDeckBottom: (card) => {
-            if (!player) return;
-            player.movePileCard(card, 'deck', 'deck', 0);
-            setDeckCards(player.getDeckCards());
-          },
-          onShuffleDeck: () => {
-            if (!player) return;
-            player.shuffleDeck();
-            if (roomManager) DeckPersistenceService.saveDeckForRoom(roomManager.getRoomName(), player.getDeck());
-          },
-        }}
+        callbacks={buildCallbacks('deck', setDeckCards)}
       />
       <PileViewerReact
         isOpen={exileOpen}
         onClose={() => setExileOpen(false)}
         cards={exileCards}
         pileType="exile"
-        callbacks={{
-          onPlayToBattlefield: (card) => {
-            if (!player) return;
-            player.removeCardFromPileById(card.id, 'exile');
-            playCardFromPile(card);
-            setExileCards(player.getState().exilePile);
-          },
-          onMoveToHand: (card) => {
-            if (!player) return;
-            player.movePileCard(card, 'exile', 'hand');
-            setExileCards(player.getState().exilePile);
-          },
-          onMoveToDiscard: (card) => {
-            if (!player) return;
-            player.movePileCard(card, 'exile', 'discard');
-            setExileCards(player.getState().exilePile);
-          },
-          onMoveToDeckTop: (card) => {
-            if (!player) return;
-            player.movePileCard(card, 'exile', 'deck');
-            setExileCards(player.getState().exilePile);
-          },
-          onMoveToDeckBottom: (card) => {
-            if (!player) return;
-            player.movePileCard(card, 'exile', 'deck', 0);
-            setExileCards(player.getState().exilePile);
-          },
-        }}
+        callbacks={buildCallbacks('exile', setExileCards)}
       />
       <PileViewerReact
         isOpen={discardOpen}
         onClose={() => setDiscardOpen(false)}
         cards={discardCards}
         pileType="discard"
-        callbacks={{
-          onPlayToBattlefield: (card) => {
-            if (!player) return;
-            player.removeCardFromPileById(card.id, 'discard');
-            playCardFromPile(card);
-            setDiscardCards(player.getState().discardPile);
-          },
-          onMoveToHand: (card) => {
-            if (!player) return;
-            player.movePileCard(card, 'discard', 'hand');
-            setDiscardCards(player.getState().discardPile);
-          },
-          onMoveToExile: (card) => {
-            if (!player) return;
-            player.movePileCard(card, 'discard', 'exile');
-            setDiscardCards(player.getState().discardPile);
-          },
-          onMoveToDeckTop: (card) => {
-            if (!player) return;
-            player.movePileCard(card, 'discard', 'deck');
-            setDiscardCards(player.getState().discardPile);
-          },
-          onMoveToDeckBottom: (card) => {
-            if (!player) return;
-            player.movePileCard(card, 'discard', 'deck', 0);
-            setDiscardCards(player.getState().discardPile);
-          },
-          onExileAll: () => {
-            if (!player) return;
-            player.exileAllDiscard();
-            setDiscardCards(player.getState().discardPile);
-          },
-        }}
+        callbacks={buildCallbacks('discard', setDiscardCards)}
       />
     </>
   );

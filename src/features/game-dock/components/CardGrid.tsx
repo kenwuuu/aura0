@@ -32,6 +32,7 @@ import { Card, PileType } from '@/features/player';
 import { HotkeyContext, Hotkey } from '@/features/hotkeys/hotkeys';
 import { CardGridItemReact } from './CardGridItemReact';
 import { SortableCardGridItem } from './SortableCardGridItem';
+import { useReflowSafeHover } from '@/shared/hooks/useReflowSafeHover';
 import styles from './PileViewerReact.module.css';
 
 export interface CardGridProps {
@@ -78,6 +79,21 @@ export const CardGrid = React.memo(function CardGrid({
     setLocalCards(cards);
   }, [cards]);
 
+  // Reflow-safe hover, keyed off `localCards` — not the `cards` prop. `localCards`
+  // is what this component actually renders; it lags `cards` by one render after
+  // a reorder or a card leaving the pile (see the sync effect above), so resyncing
+  // off the prop directly can fire against a DOM that hasn't caught up yet.
+  const { handleMouseEnter: trackHoverEnter, handleMouseMove, handleMouseLeave: trackHoverLeave } = useReflowSafeHover({
+    presentIds: localCards.map((c) => c.id),
+    onEnter: (cardId) => onHover(localCards.find((c) => c.id === cardId) ?? null),
+    onLeave: () => onHover(null),
+  });
+
+  // CardGridItemReact reports hover by card object; translate to the id-based hook.
+  const handleItemHover = React.useCallback((card: Card | null) => {
+    if (card) trackHoverEnter(card.id); else trackHoverLeave();
+  }, [trackHoverEnter, trackHoverLeave]);
+
   // Configure sensors for drag interactions
   const mouseSensor = useSensor(MouseSensor, {
     activationConstraint: {
@@ -97,34 +113,15 @@ export const CardGrid = React.memo(function CardGrid({
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
 
-    console.log('🎯 handleDragEnd called', { activeId: active.id, overId: over?.id });
-
-    if (!over || active.id === over.id) {
-      console.log('⏭️ Skipping - no over or same position');
-      return;
-    }
+    if (!over || active.id === over.id) return;
 
     const oldIndex = localCards.findIndex((card) => card.id === active.id);
     const newIndex = localCards.findIndex((card) => card.id === over.id);
 
-    console.log('📍 Indices:', { oldIndex, newIndex });
-
-    if (oldIndex === -1 || newIndex === -1) {
-      console.error('❌ Invalid indices!');
-      return;
-    }
+    if (oldIndex === -1 || newIndex === -1) return;
 
     const reordered = arrayMove(localCards, oldIndex, newIndex);
-    console.log('✨ Reordered:', {
-      oldCardNum: localCards[oldIndex]?.cardNumber,
-      newCardNum: reordered[oldIndex]?.cardNumber,
-      movedTo: newIndex,
-    });
-
     setLocalCards(reordered);
-
-    // Trigger callback to sync to Yjs
-    console.log('📞 Calling onCardReorder callback');
     onCardReorder?.(reordered);
   };
 
@@ -138,6 +135,7 @@ export const CardGrid = React.memo(function CardGrid({
         data-rendering-complete={renderingComplete}
         data-rendered-count={visibleCardCount}
         data-cards-total={localCards.length}
+        onMouseMove={handleMouseMove}
       >
         {localCards.map((card, index) => {
           // Position is just the index (cards are already sorted by parent component)
@@ -155,7 +153,7 @@ export const CardGrid = React.memo(function CardGrid({
                 showPosition={true}
                 positionPrefix="Top"
                 showFaceDown={shouldShowFaceDown}
-                onHover={onHover}
+                onHover={handleItemHover}
                 hotkeyContext={hotkeyContext}
                 onMenuSelect={onMenuSelect}
                 pileType={pileType}
@@ -190,6 +188,7 @@ export const CardGrid = React.memo(function CardGrid({
           data-rendering-complete={renderingComplete}
           data-rendered-count={visibleCardCount}
           data-cards-total={localCards.length}
+          onMouseMove={handleMouseMove}
         >
           {localCards.map((card, index) => {
             // Position is just the index (cards are already sorted by parent component)
@@ -208,7 +207,7 @@ export const CardGrid = React.memo(function CardGrid({
                   showPosition={true}
                   positionPrefix="Top"
                   showFaceDown={shouldShowFaceDown}
-                  onHover={onHover}
+                  onHover={handleItemHover}
                   hotkeyContext={hotkeyContext}
                   onMenuSelect={onMenuSelect}
                   pileType={pileType}
