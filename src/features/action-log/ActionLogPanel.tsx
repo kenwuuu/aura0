@@ -13,6 +13,7 @@ import { ScrollArea } from '@/shared/ui/scroll-area';
 import { resolvePlayerName } from '@/shared/utils/resolvePlayerName';
 import { DiceControls } from '@/features/dice/DiceControls';
 import { useActionLog } from './useActionLog';
+import { useDraggablePanel } from '@/shared/ui/useDraggablePanel';
 
 interface ActionLogPanelProps {
   yDoc: Y.Doc;
@@ -27,6 +28,8 @@ export function ActionLogPanel({ yDoc, localPlayerId }: ActionLogPanelProps) {
   const [isOpen, setIsOpen] = useState(true);
   const entries = useActionLog(yDoc);
   const bottomRef = useRef<HTMLDivElement>(null);
+  // Default position matches the panel's former fixed spot.
+  const { containerRef, position, handleProps } = useDraggablePanel('action-log', { x: 8, y: 48 });
 
   // Auto-scroll to the newest entry whenever the list grows.
   useEffect(() => {
@@ -37,10 +40,12 @@ export function ActionLogPanel({ yDoc, localPlayerId }: ActionLogPanelProps) {
 
   return (
     <div
+      ref={containerRef}
+      data-floating-panel="action-log"
       style={{
         position: 'fixed',
-        top: 48,
-        left: 8,
+        top: position.y,
+        left: position.x,
         width: 280,
         // Below the shared Dialog overlay (z-50) so pile-viewer/settings
         // modals visually cover this panel instead of floating above them.
@@ -55,31 +60,45 @@ export function ActionLogPanel({ yDoc, localPlayerId }: ActionLogPanelProps) {
         border: '1px solid rgba(255,255,255,0.08)',
       }}
     >
-      {/* Header / toggle */}
-      <button
-        onClick={() => setIsOpen((v) => !v)}
+      {/* Header doubles as the drag handle; the chevron toggles collapse. */}
+      <div
+        {...handleProps}
         style={{
           display: 'flex',
           alignItems: 'center',
           gap: 6,
           padding: '6px 10px',
-          background: 'transparent',
-          border: 'none',
           borderBottom: isOpen ? '1px solid rgba(255,255,255,0.07)' : 'none',
-          cursor: 'pointer',
+          cursor: 'grab',
           color: 'rgba(255,255,255,0.7)',
           fontSize: 12,
           fontWeight: 600,
           letterSpacing: '0.04em',
           textTransform: 'uppercase',
           userSelect: 'none',
-          width: '100%',
+          touchAction: 'none', // let pointer capture own the gesture, don't scroll
         }}
       >
         <ScrollText size={13} strokeWidth={2} />
         <span style={{ flex: 1, textAlign: 'left' }}>Action Log</span>
-        {isOpen ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
-      </button>
+        <button
+          onClick={() => setIsOpen((v) => !v)}
+          // Grabbing the chevron must not start a panel drag.
+          onPointerDown={(e) => e.stopPropagation()}
+          aria-label={isOpen ? 'Collapse action log' : 'Expand action log'}
+          style={{
+            background: 'transparent',
+            border: 'none',
+            cursor: 'pointer',
+            color: 'inherit',
+            display: 'flex',
+            alignItems: 'center',
+            padding: 0,
+          }}
+        >
+          {isOpen ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+        </button>
+      </div>
 
       {/* Entry list */}
       {isOpen && (

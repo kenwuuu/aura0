@@ -49,6 +49,10 @@ interface SettingsStore {
   // When false, the snap-to-grid hotkey (hold Alt) still works per-drag.
   snapToGridEnabled: boolean;
   setSnapToGridEnabled: (enabled: boolean) => void;
+  // Draggable HUD panel positions (toolbar, action log, …), keyed by panel id.
+  // Persisted so a player's window layout survives reloads.
+  panelPositions: Record<string, { x: number; y: number }>;
+  setPanelPosition: (key: string, pos: { x: number; y: number }) => void;
   // Ephemeral demo state — set while Display settings is open so the main window
   // shows live-resizing sample cards for users with an empty hand or no hovered card.
   demoHandCards: Card[] | null;
@@ -74,6 +78,9 @@ export const useSettingsStore = create<SettingsStore>()(
       setPreviewZoom: (zoom) => set({ previewZoom: clampPreviewZoom(zoom) }),
       snapToGridEnabled: false,
       setSnapToGridEnabled: (enabled) => set({ snapToGridEnabled: enabled }),
+      panelPositions: {},
+      setPanelPosition: (key, pos) =>
+        set((s) => ({ panelPositions: { ...s.panelPositions, [key]: pos } })),
       demoHandCards: null,
       setDemoHandCards: (cards) => set({ demoHandCards: cards }),
       networkTransport: null,
@@ -90,6 +97,7 @@ export const useSettingsStore = create<SettingsStore>()(
         previewZoom: state.previewZoom,
         snapToGridEnabled: state.snapToGridEnabled,
         networkTransport: state.networkTransport,
+        panelPositions: state.panelPositions,
       }),
     },
   ),
