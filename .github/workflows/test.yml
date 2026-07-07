@@ -1,8 +1,11 @@
 name: vitest Tests
 
 on:
+  # Feature branches get CI via their PR (below); push-triggered runs are
+  # scoped to master so a branch with an open PR doesn't run the whole job
+  # matrix twice for the same commit (push + pull_request synchronize).
   push:
-    branches: ['**']
+    branches: [master]
   pull_request:
     branches: ['**']
 
