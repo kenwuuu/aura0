@@ -3,20 +3,29 @@
  * the cover H1, subhead and CTAs on the left; a floating card fan + the live
  * PlayerPanel on the right. Collapses to a single column on small screens.
  */
+import { useEffect, useState } from 'react';
 import { ArrowRight } from 'lucide-react';
 import { Button } from './Button';
-import { CardArt } from './CardArt';
+import { CardImage } from './CardImage';
 import { PlayerPanel } from './PlayerPanel';
 import { PLAY_URL } from '../links';
+import { getRecentFeaturedCards, type FeaturedCard } from '../featuredCards';
 
-// A few placeholder cards, tinted by mana identity (data, not chrome).
-const FAN = [
-  { name: 'Llanowar Elves', type: 'Creature — Elf', pip: 'var(--mana-g)', cost: 'G' },
-  { name: 'Lightning Bolt', type: 'Instant', pip: 'var(--mana-r)', cost: 'R' },
-  { name: 'Serra Angel', type: 'Creature — Angel', pip: 'var(--mana-w)', cost: '5' },
-];
+const FAN_SIZE = 3;
 
 export function Hero() {
+  const [fan, setFan] = useState<FeaturedCard[]>([]);
+
+  useEffect(() => {
+    let active = true;
+    getRecentFeaturedCards(FAN_SIZE).then((cards) => {
+      if (active) setFan(cards);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
+
   return (
     <section id="top" className="relative overflow-hidden">
       <div className="mb-covergrid" />
@@ -74,13 +83,13 @@ export function Hero() {
         <div className="relative mx-auto flex min-h-[380px] w-full max-w-[440px] items-center justify-center">
           {/* Card fan */}
           <div className="mb-float absolute left-0 top-2 flex -rotate-2 gap-3 sm:left-2">
-            {FAN.map((c, i) => (
+            {fan.map((c, i) => (
               <div
-                key={c.name}
+                key={c.imageUrl}
                 className="mb-card mb-card--hover h-[168px] w-[120px]"
                 style={{ transform: `translateY(${i * 6}px) rotate(${(i - 1) * 4}deg)` }}
               >
-                <CardArt {...c} />
+                <CardImage imageUrl={c.imageUrl} alt={c.alt} />
               </div>
             ))}
           </div>

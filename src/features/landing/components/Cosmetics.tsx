@@ -3,13 +3,25 @@
  * plus a note that these are feature-flagged premium cosmetics. Sells "sleek"
  * with the actual holographic treatment (color-dodge + sheen + rainbow edge).
  */
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Sparkles } from 'lucide-react';
 import { SectionHeading } from './Section';
-import { CardArt } from './CardArt';
+import { CardImage } from './CardImage';
+import { getFeaturedFoilCard, type FeaturedCard } from '../featuredCards';
 
 export function Cosmetics() {
   const [foil, setFoil] = useState(true);
+  const [foilCard, setFoilCard] = useState<FeaturedCard | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    getFeaturedFoilCard().then((card) => {
+      if (active) setFoilCard(card);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   return (
     <section
@@ -58,9 +70,7 @@ export function Cosmetics() {
               }}
             >
               <div className="relative h-[280px] w-[200px] overflow-hidden rounded-[7px] bg-[#0a0a0f]">
-                <CardArt name="Nissa, Voice of Zendikar" type="Legendary Planeswalker" pip="var(--mana-g)" cost="4" />
-                {/* Tuned below full strength so the placeholder art still reads;
-                    color-dodge blows out light art — real (darker) card art holds up. */}
+                {foilCard && <CardImage imageUrl={foilCard.imageUrl} alt={foilCard.alt} />}
                 <div className="mb-foil-layer mb-foil-holo" style={{ opacity: foil ? 0.62 : 0 }} />
                 <div className="mb-foil-layer mb-foil-sheen" style={{ opacity: foil ? 1 : 0 }} />
               </div>
