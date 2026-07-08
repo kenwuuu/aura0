@@ -122,16 +122,16 @@ describe('WebsocketProvider connection monitor', () => {
     expect(h.captureMessage).toHaveBeenCalledTimes(1);
     expect(h.posthogCapture).toHaveBeenCalledTimes(1);
     expect(h.posthogCapture).toHaveBeenLastCalledWith(
-      'ws_connection_outcome',
-      expect.objectContaining({ outcome: 'failed' }),
+      'connection_outcome',
+      expect.objectContaining({ transport: 'websocket', outcome: 'failed' }),
     );
 
     // Recovers → one 'connected' outcome, carrying the time-to-connect.
     ws.connect();
     expect(h.posthogCapture).toHaveBeenCalledTimes(2);
     expect(h.posthogCapture).toHaveBeenLastCalledWith(
-      'ws_connection_outcome',
-      expect.objectContaining({ outcome: 'connected', connect_ms: expect.any(Number) }),
+      'connection_outcome',
+      expect.objectContaining({ transport: 'websocket', outcome: 'connected', connect_ms: expect.any(Number) }),
     );
 
     // A later drop that stays down is a fresh episode → reports again.
@@ -140,8 +140,8 @@ describe('WebsocketProvider connection monitor', () => {
     expect(h.captureMessage).toHaveBeenCalledTimes(2);
     expect(h.posthogCapture).toHaveBeenCalledTimes(3);
     expect(h.posthogCapture).toHaveBeenLastCalledWith(
-      'ws_connection_outcome',
-      expect.objectContaining({ outcome: 'failed' }),
+      'connection_outcome',
+      expect.objectContaining({ transport: 'websocket', outcome: 'failed' }),
     );
   });
 
