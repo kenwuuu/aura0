@@ -92,4 +92,34 @@ describe('useSettingsStore', () => {
       expect(fresh.useSettingsStore.getState().previewZoom).toBe(1);
     });
   });
+
+  describe('version migration (zoom reset)', () => {
+    it('resets handZoom/previewZoom to 1 when the persisted version predates SETTINGS_VERSION', async () => {
+      localStorage.setItem('aura:settings', JSON.stringify({
+        state: { handZoom: 1.75, previewZoom: 2.25, snapToGridEnabled: true },
+        version: 0,
+      }));
+
+      vi.resetModules();
+      const fresh = await import('./settingsStore');
+
+      expect(fresh.useSettingsStore.getState().handZoom).toBe(1);
+      expect(fresh.useSettingsStore.getState().previewZoom).toBe(1);
+      // unrelated preferences are untouched by the reset
+      expect(fresh.useSettingsStore.getState().snapToGridEnabled).toBe(true);
+    });
+
+    it('leaves zoom untouched once the persisted version is current', async () => {
+      localStorage.setItem('aura:settings', JSON.stringify({
+        state: { handZoom: 1.75, previewZoom: 2.25 },
+        version: 1,
+      }));
+
+      vi.resetModules();
+      const fresh = await import('./settingsStore');
+
+      expect(fresh.useSettingsStore.getState().handZoom).toBe(1.75);
+      expect(fresh.useSettingsStore.getState().previewZoom).toBe(2.25);
+    });
+  });
 });
