@@ -17,12 +17,6 @@ import { coordinatesFromPointerEvent, coordinatesFromTouchMoveEvent } from './dr
 import { BattlefieldCanvas } from '@/features/battlefield/BattlefieldCanvas';
 import { CardPreview } from '@/features/card-preview';
 import { GameContextMenu } from '@/features/hotkeys/GameContextMenu';
-// TODO(context-menu-rollout stage 4): HotkeyMenu now only ever renders in its
-// `hint` mode (TokenNode / KeywordTokenGrid hover hints) — every actionable
-// menu has moved to GameContextMenu. Remove this once those hover hints are
-// replaced by their own context-menu wiring, and delete HotkeyMenu +
-// hotkeyMenuStore alongside it.
-import { HotkeyMenu } from '@/features/hotkeys/HotkeyMenu';
 import { GameHotkeysManager } from '@/features/hotkeys/GameHotkeysManager';
 import { OpponentPileViewers } from '@/features/opponents/OpponentPileViewers';
 import { FloatingHand } from '@/features/game-dock/FloatingHand';
@@ -192,7 +186,6 @@ export function App({ yDoc, yjsNetworkProvider, player, roomManager, playerId, c
       <TokenCardSearchModal cardLookup={cardLookup} />
       <CardPreview />
       <GameContextMenu />
-      <HotkeyMenu />
       <GameHotkeysManager />
       <Toaster />
       <SettingsModal />
