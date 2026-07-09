@@ -8,12 +8,12 @@
 export function CrashFallback({ eventId }: { eventId?: string }) {
   return (
     <div
+      className="full-viewport-height"
       style={{
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        height: '100vh',
         padding: 24,
         textAlign: 'center',
         color: '#e5e5e5',
