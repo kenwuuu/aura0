@@ -18,10 +18,9 @@ import {
   roomLinkButton,
   newGameButton,
   deckImportOpenButton,
+  DESKTOP_VIEWPORT,
+  PHONE_VIEWPORT,
 } from '../../harness';
-
-const DESKTOP_VIEWPORT = { width: 1280, height: 800 };
-const PHONE_VIEWPORT = { width: 390, height: 844 };
 
 test.describe('toolbar responsive collapse', () => {
   test('desktop width shows every control on one row with no overflow menu', async ({ page }) => {

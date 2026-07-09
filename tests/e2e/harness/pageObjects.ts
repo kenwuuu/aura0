@@ -131,6 +131,36 @@ export function kofiButton(page: Page): Locator {
   return toolbar(page).getByRole('link', { name: 'Support me on Ko-fi' });
 }
 
+/** A draggable HUD window (desktop layout only — phone replaces them with the HUD toggle stack). */
+export function floatingPanel(page: Page, key: 'game-actions-toolbar' | 'action-log'): Locator {
+  return page.locator(`[data-floating-panel="${key}"]`);
+}
+
+/** The game-actions button row (hosted by the desktop FloatingPanel or the phone HUD stack). */
+export function gameActionsContent(page: Page): Locator {
+  return page.getByTestId(TESTID.gameActionsToolbar);
+}
+
+/** Phone HUD stack: the game-actions panel toggle (top-left column, phone layout only). */
+export function phoneHudGameActionsToggle(page: Page): Locator {
+  return page.getByTestId(TESTID.phoneHudGameActionsToggle);
+}
+
+/** Phone HUD stack: the action-log panel toggle (top-left column, phone layout only). */
+export function phoneHudActionLogToggle(page: Page): Locator {
+  return page.getByTestId(TESTID.phoneHudActionLogToggle);
+}
+
+/** The settings gear button on the board (bottom-left desktop, top-right phone). */
+export function settingsButton(page: Page): Locator {
+  return page.getByRole('button', { name: 'Open settings' });
+}
+
+/** react-flow's zoom controls (same corner as the settings button). */
+export function zoomControls(page: Page): Locator {
+  return page.locator('.react-flow__controls');
+}
+
 /** The room connection-status indicator (dot + label). */
 export function connectionStatus(page: Page): Locator {
   return page.getByTestId(TESTID.connectionStatus);
