@@ -39,11 +39,26 @@ never need to invent a selector or a drag recipe from scratch.
    `dragCountedTokenToBoard`). It doesn't drive dnd-kit or react-flow node
    drags — both need real mouse events past dnd-kit's 8px activation
    threshold. Use `mouseDrag` (or a helper built on it) instead.
-5. **One behavior per test.** A test should exercise and assert one thing.
+5. **Simulate real mouse travel for hover-sensitive interactions — don't
+   teleport.** `locator.click()` and `page.mouse.click(x, y)` jump straight to
+   the target in one step; they don't dispatch the intermediate
+   `mousemove`/`mouseenter`/`mouseleave` events a real cursor crossing the
+   screen would fire along the way. Anything gated by hover/focus state —
+   opening a context menu and then moving to click one of its rows, a
+   popover that reacts to pointer travel — can pass under a teleporting
+   click while remaining genuinely broken for a real user. This is not
+   hypothetical: the token-grid-dismiss bug ("Fix token grid closing before
+   the user can reach it") only reproduced once the test drove real
+   incremental pointer movement instead of `.click()`/`.dragTo()` warping
+   straight to the target. Use `page.mouse.move(x, y, { steps: N })` (N ≈
+   15–20) to travel to a point before pressing, not a single jump — see
+   `mouseDrag` for the pattern, or add a small harness helper for the
+   specific interaction rather than inlining raw `page.mouse` calls in a spec.
+6. **One behavior per test.** A test should exercise and assert one thing.
    Setup/preamble (importing a deck, playing a card onto the board) belongs in
    a scenario helper (`tests/e2e/harness/scenarios.ts`) so it reads as a single
    line, not a re-litigation of a previous test.
-6. **DOM assertions are the default; state assertions are a deferred,
+7. **DOM assertions are the default; state assertions are a deferred,
    targeted supplement.** This app's DOM is largely *the* product (a
    whiteboard), so DOM-based assertions (does the card render on the board?
    does the pile count read 3?) are the right default and cover almost
@@ -54,7 +69,7 @@ never need to invent a selector or a drag recipe from scratch.
    needs reading the actual Yjs state, not polling the DOM. This accessor
    doesn't exist yet; see "Deferred: state-based assertions" below before
    building one — don't invent an ad hoc one in a single spec.
-7. **`@smoke` tests are the blocking gate — keep that suite small and
+8. **`@smoke` tests are the blocking gate — keep that suite small and
    real-transport.** Tag with Playwright's tag syntax:
    `test('...', { tag: '@smoke' }, async ({ page }) => { ... })`. A test only
    belongs in `tests/e2e/smoke/` if it exercises a load-bearing subsystem once

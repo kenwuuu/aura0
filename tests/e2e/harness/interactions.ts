@@ -2,10 +2,26 @@ import { Page, Locator, expect } from '@playwright/test';
 import { boardCard, pileTile, whiteboard, deckImportOpenButton, deckImportModal, boardTokens } from './pageObjects';
 import { TESTID, PileKind } from './selectors';
 
-async function centerOf(locator: Locator): Promise<{ x: number; y: number }> {
+export async function centerOf(locator: Locator): Promise<{ x: number; y: number }> {
   const box = await locator.boundingBox();
   if (!box) throw new Error('Element has no bounding box (not rendered/visible).');
   return { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+}
+
+/**
+ * Move the mouse to a point via real incremental travel, not a teleport —
+ * see "Simulate real mouse travel for hover-sensitive interactions" in
+ * docs/testing/e2e.md. `page.mouse.move(x, y)` (default `steps: 1`) and
+ * `locator.click()`/`page.mouse.click()` jump straight to the target and
+ * skip the intermediate `mousemove`/`mouseenter`/`mouseleave` events a real
+ * cursor crossing the screen would fire — anything gated by hover/focus
+ * state (a context menu you then move the mouse across other elements to
+ * reach) can pass under a teleporting click while staying broken for a real
+ * user. Follow with `page.mouse.down()`/`up()` (add `{ button: 'right' }`
+ * for a right-click) rather than `page.mouse.click()`, which would re-jump.
+ */
+export async function realMouseMoveTo(page: Page, to: { x: number; y: number }, steps = 20): Promise<void> {
+  await page.mouse.move(to.x, to.y, { steps });
 }
 
 /** A card's aspect ratio flips between portrait (untapped) and landscape
