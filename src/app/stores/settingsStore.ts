@@ -11,6 +11,11 @@
  * Migration note: on first load we seed handZoom from the legacy 'hand-zoom'
  * key (previously written by FloatingHand) and previewZoom from 'card-preview-zoom'
  * (previously written by cardPreviewStore), so existing users keep their values.
+ *
+ * Versioning: bump SETTINGS_VERSION and add a branch in `migrate` whenever a
+ * change elsewhere invalidates a previously-saved preference (e.g. the 2026-07
+ * board rewrite reset zoom to a new 1.0x baseline). `migrate` runs once, on
+ * the first load after the bump, for anyone with an older persisted version.
  */
 
 import { create } from 'zustand';
@@ -24,6 +29,10 @@ export const HAND_ZOOM_MIN = 0.5;
 export const HAND_ZOOM_MAX = 2;
 export const PREVIEW_ZOOM_MIN = 0.5;
 export const PREVIEW_ZOOM_MAX = 2.5;
+
+// Bump on any change that should force-reset a persisted preference for all
+// users (see `migrate` below and the versioning note in the file header).
+const SETTINGS_VERSION = 1;
 
 function clampHandZoom(z: number): number {
   return Math.max(HAND_ZOOM_MIN, Math.min(HAND_ZOOM_MAX, z));
@@ -90,6 +99,17 @@ export const useSettingsStore = create<SettingsStore>()(
     }),
     {
       name: 'aura:settings',
+      version: SETTINGS_VERSION,
+      // Runs once for anyone whose persisted version predates SETTINGS_VERSION.
+      // v1: board rewrite changed the default camera framing — reset zoom
+      // preferences so everyone starts from the new 1.0x baseline.
+      migrate: (persistedState, version): SettingsStore => {
+        const state = persistedState as SettingsStore;
+        if (version < 1) {
+          return { ...state, handZoom: 1, previewZoom: 1 };
+        }
+        return state;
+      },
       // Only persist durable user preferences — demo state and the session-only
       // transport override are deliberately excluded so they reset on reload.
       partialize: (state) => ({
