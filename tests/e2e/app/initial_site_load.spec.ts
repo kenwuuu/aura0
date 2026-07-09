@@ -1,6 +1,7 @@
 import { test, expect } from '../fixtures';
 import {
   boardToken,
+  clickTokenHalf,
   dragCountedTokenToBoard,
   drawOpeningHand,
   expectHealth,
@@ -36,13 +37,13 @@ test('testIncrementTokenOnBoard', async ({ page }) => {
   await dragCountedTokenToBoard(page);
   const token = boardToken(page);
   await expect(token).toHaveText('1');
-  // Each left click adds +1. Assert between clicks so react-flow doesn't
-  // coalesce them (a raw dblclick only lands one increment).
-  await token.click();
+  // Clicking the top half adds +1. Assert between clicks so react-flow
+  // doesn't coalesce them (a raw dblclick only lands one increment).
+  await clickTokenHalf(token, 'top');
   await expect(token).toHaveText('2');
-  await token.click();
+  await clickTokenHalf(token, 'top');
   await expect(token).toHaveText('3');
-  await token.click();
+  await clickTokenHalf(token, 'top');
   await expect(token).toHaveText('4');
 });
 
@@ -50,10 +51,23 @@ test('testDecrementTokenOnBoard', async ({ page }) => {
   await dragCountedTokenToBoard(page);
   const token = boardToken(page);
   await expect(token).toHaveText('1');
-  await token.click({ button: 'right' });
+  // Clicking the bottom half subtracts 1 (right-click now opens the token's
+  // context menu instead of decrementing — see testTokenContextMenu below).
+  await clickTokenHalf(token, 'bottom');
   await expect(token).toHaveText('0');
-  await token.click({ button: 'right' });
+  await clickTokenHalf(token, 'bottom');
   await expect(token).toHaveText('-1');
+});
+
+test('testTokenContextMenu', async ({ page }) => {
+  await dragCountedTokenToBoard(page);
+  const token = boardToken(page);
+
+  await token.click({ button: 'right' });
+  await expect(page.getByRole('menuitem', { name: /Delete token/ })).toBeVisible();
+
+  await page.getByRole('menuitem', { name: /Delete token/ }).click();
+  await expect(token).toBeHidden();
 });
 
 test('testCopyGameLink', async ({ page }) => {

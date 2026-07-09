@@ -18,36 +18,40 @@ test('testImportDeck', async ({ page }) => {
 
   // Right-click opens the action menu.
   await cards.last().click({ button: 'right' });
-  await expect(page.getByText('KCopy/clone')).toBeVisible();
+  await expect(page.getByText('Copy/cloneK')).toBeVisible();
   await page.keyboard.press('Escape');
   await page.mouse.move(200, 200);
 
   // Clone twice → four cards to distribute to the four destinations.
   const cloneTopCard = async () => {
     await cards.last().click({ button: 'right' });
-    await page.getByText('KCopy/clone').click();
+    await page.getByText('Copy/cloneK').click();
   };
   await cloneTopCard();
   await expect(cards).toHaveCount(3);
   await cloneTopCard();
   await expect(cards).toHaveCount(4);
 
-  // Move a board card to a destination via its context menu.
+  // Move a board card to a destination via its context menu. Waits for the
+  // previous menu instance to fully close first — right-clicking again while
+  // Radix is still mid-close-animation from the last selection can race the
+  // new open, leaving `getByText` waiting on a menu that never (re)appears.
   const moveTopCard = async (menuText: string) => {
+    await expect(page.getByRole('menu')).toBeHidden();
     await cards.last().click({ button: 'right' });
     await page.getByText(menuText).click();
   };
 
-  await moveTopCard('SExile');
+  await moveTopCard('ExileS');
   await expectPileCount(page, 'exile', 1);
 
-  await moveTopCard('DDiscard');
+  await moveTopCard('DiscardD');
   await expectPileCount(page, 'discard', 1);
 
-  await moveTopCard('TTo deck top');
+  await moveTopCard('To deck topT');
   await expectPileCount(page, 'deck', 1);
 
-  await moveTopCard('HHand');
+  await moveTopCard('HandH');
   await expect(page.locator('.hand-cards .hand-card')).toHaveCount(1);
 
   // All four cards have left the battlefield.

@@ -162,6 +162,17 @@ export function PileViewerReact({
   // out of the grid lives inside CardGrid (it owns the actually-rendered card
   // list; see useReflowSafeHover there) — this just forwards to the store.
   const handleCardHover = (card: Card | null) => {
+    if (!card && useContextMenuStore.getState().isOpen) {
+      // The right-click that opened the context menu renders it directly
+      // over (part of) this card — the browser treats that DOM change as the
+      // cursor "leaving" the card and fires a mouseleave even though it never
+      // physically moved. Clearing hoverTarget here would break the keyboard
+      // hotkeys that read it (hover a card, right-click it, then press a
+      // hotkey must still act on that card while its menu is open) — ignore
+      // this specific spurious leave; a move to a *different* card still
+      // updates hoverTarget normally via the non-null branch below.
+      return;
+    }
     setHoveredPileViewerCard(card?.id ?? null, card ? hotkeyContext : null);
   };
 

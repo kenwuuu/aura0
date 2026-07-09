@@ -8,6 +8,18 @@ async function centerOf(locator: Locator): Promise<{ x: number; y: number }> {
   return { x: box.x + box.width / 2, y: box.y + box.height / 2 };
 }
 
+/** A card's aspect ratio flips between portrait (untapped) and landscape
+ * (tapped) — used as a DOM-visible proxy for tap state, since there's no
+ * dedicated `data-tapped` attribute. */
+export async function getElementOrientation(locator: Locator): Promise<'portrait' | 'landscape' | 'square'> {
+  const box = await locator.boundingBox();
+  if (!box) throw new Error('Element not found or not visible.');
+  const { width, height } = box;
+  if (width > height) return 'landscape';
+  if (height > width) return 'portrait';
+  return 'square';
+}
+
 /**
  * Real-mouse drag from one point to another. Works for both dnd-kit and
  * react-flow node drags: presses, nudges past dnd-kit's 8px activation
@@ -174,6 +186,20 @@ export async function dragCountedTokenToBoard(page: Page): Promise<void> {
 /** Open a local resource pile's viewer. Follow with `waitForPileViewerReady`. */
 export async function openPileViewer(page: Page, kind: PileKind): Promise<void> {
   await pileTile(page, kind).click();
+}
+
+/**
+ * Click a battlefield token's top half (+1) or bottom half (-1) — the
+ * click-to-adjust gesture (see `clickedTopHalf` in tokenNodeLogic.ts).
+ * Playwright's default `.click()` targets the element's exact center, which
+ * is the boundary between the two halves, so this always needs an explicit
+ * `position` a bit off-center in the desired direction.
+ */
+export async function clickTokenHalf(token: Locator, half: 'top' | 'bottom'): Promise<void> {
+  const box = await token.boundingBox();
+  if (!box) throw new Error('Token has no bounding box (not rendered/visible).');
+  const y = half === 'top' ? box.height * 0.25 : box.height * 0.75;
+  await token.click({ position: { x: box.width / 2, y } });
 }
 
 /**

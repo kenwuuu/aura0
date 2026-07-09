@@ -38,7 +38,14 @@ export function GameContextMenu() {
   const open = isOpen && rows.length > 0;
 
   return (
-    <DropdownMenu open={open} onOpenChange={(next) => !next && close()}>
+    // modal={false}: Radix's DropdownMenu defaults to modal (unlike Popover,
+    // which the old menu used), which disables pointer events on the rest of
+    // the page while open — including the card/pile/token just right-clicked.
+    // That flips its hover state off from under it (a DOM reflow the browser
+    // treats as the cursor "leaving"), clearing hoverTarget and breaking the
+    // keyboard hotkeys that read it — hover a card, right-click it, then
+    // press a hotkey key must still act on that card while the menu is open.
+    <DropdownMenu open={open} onOpenChange={(next) => !next && close()} modal={false}>
       <DropdownMenuTrigger asChild>
         <span style={{ position: 'fixed', left: x, top: y, width: 0, height: 0 }} />
       </DropdownMenuTrigger>
@@ -48,13 +55,28 @@ export function GameContextMenu() {
         sideOffset={2}
         collisionPadding={8}
         data-game-context-menu
-        // Selecting a row must not shift DOM focus off whatever was focused
-        // behind it (e.g. a card in an open PileViewer Dialog) — otherwise
-        // Radix's focus trap "steals" focus back mid-click and the click
-        // that would've landed on this row never fires. (Unlike Popover,
-        // DropdownMenu.Content doesn't expose `onOpenAutoFocus` — it doesn't
-        // trap focus by default, so this and the outside-click allowance in
-        // PileViewerReact are enough.)
+        // The pile-viewer Dialog renders at z-[10000] (dialog.tsx); the menu
+        // must win when both are open (a pile-viewer card's right-click menu)
+        // or its rows render underneath the dialog and swallow clicks. The
+        // shadcn default is only z-50. `pointer-events-auto` is required too:
+        // the (still fully modal) Dialog sets `body.style.pointerEvents =
+        // 'none'` while open, and since this menu is `modal={false}` (see
+        // below) it never opts back into the "active layer" pointer-events
+        // re-enable Radix normally does for a modal layer — without the
+        // override, `pointer-events: none` simply inherits from body and the
+        // menu becomes unclickable whenever it opens over an open dialog.
+        className="z-[10001] pointer-events-auto"
+        // This menu opens on right-click, not by tabbing to a trigger — it
+        // must never grab focus. Two reasons: (1) selecting a row must not
+        // shift DOM focus off whatever was focused behind it (e.g. a card in
+        // an open PileViewer Dialog), or Radix's focus trap "steals" focus
+        // back mid-click and the click never lands; (2) auto-focusing the
+        // first item hands keydown to Radix's roving-focus/typeahead
+        // handling, which swallows the same letter keys the keyboard hotkeys
+        // use (e.g. 's' for exile) — hovering a card, right-clicking it, and
+        // then pressing a hotkey must keep working exactly as if the menu
+        // never opened.
+        onOpenAutoFocus={(e) => e.preventDefault()}
         onCloseAutoFocus={(e) => e.preventDefault()}
         onMouseDown={(e) => e.preventDefault()}
       >
