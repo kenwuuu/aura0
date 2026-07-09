@@ -41,7 +41,9 @@ import { ConfirmDialogManager } from '@/app/ConfirmDialogManager';
 import { TokenCardSearchModal } from '@/features/game-actions/TokenCardSearchModal';
 import { Toaster } from '@/shared/ui/sonner';
 import { AnnouncementsService } from '@/shared/services/announcements/AnnouncementsService';
+import { usePhoneLayout } from '@/shared/hooks';
 import { Toolbar } from './Toolbar';
+import { PhoneHudStack } from './PhoneHudStack';
 import { playCardFromHand } from '@/features/battlefield/battlefieldActions';
 import { useCardPreviewStore } from '@/features/card-preview/cardPreviewStore';
 import { useSettingsStore } from './stores/settingsStore';
@@ -83,6 +85,7 @@ export function App({ yDoc, yjsNetworkProvider, player, roomManager, playerId, c
   const [activeCard, setActiveCard] = useState<Card | null>(null);
   const [activeZoom, setActiveZoom] = useState(1);
   const lastPointerRef = useRef({ x: 0, y: 0 });
+  const isPhone = usePhoneLayout();
 
   // Track the live pointer position directly rather than deriving it from
   // dnd-kit's DragEndEvent (see dragDropCoordinates.ts for why). touchmove is
@@ -179,8 +182,16 @@ export function App({ yDoc, yjsNetworkProvider, player, roomManager, playerId, c
       <ScryManager />
       <LocalPileTiles />
       <OpponentPileViewers yDoc={yDoc} localPlayerId={playerId} />
-      <ActionLogPanel yDoc={yDoc} localPlayerId={playerId} />
-      <GameActionsToolbar />
+      {/* HUD windows float and drag on desktop; on phone they collapse into
+          the fixed top-left toggle column (see docs/responsive.md). */}
+      {isPhone ? (
+        <PhoneHudStack yDoc={yDoc} localPlayerId={playerId} />
+      ) : (
+        <>
+          <ActionLogPanel yDoc={yDoc} localPlayerId={playerId} />
+          <GameActionsToolbar />
+        </>
+      )}
       <NumberPromptManager />
       <ConfirmDialogManager />
       <TokenCardSearchModal cardLookup={cardLookup} />
