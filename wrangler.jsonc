@@ -12,7 +12,7 @@
  */
 {
 	"$schema": "node_modules/wrangler/config-schema.json",
-	"name": "aura0",
+	"name": "aura0-staging",
 	"compatibility_date": "2026-07-07",
 	"assets": {
 		"directory": "./dist",
