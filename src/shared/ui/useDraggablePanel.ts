@@ -38,7 +38,9 @@ export interface DragHandleProps {
 // (no floor) when absent, e.g. in unit-test harnesses that don't mount it.
 const TOP_BAR_SELECTOR = '[data-testid="toolbar"]';
 
-function getTopBarBottom(): number {
+/** Screen-space bottom edge of the top menu bar. Exported for other HUD
+ * surfaces that anchor just below it (e.g. the phone HUD stack). */
+export function getTopBarBottom(): number {
   return document.querySelector(TOP_BAR_SELECTOR)?.getBoundingClientRect().bottom ?? 0;
 }
 
