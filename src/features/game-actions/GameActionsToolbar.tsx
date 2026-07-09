@@ -58,6 +58,27 @@ const btnHoverStyle: React.CSSProperties = {
   background: 'rgba(255,255,255,0.12)',
 };
 
+/**
+ * A non-modal DropdownMenu double-toggles when reopened by clicking its trigger
+ * right after selecting an item: Radix opens the menu on the trigger's
+ * pointerdown, then the freshly-mounted dismiss layer treats that *same*
+ * pointerdown as an outside interaction and closes it again — so the menu never
+ * reopens on the first click (a real papercut: after e.g. Exile Top, clicking
+ * "Actions" again does nothing). Radix already exempts the trigger for a fresh
+ * open; the post-select timing is where that slips through. Feed each menu's
+ * `onInteractOutside` through this so a pointer/focus interaction on its own
+ * trigger is treated as inside and the reopen sticks. Clicks truly outside
+ * still dismiss, and clicking the trigger while open still toggles it closed.
+ */
+function keepTriggerInteractionsInside(triggerRef: React.RefObject<HTMLElement | null>) {
+  return (event: { detail: { originalEvent: Event }; preventDefault: () => void }) => {
+    const target = event.detail?.originalEvent?.target;
+    if (target instanceof Node && triggerRef.current?.contains(target)) {
+      event.preventDefault();
+    }
+  };
+}
+
 function ToolbarButton({ label, onClick, title }: { label: string; onClick: () => void; title?: string }) {
   const [hovered, setHovered] = useState(false);
   return (
@@ -79,6 +100,11 @@ export function GameActionsToolbar() {
   const player = useGameInstance((s) => s.player);
   const yDoc = useGameInstance((s) => s.yDoc);
   const playerId = useGameInstance((s) => s.playerId);
+
+  // See keepTriggerInteractionsInside: needed so these non-modal menus reopen on
+  // the first trigger click after an item was selected.
+  const actionsTriggerRef = useRef<HTMLButtonElement>(null);
+  const createTriggerRef = useRef<HTMLButtonElement>(null);
 
   const ctx = useMemo<GameActionContext | null>(() => {
     if (!player || !yDoc || !playerId) return null;
@@ -132,11 +158,11 @@ export function GameActionsToolbar() {
           unclickable after the Dialog closes. Non-modal avoids the overlap. */}
       <DropdownMenu modal={false}>
         <DropdownMenuTrigger asChild>
-          <button style={btnStyle} title="Game actions">
+          <button ref={actionsTriggerRef} style={btnStyle} title="Game actions">
             Actions <ChevronDown size={11} style={{ opacity: 0.7 }} />
           </button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="start" side="bottom">
+        <DropdownMenuContent align="start" side="bottom" onInteractOutside={keepTriggerInteractionsInside(actionsTriggerRef)}>
           {actionsDropdown.map((action, i) => {
             const prev = actionsDropdown[i - 1];
             // Visual separator between certain groups
@@ -170,11 +196,11 @@ export function GameActionsToolbar() {
           Actions dropdown comment above for why this must be non-modal. */}
       <DropdownMenu modal={false}>
         <DropdownMenuTrigger asChild>
-          <button style={btnStyle} title="Create objects">
+          <button ref={createTriggerRef} style={btnStyle} title="Create objects">
             Create <ChevronDown size={11} style={{ opacity: 0.7 }} />
           </button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="start" side="bottom">
+        <DropdownMenuContent align="start" side="bottom" onInteractOutside={keepTriggerInteractionsInside(createTriggerRef)}>
           {createDropdown.map((action) => {
             if (action.id === 'create-token') {
               return <TokenSubItem key={action.id} />;
