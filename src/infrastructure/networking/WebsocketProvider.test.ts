@@ -119,8 +119,9 @@ describe('WebsocketProvider connection monitor', () => {
 
     expect(h.posthogCapture).toHaveBeenCalledTimes(1);
     expect(h.posthogCapture).toHaveBeenLastCalledWith(
-      'ws_connection_outcome',
+      'connection_outcome',
       expect.objectContaining({
+        transport: 'websocket',
         outcome: 'connected',
         episode_type: 'initial',
         episode_id: expect.any(String),
@@ -144,7 +145,7 @@ describe('WebsocketProvider connection monitor', () => {
     expect(h.captureMessage).toHaveBeenCalledTimes(1);
     expect(h.posthogCapture).toHaveBeenCalledTimes(1);
     const failedProps = h.posthogCapture.mock.calls[0][1] as Record<string, unknown>;
-    expect(failedProps).toMatchObject({ outcome: 'failed', episode_type: 'initial' });
+    expect(failedProps).toMatchObject({ transport: 'websocket', outcome: 'failed', episode_type: 'initial' });
     expect(failedProps.episode_id).toEqual(expect.any(String));
 
     // Recovers → 'connected' carrying the SAME episode_id: a slow-but-successful
@@ -153,6 +154,7 @@ describe('WebsocketProvider connection monitor', () => {
     expect(h.posthogCapture).toHaveBeenCalledTimes(2);
     const connectedProps = h.posthogCapture.mock.calls[1][1] as Record<string, unknown>;
     expect(connectedProps).toMatchObject({
+      transport: 'websocket',
       outcome: 'connected',
       episode_type: 'initial',
       connect_ms: expect.any(Number),
@@ -165,7 +167,7 @@ describe('WebsocketProvider connection monitor', () => {
     expect(h.captureMessage).toHaveBeenCalledTimes(2);
     expect(h.posthogCapture).toHaveBeenCalledTimes(3);
     const reconnectFailedProps = h.posthogCapture.mock.calls[2][1] as Record<string, unknown>;
-    expect(reconnectFailedProps).toMatchObject({ outcome: 'failed', episode_type: 'reconnect' });
+    expect(reconnectFailedProps).toMatchObject({ transport: 'websocket', outcome: 'failed', episode_type: 'reconnect' });
     expect(reconnectFailedProps.episode_id).not.toBe(failedProps.episode_id);
   });
 
