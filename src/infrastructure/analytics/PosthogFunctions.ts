@@ -27,9 +27,14 @@ export function trackCustomCounterCreated(counterTitle: string, counterIcon: str
 
 // NETWORKING
 
+/** Yjs sync transport, used to break down connection outcomes by transport. */
+export type TransportLabel = 'websocket' | 'webrtc';
+
 /**
- * Emitted per disconnected episode. A single episode can produce up to two
- * events sharing one `episode_id`:
+ * Emitted per disconnected episode, for BOTH outcomes, so the failure rate is a
+ * real proportion (failed / (connected + failed)) with a denominator — broken
+ * down by `transport` to compare WebSocket vs. WebRTC. A single episode can
+ * produce up to two events sharing one `episode_id`:
  *   - `failed`    — the connection was still down at the grace mark (~3s).
  *   - `connected` — the connection went (or came back) live.
  *
@@ -52,16 +57,17 @@ export function trackCustomCounterCreated(counterTitle: string, counterIcon: str
  * for alerting — but a proportion needs the denominator, and high-volume
  * success events belong in analytics, not the error tracker.
  */
-export function trackWsConnectionOutcome(props: {
+export function trackConnectionOutcome(props: {
+  transport: TransportLabel;
   outcome: 'connected' | 'failed';
   episodeId?: string;
   episodeType?: 'initial' | 'reconnect';
   connectMs?: number;
   unreachableForMs?: number;
 }): void {
-  posthog.capture('ws_connection_outcome', {
+  posthog.capture('connection_outcome', {
+    transport: props.transport,
     outcome: props.outcome,
-    transport: 'websocket',
     ...(props.episodeId !== undefined ? { episode_id: props.episodeId } : {}),
     ...(props.episodeType !== undefined ? { episode_type: props.episodeType } : {}),
     ...(props.connectMs !== undefined ? { connect_ms: props.connectMs } : {}),

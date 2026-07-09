@@ -49,6 +49,25 @@ import { IndexeddbPersistence } from 'y-indexeddb';
 import { WebRTCConfig } from './types';
 import { restoreAwarenessState, setupAwarenessStatePersistence, AwarenessState } from './persistence';
 import {NetworkStatusEvent, YjsNetworkProvider} from "@/infrastructure/networking/YjsNetworkFactory";
+import { ConnectionMonitor } from './ConnectionMonitor';
+
+/**
+ * How long every signaling socket can stay unreachable before we flag it.
+ * Matches the WebSocket transport's threshold — signaling is itself a
+ * websocket handshake, and a healthy one resolves in well under a second.
+ */
+const SIGNALING_ERROR_GRACE_PERIOD_MS = 3000;
+
+/**
+ * The bits of a y-webrtc signaling socket we rely on (a lib0 WebsocketClient).
+ * `provider.signalingConns` is not in y-webrtc's public types, so we describe
+ * just what we touch rather than reaching for `any`.
+ */
+interface SignalingConnLike {
+  connected: boolean;
+  on(event: 'connect' | 'disconnect', handler: () => void): void;
+  off(event: 'connect' | 'disconnect', handler: () => void): void;
+}
 
 /**
  * Main WebRTC provider class that manages peer-to-peer connections
@@ -60,6 +79,8 @@ export class WebRTCProvider implements YjsNetworkProvider{
   private persistence: IndexeddbPersistence;
   private config: WebRTCConfig;
   private cleanupAwarenessPersistence?: () => void;
+  private monitor: ConnectionMonitor;
+  private signalingCleanup?: () => void;
   private readonly statusListeners = new Map<(event: NetworkStatusEvent) => void, (peersEvent: { webrtcPeers: string[] }) => void>();
 
   status(): string {
@@ -72,9 +93,12 @@ export class WebRTCProvider implements YjsNetworkProvider{
   }
 
   public on(event: 'status', callback: (event: NetworkStatusEvent) => void): void {
-    // No peers yet is normal (alone in the room) — this transport has no
-    // separate "signaling server unreachable" signal, so unlike the websocket
-    // provider it never escalates to 'error'.
+    // The UI status stays peer-based: "connected" means actually syncing with a
+    // peer, and having no peers yet is normal (alone in the room), so this never
+    // escalates to a UI 'error'. Signaling-unreachable failures ARE now detected
+    // — but only reported to Sentry/PostHog via the ConnectionMonitor, not shown
+    // in the UI, because "alone but signaling down" needs its own UX treatment
+    // (a deliberate follow-up).
     const wrapped = (peersEvent: { webrtcPeers: string[] }) => {
       callback({ status: peersEvent.webrtcPeers.length > 0 ? 'connected' : 'connecting' });
     };
@@ -124,8 +148,57 @@ export class WebRTCProvider implements YjsNetworkProvider{
       this.provider.peerId = config.peerId;
     }
 
+    // Report unreachable signaling once we've been disconnected past the grace
+    // period. Armed at construction, so an initial load whose signaling never
+    // connects is caught the same as a mid-session signaling drop.
+    this.monitor = new ConnectionMonitor({
+      transport: 'webrtc',
+      graceMs: SIGNALING_ERROR_GRACE_PERIOD_MS,
+      sentryMessage: 'WebRTC signaling unreachable',
+      context: {
+        signalingServers: this.config.signalingServers,
+        roomName: this.config.roomName,
+      },
+    });
+
     this.setupEventListeners();
     this.setupAwareness();
+    this.monitorSignaling();
+  }
+
+  /**
+   * Drives the ConnectionMonitor from signaling reachability. Unlike
+   * y-websocket there's no single connection status: y-webrtc keeps an array of
+   * signaling sockets and `provider.connected` does NOT reflect them (it just
+   * means "connect() was called"). Reachability = at least one signaling socket
+   * open, so we watch each socket and recompute the aggregate on every change.
+   */
+  private monitorSignaling(): void {
+    const conns = (this.provider as unknown as { signalingConns?: SignalingConnLike[] })
+      .signalingConns ?? [];
+
+    const sync = () => {
+      if (conns.some((conn) => conn.connected)) {
+        this.monitor.markConnected();
+      } else {
+        this.monitor.markDisconnected();
+      }
+    };
+
+    conns.forEach((conn) => {
+      conn.on('connect', sync);
+      conn.on('disconnect', sync);
+    });
+    this.signalingCleanup = () => {
+      conns.forEach((conn) => {
+        conn.off('connect', sync);
+        conn.off('disconnect', sync);
+      });
+    };
+
+    // Signaling sockets are pooled across providers, so one may already be open;
+    // reconcile once up front instead of waiting for the next event.
+    sync();
   }
 
   private setupEventListeners(): void {
@@ -167,6 +240,12 @@ export class WebRTCProvider implements YjsNetworkProvider{
     if (this.cleanupAwarenessPersistence) {
       this.cleanupAwarenessPersistence();
     }
+
+    // Signaling sockets are pooled and outlive this provider, so drop our
+    // listeners before tearing down the monitor — otherwise a later signaling
+    // event would re-arm the monitor and could report after teardown.
+    this.signalingCleanup?.();
+    this.monitor.destroy();
 
     this.provider.destroy();
     this.persistence.destroy();
