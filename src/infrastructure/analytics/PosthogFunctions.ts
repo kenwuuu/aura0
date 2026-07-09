@@ -27,25 +27,30 @@ export function trackCustomCounterCreated(counterTitle: string, counterIcon: str
 
 // NETWORKING
 
+/** Yjs sync transport, used to break down connection outcomes by transport. */
+export type TransportLabel = 'websocket' | 'webrtc';
+
 /**
  * One event per connection episode, for BOTH outcomes, so the failure rate is a
- * simple breakdown by `outcome` (failed / (connected + failed)). Sentry gets the
- * failure too, for alerting — but a proportion needs the denominator, and
- * high-volume success events belong in analytics, not the error tracker.
+ * simple breakdown by `outcome` (failed / (connected + failed)) — and by
+ * `transport`, to compare WebSocket vs. WebRTC. Sentry gets the failure too, for
+ * alerting — but a proportion needs the denominator, and high-volume success
+ * events belong in analytics, not the error tracker.
  *
  * `connect_ms` (success) and `unreachable_for_ms` (failure) are the same clock:
  * time from the episode's disconnected edge to the resolution. The success
  * latency distribution is the early-warning signal before connects start
  * failing outright.
  */
-export function trackWsConnectionOutcome(props: {
+export function trackConnectionOutcome(props: {
+  transport: TransportLabel;
   outcome: 'connected' | 'failed';
   connectMs?: number;
   unreachableForMs?: number;
 }): void {
-  posthog.capture('ws_connection_outcome', {
+  posthog.capture('connection_outcome', {
+    transport: props.transport,
     outcome: props.outcome,
-    transport: 'websocket',
     ...(props.connectMs !== undefined ? { connect_ms: props.connectMs } : {}),
     ...(props.unreachableForMs !== undefined
       ? { unreachable_for_ms: props.unreachableForMs }
