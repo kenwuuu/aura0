@@ -1,0 +1,28 @@
+# Block direct pushes to master — the production/release branch.
+#
+# master must only advance via a merged `staging -> master` PR (see
+# docs/STAGING.md). Server-side branch protection is paywalled on this private
+# repo, so this local hook is the guard. It is NOT a security control: it only
+# catches accidental *local* pushes on machines that have run `npm install`
+# (which installs husky). It cannot police GitHub or other clones.
+#
+# Intentional override:
+#   ALLOW_MASTER_PUSH=1 git push origin master
+protected_branch="refs/heads/master"
+
+if [ "${ALLOW_MASTER_PUSH:-0}" = "1" ]; then
+	exit 0
+fi
+
+# git feeds pre-push one line per ref being pushed:
+#   <local ref> <local sha> <remote ref> <remote sha>
+while read -r _local_ref _local_sha remote_ref _remote_sha; do
+	if [ "$remote_ref" = "$protected_branch" ]; then
+		echo "husky - pre-push: blocked direct push to master."
+		echo "  master is the release branch — promote via a staging -> master PR."
+		echo "  See docs/STAGING.md. Override: ALLOW_MASTER_PUSH=1 git push ..."
+		exit 1
+	fi
+done
+
+exit 0

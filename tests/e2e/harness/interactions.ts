@@ -158,30 +158,35 @@ export async function dragBoardCardToHand(page: Page, card: Locator): Promise<vo
 const COUNTED_TOKEN_TITLES = ['COLORLESS', 'WHITE', 'BLUE', 'RED', 'GREEN', 'BLACK'];
 
 /**
- * Open the toolbar's Create > Token popover (hosts `KeywordTokenGrid`) and
- * drag a counted token onto the board. Picks a counted token that isn't
- * occluded by the floating hand. The resulting token node starts with count 1
- * and can be clicked (+1) / right-clicked (-1).
+ * Open the toolbar's Create ▾ menu and click the "Token" item to reveal the
+ * `KeywordTokenGrid` popover. Resolves once the grid is visible.
+ *
+ * The popover's anchor IS the menu item, so the Popover and the Radix Menu
+ * share a DOM node and their focus managers used to fight: opening the popover
+ * grabbed focus, then the menu re-focused the item on the next pointermove,
+ * which the popover's non-modal dismissable layer read as focus-outside and
+ * closed the grid before the user could reach it (see `TokenSubItem` in
+ * `GameActionsToolbar.tsx`, which now prevents open-auto-focus and the
+ * focus-outside dismiss). `tokenGridSurvivesPointerTravel` guards that.
+ */
+export async function openTokenGrid(page: Page): Promise<void> {
+  await page.getByTestId('game-actions-toolbar').getByText('Create').click();
+  await page.getByRole('menuitem', { name: 'Token', exact: true }).click();
+  await page.getByText('Drag a token onto the board').waitFor({ state: 'visible' });
+}
+
+/**
+ * Open the Token grid and drag a counted token onto the board. Picks a counted
+ * token that isn't occluded by the floating hand. The resulting token node
+ * starts with count 1 and can be clicked (+1) / right-clicked (-1).
  *
  * Deliberately uses `.dragTo()` — grid token templates are native HTML5
  * `draggable` elements, not dnd-kit/react-flow, so the raw mouse recipe
  * doesn't apply here. This is the one sanctioned `.dragTo()` use in the suite.
- *
- * SUSPECTED PRODUCT BUG (as of this writing): the Token popover currently
- * never opens. `TokenSubItem` in `GameActionsToolbar.tsx` wraps a
- * `DropdownMenuItem` in a `PopoverTrigger asChild` and toggles `open` from the
- * item's `onSelect`; in practice the trigger's `data-state` never transitions
- * to `"open"` on click OR keyboard activation (verified both ways) — likely a
- * conflict between the two Radix primitives sharing one DOM node. This
- * function is implemented against the intended/current DOM shape and should
- * work once that's fixed; until then, any caller must skip with a reason
- * rather than treat a timeout here as a test bug.
  */
 export async function dragCountedTokenToBoard(page: Page): Promise<void> {
   const before = await boardTokens(page).count();
-  await page.getByTestId('game-actions-toolbar').getByText('Create').click();
-  await page.getByRole('menuitem', { name: 'Token', exact: true }).click();
-  await page.getByText('Drag a token onto the board').waitFor({ state: 'visible' });
+  await openTokenGrid(page);
   const alt = await page.evaluate((titles: string[]) => {
     for (const name of titles) {
       const el = [...document.querySelectorAll('div[draggable="true"]')].find(

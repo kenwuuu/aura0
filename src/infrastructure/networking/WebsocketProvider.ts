@@ -26,21 +26,28 @@
  */
 
 import * as Y from 'yjs';
+import * as Sentry from '@sentry/browser';
+import { v4 as uuidv4 } from 'uuid';
 import { WebsocketProvider as WsProvider } from "y-websocket";
 import { IndexeddbPersistence } from 'y-indexeddb';
 import { WebsocketConfig } from './types';
 import { restoreAwarenessState, setupAwarenessStatePersistence, AwarenessState } from './persistence';
 import {NetworkStatusEvent, YjsNetworkProvider} from "@/infrastructure/networking/YjsNetworkFactory";
+import { trackWsConnectionOutcome } from '@/infrastructure/analytics/PosthogFunctions';
 
 /**
  * How long the relay can stay unreachable before we stop calling it
- * "connecting" and surface a real error to the user. y-websocket retries
- * with exponential backoff forever on its own; this just decides when that
- * background retrying has gone on long enough to be worth interrupting the
- * user about.
+ * "connecting" — at which point we both surface a real error to the user and
+ * report it to Sentry. y-websocket retries with exponential backoff forever on
+ * its own; this just decides when that background retrying has gone on long
+ * enough to be worth flagging. A healthy connection resolves in well under a
+ * second, so 3s is comfortably past "just slow" without being trigger-happy.
  */
-const CONNECTION_ERROR_GRACE_PERIOD_MS = 6000;
+const CONNECTION_ERROR_GRACE_PERIOD_MS = 3000;
 const CONNECTION_ERROR_MESSAGE = "Can't reach the game server over WebSocket. Switch to WebRTC in Settings to keep playing.";
+
+/** The relay every WebSocket-transport client connects to. */
+const WS_SERVER_URL = 'wss://digitalocean-ws-ipv4.aura0.app';
 
 /**
  * Main Websocket provider class that manages peer-to-peer connections
@@ -53,6 +60,18 @@ export class WebsocketProvider implements YjsNetworkProvider{
   private config: WebsocketConfig;
   private cleanupAwarenessPersistence?: () => void;
   private disconnectedSince: number | null = null;
+  private connectionErrorReported = false;
+  private stuckTimer: ReturnType<typeof setTimeout> | null = null;
+  // Correlates the two events a single disconnected episode can emit — the
+  // 'failed' fired at the grace mark and the 'connected' fired if it later
+  // recovers — so analytics can tell a hard failure (failed only) from a
+  // slow-but-successful connect (failed + connected sharing this id). Minted
+  // when an episode begins, cleared when it connects.
+  private episodeId: string | null = null;
+  // Distinguishes the first connection of this client's life from every
+  // reconnect after it, so initial-connect health and mid-session resilience
+  // can be read separately rather than blended into one rate.
+  private hasEverConnected = false;
   private readonly statusListeners = new Map<(event: NetworkStatusEvent) => void, (wsEvent: { status: string }) => void>();
 
   status(): string {
@@ -65,17 +84,16 @@ export class WebsocketProvider implements YjsNetworkProvider{
   }
 
   public on(event: 'status', callback: (event: NetworkStatusEvent) => void): void {
+    // The disconnected clock is owned by monitorConnection(); here we only
+    // read it to decide whether the UI should still say "connecting" or has
+    // waited long enough to show a real error.
     const wrapped = (wsEvent: { status: string }) => {
       if (wsEvent.status === 'connected') {
-        this.disconnectedSince = null;
         callback({ status: 'connected' });
         return;
       }
-
-      if (this.disconnectedSince === null) {
-        this.disconnectedSince = Date.now();
-      }
-      const stuck = Date.now() - this.disconnectedSince > CONNECTION_ERROR_GRACE_PERIOD_MS;
+      const stuck = this.disconnectedSince !== null
+        && Date.now() - this.disconnectedSince > CONNECTION_ERROR_GRACE_PERIOD_MS;
       callback(stuck
         ? { status: 'error', message: CONNECTION_ERROR_MESSAGE }
         : { status: 'connecting' });
@@ -104,7 +122,7 @@ export class WebsocketProvider implements YjsNetworkProvider{
     this.persistence = new IndexeddbPersistence(this.config.roomName, this.yDoc);
 
     this.provider = new WsProvider(
-      'wss://digitalocean-ws-ipv4.aura0.app',
+      WS_SERVER_URL,
       config.roomName,
       yDoc,
     )
@@ -117,6 +135,97 @@ export class WebsocketProvider implements YjsNetworkProvider{
 
     this.setupEventListeners();
     this.setupAwareness();
+    this.monitorConnection();
+  }
+
+  /**
+   * Watches the relay connection and reports to Sentry once if we can't reach
+   * it within the grace period. Runs independently of any UI status listener,
+   * and — because a fresh client starts life disconnected — covers both an
+   * initial page load that never connects and a mid-session drop that stays
+   * down. y-websocket keeps retrying underneath; this only decides when a
+   * stuck connection has gone on long enough to be worth flagging.
+   */
+  private monitorConnection(): void {
+    // Arm the clock immediately: at construction we are not yet connected, so
+    // an initial load that never reaches the server is treated exactly like a
+    // later drop rather than sitting silently in "connecting" forever.
+    this.markDisconnected();
+    this.provider.on('status', ({ status }: { status: string }) => {
+      if (status === 'connected') {
+        this.markConnected();
+      } else {
+        this.markDisconnected();
+      }
+    });
+  }
+
+  private markConnected(): void {
+    // Only the disconnected→connected edge counts as one successful connection;
+    // repeat 'connected' events (disconnectedSince already null) are ignored so
+    // the analytics denominator stays one-per-episode, symmetric with failures.
+    // connectMs measures that edge: construction→connect on first load, or
+    // drop→reconnect thereafter — i.e. how long the user waited to be online.
+    const connectMs = this.disconnectedSince === null
+      ? undefined
+      : Date.now() - this.disconnectedSince;
+    const episodeId = this.episodeId;
+    // Read the type before flipping the flag: a slow initial connect is still
+    // an 'initial' outcome even though this call is what makes future connects
+    // count as reconnects.
+    const episodeType = this.hasEverConnected ? 'reconnect' : 'initial';
+    this.disconnectedSince = null;
+    this.episodeId = null;
+    this.connectionErrorReported = false;
+    this.hasEverConnected = true;
+    if (this.stuckTimer !== null) {
+      clearTimeout(this.stuckTimer);
+      this.stuckTimer = null;
+    }
+    if (connectMs !== undefined && episodeId !== null) {
+      trackWsConnectionOutcome({ outcome: 'connected', episodeId, episodeType, connectMs });
+    }
+  }
+
+  private markDisconnected(): void {
+    if (this.disconnectedSince !== null) return; // already counting down
+    this.disconnectedSince = Date.now();
+    this.episodeId = uuidv4();
+    this.stuckTimer = setTimeout(() => {
+      this.stuckTimer = null;
+      this.reportConnectionError();
+    }, CONNECTION_ERROR_GRACE_PERIOD_MS);
+  }
+
+  /**
+   * Fires at most once per stuck episode (reset on the next successful
+   * connect), so a flaky connection reports each distinct outage rather than
+   * spamming Sentry on every retry.
+   */
+  private reportConnectionError(): void {
+    if (this.connectionErrorReported || this.provider.wsconnected) return;
+    this.connectionErrorReported = true;
+    const unreachableForMs = this.disconnectedSince === null
+      ? undefined
+      : Date.now() - this.disconnectedSince;
+    Sentry.captureMessage('WebSocket relay unreachable', {
+      level: 'error',
+      tags: { transport: 'websocket' },
+      extra: {
+        url: WS_SERVER_URL,
+        roomName: this.config.roomName,
+        unreachableForMs: unreachableForMs ?? null,
+      },
+    });
+    // Same episode also feeds the PostHog failure/total proportion. It carries
+    // the episode id so a later recovery ('connected' with the same id) can be
+    // distinguished from a connection that truly never came back.
+    trackWsConnectionOutcome({
+      outcome: 'failed',
+      episodeId: this.episodeId ?? undefined,
+      episodeType: this.hasEverConnected ? 'reconnect' : 'initial',
+      unreachableForMs,
+    });
   }
 
   private setupEventListeners(): void {
@@ -153,6 +262,12 @@ export class WebsocketProvider implements YjsNetworkProvider{
     // Clean up awareness persistence listener
     if (this.cleanupAwarenessPersistence) {
       this.cleanupAwarenessPersistence();
+    }
+
+    // Cancel any pending stuck-connection report so we don't fire after teardown
+    if (this.stuckTimer !== null) {
+      clearTimeout(this.stuckTimer);
+      this.stuckTimer = null;
     }
 
     this.persistence.destroy();

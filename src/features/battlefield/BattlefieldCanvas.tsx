@@ -503,13 +503,16 @@ function BattlefieldCanvasInner({ yDoc, localPlayerId }: BattlefieldCanvasProps)
         zoomOnDoubleClick={false}
         elevateNodesOnSelect={false} // react-flow adds +1000 to selected nodes by default, which overrides our manual z-ordering and pushes dragged cards above their attached tokens
         style={{ background: '#1a1a1a' }}
+        colorMode="dark" // also fixes the built-in attribution link: its default light-mode background is a translucent white pill that's illegible on our dark board
       >
         <Background
           size={1}
           color="#777777"
           gap={BACKGROUND_GRID_GAP}
         />
-        <Controls position="bottom-right" />
+        {/* marginBottom lifts this above the settings button panel below — both anchor
+            to the same bottom-left corner, so without an offset they'd overlap. */}
+        <Controls position="bottom-left" showFitView={false} showInteractive={false} style={{ marginBottom: 55 }} />
         <Panel position="bottom-left">
           <SettingsButton />
         </Panel>

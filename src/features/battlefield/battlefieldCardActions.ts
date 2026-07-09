@@ -20,6 +20,15 @@ import {
   moveCardToDeckBottom,
 } from './battlefieldActions';
 import { makeCardId } from '@/shared/utils/ids';
+import { resolvePlayerName } from '@/shared/utils/resolvePlayerName';
+
+// Name to use for a card's owner in a log entry describing an action taken
+// on someone else's card — null when the actor owns the card themselves, so
+// callers can branch on possessive vs. first-person phrasing (mirrors
+// Player.modifyHealth's self-vs-target split).
+function opponentOwnerName(yDoc: Y.Doc, card: WhiteboardCard, actorId: string): string | null {
+  return card.ownerId === actorId ? null : resolvePlayerName(yDoc, card.ownerId);
+}
 
 export function executeBattlefieldCardAction(
   action: string,
@@ -46,29 +55,35 @@ export function executeBattlefieldCardAction(
   if (!card) return;
 
   switch (action) {
-    case 'tap':
+    case 'tap': {
+      // card.isTapped reflects the state *before* the toggle
+      const verb = card.isTapped ? 'untapped' : 'tapped';
       yCards.set(cardId, { ...card, isTapped: !card.isTapped });
       if (yDoc) {
+        const ownerName = opponentOwnerName(yDoc, card, playerId);
         logAction(yDoc, {
           actorId: playerId,
           type: 'tap',
-          // card.isTapped reflects the state *before* the toggle
-          text: card.isTapped ? `untapped ${cardLogName(card)}` : `tapped ${cardLogName(card)}`,
+          text: ownerName ? `${verb} ${ownerName}'s ${cardLogName(card)}` : `${verb} ${cardLogName(card)}`,
         });
       }
       break;
+    }
     case 'flip': {
       // card.isFlipped reflects the state *before* the toggle.
       const willBeFlipped = !card.isFlipped;
       yCards.set(cardId, { ...card, isFlipped: willBeFlipped });
       if (yDoc) {
-        logAction(yDoc, {
-          actorId: playerId,
-          type: 'flip',
-          // Flipping face down must not name the card it's hiding; flipping
-          // face up reveals it to everyone at once, so the name is now public.
-          text: willBeFlipped ? 'flipped a card face down' : `flipped ${card.name} face up`,
-        });
+        const ownerName = opponentOwnerName(yDoc, card, playerId);
+        // Flipping face down must not name the card it's hiding; flipping
+        // face up reveals it to everyone at once, so the name is now public.
+        let text: string;
+        if (willBeFlipped) {
+          text = ownerName ? `flipped ${ownerName}'s card face down` : 'flipped a card face down';
+        } else {
+          text = ownerName ? `flipped ${ownerName}'s ${card.name} face up` : `flipped ${card.name} face up`;
+        }
+        logAction(yDoc, { actorId: playerId, type: 'flip', text });
       }
       break;
     }
@@ -85,7 +100,12 @@ export function executeBattlefieldCardAction(
       };
       yCards.set(newCard.id, newCard);
       if (yDoc) {
-        logAction(yDoc, { actorId: playerId, type: 'copy', text: `copied ${cardLogName(card)}` });
+        const ownerName = opponentOwnerName(yDoc, card, playerId);
+        logAction(yDoc, {
+          actorId: playerId,
+          type: 'copy',
+          text: ownerName ? `copied ${ownerName}'s ${cardLogName(card)}` : `copied ${cardLogName(card)}`,
+        });
       }
       break;
     }
@@ -113,7 +133,12 @@ export function executeBattlefieldCardAction(
       detachTokens(cardId, yTokens);
       yCards.delete(cardId);
       if (yDoc) {
-        logAction(yDoc, { actorId: playerId, type: 'delete', text: `removed ${cardLogName(card)}` });
+        const ownerName = opponentOwnerName(yDoc, card, playerId);
+        logAction(yDoc, {
+          actorId: playerId,
+          type: 'delete',
+          text: ownerName ? `removed ${ownerName}'s ${cardLogName(card)}` : `removed ${cardLogName(card)}`,
+        });
       }
       break;
     // The moveTo* actions below delegate placement, deck persistence, and

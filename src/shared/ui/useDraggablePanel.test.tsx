@@ -1,7 +1,19 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render, fireEvent, screen } from '@testing-library/react';
 import { useDraggablePanel } from './useDraggablePanel';
 import { useSettingsStore } from '@/app/stores/settingsStore';
+
+// Stand-in for the real Toolbar (src/app/Toolbar.tsx), which the hook locates
+// by this testid — see `TOP_BAR_SELECTOR` in useDraggablePanel.ts.
+function mountMockToolbar(bottom: number): HTMLElement {
+  const toolbar = document.createElement('div');
+  toolbar.setAttribute('data-testid', 'toolbar');
+  document.body.appendChild(toolbar);
+  vi.spyOn(toolbar, 'getBoundingClientRect').mockReturnValue({
+    bottom, top: 0, left: 0, right: 0, height: bottom, width: 800, x: 0, y: 0, toJSON: () => {},
+  } as DOMRect);
+  return toolbar;
+}
 
 // A minimal host: a positioned container + a drag handle wired to the hook.
 function Harness({ persistKey, def }: { persistKey: string; def: { x: number; y: number } }) {
@@ -16,6 +28,12 @@ function Harness({ persistKey, def }: { persistKey: string; def: { x: number; y:
 describe('useDraggablePanel', () => {
   beforeEach(() => {
     useSettingsStore.setState({ panelPositions: {} });
+  });
+
+  afterEach(() => {
+    // Guard against leaking the mock toolbar into later tests if an
+    // assertion above throws before a test's own cleanup runs.
+    document.querySelector('[data-testid="toolbar"]')?.remove();
   });
 
   it('starts at the default position when nothing is saved', () => {
@@ -55,5 +73,25 @@ describe('useDraggablePanel', () => {
 
     expect(screen.getByTestId('panel').style.left).toBe('5px'); // unchanged
     expect(useSettingsStore.getState().panelPositions.p4).toBeUndefined();
+  });
+
+  it('clamps a drag toward the top so the panel cannot go under the top menu bar', () => {
+    mountMockToolbar(60);
+    render(<Harness persistKey="p5" def={{ x: 10, y: 100 }} />);
+    const handle = screen.getByTestId('handle');
+
+    // Drag straight up past y=0 — well above the toolbar's bottom edge.
+    fireEvent.pointerDown(handle, { button: 0, clientX: 50, clientY: 200, pointerId: 1 });
+    fireEvent.pointerMove(handle, { clientX: 50, clientY: 0, pointerId: 1 });
+    fireEvent.pointerUp(handle, { clientX: 50, clientY: 0, pointerId: 1 });
+
+    expect(screen.getByTestId('panel').style.top).toBe('60px'); // pinned to the toolbar's bottom edge
+    expect(useSettingsStore.getState().panelPositions.p5).toEqual({ x: 10, y: 60 });
+  });
+
+  it('re-clamps below the top menu bar on mount, e.g. a position persisted before the bar grew', () => {
+    mountMockToolbar(80);
+    render(<Harness persistKey="p6" def={{ x: 10, y: 20 }} />);
+    expect(screen.getByTestId('panel').style.top).toBe('80px');
   });
 });
