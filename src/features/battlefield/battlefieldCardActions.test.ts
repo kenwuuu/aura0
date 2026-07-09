@@ -4,6 +4,7 @@ import { executeBattlefieldCardAction } from './battlefieldCardActions';
 import { getActionLog } from '@/features/action-log/actionLog';
 import { useGameInstance } from '@/app/stores/gameInstanceStore';
 import { seedGame } from '@/test/seedGame';
+import { YDOC_PLAYER, YSTATE_PLAYER_NAME } from '@/constants';
 import type { WhiteboardCard } from './types';
 import type { KeywordToken } from '@/features/keyword-tokens/types';
 
@@ -36,6 +37,10 @@ function makeToken(overrides: Partial<KeywordToken> = {}): KeywordToken {
     rotation: 0,
     ...overrides,
   };
+}
+
+function setPlayerName(doc: Y.Doc, playerId: string, name: string): void {
+  doc.getMap(YDOC_PLAYER(playerId)).set(YSTATE_PLAYER_NAME, name);
 }
 
 describe('executeBattlefieldCardAction', () => {
@@ -91,6 +96,18 @@ describe('executeBattlefieldCardAction', () => {
       const log = getActionLog(boardDoc).toArray();
       expect(log.some((e) => e.type === 'tap' && e.text.includes('untapped'))).toBe(true);
     });
+
+    it("names the owner when tapping another player's card", () => {
+      setPlayerName(boardDoc, 'p2', 'Alice');
+      yCards.set('card-1', makeWhiteboardCard({ ownerId: 'p2', isTapped: false }));
+
+      executeBattlefieldCardAction('tap', 'card-1', yCards, yTokens, 'p1');
+
+      const log = getActionLog(boardDoc).toArray();
+      const entry = log.find((e) => e.type === 'tap');
+      expect(entry!.text).toBe("tapped Alice's Lightning Bolt");
+      expect(entry!.actorId).toBe('p1');
+    });
   });
 
   describe('flip', () => {
@@ -117,6 +134,29 @@ describe('executeBattlefieldCardAction', () => {
       expect(entry!.text).toContain('Lightning Bolt');
       expect(entry!.text).toContain('face up');
     });
+
+    it("names the owner when flipping another player's card face down, without revealing its name", () => {
+      setPlayerName(boardDoc, 'p2', 'Alice');
+      yCards.set('card-1', makeWhiteboardCard({ ownerId: 'p2', isFlipped: false, name: 'Lightning Bolt' }));
+
+      executeBattlefieldCardAction('flip', 'card-1', yCards, yTokens, 'p1');
+
+      const log = getActionLog(boardDoc).toArray();
+      const entry = log.find((e) => e.type === 'flip');
+      expect(entry!.text).not.toContain('Lightning Bolt');
+      expect(entry!.text).toBe("flipped Alice's card face down");
+    });
+
+    it("names the owner and card when flipping another player's card face up", () => {
+      setPlayerName(boardDoc, 'p2', 'Alice');
+      yCards.set('card-1', makeWhiteboardCard({ ownerId: 'p2', isFlipped: true, name: 'Lightning Bolt' }));
+
+      executeBattlefieldCardAction('flip', 'card-1', yCards, yTokens, 'p1');
+
+      const log = getActionLog(boardDoc).toArray();
+      const entry = log.find((e) => e.type === 'flip');
+      expect(entry!.text).toBe("flipped Alice's Lightning Bolt face up");
+    });
   });
 
   describe('copy', () => {
@@ -135,6 +175,17 @@ describe('executeBattlefieldCardAction', () => {
       expect(copy.ownerId).toBe('p1');
       const log = getActionLog(boardDoc).toArray();
       expect(log.some((e) => e.type === 'copy')).toBe(true);
+    });
+
+    it("names the owner when copying another player's card", () => {
+      setPlayerName(boardDoc, 'p2', 'Alice');
+      yCards.set('card-1', makeWhiteboardCard({ id: 'card-1', ownerId: 'p2', name: 'Lightning Bolt' }));
+
+      executeBattlefieldCardAction('copy', 'card-1', yCards, yTokens, 'p1');
+
+      const log = getActionLog(boardDoc).toArray();
+      const entry = log.find((e) => e.type === 'copy');
+      expect(entry!.text).toBe("copied Alice's Lightning Bolt");
     });
   });
 
@@ -175,6 +226,17 @@ describe('executeBattlefieldCardAction', () => {
       expect(yTokens.get('token-1')!.attachedTo).toBeUndefined();
       const log = getActionLog(boardDoc).toArray();
       expect(log.some((e) => e.type === 'delete' && e.text.includes('Lightning Bolt'))).toBe(true);
+    });
+
+    it("names the owner when removing another player's card", () => {
+      setPlayerName(boardDoc, 'p2', 'Alice');
+      yCards.set('card-1', makeWhiteboardCard({ ownerId: 'p2', name: 'Lightning Bolt' }));
+
+      executeBattlefieldCardAction('delete', 'card-1', yCards, yTokens, 'p1');
+
+      const log = getActionLog(boardDoc).toArray();
+      const entry = log.find((e) => e.type === 'delete');
+      expect(entry!.text).toBe("removed Alice's Lightning Bolt");
     });
   });
 
