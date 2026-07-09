@@ -27,6 +27,7 @@
 
 import * as Y from 'yjs';
 import * as Sentry from '@sentry/browser';
+import { v4 as uuidv4 } from 'uuid';
 import { WebsocketProvider as WsProvider } from "y-websocket";
 import { IndexeddbPersistence } from 'y-indexeddb';
 import { WebsocketConfig } from './types';
@@ -61,6 +62,16 @@ export class WebsocketProvider implements YjsNetworkProvider{
   private disconnectedSince: number | null = null;
   private connectionErrorReported = false;
   private stuckTimer: ReturnType<typeof setTimeout> | null = null;
+  // Correlates the two events a single disconnected episode can emit — the
+  // 'failed' fired at the grace mark and the 'connected' fired if it later
+  // recovers — so analytics can tell a hard failure (failed only) from a
+  // slow-but-successful connect (failed + connected sharing this id). Minted
+  // when an episode begins, cleared when it connects.
+  private episodeId: string | null = null;
+  // Distinguishes the first connection of this client's life from every
+  // reconnect after it, so initial-connect health and mid-session resilience
+  // can be read separately rather than blended into one rate.
+  private hasEverConnected = false;
   private readonly statusListeners = new Map<(event: NetworkStatusEvent) => void, (wsEvent: { status: string }) => void>();
 
   status(): string {
@@ -158,20 +169,28 @@ export class WebsocketProvider implements YjsNetworkProvider{
     const connectMs = this.disconnectedSince === null
       ? undefined
       : Date.now() - this.disconnectedSince;
+    const episodeId = this.episodeId;
+    // Read the type before flipping the flag: a slow initial connect is still
+    // an 'initial' outcome even though this call is what makes future connects
+    // count as reconnects.
+    const episodeType = this.hasEverConnected ? 'reconnect' : 'initial';
     this.disconnectedSince = null;
+    this.episodeId = null;
     this.connectionErrorReported = false;
+    this.hasEverConnected = true;
     if (this.stuckTimer !== null) {
       clearTimeout(this.stuckTimer);
       this.stuckTimer = null;
     }
-    if (connectMs !== undefined) {
-      trackWsConnectionOutcome({ outcome: 'connected', connectMs });
+    if (connectMs !== undefined && episodeId !== null) {
+      trackWsConnectionOutcome({ outcome: 'connected', episodeId, episodeType, connectMs });
     }
   }
 
   private markDisconnected(): void {
     if (this.disconnectedSince !== null) return; // already counting down
     this.disconnectedSince = Date.now();
+    this.episodeId = uuidv4();
     this.stuckTimer = setTimeout(() => {
       this.stuckTimer = null;
       this.reportConnectionError();
@@ -198,8 +217,15 @@ export class WebsocketProvider implements YjsNetworkProvider{
         unreachableForMs: unreachableForMs ?? null,
       },
     });
-    // Same episode also feeds the PostHog failure/total proportion.
-    trackWsConnectionOutcome({ outcome: 'failed', unreachableForMs });
+    // Same episode also feeds the PostHog failure/total proportion. It carries
+    // the episode id so a later recovery ('connected' with the same id) can be
+    // distinguished from a connection that truly never came back.
+    trackWsConnectionOutcome({
+      outcome: 'failed',
+      episodeId: this.episodeId ?? undefined,
+      episodeType: this.hasEverConnected ? 'reconnect' : 'initial',
+      unreachableForMs,
+    });
   }
 
   private setupEventListeners(): void {
