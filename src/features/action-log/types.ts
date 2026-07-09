@@ -35,7 +35,7 @@ export type ActionLogType =
   | 'coin_flip';
 
 export interface ActionLogEntry {
-  id: string;          // crypto.randomUUID() — unique across all peers
+  id: string;          // see generateEntryId() in actionLog.ts — unique across all peers
   actorId: string;     // stable playerId of the player who performed the action
   type: ActionLogType;
   text: string;        // human string, e.g. "played Lightning Bolt"

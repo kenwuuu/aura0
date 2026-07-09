@@ -25,6 +25,34 @@ export function trackCustomCounterCreated(counterTitle: string, counterIcon: str
   });
 }
 
+// NETWORKING
+
+/**
+ * One event per connection episode, for BOTH outcomes, so the failure rate is a
+ * simple breakdown by `outcome` (failed / (connected + failed)). Sentry gets the
+ * failure too, for alerting — but a proportion needs the denominator, and
+ * high-volume success events belong in analytics, not the error tracker.
+ *
+ * `connect_ms` (success) and `unreachable_for_ms` (failure) are the same clock:
+ * time from the episode's disconnected edge to the resolution. The success
+ * latency distribution is the early-warning signal before connects start
+ * failing outright.
+ */
+export function trackWsConnectionOutcome(props: {
+  outcome: 'connected' | 'failed';
+  connectMs?: number;
+  unreachableForMs?: number;
+}): void {
+  posthog.capture('ws_connection_outcome', {
+    outcome: props.outcome,
+    transport: 'websocket',
+    ...(props.connectMs !== undefined ? { connect_ms: props.connectMs } : {}),
+    ...(props.unreachableForMs !== undefined
+      ? { unreachable_for_ms: props.unreachableForMs }
+      : {}),
+  });
+}
+
 // DECK IMPORTER
 
 export type ImportFailureReason =

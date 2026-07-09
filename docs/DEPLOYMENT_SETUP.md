@@ -2,25 +2,30 @@
 
 One-time provisioning for the deploy-health wiring in `src/app/main.ts`,
 `vite.config.ts`, and `.github/workflows/post-deploy-smoke.yml`. Do this once
-per environment (the production Cloudflare Pages project) — already-set-up
+per environment (the production Cloudflare Worker `aura0`) — already-set-up
 environments don't need to repeat it. For day-to-day incident response once
-this is done, see [`DEPLOYMENT_RUNBOOK.md`](./DEPLOYMENT_RUNBOOK.md).
+this is done, see [`DEPLOYMENT_RUNBOOK.md`](./DEPLOYMENT_RUNBOOK.md). For the
+staging environment specifically, see [`STAGING.md`](./STAGING.md).
 
-## 1. Cloudflare Pages — build env vars + branch check
+> **Pages → Workers.** We deploy on a **Cloudflare Worker** (`aura0`) built by
+> **Workers Builds**, not Cloudflare Pages. The old Pages build vars
+> `CF_PAGES_COMMIT_SHA` / `CF_PAGES_BRANCH` are now `WORKERS_CI_COMMIT_SHA` /
+> `WORKERS_CI_BRANCH` ([docs](https://developers.cloudflare.com/workers/ci-cd/builds/configuration/#environment-variables)).
 
-Dashboard → **Workers & Pages** → the Pages project → **Settings → Builds &
-deployments**.
+## 1. Cloudflare Workers — build env vars + branch check
+
+Dashboard → **Workers & Pages** → the `aura0` Worker → **Settings → Build**.
 
 - **Build command** — change from `npm run build` to:
   ```
-  VITE_APP_VERSION=$CF_PAGES_COMMIT_SHA VITE_APP_ENV=$CF_PAGES_BRANCH npm run build
+  VITE_APP_VERSION=$WORKERS_CI_COMMIT_SHA VITE_APP_ENV=$WORKERS_CI_BRANCH npm run build
   ```
   Cloudflare's environment-variable fields are static strings, not shell
-  expansions — `$CF_PAGES_COMMIT_SHA` only resolves if it's part of the build
+  expansions — `$WORKERS_CI_COMMIT_SHA` only resolves if it's part of the build
   command itself.
-- **Production branch** — confirm it matches `PRODUCTION_BRANCH` in
-  `src/app/main.ts` (currently hardcoded to `master`). If yours differs,
-  update that constant.
+- **Production (deploy) branch** — **Settings → Build → Branch control**;
+  confirm it matches `PRODUCTION_BRANCH` in `src/app/main.ts` (currently
+  hardcoded to `master`). If yours differs, update that constant.
 - **Environment variables** → add `SENTRY_AUTH_TOKEN`, marked **Encrypt**.
   Value is in the local, gitignored `.env.sentry-build-plugin`. Without this,
   `vite.config.ts` skips the Sentry vite plugin entirely — builds still
@@ -68,9 +73,10 @@ the file edit).
 
 - Cloudflare dashboard → **Realtime (Calls) → TURN** → find key ID
   `efd28dcc911...` → revoke it, generate a new Token ID + API Token.
-- Put the new values in your local `.env` and in the Cloudflare Pages build
-  environment variables (`CLOUDFLARE_TURN_TOKEN_ID`,
-  `CLOUDFLARE_TURN_API_TOKEN`).
+- Put the new values in your local `.env` and in the `aura0` Worker's build
+  environment variables (**Settings → Variables and Secrets**:
+  `CLOUDFLARE_TURN_TOKEN_ID`, `CLOUDFLARE_TURN_API_TOKEN`). Repeat for
+  `aura0-staging` if staging is set up (see [`STAGING.md`](./STAGING.md)).
 - Purging the old token from git history itself needs a force-push rewrite
   (`git filter-repo`/BFG) — a separate, more disruptive step; do this
   deliberately, not as a side effect of anything above.

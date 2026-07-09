@@ -9,7 +9,12 @@ of becoming a generic card-game platform with MTG specifics (command
 zone, commander auto-draw) as plugins. Players share 
 a collaborative whiteboard via WebRTC/WebSockets — there is no backend for 
 game state. All real-time sync uses **Yjs CRDTs** over **y-webrtc**. The 
-only backend is a card-import API (Aura backend → Scryfall fallback).
+only backend is a card-import API (Aura backend → Scryfall fallback). That
+backend lives in this repo at `mtg_card_search/` — a Python/FastAPI service
+with its own venv, tests (`pytest tests/` from its directory), and deployment
+docs (`mtg_card_search/SETUP.md`). See `mtg_card_search/CLAUDE.md` before
+working there (notably: never read files under `mtg_card_search/cards/` in
+full — they're multi-GB NDJSON).
 
 ## Commands
 

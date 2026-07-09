@@ -5,6 +5,7 @@ import { HandCard } from './HandCard';
 import { Card } from '@/features/player';
 import { useCardPreviewStore } from '@/features/card-preview/cardPreviewStore';
 import { useMediaQuery } from '@/shared/hooks/useMediaQuery';
+import { useReflowSafeHover } from '@/shared/hooks/useReflowSafeHover';
 import { CARD_HEIGHT } from '@/constants';
 
 interface HandCardsContainerProps {
@@ -50,7 +51,7 @@ export const HandCardsContainer: React.FC<HandCardsContainerProps> = ({
     prevHandLenRef.current = displayHand.length;
   }, [displayHand.length, prefersReducedMotion]);
 
-  const handleMouseEnter = useCallback((cardId: string) => {
+  const handleEnter = useCallback((cardId: string) => {
     onHoveredCardChange(cardId);
     const card = displayHand.find(c => c.id === cardId);
     if (card) {
@@ -61,14 +62,25 @@ export const HandCardsContainer: React.FC<HandCardsContainerProps> = ({
     }
   }, [displayHand, onHoveredCardChange, yPlayerState]);
 
-  const handleMouseMove = useCallback((e: React.MouseEvent) => {
-    useCardPreviewStore.getState().updatePosition(e.clientX, e.clientY);
-  }, []);
-
-  const handleMouseLeave = useCallback(() => {
+  const handleLeave = useCallback(() => {
     onHoveredCardChange(null);
     useCardPreviewStore.getState().hide();
   }, [onHoveredCardChange]);
+
+  const handleMove = useCallback((x: number, y: number) => {
+    useCardPreviewStore.getState().updatePosition(x, y);
+  }, []);
+
+  // A hotkey can move the hovered card out of the hand; the sibling that reflows
+  // into its screen slot never fires a real mouseenter because the pointer itself
+  // didn't move. useReflowSafeHover re-derives hover from the last known pointer
+  // position so the next hotkey press lands on whatever card is now under the cursor.
+  const { handleMouseEnter, handleMouseMove, handleMouseLeave } = useReflowSafeHover({
+    presentIds: displayHand.map(c => c.id),
+    onEnter: handleEnter,
+    onLeave: handleLeave,
+    onMove: handleMove,
+  });
 
   const handleWheel = useCallback((e: React.WheelEvent<HTMLDivElement>) => {
     if (scrollRef.current) {

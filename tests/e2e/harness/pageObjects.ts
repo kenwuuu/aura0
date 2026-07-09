@@ -100,6 +100,16 @@ export function whiteboard(page: Page): Locator {
   return page.locator('#whiteboard');
 }
 
+/** The Create ▾ > Token popover hosting the draggable KeywordTokenGrid. */
+export function tokenGrid(page: Page): Locator {
+  return page.locator('[data-slot="popover-content"]').filter({ hasText: 'Drag a token onto the board' });
+}
+
+/** Draggable token templates inside the {@link tokenGrid} drawer. */
+export function tokenGridItems(page: Page): Locator {
+  return tokenGrid(page).locator('div[draggable="true"]');
+}
+
 /** The top menu bar. */
 export function toolbar(page: Page): Locator {
   return page.getByTestId(TESTID.toolbar);

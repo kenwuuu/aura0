@@ -233,6 +233,16 @@ function TokenSubItem() {
         align="start"
         className="p-2 w-auto"
         style={{ background: 'rgba(18,18,24,0.98)', border: '1px solid rgba(255,255,255,0.12)' }}
+        // The popover's anchor IS a DropdownMenuItem. Radix Menu focuses the
+        // item on pointermove; if the popover has grabbed focus on open, that
+        // focus-steal reads as "focus left the popover" and the non-modal
+        // DismissableLayer dismisses it the instant the user's mouse crosses
+        // the item on its way to the grid — the grid vanishes before it can be
+        // used. Never take focus on open, and don't treat focus leaving as a
+        // dismiss. Outside *clicks* and Escape still close it (pointer/escape
+        // paths are untouched).
+        onOpenAutoFocus={(e) => e.preventDefault()}
+        onFocusOutside={(e) => e.preventDefault()}
       >
         <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', marginBottom: 6, paddingLeft: 4 }}>
           Drag a token onto the board

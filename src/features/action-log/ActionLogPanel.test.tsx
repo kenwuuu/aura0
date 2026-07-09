@@ -60,10 +60,10 @@ describe('ActionLogPanel', () => {
     render(<ActionLogPanel yDoc={yDoc} localPlayerId="p1" />);
     expect(screen.getByText('drew a card')).toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: /Action Log/ }));
+    await user.click(screen.getByRole('button', { name: /action log/i }));
     expect(screen.queryByText('drew a card')).not.toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: /Action Log/ }));
+    await user.click(screen.getByRole('button', { name: /action log/i }));
     expect(screen.getByText('drew a card')).toBeInTheDocument();
   });
 });

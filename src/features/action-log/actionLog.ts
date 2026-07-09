@@ -16,6 +16,16 @@ export function getActionLog(yDoc: Y.Doc): Y.Array<ActionLogEntry> {
 }
 
 /**
+ * `crypto.randomUUID()` throws in browsers/webviews that predate it (older
+ * iOS Safari, some in-app browsers) and is unavailable outside secure
+ * contexts. This id is only ever used as a React list key and for de-duping
+ * log entries across peers, so a non-cryptographic id is fine.
+ */
+function generateEntryId(): string {
+  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
+}
+
+/**
  * Name to use for a card in a log entry. The action log is visible to every
  * peer, so a face-down card's identity must never appear in it — that's the
  * entire point of playing/keeping it face down (morph, manifest, etc.).
@@ -31,7 +41,7 @@ export function logAction(
   const arr = getActionLog(yDoc);
   const full: ActionLogEntry = {
     ...entry,
-    id: crypto.randomUUID(),
+    id: generateEntryId(),
     ts: Date.now(),
   };
   yDoc.transact(() => {

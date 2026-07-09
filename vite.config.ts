@@ -5,12 +5,16 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite'
 
-// Cloudflare Pages sets CF_PAGES_COMMIT_SHA natively; VITE_APP_VERSION (set to
-// the same value in the Pages build config) is what actually reaches client
-// code via import.meta.env, per Vite's VITE_ prefix convention. Read either so
-// this resolves the same version main.ts registers with Sentry/PostHog,
-// keeping sourcemap uploads matched to the release the browser reports.
-const appVersion = process.env.VITE_APP_VERSION || process.env.CF_PAGES_COMMIT_SHA;
+// Deploys run through Cloudflare Workers Builds, which sets WORKERS_CI_COMMIT_SHA
+// natively; the build command also exports it as VITE_APP_VERSION so it reaches
+// client code via import.meta.env (Vite's VITE_ prefix convention). CF_PAGES_COMMIT_SHA
+// is kept as a fallback for the legacy Pages build. Read whichever is present so this
+// resolves the same version main.ts registers with Sentry/PostHog, keeping sourcemap
+// uploads matched to the release the browser reports.
+const appVersion =
+  process.env.VITE_APP_VERSION ||
+  process.env.WORKERS_CI_COMMIT_SHA ||
+  process.env.CF_PAGES_COMMIT_SHA;
 
 export default defineConfig({
   plugins: [

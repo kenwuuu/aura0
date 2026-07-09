@@ -501,8 +501,8 @@ test('testPileViewerDoesNotCloseAfterMovingCardToDeckTop', async ({ page }) => {
   // viewer (Radix Dialog dismiss, then a focus-trap/portal interaction that
   // could swallow the click entirely) even though the equivalent hotkey
   // stays open. Exercise it from the discard viewer, where "to deck top"
-  // actually fires — from the deck viewer's own menu it's a no-op, so a
-  // silently-blocked action and a real one are indistinguishable.
+  // moves a real card across piles, so the pile count assertion below
+  // actually distinguishes a fired move from a swallowed click.
   await millCardsFromDeck(page, 'd', 7);
   await expectPileCount(page, 'discard', 7);
 
@@ -513,4 +513,21 @@ test('testPileViewerDoesNotCloseAfterMovingCardToDeckTop', async ({ page }) => {
 
   await expect(page.getByRole('dialog', { name: 'Discard Pile' })).toBeVisible();
   await expectPileCount(page, 'discard', 6);
+});
+
+// Regression: CardGridItemReact had the same bare onMouseEnter/onMouseLeave
+// hover wiring as the hand row did before HandCardsContainer's fix, in a grid
+// that reflows on card removal. Hover card 2, press 'd' twice with no mouse
+// movement between presses — the second press used to silently no-op because
+// hoverTarget still pointed at the now-gone card id. Fixed via the shared
+// useReflowSafeHover hook (PileViewerReact + CardGrid).
+test('testDeckViewerHotkeyTwiceWithoutMouseMove', async ({ page }) => {
+  await openPileViewer(page, 'deck');
+  await waitForPileViewerReady(page);
+
+  await secondCard(page).hover();
+  await page.keyboard.press('d');
+  await page.keyboard.press('d');
+
+  await expectPileCount(page, 'discard', 2);
 });

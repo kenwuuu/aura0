@@ -14,3 +14,7 @@ automatically drawing the commander should also be a plugin.
 ## Playmat photo sources
 https://www.pexels.com/search/nature/
 https://unsplash.com/photos/green-grass-field-during-sunset-_RBcxo9AU-U
+
+## Card attachments
+Equipments and auras can be connected to creatures with animated lines.
+Work is partially done, see branch origin/worktree-card-attach-edges

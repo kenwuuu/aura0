@@ -1,12 +1,13 @@
 /**
  * E2e for the draggable HUD windows (FloatingPanel / useDraggablePanel):
  * the game actions toolbar and the action log. Verifies real-browser drag,
- * position persistence across reload (via the settings store), and that the
- * action log's collapse chevron still works without starting a drag.
+ * position persistence across reload (via the settings store), that the
+ * action log's collapse chevron still works without starting a drag, and
+ * that neither panel can be dragged under the top menu bar.
  */
 import { test, expect } from '../fixtures';
 import type { Locator } from '@playwright/test';
-import { mouseDrag } from '../harness';
+import { mouseDrag, toolbar } from '../harness';
 
 const TOOLBAR = '[data-floating-panel="game-actions-toolbar"]';
 const LOG = '[data-floating-panel="action-log"]';
@@ -54,4 +55,36 @@ test('the action log drags by its header, and the chevron still collapses it', a
   await expect(page.getByRole('button', { name: 'Expand action log' })).toBeVisible();
   const posAfter = await panel.boundingBox();
   expect(Math.abs(posAfter!.x - posBefore!.x)).toBeLessThan(2);
+});
+
+test('the toolbar cannot be dragged under the top menu bar', async ({ page }) => {
+  const bar = await toolbar(page).boundingBox();
+  if (!bar) throw new Error('top menu bar not found');
+  const panel = page.locator(TOOLBAR);
+  const before = await panel.boundingBox();
+  if (!before) throw new Error('toolbar panel not found');
+
+  // Aim well above the bar's bottom edge, with a sideways nudge too, so a
+  // passing y-assertion can't just mean the whole drag froze.
+  const from = await centerOf(page.locator(`${TOOLBAR} [title="Drag to move"]`));
+  await mouseDrag(page, from, { x: from.x + 100, y: 5 });
+
+  const after = await panel.boundingBox();
+  expect(Math.round(after!.x - before.x)).toBeGreaterThan(50);
+  expect(after!.y).toBeGreaterThanOrEqual(Math.round(bar.y + bar.height) - 2);
+});
+
+test('the action log cannot be dragged under the top menu bar', async ({ page }) => {
+  const bar = await toolbar(page).boundingBox();
+  if (!bar) throw new Error('top menu bar not found');
+  const panel = page.locator(LOG);
+  const before = await panel.boundingBox();
+  if (!before) throw new Error('action log not found');
+
+  const from = await centerOf(panel.locator('> div').first());
+  await mouseDrag(page, from, { x: from.x + 100, y: 5 });
+
+  const after = await panel.boundingBox();
+  expect(Math.round(after!.x - before.x)).toBeGreaterThan(50);
+  expect(after!.y).toBeGreaterThanOrEqual(Math.round(bar.y + bar.height) - 2);
 });
