@@ -1,10 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { screen } from '@testing-library/react';
+import { screen, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import * as Y from 'yjs';
 import { HealthNode } from './HealthNode';
 import { renderNode } from '@/test/nodeHarness';
 import { YDOC_PLAYER, YSTATE_HEALTH } from '@/constants';
+import { useContextMenuStore } from '@/features/hotkeys/contextMenuStore';
 
 const LOCAL_PLAYER = 'p1';
 const OPPONENT = 'p2';
@@ -46,6 +47,34 @@ describe('HealthNode — local player', () => {
     await user.tab();
 
     expect(player.getName()).toBe('Bob');
+  });
+});
+
+describe('HealthNode — right-click opens the context menu', () => {
+  it('opens the health context menu on the local widget', () => {
+    const { container } = renderNode(
+      HealthNode,
+      { ownerId: LOCAL_PLAYER, isLocal: true, name: 'Alice', health: 40, customCounters: [], yDoc: new Y.Doc() },
+      { playerId: LOCAL_PLAYER },
+    );
+
+    fireEvent.contextMenu(container.firstChild as Element);
+
+    const menu = useContextMenuStore.getState();
+    expect(menu.isOpen).toBe(true);
+    expect(menu.target).toEqual({ kind: 'health' });
+  });
+
+  it("does not open on an opponent's widget", () => {
+    const { container } = renderNode(
+      HealthNode,
+      { ownerId: OPPONENT, isLocal: false, name: 'Opponent', health: 40, customCounters: [], yDoc: new Y.Doc() },
+      { playerId: LOCAL_PLAYER },
+    );
+
+    fireEvent.contextMenu(container.firstChild as Element);
+
+    expect(useContextMenuStore.getState().isOpen).toBe(false);
   });
 });
 

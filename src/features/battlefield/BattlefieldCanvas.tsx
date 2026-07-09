@@ -477,6 +477,14 @@ function BattlefieldCanvasInner({ yDoc, localPlayerId }: BattlefieldCanvasProps)
         onNodeMouseEnter={onNodeMouseEnter}
         onNodeMouseLeave={onNodeMouseLeave}
         onPaneClick={() => useContextMenuStore.getState().close()}
+        onPaneContextMenu={(event) => {
+          event.preventDefault();
+          useContextMenuStore.getState().openMenu({
+            target: { kind: 'board', x: event.clientX, y: event.clientY },
+            x: event.clientX,
+            y: event.clientY,
+          });
+        }}
         onMoveStart={(event) => {
           useContextMenuStore.getState().close();
 

@@ -4,6 +4,7 @@ import * as Y from 'yjs';
 import { HealthDisplay } from '@/features/opponents/HealthDisplay';
 import { CustomCounter } from '@/features/player/types';
 import { useGameInstance } from '@/app/stores/gameInstanceStore';
+import { useContextMenuStore } from '@/features/hotkeys/contextMenuStore';
 
 export interface HealthNodeData {
   ownerId: string;
@@ -49,9 +50,24 @@ export const HealthNode = memo(function HealthNode({ data }: NodeProps) {
     useGameInstance.getState().player?.removeCustomCounter(counterId, ownerId);
   };
 
+  // Only the local player's own widget has a menu — the +1/-1 life actions
+  // target `player.modifyHealth()` with no targetPlayerId (implicitly self).
+  // Still suppress the native browser menu over an opponent's widget so the
+  // board consistently feels like "right-click opens our menu everywhere".
+  const handleContextMenu = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!isLocal) return;
+    useContextMenuStore.getState().openMenu({
+      target: { kind: 'health' },
+      x: e.clientX,
+      y: e.clientY,
+    });
+  };
+
   return (
     // nodrag: prevents react-flow from treating button clicks as drag starts
-    <div className="nodrag" onPointerDown={(e) => e.stopPropagation()}>
+    <div className="nodrag" onPointerDown={(e) => e.stopPropagation()} onContextMenu={handleContextMenu}>
       <HealthDisplay
         label={name}
         health={health}

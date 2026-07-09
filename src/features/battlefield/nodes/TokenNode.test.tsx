@@ -1,14 +1,12 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { screen, fireEvent } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
 import * as Y from 'yjs';
 import { TokenNode } from './TokenNode';
 import { renderNode } from '@/test/nodeHarness';
 import { makeToken } from '@/test/factories';
 import { YDOC_KEYWORD_TOKENS } from '@/constants';
 import { useHotkeyStore } from '@/app/stores/hotkeyStore';
-import { useHotkeyMenuStore } from '@/features/hotkeys/hotkeyMenuStore';
-import { HotkeyContext } from '@/features/hotkeys/hotkeys';
+import { useContextMenuStore } from '@/features/hotkeys/contextMenuStore';
 import type { KeywordToken } from '@/features/keyword-tokens/types';
 
 const LOCAL_PLAYER = 'p1';
@@ -28,51 +26,72 @@ function renderToken(token: KeywordToken, localPlayerId = LOCAL_PLAYER) {
   return { ...result, yTokens };
 }
 
-describe('TokenNode — count changes are owner-gated', () => {
-  it("left-click increments the owner's own token count", async () => {
-    const user = userEvent.setup();
+/** happy-dom doesn't run layout, so getBoundingClientRect() is always zeroed —
+ * stub it per-test to drive TokenNode's top-half/bottom-half click gesture. */
+function clickAt(el: Element, clientY: number, rect: { top: number; height: number } = { top: 0, height: 20 }) {
+  vi.spyOn(el, 'getBoundingClientRect').mockReturnValue({
+    ...rect, bottom: rect.top + rect.height, left: 0, right: 0, width: 0, x: 0, y: rect.top,
+    toJSON: () => {},
+  } as DOMRect);
+  fireEvent.click(el, { clientY });
+}
+
+describe('TokenNode — click adjusts the owner\'s own token count', () => {
+  it('clicking the top half increments', () => {
     const { container, yTokens } = renderToken(makeToken({ ownerId: LOCAL_PLAYER, count: 2 }));
 
-    await user.click(container.firstChild as Element);
+    clickAt(container.firstChild as Element, 2); // near the top of a 20px-tall token
 
     expect(yTokens.get(NODE_ID)?.count).toBe(3);
   });
 
-  it("right-click decrements the owner's own token count", () => {
+  it('clicking the bottom half decrements', () => {
     const { container, yTokens } = renderToken(makeToken({ ownerId: LOCAL_PLAYER, count: 2 }));
 
-    fireEvent.contextMenu(container.firstChild as Element);
+    clickAt(container.firstChild as Element, 18); // near the bottom of a 20px-tall token
 
     expect(yTokens.get(NODE_ID)?.count).toBe(1);
   });
 
-  it("left-click does not change another player's token count", async () => {
-    const user = userEvent.setup();
+  it('does not change another player\'s token count', () => {
     const { container, yTokens } = renderToken(makeToken({ ownerId: 'p2', count: 2 }), LOCAL_PLAYER);
 
-    await user.click(container.firstChild as Element);
+    clickAt(container.firstChild as Element, 2);
 
     expect(yTokens.get(NODE_ID)?.count).toBe(2);
   });
 });
 
-describe('TokenNode — hover shows a hotkey hint', () => {
-  it('shows a hint for this token on hover and closes it on leave', async () => {
-    const user = userEvent.setup();
+describe('TokenNode — right-click opens the context menu', () => {
+  it('opens the token context menu for this token', () => {
+    const { container } = renderToken(makeToken({ ownerId: LOCAL_PLAYER }));
+
+    fireEvent.contextMenu(container.firstChild as Element);
+
+    const menu = useContextMenuStore.getState();
+    expect(menu.isOpen).toBe(true);
+    expect(menu.target).toEqual({ kind: 'token', id: NODE_ID });
+  });
+
+  it('opens the menu even for another player\'s token (same as battlefield cards)', () => {
+    const { container } = renderToken(makeToken({ ownerId: 'p2' }), LOCAL_PLAYER);
+
+    fireEvent.contextMenu(container.firstChild as Element);
+
+    expect(useContextMenuStore.getState().isOpen).toBe(true);
+  });
+});
+
+describe('TokenNode — hover tracks the hotkey hover target', () => {
+  it('sets and clears hoverTarget on enter/leave', async () => {
     const { container } = renderToken(makeToken({ ownerId: LOCAL_PLAYER, title: 'Flying' }));
     const frame = container.firstChild as Element;
 
-    await user.hover(frame);
+    fireEvent.mouseEnter(frame);
     expect(useHotkeyStore.getState().hoverTarget).toEqual({ kind: 'token', id: NODE_ID });
-    const hint = useHotkeyMenuStore.getState();
-    expect(hint.isOpen).toBe(true);
-    expect(hint.mode).toBe('hint');
-    expect(hint.context).toBe(HotkeyContext.KeywordToken);
-    expect(hint.title).toBe('Flying');
 
-    await user.unhover(frame);
+    fireEvent.mouseLeave(frame);
     expect(useHotkeyStore.getState().hoverTarget).toBeNull();
-    expect(useHotkeyMenuStore.getState().isOpen).toBe(false);
   });
 });
 
@@ -82,5 +101,11 @@ describe('TokenNode — rendering', () => {
 
     expect(screen.getByAltText('Flying')).toHaveAttribute('src', 'https://img/flying.svg');
     expect(screen.getByText('3')).toBeInTheDocument();
+  });
+
+  it('exposes the token title as a native tooltip', () => {
+    const { container } = renderToken(makeToken({ title: 'Flying' }));
+
+    expect(container.firstChild).toHaveAttribute('title', 'Flying');
   });
 });
