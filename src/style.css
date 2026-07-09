@@ -931,6 +931,13 @@ body {
   }
 }
 
+/* ── Phone layout (below sm) — see docs/responsive.md ─────────────────────
+   Show/hide rules for the phone layout accumulate here, in one place, as
+   plain unlayered CSS (same cascade rationale as the toolbar collapse
+   above). Structural/behavioral phone branches live in JS via
+   usePhoneLayout(). 639px = sm(640) − 1, synced by hand with
+   src/shared/hooks/breakpoints.ts. */
+
 /* ===== Deck Pile Viewer Components ===== */
 
 /* Deck Pile Viewer Modal */
