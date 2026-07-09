@@ -20,6 +20,18 @@ export interface Position {
   y: number;
 }
 
+/**
+ * Pointer handlers that drive a drag. Spread onto whichever element should act
+ * as the drag handle. Exposed as a named type so a custom handle (e.g. the one
+ * FloatingPanel's `renderHandle` builds) can be typed against it.
+ */
+export interface DragHandleProps {
+  onPointerDown: (e: React.PointerEvent) => void;
+  onPointerMove: (e: React.PointerEvent) => void;
+  onPointerUp: (e: React.PointerEvent) => void;
+  onPointerCancel: (e: React.PointerEvent) => void;
+}
+
 // Selector for the app's top menu bar (see src/app/Toolbar.tsx). Measured live
 // rather than hardcoded so the clamp keeps working across a toolbar redesign —
 // only the testid needs to survive, not any particular height. Falls back to 0
@@ -110,6 +122,6 @@ export function useDraggablePanel(persistKey: string, defaultPosition: Position)
       onPointerMove,
       onPointerUp: endDrag,
       onPointerCancel: endDrag,
-    },
+    } satisfies DragHandleProps,
   };
 }
