@@ -1,0 +1,93 @@
+name: Auto-merge staging PRs
+
+# A free stand-in for GitHub's native auto-merge (which needs branch
+# protection — Pro-only on this private repo). Merges a PR into `staging` as
+# soon as it is:
+#   1. labeled `automerge`,
+#   2. not a draft,
+#   3. conflict-free, and
+#   4. green on every check (Actions + Cloudflare).
+#
+# The gate is the PR's `mergeStateStatus`, which — even without branch
+# protection — only reports CLEAN when the PR is mergeable AND every check has
+# succeeded (UNSTABLE = a check is failing/pending, DIRTY = conflicts). So
+# "all checks pass, no conflicts" reduces to `mergeStateStatus == CLEAN`.
+#
+# Triggers: `check_suite`/`status` run from the DEFAULT branch (master), so
+# this file must live on master to take effect. They fire the moment CI
+# finishes, so a PR labeled before/while CI runs merges within seconds of going
+# green. `schedule` is a sparse backstop that also picks up a PR labeled *after*
+# it was already green (no check would re-fire for that one). `workflow_dispatch`
+# lets you force a sweep.
+on:
+  check_suite:
+    types: [completed]
+  status: {}
+  schedule:
+    - cron: '0 */2 * * *'
+  workflow_dispatch: {}
+
+# Least privilege: read/merge PRs, nothing else.
+permissions:
+  contents: write
+  pull-requests: write
+
+# Serialize sweeps so two events can't race to merge the same PR.
+concurrency:
+  group: auto-merge-staging
+  cancel-in-progress: false
+
+jobs:
+  auto-merge:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Merge eligible staging PRs
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          BASE: staging
+          LABEL: automerge
+        run: |
+          set -euo pipefail
+
+          # Open, non-draft PRs into $BASE carrying the $LABEL label.
+          mapfile -t prs < <(gh pr list --repo "$REPO" --base "$BASE" \
+            --label "$LABEL" --state open \
+            --json number,isDraft --jq '.[] | select(.isDraft | not) | .number')
+
+          if [ "${#prs[@]}" -eq 0 ]; then
+            echo "No labeled, open, non-draft PRs into $BASE — nothing to do."
+            exit 0
+          fi
+
+          for n in "${prs[@]}"; do
+            echo "::group::PR #$n"
+
+            # mergeStateStatus can be UNKNOWN briefly while GitHub recomputes
+            # mergeability (e.g. right after a check completes) — re-poll.
+            mergeable=""; state=""
+            for attempt in 1 2 3 4 5; do
+              read -r mergeable state < <(gh pr view "$n" --repo "$REPO" \
+                --json mergeable,mergeStateStatus \
+                --jq '"\(.mergeable) \(.mergeStateStatus)"')
+              [ "$state" != "UNKNOWN" ] && break
+              echo "  mergeStateStatus=UNKNOWN, waiting… ($attempt/5)"
+              sleep 8
+            done
+            echo "  mergeable=$mergeable mergeStateStatus=$state"
+
+            case "$state" in
+              CLEAN)
+                echo "  ✅ green + conflict-free → squash-merging PR #$n"
+                gh pr merge "$n" --repo "$REPO" --squash \
+                  || echo "::warning::merge of PR #$n failed (already merged or a race?)"
+                ;;
+              DIRTY)
+                echo "  ⚠️  conflicts → leaving PR #$n for a human"
+                ;;
+              *)
+                echo "  ⏳ not ready ($state) → will re-check on the next run"
+                ;;
+            esac
+            echo "::endgroup::"
+          done
