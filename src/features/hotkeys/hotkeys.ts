@@ -3,6 +3,8 @@
  * Each hotkey has both a short description (for tooltips) and a long description (for the modal)
  */
 
+import type { PileType } from '@/features/player';
+
 export const HotkeyContext = {
   Global: 'global',
   Battlefield: 'battlefield',
@@ -243,4 +245,38 @@ export function getAllHotkeysWithLongDescriptions(): Array<{ key: string; action
 export function getKeyBindingsForAction(action: string): string[] {
   const hotkey = HOTKEYS.find((h) => h.action === action);
   return hotkey?.keys ?? [];
+}
+
+/**
+ * A "what did the user right-click" discriminant for the game context menu.
+ * Each variant maps to exactly one `HotkeyContext` (see `getMenuActionsForTarget`),
+ * so the menu's rows and the keyboard hotkeys are always reading the same catalog.
+ */
+export type MenuTarget =
+  | { kind: 'battlefieldCard'; id: string }
+  | { kind: 'handCard'; id: string }
+  | { kind: 'pile'; pileType: Exclude<PileType, 'scry' | 'hand'> }
+  | { kind: 'token'; id: string }
+  | { kind: 'health' }
+  | { kind: 'board'; x: number; y: number }
+  | { kind: 'pileViewerCard'; id: string; context: HotkeyContext };
+
+/** Resolve a menu target to the rows its context menu should show. */
+export function getMenuActionsForTarget(target: MenuTarget): Hotkey[] {
+  switch (target.kind) {
+    case 'battlefieldCard':
+      return getHotkeysForContext(HotkeyContext.Battlefield);
+    case 'handCard':
+      return getHotkeysForContext(HotkeyContext.Hand);
+    case 'pile':
+      return getHotkeysForContext(target.pileType);
+    case 'token':
+      return getHotkeysForContext(HotkeyContext.KeywordToken);
+    case 'health':
+      return getHotkeysForContext(HotkeyContext.Health);
+    case 'board':
+      return getHotkeysForContext(HotkeyContext.Global);
+    case 'pileViewerCard':
+      return getHotkeysForContext(target.context);
+  }
 }

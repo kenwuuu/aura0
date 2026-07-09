@@ -8,34 +8,25 @@
  * (Board ↔ PileViewer) rather than threading `!isModalOpen` through every
  * binding — see GameHotkeysManager for the <HotkeysProvider> that owns them.
  *
- * Game instances come from gameInstanceStore, so no props/prop-drilling.
+ * Game instances are read from gameInstanceStore inside the executors in
+ * `gameActions.ts` — this hook itself only decides *which* action fires and
+ * *what it targets*, never touches yDoc/player directly.
  */
 
 import { useEffect, useRef } from 'react';
 import { useHotkeys, useHotkeysContext } from 'react-hotkeys-hook';
 import { useHotkeyStore } from '@/app/stores/hotkeyStore';
-import { useGameInstance } from '@/app/stores/gameInstanceStore';
 import {
   getKeyBindingsForAction,
+  HotkeyContext,
   HotkeyScope,
+  type MenuTarget,
 } from '@/features/hotkeys/hotkeys';
-import { DeckPersistenceService } from '@/infrastructure/persistence';
-import { executeBattlefieldCardAction } from '@/features/battlefield/battlefieldCardActions';
-import { triggerConfirmation } from '@/shared/utils/confirmation';
-import { useCardPreviewStore } from '@/features/card-preview/cardPreviewStore';
-import { usePileViewerHotkeyStore } from '@/features/game-dock/pileViewerHotkeyStore';
-import { YDOC_CARDS_ON_BOARD, YDOC_KEYWORD_TOKENS } from '@/constants';
-import type { WhiteboardCard } from '@/features/battlefield/types';
-import type { KeywordToken } from '@/features/keyword-tokens/types';
-import { spawnTokenAtPosition } from '@/features/battlefield/spawnToken';
-import { logAction } from '@/features/action-log/actionLog';
+import { dispatchGameAction } from '@/features/hotkeys/gameActions';
 
 export function useAllGameHotkeys() {
-  const { player, yDoc, playerId, roomManager } = useGameInstance();
-
   const hoverTarget = useHotkeyStore((s) => s.hoverTarget);
   const isModalOpen = useHotkeyStore((s) => s.isModalOpen);
-  const setAddCardModalOpen = useHotkeyStore((s) => s.setAddCardModalOpen);
 
   const { enableScope, disableScope } = useHotkeysContext();
 
@@ -71,110 +62,56 @@ export function useAllGameHotkeys() {
   const isToken = t?.kind === 'token';
   const isPileViewer = t?.kind === 'pileViewer';
 
-  // --- Helpers ---
-  const saveDeck = () => {
-    if (player && roomManager) {
-      DeckPersistenceService.saveDeckForRoom(roomManager.getRoomName(), player.getDeck());
+  // Dispatch an action for the currently-hovered target. Every binding below
+  // is a thin wrapper around this — the actual mutation logic lives in
+  // `gameActions.ts`'s executors, shared with the right-click context menu.
+  const dispatch = (action: string) => {
+    if (!t) return;
+    let target: MenuTarget | null = null;
+    switch (t.kind) {
+      case 'battlefield': target = { kind: 'battlefieldCard', id: t.id }; break;
+      case 'hand': target = { kind: 'handCard', id: t.id }; break;
+      case 'pile':
+        // HOTKEY_PILE_KINDS (PileNode.tsx) only ever hovers deck/exile/discard.
+        target = t.pileType && t.pileType !== 'scry' && t.pileType !== 'hand'
+          ? { kind: 'pile', pileType: t.pileType }
+          : null;
+        break;
+      case 'token': target = { kind: 'token', id: t.id }; break;
+      case 'pileViewer': target = { kind: 'pileViewerCard', id: t.id, context: t.context ?? HotkeyContext.DeckCard }; break;
     }
-  };
-
-  const onBattlefield = (action: string) => {
-    if (yDoc && playerId && t?.kind === 'battlefield') {
-      const yCards = yDoc.getMap<WhiteboardCard>(YDOC_CARDS_ON_BOARD);
-      const yTokens = yDoc.getMap<KeywordToken>(YDOC_KEYWORD_TOKENS);
-      executeBattlefieldCardAction(action, t.id, yCards, yTokens, playerId);
-    }
-  };
-
-  // Move the hovered hand card to another pile. `position` 0 = deck bottom,
-  // omitted = deck top (Player.movePileCard defaults to Infinity).
-  const handMove = (dest: 'discard' | 'exile' | 'deck', position?: number) => {
-    if (!player || t?.kind !== 'hand') return;
-    const card = player.getState().hand.find((c) => c.id === t.id);
-    if (card) {
-      player.movePileCard(card, 'hand', dest, position);
-    }
-  };
-
-  // Move the top card of the hovered pile elsewhere. A move into the same
-  // pile is a no-op (mirrors the old per-pile `enabled` guards).
-  const pileMove = (dest: 'hand' | 'discard' | 'exile' | 'deck', position?: number) => {
-    if (!player || t?.kind !== 'pile' || !t.pileType) return;
-    if (t.pileType === dest) return;
-    const card = player.peekTopOfPile(t.pileType);
-    if (card) {
-      player.movePileCard(card, t.pileType, dest, position);
-    }
-  };
-
-  const tokenOp = (op: 'increment' | 'decrement' | 'delete') => {
-    if (!yDoc || !playerId || t?.kind !== 'token') return;
-    const yTokens = yDoc.getMap<KeywordToken>(YDOC_KEYWORD_TOKENS);
-    const token = yTokens.get(t.id);
-    if (!token || token.ownerId !== playerId) return;
-    if (op === 'delete') {
-      yTokens.delete(t.id);
-      logAction(yDoc, { actorId: playerId, type: 'delete', text: `removed a ${token.title} token` });
-    } else if (op === 'increment') {
-      const next = (token.count ?? 0) + 1;
-      yTokens.set(t.id, { ...token, count: next });
-      logAction(yDoc, { actorId: playerId, type: 'token_count', text: `set a ${token.title} token to ${next}` });
-    } else {
-      const next = (token.count ?? 0) - 1;
-      if (next <= 0) {
-        yTokens.delete(t.id);
-        logAction(yDoc, { actorId: playerId, type: 'delete', text: `removed a ${token.title} token` });
-      } else {
-        yTokens.set(t.id, { ...token, count: next });
-        logAction(yDoc, { actorId: playerId, type: 'token_count', text: `set a ${token.title} token to ${next}` });
-      }
-    }
-  };
-
-  // Route the move to the currently-open pile viewer, which owns the card list
-  // and the source-pile-bound callbacks (see pileViewerHotkeyStore).
-  const pileViewerMove = (action: string) => {
-    if (t?.kind !== 'pileViewer') return;
-    usePileViewerHotkeyStore.getState().actionHandler?.(action, t.id);
+    if (target) dispatchGameAction(action, target);
   };
 
   // ===========================================================================
   // Global shortcuts — fire whenever the Board scope is active (no hover needed)
   // ===========================================================================
   useHotkeys(getKeyBindingsForAction('draw'), () => {
-    if (player) { player.drawCard(); saveDeck(); }
+    dispatchGameAction('draw', { kind: 'board', ...cursorPos.current });
   }, board);
 
   useHotkeys(getKeyBindingsForAction('shuffle'), () => {
-    if (player) { player.shuffleDeck(); saveDeck(); }
+    dispatchGameAction('shuffle', { kind: 'board', ...cursorPos.current });
   }, board);
 
   useHotkeys(getKeyBindingsForAction('mulligan'), () => {
-    if (player) {
-      triggerConfirmation('Mulligan? Draws 7 new cards.', 'm').then((confirmed) => {
-        if (confirmed) { player.mulligan(7); saveDeck(); }
-      });
-    }
+    dispatchGameAction('mulligan', { kind: 'board', ...cursorPos.current });
   }, board);
 
   useHotkeys(getKeyBindingsForAction('addCard'), () => {
-    setAddCardModalOpen(true);
+    dispatchGameAction('addCard', { kind: 'board', ...cursorPos.current });
   }, board);
 
   useHotkeys(getKeyBindingsForAction('gainHealth'), () => {
-    player?.modifyHealth(1);
+    dispatchGameAction('gainHealth', { kind: 'board', ...cursorPos.current });
   }, board);
 
   useHotkeys(getKeyBindingsForAction('loseHealth'), () => {
-    player?.modifyHealth(-1);
+    dispatchGameAction('loseHealth', { kind: 'board', ...cursorPos.current });
   }, board);
 
   useHotkeys(getKeyBindingsForAction('untapAll'), () => {
-    if (yDoc && playerId) {
-      const yCards = yDoc.getMap<WhiteboardCard>(YDOC_CARDS_ON_BOARD);
-      const yTokens = yDoc.getMap<KeywordToken>(YDOC_KEYWORD_TOKENS);
-      executeBattlefieldCardAction('untapAll', '', yCards, yTokens, playerId);
-    }
+    dispatchGameAction('untapAll', { kind: 'board', ...cursorPos.current });
   }, board);
 
   // ===========================================================================
@@ -182,87 +119,51 @@ export function useAllGameHotkeys() {
   // ===========================================================================
 
   // Battlefield-only keys
-  useHotkeys(getKeyBindingsForAction('tap'), () => onBattlefield('tap'),
+  useHotkeys(getKeyBindingsForAction('tap'), () => dispatch('tap'),
     { ...board, enabled: isBattlefield });
   useHotkeys(getKeyBindingsForAction('addCounter'), () => {
-    const { yDoc, playerId, screenToFlowPosition } = useGameInstance.getState();
-    if (!yDoc || !playerId || !screenToFlowPosition) return;
-    const yCards = yDoc.getMap<WhiteboardCard>(YDOC_CARDS_ON_BOARD);
-    const yTokens = yDoc.getMap<KeywordToken>(YDOC_KEYWORD_TOKENS);
-    spawnTokenAtPosition(
-      { title: '+1/+1', backgroundColor: '#e8e1df', count: 1 },
-      screenToFlowPosition(cursorPos.current),
-      yCards, yTokens, playerId,
-    );
+    dispatchGameAction('addCounter', { kind: 'board', ...cursorPos.current });
   }, board);
   useHotkeys(getKeyBindingsForAction('removeCounter'), () => {
-    const { yDoc, playerId, screenToFlowPosition } = useGameInstance.getState();
-    if (!yDoc || !playerId || !screenToFlowPosition) return;
-    const yCards = yDoc.getMap<WhiteboardCard>(YDOC_CARDS_ON_BOARD);
-    const yTokens = yDoc.getMap<KeywordToken>(YDOC_KEYWORD_TOKENS);
-    spawnTokenAtPosition(
-      { title: '-1/-1', backgroundColor: '#e8e1df', count: -1 },
-      screenToFlowPosition(cursorPos.current),
-      yCards, yTokens, playerId,
-    );
+    dispatchGameAction('removeCounter', { kind: 'board', ...cursorPos.current });
   }, board);
-  useHotkeys(getKeyBindingsForAction('copy'), () => onBattlefield('copy'),
+  useHotkeys(getKeyBindingsForAction('copy'), () => dispatch('copy'),
     { ...board, enabled: isBattlefield });
 
   // Flip — battlefield card or hand card
-  useHotkeys(getKeyBindingsForAction('flip'), () => {
-    if (isBattlefield) {
-      onBattlefield('flip');
-    } else if (isHand && player && t?.kind === 'hand') {
-      player.flipHandCard(t.id);
-      useCardPreviewStore.getState().hide();
-    }
-  }, { ...board, enabled: isBattlefield || isHand });
+  useHotkeys(getKeyBindingsForAction('flip'), () => dispatch('flip'),
+    { ...board, enabled: isBattlefield || isHand });
 
   // Backspace — delete battlefield card or delete token
   useHotkeys(getKeyBindingsForAction('delete'), () => {
-    if (isBattlefield) onBattlefield('delete');
-    else if (isToken) tokenOp('delete');
+    if (isBattlefield) dispatch('delete');
+    else if (isToken) dispatch('tokenDelete');
   }, { ...board, enabled: isBattlefield || isToken });
 
   // Move-to-hand (H) — battlefield card or pile top
-  useHotkeys(getKeyBindingsForAction('moveToHand'), () => {
-    if (isBattlefield) onBattlefield('moveToHand');
-    else if (isPile) pileMove('hand');
-  }, { ...board, enabled: isBattlefield || isPile });
+  useHotkeys(getKeyBindingsForAction('moveToHand'), () => dispatch('moveToHand'),
+    { ...board, enabled: isBattlefield || isPile });
 
   // Move-to-discard (D) — battlefield / hand / pile
-  useHotkeys(getKeyBindingsForAction('moveToDiscard'), () => {
-    if (isBattlefield) onBattlefield('moveToDiscard');
-    else if (isHand) handMove('discard');
-    else if (isPile) pileMove('discard');
-  }, { ...board, enabled: isBattlefield || isHand || isPile });
+  useHotkeys(getKeyBindingsForAction('moveToDiscard'), () => dispatch('moveToDiscard'),
+    { ...board, enabled: isBattlefield || isHand || isPile });
 
   // Move-to-exile (S) — battlefield / hand / pile
-  useHotkeys(getKeyBindingsForAction('moveToExile'), () => {
-    if (isBattlefield) onBattlefield('moveToExile');
-    else if (isHand) handMove('exile');
-    else if (isPile) pileMove('exile');
-  }, { ...board, enabled: isBattlefield || isHand || isPile });
+  useHotkeys(getKeyBindingsForAction('moveToExile'), () => dispatch('moveToExile'),
+    { ...board, enabled: isBattlefield || isHand || isPile });
 
   // Move-to-deck-top (T) — battlefield / hand / pile
-  useHotkeys(getKeyBindingsForAction('moveToDeckTop'), () => {
-    if (isBattlefield) onBattlefield('moveToDeckTop');
-    else if (isHand) handMove('deck');
-    else if (isPile) pileMove('deck');
-  }, { ...board, enabled: isBattlefield || isHand || isPile });
+  useHotkeys(getKeyBindingsForAction('moveToDeckTop'), () => dispatch('moveToDeckTop'),
+    { ...board, enabled: isBattlefield || isHand || isPile });
 
   // Move-to-deck-bottom (Y) — battlefield / hand / pile (position 0)
-  useHotkeys(getKeyBindingsForAction('moveToDeckBottom'), () => {
-    if (isBattlefield) onBattlefield('moveToDeckBottom');
-    else if (isHand) handMove('deck', 0);
-    else if (isPile) pileMove('deck', 0);
-  }, { ...board, enabled: isBattlefield || isHand || isPile });
+  useHotkeys(getKeyBindingsForAction('moveToDeckBottom'), () => dispatch('moveToDeckBottom'),
+    { ...board, enabled: isBattlefield || isHand || isPile });
 
   // Token counters
-  useHotkeys(getKeyBindingsForAction('tokenIncrement'), () => tokenOp('increment'),
+  useHotkeys(getKeyBindingsForAction('tokenIncrement'), () => dispatch('tokenIncrement'),
     { ...board, enabled: isToken });
-  useHotkeys(getKeyBindingsForAction('tokenDecrement'), () => tokenOp('decrement'),
+  useHotkeys(getKeyBindingsForAction('tokenDecrement'), () => dispatch('tokenDecrement'),
     { ...board, enabled: isToken });
 
   // ===========================================================================
@@ -271,15 +172,15 @@ export function useAllGameHotkeys() {
   // PileViewerReact's dispatchPileMove, based on which callback it was given —
   // not duplicated here.
   // ===========================================================================
-  useHotkeys(getKeyBindingsForAction('moveToHand'), () => pileViewerMove('moveToHand'),
+  useHotkeys(getKeyBindingsForAction('moveToHand'), () => dispatch('moveToHand'),
     { ...pv, enabled: isPileViewer });
-  useHotkeys(getKeyBindingsForAction('moveToDiscard'), () => pileViewerMove('moveToDiscard'),
+  useHotkeys(getKeyBindingsForAction('moveToDiscard'), () => dispatch('moveToDiscard'),
     { ...pv, enabled: isPileViewer });
-  useHotkeys(getKeyBindingsForAction('moveToExile'), () => pileViewerMove('moveToExile'),
+  useHotkeys(getKeyBindingsForAction('moveToExile'), () => dispatch('moveToExile'),
     { ...pv, enabled: isPileViewer });
-  useHotkeys(getKeyBindingsForAction('moveToDeckTop'), () => pileViewerMove('moveToDeckTop'),
+  useHotkeys(getKeyBindingsForAction('moveToDeckTop'), () => dispatch('moveToDeckTop'),
     { ...pv, enabled: isPileViewer });
-  useHotkeys(getKeyBindingsForAction('moveToDeckBottom'), () => pileViewerMove('moveToDeckBottom'),
+  useHotkeys(getKeyBindingsForAction('moveToDeckBottom'), () => dispatch('moveToDeckBottom'),
     { ...pv, enabled: isPileViewer });
 }
 
