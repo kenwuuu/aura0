@@ -39,6 +39,11 @@ export function handCards(page: Page): Locator {
   return page.locator(`[data-testid="${TESTID.handCard}"]`);
 }
 
+/** The scrolling strip that holds the hand cards (full-width on phone, centered on desktop). */
+export function handCardsContainer(page: Page): Locator {
+  return page.getByTestId(TESTID.handCardsContainer);
+}
+
 /** A hand card. Pass `id` to target a specific card; omit for "the first one". */
 export function handCard(page: Page, id?: string): Locator {
   if (id) return page.locator(`[data-testid="${TESTID.handCard}"][data-card-id="${id}"]`);
