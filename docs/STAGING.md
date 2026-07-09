@@ -110,22 +110,37 @@ wired to the same GitHub repo, building the `staging` branch.
   > The custom domain is bound **here**, not in `wrangler.jsonc` — a missing/renamed
   > zone can then never fail the staging build.
 
-### 5. GitHub — retarget PRs and protect both branches
+### 5. GitHub — retarget PRs and guard `master`
 
-- **Change the default PR base branch to `staging`**: repo → **Settings →
-  General → Default branch**. This only changes what new PRs default to comparing
-  against; it does *not* change which branch Cloudflare treats as production
-  (that's per-Worker, set in step 3). Keep `master` as the repo's Git default if
-  you prefer — the two settings are independent, but GitHub couples "default
-  branch" with "default PR base," so the simplest path is to make `staging` the
-  default branch and rely on the per-Worker branch control for prod.
-- **Branch protection** (repo → **Settings → Branches**), a rule for **each** of
-  `staging` and `master`:
-  - Require a pull request before merging.
-  - Require status checks to pass → select the `test.yml` jobs (**test**,
-    **e2e-smoke**; leave **e2e-full** advisory/non-required until it's proven
-    flake-free — it's `continue-on-error` today).
-  - On `master` specifically: this is the release gate, so keep it strict.
+- **Default PR base = `staging`** (done 2026-07-09). GitHub has no separate
+  "default PR base" setting — a new PR's base is the repo's **default branch** —
+  so `staging` was made the default branch (**Settings → General → Default
+  branch**). This does *not* change which branch Cloudflare treats as production
+  (that's per-Worker, set in step 3), which is exactly what we want: PRs default
+  to `staging`, prod still deploys from `master`.
+
+- **Protecting `master` — the paywall.** GitHub's native **branch protection**
+  and **rulesets** are *not available* on a private repo on the Free plan
+  (`kenwuuu/aura0` is private + Free — both APIs return HTTP 403). Native,
+  server-side protection needs one of: **GitHub Pro** (~$4/mo), or making the
+  repo **public** (which would expose git history that contains a compromised
+  Cloudflare TURN token — rotate/scrub first; see `DEPLOYMENT_SETUP.md` §4).
+
+- **Free guard we use instead — a local `pre-push` hook** (`.husky/pre-push`):
+  blocks accidental `git push` to `master` on any machine that has run
+  `npm install` (husky installs it). It is **not** a security control — it can't
+  police GitHub-side merges or clones without the hook — it just stops the
+  fat-finger `git push origin master`. Override intentionally with
+  `ALLOW_MASTER_PUSH=1 git push origin master`. `master` is meant to advance only
+  via a merged `staging → master` PR.
+  - Full CI still runs regardless: `test.yml` fires on `pull_request: ['**']`, so
+    the `staging → master` PR is gated by **test** + **e2e-smoke** (leave
+    **e2e-full** advisory — it's `continue-on-error` today). What the paywall
+    removes is only the *enforcement* that a PR (and green checks) is required
+    before a merge/push — not the checks themselves.
+  - If you later upgrade to Pro / go public, add a ruleset on `master`: require a
+    PR + require the `test` and `e2e-smoke` status checks. Then the hook becomes
+    a belt-and-suspenders local convenience.
 
 ## Day-to-day flow
 
