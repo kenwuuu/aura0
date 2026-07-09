@@ -8,7 +8,8 @@
  * The draggable window frame is FloatingPanel; the header (icon + label +
  * collapse toggle) is supplied as its custom handle. Keeping the drag state in
  * FloatingPanel means a drag re-renders only the frame, not this panel's entry
- * list — see FloatingPanel's note.
+ * list — see FloatingPanel's note. The contents themselves are exported as
+ * ActionLogBody so the phone HUD stack can host them without the frame.
  */
 
 import React, { useEffect, useRef, useState } from 'react';
@@ -29,17 +30,87 @@ function formatTime(ts: number): string {
   return new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
 
-export function ActionLogPanel({ yDoc, localPlayerId }: ActionLogPanelProps) {
-  const [isOpen, setIsOpen] = useState(true);
+/**
+ * The log's contents: entry list + dice controls. Host-agnostic — the desktop
+ * draggable panel and the phone HUD stack both render it; it mounts only
+ * while its host is open, so the auto-scroll effect fires on mount and on
+ * every new entry.
+ */
+export function ActionLogBody({ yDoc, localPlayerId }: ActionLogPanelProps) {
   const entries = useActionLog(yDoc);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll to the newest entry whenever the list grows.
   useEffect(() => {
-    if (isOpen) {
-      bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }
-  }, [entries.length, isOpen]);
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [entries.length]);
+
+  return (
+    <>
+      <ScrollArea style={{ height: 200 }}>
+        <div style={{ padding: '4px 0' }}>
+          {entries.length === 0 ? (
+            <p style={{
+              color: 'rgba(255,255,255,0.3)',
+              fontSize: 12,
+              textAlign: 'center',
+              padding: '16px 12px',
+              margin: 0,
+            }}>
+              No actions yet
+            </p>
+          ) : (
+            entries.map((entry) => {
+              const name = resolvePlayerName(yDoc, entry.actorId);
+              const isLocal = entry.actorId === localPlayerId;
+              return (
+                <div
+                  key={entry.id}
+                  style={{
+                    padding: '3px 10px',
+                    fontSize: 12,
+                    lineHeight: '1.4',
+                    borderBottom: '1px solid rgba(255,255,255,0.04)',
+                  }}
+                >
+                  <span style={{
+                    fontWeight: 600,
+                    color: isLocal ? 'rgba(130,180,255,0.9)' : 'rgba(200,160,255,1)',
+                    marginRight: 4,
+                  }}>
+                    {name}
+                  </span>
+                  <span style={{ color: entry.tone ?? 'rgba(255,255,255,1)' }}>
+                    {entry.text}
+                  </span>
+                  <span style={{
+                    color: 'rgba(255,255,255,0.75)',
+                    fontSize: 10,
+                    marginLeft: 6,
+                    whiteSpace: 'nowrap',
+                  }}>
+                    {formatTime(entry.ts)}
+                  </span>
+                </div>
+              );
+            })
+          )}
+          {/* Sentinel div for auto-scroll */}
+          <div ref={bottomRef} />
+        </div>
+      </ScrollArea>
+
+      <div style={{ borderTop: '1px solid rgba(255,255,255,0.07)' }}>
+        <DiceControls yDoc={yDoc} localPlayerId={localPlayerId} />
+      </div>
+
+      {/* Future: message composer goes here */}
+    </>
+  );
+}
+
+export function ActionLogPanel({ yDoc, localPlayerId }: ActionLogPanelProps) {
+  const [isOpen, setIsOpen] = useState(true);
 
   return (
     // Default position matches the panel's former fixed spot. zIndex stays at
@@ -91,69 +162,7 @@ export function ActionLogPanel({ yDoc, localPlayerId }: ActionLogPanelProps) {
         </div>
       )}
     >
-      {/* Entry list */}
-      {isOpen && (
-        <ScrollArea style={{ height: 200 }}>
-          <div style={{ padding: '4px 0' }}>
-            {entries.length === 0 ? (
-              <p style={{
-                color: 'rgba(255,255,255,0.3)',
-                fontSize: 12,
-                textAlign: 'center',
-                padding: '16px 12px',
-                margin: 0,
-              }}>
-                No actions yet
-              </p>
-            ) : (
-              entries.map((entry) => {
-                const name = resolvePlayerName(yDoc, entry.actorId);
-                const isLocal = entry.actorId === localPlayerId;
-                return (
-                  <div
-                    key={entry.id}
-                    style={{
-                      padding: '3px 10px',
-                      fontSize: 12,
-                      lineHeight: '1.4',
-                      borderBottom: '1px solid rgba(255,255,255,0.04)',
-                    }}
-                  >
-                    <span style={{
-                      fontWeight: 600,
-                      color: isLocal ? 'rgba(130,180,255,0.9)' : 'rgba(200,160,255,1)',
-                      marginRight: 4,
-                    }}>
-                      {name}
-                    </span>
-                    <span style={{ color: entry.tone ?? 'rgba(255,255,255,1)' }}>
-                      {entry.text}
-                    </span>
-                    <span style={{
-                      color: 'rgba(255,255,255,0.75)',
-                      fontSize: 10,
-                      marginLeft: 6,
-                      whiteSpace: 'nowrap',
-                    }}>
-                      {formatTime(entry.ts)}
-                    </span>
-                  </div>
-                );
-              })
-            )}
-            {/* Sentinel div for auto-scroll */}
-            <div ref={bottomRef} />
-          </div>
-        </ScrollArea>
-      )}
-
-      {isOpen && (
-        <div style={{ borderTop: '1px solid rgba(255,255,255,0.07)' }}>
-          <DiceControls yDoc={yDoc} localPlayerId={localPlayerId} />
-        </div>
-      )}
-
-      {/* Future: message composer goes here */}
+      {isOpen && <ActionLogBody yDoc={yDoc} localPlayerId={localPlayerId} />}
     </FloatingPanel>
   );
 }
