@@ -44,6 +44,8 @@ export interface Hotkey {
   shortDescription: string;
   longDescription: string;
   action: string; // Unique action identifier (e.g., "tap", "draw", "addCounter")
+  /** Rendered in the danger/destructive style in the context menu (GameContextMenu). */
+  destructive?: boolean;
 }
 
 export const HOTKEYS: Hotkey[] = [
@@ -153,6 +155,7 @@ export const HOTKEYS: Hotkey[] = [
     shortDescription: 'Delete',
     longDescription: 'Delete a card',
     action: 'delete',
+    destructive: true,
   },
   {
     key: 'H',
@@ -185,6 +188,7 @@ export const HOTKEYS: Hotkey[] = [
     shortDescription: 'Delete token',
     longDescription: 'Delete a keyword token',
     action: 'tokenDelete',
+    destructive: true,
   },
 
   // Hand and pile shortcuts

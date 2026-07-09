@@ -12,7 +12,7 @@
 
 import * as React from 'react';
 import { Card, PileType } from '@/features/player';
-import { HotkeyContext, Hotkey } from '@/features/hotkeys/hotkeys';
+import { HotkeyContext } from '@/features/hotkeys/hotkeys';
 import { YSTATE_DECK_REVEAL_COUNT } from '@/constants';
 import {
   Dialog,
@@ -33,7 +33,7 @@ import { Checkbox } from '@/shared/ui/checkbox';
 import { CardGrid } from './CardGrid';
 import { usePlayerStore } from '@/app/stores/playerStore';
 import { useHotkeyStore } from '@/app/stores/hotkeyStore';
-import { useHotkeyMenuStore } from '@/features/hotkeys/hotkeyMenuStore';
+import { useContextMenuStore } from '@/features/hotkeys/contextMenuStore';
 import { usePileViewerHotkeyStore } from '@/features/game-dock/pileViewerHotkeyStore';
 import { useGameInstance } from '@/app/stores/gameInstanceStore';
 import { logAction } from '@/features/action-log/actionLog';
@@ -220,18 +220,15 @@ export function PileViewerReact({
     (callbacks[callbackKey] as ((card: Card) => void) | undefined)?.(card);
   }, [cards, callbacks]);
 
-  // Right-click menu selection on a pile card → move it accordingly.
-  const handleMenuSelect = React.useCallback((hotkey: Hotkey, cardId: string) => {
-    dispatchPileMove(hotkey.action, cardId);
-  }, [dispatchPileMove]);
-
-  // Register this viewer's move handler so the global hotkey layer can route
-  // pile-viewer shortcuts to it (replaces the old window 'pileViewerCardAction' bus).
+  // Register this viewer's move handler so the global hotkey layer AND the
+  // right-click context menu (GameContextMenu, via dispatchGameAction's
+  // 'pileViewerCard' case) can route pile-viewer moves to it (replaces the
+  // old window 'pileViewerCardAction' bus).
   React.useEffect(() => {
     if (!isOpen) return;
 
     const handlePileViewerAction = (action: string, cardId: string) => {
-      useHotkeyMenuStore.getState().close();
+      useContextMenuStore.getState().close();
       dispatchPileMove(action, cardId);
     };
 
@@ -378,10 +375,10 @@ export function PileViewerReact({
         data-testid="pile-viewer"
         data-pile-type={pileType}
         onPointerDownOutside={(e) => {
-          // The HotkeyMenu context-menu popover renders in a separate React
-          // root (App's), so Radix sees clicks on its rows as "outside" this
-          // Dialog and would otherwise dismiss it — don't close the modal.
-          if (e.target instanceof HTMLElement && e.target.closest('[data-hotkey-menu-content]')) {
+          // The GameContextMenu renders in a separate React root (App's), so
+          // Radix sees clicks on its rows as "outside" this Dialog and would
+          // otherwise dismiss it — don't close the modal.
+          if (e.target instanceof HTMLElement && e.target.closest('[data-game-context-menu]')) {
             e.preventDefault();
           }
         }}
@@ -498,7 +495,6 @@ export function PileViewerReact({
               revealCount={revealCount}
               onHover={handleCardHover}
               hotkeyContext={hotkeyContext}
-              onMenuSelect={handleMenuSelect}
               enableReordering={pileType === 'scry'}
             />
           )}

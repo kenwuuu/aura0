@@ -1,12 +1,12 @@
 /**
  * HotkeyMenu
  *
- * Single app-level Radix Popover that renders the hotkey list for whatever
- * card/token surface most recently opened it (via `useHotkeyMenuStore`).
- * Replaces the imperative `TooltipManager` (manual createRoot + timers +
- * click-outside): Radix handles positioning, collision avoidance, Escape, and
- * outside-click for the actionable `menu` mode. `hint` mode is non-interactive
- * and driven open/closed by the caller's hover handlers.
+ * TRANSITIONAL — being replaced by `GameContextMenu` (see App.tsx). Every
+ * actionable right-click menu has migrated off this component's `menu` mode
+ * to the new store-driven `GameContextMenu`; the only remaining callers
+ * (`TokenNode`, `KeywordTokenGrid`) use its non-interactive `hint` mode for
+ * hover tooltips. Once those get their own context-menu wiring, this
+ * component and `hotkeyMenuStore` are deleted outright.
  */
 
 import * as React from 'react';

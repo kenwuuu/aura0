@@ -5,9 +5,7 @@ import { WhiteboardCard } from '../types';
 import { KeywordToken } from '@/features/keyword-tokens/types';
 import { useHotkeyStore } from '@/app/stores/hotkeyStore';
 import { useCardPreviewStore } from '@/features/card-preview/cardPreviewStore';
-import { useHotkeyMenuStore } from '@/features/hotkeys/hotkeyMenuStore';
-import { HotkeyContext } from '@/features/hotkeys/hotkeys';
-import { executeBattlefieldCardAction } from '../battlefieldCardActions';
+import { useContextMenuStore } from '@/features/hotkeys/contextMenuStore';
 import { resolveCardFace, resolveCardRotation } from './cardNodeLogic';
 import { CARD_WIDTH, CARD_HEIGHT } from '@/constants';
 
@@ -38,7 +36,7 @@ const CARD_STYLE = {
 
 export const CardNode = memo(function CardNode({ data, id }: NodeProps) {
   const card = data as unknown as CardNodeData;
-  const { yCards, yTokens, localPlayerId } = card;
+  const { yCards } = card;
 
   const face = resolveCardFace(card);
 
@@ -61,14 +59,12 @@ export const CardNode = memo(function CardNode({ data, id }: NodeProps) {
   const handleContextMenu = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    useHotkeyMenuStore.getState().openMenu({
-      cardId: id,
-      context: HotkeyContext.Battlefield,
+    useContextMenuStore.getState().openMenu({
+      target: { kind: 'battlefieldCard', id },
       x: e.clientX,
       y: e.clientY,
-      onSelect: (hotkey) => executeBattlefieldCardAction(hotkey.action, id, yCards, yTokens, localPlayerId),
     });
-  }, [id, yCards, localPlayerId]);
+  }, [id]);
 
   // tap + rotation transform
   const rotation = resolveCardRotation(card);
