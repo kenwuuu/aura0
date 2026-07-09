@@ -1,6 +1,7 @@
 /**
  * useDraggablePanel — makes a screen-space panel draggable by a handle, clamped
- * to the viewport, with its position persisted per `persistKey`.
+ * to the viewport (and below the top menu bar) with its position persisted per
+ * `persistKey`.
  *
  * Screen-space on purpose: HUD windows (toolbar, action log) must not pan/zoom
  * with the react-flow board, so this is plain fixed-position DOM, not a board
@@ -19,15 +20,30 @@ export interface Position {
   y: number;
 }
 
-/** Keep a position fully inside the viewport given the panel's measured size. */
+// Selector for the app's top menu bar (see src/app/Toolbar.tsx). Measured live
+// rather than hardcoded so the clamp keeps working across a toolbar redesign —
+// only the testid needs to survive, not any particular height. Falls back to 0
+// (no floor) when absent, e.g. in unit-test harnesses that don't mount it.
+const TOP_BAR_SELECTOR = '[data-testid="toolbar"]';
+
+function getTopBarBottom(): number {
+  return document.querySelector(TOP_BAR_SELECTOR)?.getBoundingClientRect().bottom ?? 0;
+}
+
+/**
+ * Keep a position fully inside the viewport given the panel's measured size,
+ * and below the top menu bar so a panel can never be dragged under it (where
+ * it'd be unreachable — the bar renders above at z-index 1000).
+ */
 function clampToViewport(pos: Position, el: HTMLElement | null): Position {
   if (!el) return pos;
   const { width, height } = el.getBoundingClientRect();
+  const minY = getTopBarBottom();
   const maxX = Math.max(0, window.innerWidth - width);
-  const maxY = Math.max(0, window.innerHeight - height);
+  const maxY = Math.max(minY, window.innerHeight - height);
   return {
     x: Math.min(Math.max(0, pos.x), maxX),
-    y: Math.min(Math.max(0, pos.y), maxY),
+    y: Math.min(Math.max(minY, pos.y), maxY),
   };
 }
 
