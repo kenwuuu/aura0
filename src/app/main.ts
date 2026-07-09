@@ -17,11 +17,15 @@ import { CrashFallback } from './CrashFallback';
 import '../style.css';
 
 // ── Deploy identity ───────────────────────────────────────────────────────────
-// Cloudflare Pages build vars (set in the Pages project's build config):
-//   VITE_APP_VERSION = $CF_PAGES_COMMIT_SHA
-//   VITE_APP_ENV     = $CF_PAGES_BRANCH
-// Both are auto-exposed on import.meta.env by Vite's VITE_ prefix convention —
-// no vite.config.ts wiring needed for these two. Locally/unset, both are undefined.
+// Cloudflare Workers Builds injects git metadata; the Worker's build command
+// maps it into the VITE_-prefixed vars Vite exposes on import.meta.env:
+//   VITE_APP_VERSION = $WORKERS_CI_COMMIT_SHA
+//   VITE_APP_ENV     = $WORKERS_CI_BRANCH
+// (Older docs may reference the Pages names CF_PAGES_COMMIT_SHA / CF_PAGES_BRANCH.)
+// Both are auto-exposed by Vite's VITE_ prefix convention — no vite.config.ts
+// wiring needed for these two. Locally/unset, both are undefined.
+// A non-master deploy branch (e.g. the `staging` integration branch, see
+// docs/STAGING.md) reports Sentry environment `preview`.
 const PRODUCTION_BRANCH = 'master';
 const appVersion = import.meta.env.VITE_APP_VERSION as string | undefined;
 const deployBranch = import.meta.env.VITE_APP_ENV as string | undefined;

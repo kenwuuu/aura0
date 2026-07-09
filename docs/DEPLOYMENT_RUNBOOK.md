@@ -11,16 +11,25 @@ commit that caused it. Covers the wiring added in `src/app/main.ts`,
 |-------------------------------------|-------------------------------------------|-------------------------------------------------|
 | Sentry (errors, releases, alerts)   | `main.ts` `Sentry.init`                   | Thrown exceptions, crash-free session rate      |
 | PostHog (`app_version`, dashboards) | `main.ts` `posthog.register`              | Boot-rate drops, product-metric shifts          |
-| Post-deploy smoke test              | `.github/workflows/post-deploy-smoke.yml` | Broken build/boot, before any real user hits it |
+| Post-deploy smoke test              | `.github/workflows/post-deploy-smoke.yml` | Broken build/boot, before any real user hits it — ⚠️ **dormant, see below** |
 
 Sentry owns *errors*. PostHog owns *product signals*.
 
+> ⚠️ **Post-deploy smoke is currently dormant.** That workflow triggers
+> `on: deployment_status`, which was a Cloudflare **Pages** signal. We now
+> deploy via **Workers Builds**, which reports status through GitHub check
+> runs + PR comments, *not* the Deployments API — so the workflow no longer
+> fires (confirm: `gh run list --workflow=post-deploy-smoke.yml` is empty).
+> Until it's re-wired, Sentry + PostHog (below) are the live layers. Fix
+> options are in [`STAGING.md`](./STAGING.md#known-gap-post-deploy-smoke-test-is-dormant).
+
 ## Where `VITE_APP_VERSION` comes from
 
-Cloudflare Pages sets `CF_PAGES_COMMIT_SHA` for every build. The Pages
-project's build config is set to also export that as `VITE_APP_VERSION`, and
-`CF_PAGES_BRANCH` as `VITE_APP_ENV` — Vite auto-exposes anything prefixed
+Cloudflare **Workers Builds** injects `WORKERS_CI_COMMIT_SHA` for every build.
+The `aura0` Worker's build command exports that as `VITE_APP_VERSION`, and
+`WORKERS_CI_BRANCH` as `VITE_APP_ENV` — Vite auto-exposes anything prefixed
 `VITE_` to the client bundle, no code change needed to pick up a new value.
+(Older setups used the Pages names `CF_PAGES_COMMIT_SHA` / `CF_PAGES_BRANCH`.)
 
 That one string ends up in two places:
 - `Sentry.init({ release: ... })` in `main.ts`
@@ -52,18 +61,18 @@ Same commit SHA, both tools — that's the join key.
 
 ## "A deploy just broke something" — first response
 
-1. **Check the post-deploy-smoke GitHub Action** for the deploy (Actions tab,
-   `Post-deploy smoke test` workflow). Red = the shell doesn't boot / a known
-   flow is broken, confirmed within seconds of the deploy, independent of
-   real traffic.
-2. **Check Sentry** for a new issue on the release matching the deploy's
-   commit SHA, or a crash-free-rate drop.
-3. **Check the PostHog dashboard** for a boot-rate (`game_session_started`)
+1. **Check Sentry** for a new issue on the release matching the deploy's
+   commit SHA, or a crash-free-rate drop. (This is step 1 today because the
+   post-deploy-smoke Action is dormant — see the ⚠️ note above. Once it's
+   re-wired, check it first: red = the shell doesn't boot / a known flow is
+   broken, confirmed within seconds, independent of real traffic.)
+2. **Check the PostHog dashboard** for a boot-rate (`game_session_started`)
    drop — this is the one that catches a **silent white-screen deploy that
    throws nothing** (blank page, no exception, no console error).
-4. If confirmed bad: revert/roll back the commit. Cloudflare Pages keeps
-   prior deploys — you can also just re-promote the last-known-good
-   deployment from the Cloudflare dashboard while the revert PR lands.
+3. If confirmed bad: revert/roll back the commit. **Workers keeps prior
+   versions** — in the Cloudflare dashboard → `aura0` → **Deployments** /
+   **Version History**, re-promote the last-known-good version to the Active
+   Deployment while the revert PR lands.
 
 ## Alerts today, and adding more later
 
@@ -85,9 +94,9 @@ The following all originates from
 following, make sure to update [`DEPLOYMENT_SETUP.md`](./DEPLOYMENT_SETUP.md):
 
 - `main.ts` hardcodes `PRODUCTION_BRANCH = 'master'` to decide Sentry
-  `environment` — update this if the Cloudflare Pages production branch ever
-  changes.
-- Cloudflare Pages build env must actually set `VITE_APP_VERSION`,
+  `environment` — update this if the Worker's production (deploy) branch ever
+  changes. A non-master deploy branch (e.g. `staging`) reports as `preview`.
+- The `aura0` Worker's build command must actually set `VITE_APP_VERSION`,
   `VITE_APP_ENV`, and `SENTRY_AUTH_TOKEN` — without them, builds still work,
   but ship with no release, no environment split, and no sourcemaps.
 - Deploy annotations need a `POSTHOG_PERSONAL_API_KEY` GitHub Actions secret;
