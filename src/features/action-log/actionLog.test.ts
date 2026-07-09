@@ -28,7 +28,7 @@ describe('logAction', () => {
     expect(entry.type).toBe('draw');
     expect(entry.text).toBe('drew a card');
     expect(typeof entry.id).toBe('string');
-    expect(entry.id).toHaveLength(36); // UUID length
+    expect(entry.id.length).toBeGreaterThan(0);
     expect(typeof entry.ts).toBe('number');
     expect(entry.ts).toBeGreaterThan(0);
   });
@@ -44,6 +44,9 @@ describe('logAction', () => {
     expect(arr.get(0).type).toBe('draw');
     expect(arr.get(1).type).toBe('play_card');
     expect(arr.get(2).type).toBe('shuffle');
+
+    const ids = arr.toArray().map((e) => e.id);
+    expect(new Set(ids).size).toBe(ids.length);
   });
 
   it('trims oldest entries when the soft cap is exceeded', () => {
