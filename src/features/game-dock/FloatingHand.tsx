@@ -21,7 +21,14 @@ export function FloatingHand() {
     <div
       data-pile-type="hand"
       data-pile-owner={playerId}
-      style={{ position: 'fixed', bottom: 8, left: '50%', transform: 'translateX(-50%)', zIndex: 950 }}
+      style={{
+        position: 'fixed',
+        // The hand owns the bottom edge: absorb the home-bar safe-area inset.
+        bottom: 'calc(8px + env(safe-area-inset-bottom, 0px))',
+        left: '50%',
+        transform: 'translateX(-50%)',
+        zIndex: 950,
+      }}
     >
       <HandCardsContainer
         yPlayerState={yPlayerState}

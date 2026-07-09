@@ -4,13 +4,20 @@
 @custom-variant dark (&:is(.dark *));
 
 
+html,
+body {
+  /* The app is a fixed full-viewport surface: no document scrolling, and no
+     pull-to-refresh / rubber-band from touch gestures at the edges. */
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
     'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  overflow: hidden;
 }
 
 #app-react-root {
@@ -35,7 +42,11 @@ body {
 
 #toolbar {
   background-color: #0a0a0a;
-  padding: 8px 20px;
+  /* Safe-area: the toolbar owns the top edge (and the sides at its own row),
+     so it absorbs the notch/status-bar insets. Requires viewport-fit=cover. */
+  padding: calc(8px + env(safe-area-inset-top, 0px))
+    calc(20px + env(safe-area-inset-right, 0px)) 8px
+    calc(20px + env(safe-area-inset-left, 0px));
   display: flex;
   gap: 16px;
   align-items: center;
@@ -892,7 +903,9 @@ body {
 @media (max-width: 639px) {
   #toolbar {
     gap: 8px;
-    padding: 8px 12px;
+    padding: calc(8px + env(safe-area-inset-top, 0px))
+      calc(12px + env(safe-area-inset-right, 0px)) 8px
+      calc(12px + env(safe-area-inset-left, 0px));
   }
 
   .toolbar-hotkeys,
