@@ -28,24 +28,42 @@ export function trackCustomCounterCreated(counterTitle: string, counterIcon: str
 // NETWORKING
 
 /**
- * One event per connection episode, for BOTH outcomes, so the failure rate is a
- * simple breakdown by `outcome` (failed / (connected + failed)). Sentry gets the
- * failure too, for alerting — but a proportion needs the denominator, and
- * high-volume success events belong in analytics, not the error tracker.
+ * Emitted per disconnected episode. A single episode can produce up to two
+ * events sharing one `episode_id`:
+ *   - `failed`    — the connection was still down at the grace mark (~3s).
+ *   - `connected` — the connection went (or came back) live.
+ *
+ * Correlating the two by `episode_id` is what makes the rate honest, because a
+ * slow-but-successful connect emits BOTH. Group by `episode_id` to classify:
+ *   - `connected` only            → clean connect
+ *   - `failed` + `connected`      → recovered (slow, ≥3s, but fine)
+ *   - `failed` only               → true hard failure
+ * The naive `failed / (connected + failed)` overstates failure because it
+ * counts every recovered episode as a whole failure.
+ *
+ * `episode_type` separates the client's first-ever connect (`initial`) from
+ * every reconnect after it (`reconnect`), so initial-connect health and
+ * mid-session resilience can be read apart instead of blended.
  *
  * `connect_ms` (success) and `unreachable_for_ms` (failure) are the same clock:
  * time from the episode's disconnected edge to the resolution. The success
- * latency distribution is the early-warning signal before connects start
- * failing outright.
+ * latency distribution (p50/p95/p99 of `connect_ms`) is the early-warning
+ * signal before connects start failing outright. Sentry gets the failure too,
+ * for alerting — but a proportion needs the denominator, and high-volume
+ * success events belong in analytics, not the error tracker.
  */
 export function trackWsConnectionOutcome(props: {
   outcome: 'connected' | 'failed';
+  episodeId?: string;
+  episodeType?: 'initial' | 'reconnect';
   connectMs?: number;
   unreachableForMs?: number;
 }): void {
   posthog.capture('ws_connection_outcome', {
     outcome: props.outcome,
     transport: 'websocket',
+    ...(props.episodeId !== undefined ? { episode_id: props.episodeId } : {}),
+    ...(props.episodeType !== undefined ? { episode_type: props.episodeType } : {}),
     ...(props.connectMs !== undefined ? { connect_ms: props.connectMs } : {}),
     ...(props.unreachableForMs !== undefined
       ? { unreachable_for_ms: props.unreachableForMs }
