@@ -41,7 +41,7 @@ test('testDeckViewerCardToExileTooltip', async ({ page }) => {
   await openPileViewer(page, 'deck');
   await waitForPileViewerReady(page);
   await secondCard(page).click({ button: 'right' });
-  await page.getByText('SExile').click();
+  await page.getByText('ExileS').click();
   await expectPileCount(page, 'exile', 1);
 });
 
@@ -57,7 +57,7 @@ test('testDeckViewerCardToDiscardTooltip', async ({ page }) => {
   await openPileViewer(page, 'deck');
   await waitForPileViewerReady(page);
   await secondCard(page).click({ button: 'right' });
-  await page.getByText('DDiscard').click();
+  await page.getByText('DiscardD').click();
   await expectPileCount(page, 'discard', 1);
 });
 
@@ -79,7 +79,7 @@ test('testDeckViewerCardToHandTooltip', async ({ page }) => {
 
   await secondCard(page).click({ button: 'right' });
   await expect(ninthHandCard).toBeHidden();
-  await page.getByText('HHand').click();
+  await page.getByText('HandH').click();
   await expect(ninthHandCard).toBeVisible();
 
   await expect(page.getByRole('dialog', { name: 'Search Deck' })).toBeVisible();
@@ -104,7 +104,7 @@ test('testDeckViewerCardToDeckTopTooltip', async ({ page }) => {
   await expectPileCount(page, 'deck', 92);
 
   await secondCard(page).click({ button: 'right' });
-  await page.getByText('TTo deck top').click();
+  await page.getByText('To deck topT').click();
 
   await expectPileCount(page, 'deck', 92);
 });
@@ -126,7 +126,7 @@ test('testDeckViewerCardToDeckBottomTooltip', async ({ page }) => {
   await expectPileCount(page, 'deck', 92);
 
   await secondCard(page).click({ button: 'right' });
-  await page.getByText('YTo deck bottom').click();
+  await page.getByText('To deck bottomY').click();
 
   await expectPileCount(page, 'deck', 92);
 });
@@ -153,7 +153,7 @@ test('testDiscardViewerCardToExileTooltip', async ({ page }) => {
   await openPileViewer(page, 'discard');
   await waitForPileViewerReady(page);
   await secondCard(page).click({ button: 'right' });
-  await page.getByText('SExile').click();
+  await page.getByText('ExileS').click();
   await expectPileCount(page, 'exile', 1);
 });
 
@@ -182,10 +182,10 @@ test('testDiscardViewerCardToDeckTopTooltip', async ({ page }) => {
   await waitForPileViewerReady(page);
 
   await secondCard(page).click({ button: 'right' });
-  await page.getByText('TTo deck top').click();
+  await page.getByText('To deck topT').click();
   await waitForPileViewerReady(page);
   await secondCard(page).click({ button: 'right' });
-  await page.getByText('TTo deck top').click();
+  await page.getByText('To deck topT').click();
 
   await expectPileCount(page, 'deck', 87);
 });
@@ -214,10 +214,10 @@ test('testDiscardViewerCardToDeckBottomTooltip', async ({ page }) => {
   await waitForPileViewerReady(page);
 
   await secondCard(page).click({ button: 'right' });
-  await page.getByText('YTo deck bottom').click();
+  await page.getByText('To deck bottomY').click();
   await waitForPileViewerReady(page);
   await secondCard(page).click({ button: 'right' });
-  await page.getByText('YTo deck bottom').click();
+  await page.getByText('To deck bottomY').click();
 
   await expectPileCount(page, 'deck', 87);
 });
@@ -246,7 +246,7 @@ test('testDiscardViewerCardToHandTooltip', async ({ page }) => {
 
   await secondCard(page).click({ button: 'right' });
   await expect(ninthHandCard).toBeHidden();
-  await page.getByText('HHand').click();
+  await page.getByText('HandH').click();
   await expect(ninthHandCard).toBeVisible();
 });
 
@@ -271,7 +271,7 @@ test('testExileViewerCardToDiscardTooltip', async ({ page }) => {
   await openPileViewer(page, 'exile');
   await waitForPileViewerReady(page);
   await secondCard(page).click({ button: 'right' });
-  await page.getByText('DDiscard').click();
+  await page.getByText('DiscardD').click();
   await expectPileCount(page, 'discard', 1);
 });
 
@@ -294,7 +294,7 @@ test('testExileViewerCardToDeckTopTooltip', async ({ page }) => {
   await openPileViewer(page, 'exile');
   await waitForPileViewerReady(page);
   await secondCard(page).click({ button: 'right' });
-  await page.getByText('TTo deck top').click();
+  await page.getByText('To deck topT').click();
 
   await expectPileCount(page, 'deck', 86);
 });
@@ -323,10 +323,10 @@ test('testExileViewerCardToDeckBottomTooltip', async ({ page }) => {
   await waitForPileViewerReady(page);
 
   await secondCard(page).click({ button: 'right' });
-  await page.getByText('YTo deck bottom').click();
+  await page.getByText('To deck bottomY').click();
   await waitForPileViewerReady(page);
   await secondCard(page).click({ button: 'right' });
-  await page.getByText('YTo deck bottom').click();
+  await page.getByText('To deck bottomY').click();
 
   await expectPileCount(page, 'deck', 87);
 });
@@ -355,7 +355,7 @@ test('testExileViewerCardToHandTooltip', async ({ page }) => {
 
   await secondCard(page).click({ button: 'right' });
   await expect(ninthHandCard).toBeHidden();
-  await page.getByText('HHand').click();
+  await page.getByText('HandH').click();
   await expect(ninthHandCard).toBeVisible();
 });
 
@@ -387,7 +387,7 @@ test('testScryViewerCardToDiscardTooltip', async ({ page }) => {
 
   await openScry(page, 10);
   await secondCard(page).click({ button: 'right' });
-  await page.getByText('DDiscard').click();
+  await page.getByText('DiscardD').click();
   await expectPileCount(page, 'discard', 1);
 });
 
@@ -410,7 +410,7 @@ test('testScryViewerCardToDeckTopTooltip', async ({ page }) => {
   await expectPileCount(page, 'deck', 82);
 
   await secondCard(page).click({ button: 'right' });
-  await page.getByText('TTo deck top').click();
+  await page.getByText('To deck topT').click();
 
   await expectPileCount(page, 'deck', 83);
 });
@@ -492,7 +492,7 @@ test('testPileViewerDoesNotCloseAfterClickingTooltip', async ({ page }) => {
   await openPileViewer(page, 'deck');
   await waitForPileViewerReady(page);
   await secondCard(page).click({ button: 'right' });
-  await page.getByText('HHand').click();
+  await page.getByText('HandH').click();
   await expect(page.getByRole('dialog', { name: 'Search Deck' })).toBeVisible();
 });
 
@@ -509,7 +509,7 @@ test('testPileViewerDoesNotCloseAfterMovingCardToDeckTop', async ({ page }) => {
   await openPileViewer(page, 'discard');
   await waitForPileViewerReady(page);
   await secondCard(page).click({ button: 'right' });
-  await page.getByText('TTo deck top').click();
+  await page.getByText('To deck topT').click();
 
   await expect(page.getByRole('dialog', { name: 'Discard Pile' })).toBeVisible();
   await expectPileCount(page, 'discard', 6);

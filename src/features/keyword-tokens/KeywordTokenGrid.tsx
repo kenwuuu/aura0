@@ -1,8 +1,6 @@
 import React, { useCallback } from 'react';
 import { KeywordTokenTemplate } from '@/features/keyword-tokens/types';
 import { setElementDragPoint } from '@/shared/utils/centerHtmlElementOnDrag';
-import { HotkeyContext } from '@/features/hotkeys/hotkeys';
-import { useHotkeyMenuStore } from '@/features/hotkeys/hotkeyMenuStore';
 
 const TOKEN_SIZE = 40;
 
@@ -12,22 +10,8 @@ interface TokenGridItemProps {
 }
 
 function TokenGridItem({ template, onDragStart }: TokenGridItemProps) {
-  const handleMouseEnter = useCallback((e: React.MouseEvent) => {
-    useHotkeyMenuStore.getState().showHint({
-      context: HotkeyContext.KeywordToken,
-      x: e.clientX,
-      y: e.clientY,
-      title: template.title,
-    });
-  }, [template.title]);
-
-  const handleMouseLeave = useCallback(() => {
-    useHotkeyMenuStore.getState().close();
-  }, []);
-
   const handleDragStart = useCallback((e: React.DragEvent<HTMLDivElement>) => {
     e.stopPropagation();
-    useHotkeyMenuStore.getState().close();
     setElementDragPoint(e.target as HTMLDivElement, e.nativeEvent, 'kwToken');
     e.dataTransfer.setData('text/x-keyword-token-template', JSON.stringify(template));
     e.dataTransfer.effectAllowed = 'copy';
@@ -43,8 +27,10 @@ function TokenGridItem({ template, onDragStart }: TokenGridItemProps) {
       draggable
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
+      // Native tooltip: the only remaining way to see a token's name on
+      // hover, now that the hotkey hint (which doubled as a name label) is
+      // gone — the picker doesn't have per-item actions to hint at anyway.
+      title={template.title}
       style={{
         width: TOKEN_SIZE,
         height: TOKEN_SIZE,

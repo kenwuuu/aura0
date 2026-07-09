@@ -1,7 +1,7 @@
 /**
  * Controls the Settings modal's open state from anywhere (gear icon, the
  * connection-status tooltip, etc.) without prop-drilling. Mirrors the
- * imperative-open pattern used by hotkeyMenuStore.
+ * imperative-open pattern used by contextMenuStore.
  */
 import { create } from 'zustand';
 

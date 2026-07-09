@@ -37,7 +37,7 @@ import { YDOC_CARDS_ON_BOARD, YDOC_KEYWORD_TOKENS } from '@/constants';
 import { MIN_ZOOM, MAX_ZOOM, MAT_WIDTH, MAT_HEIGHT, BACKGROUND_GRID_GAP } from './boardWorld';
 import type { Player } from '@/features/player';
 import type { TokenService } from '@/infrastructure/cards';
-import { useHotkeyMenuStore } from '@/features/hotkeys/hotkeyMenuStore';
+import { useContextMenuStore } from '@/features/hotkeys/contextMenuStore';
 import { useGameInstance } from '@/app/stores/gameInstanceStore';
 import { useSettingsStore } from '@/app/stores/settingsStore';
 import { SettingsButton } from '@/features/settings/SettingsButton';
@@ -226,7 +226,7 @@ function BattlefieldCanvasInner({ yDoc, localPlayerId }: BattlefieldCanvasProps)
 
   const onNodeDragStart: OnNodeDrag = useCallback(
     (_, node) => {
-      useHotkeyMenuStore.getState().close();
+      useContextMenuStore.getState().close();
       const newZ = getMaxZIndex(yCards, yTokens) + 1;
       dragElevationRef.current.set(node.id, newZ);
 
@@ -288,7 +288,7 @@ function BattlefieldCanvasInner({ yDoc, localPlayerId }: BattlefieldCanvasProps)
   const onSelectionDragStart = useCallback(
     (_: React.MouseEvent, nodes: Node[]) => {
       isMultiDragRef.current = true;
-      useHotkeyMenuStore.getState().close();
+      useContextMenuStore.getState().close();
       const baseZ = getMaxZIndex(yCards, yTokens);
 
       // Collect ids of tokens already in the selection so we don't assign them
@@ -476,9 +476,17 @@ function BattlefieldCanvasInner({ yDoc, localPlayerId }: BattlefieldCanvasProps)
         // The handler also keeps pointer-events:all on non-draggable/selectable nodes (enemy cards/tokens).
         onNodeMouseEnter={onNodeMouseEnter}
         onNodeMouseLeave={onNodeMouseLeave}
-        onPaneClick={() => useHotkeyMenuStore.getState().close()}
+        onPaneClick={() => useContextMenuStore.getState().close()}
+        onPaneContextMenu={(event) => {
+          event.preventDefault();
+          useContextMenuStore.getState().openMenu({
+            target: { kind: 'board', x: event.clientX, y: event.clientY },
+            x: event.clientX,
+            y: event.clientY,
+          });
+        }}
         onMoveStart={(event) => {
-          useHotkeyMenuStore.getState().close();
+          useContextMenuStore.getState().close();
 
           // event is null for programmatic moves (our fitBounds), non-null for
           // a real user pan/zoom — only the latter stops board auto-centering

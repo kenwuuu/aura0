@@ -1,11 +1,11 @@
-import React, { memo, useState } from 'react';
+import React, { memo } from 'react';
 import { NodeProps } from '@xyflow/react';
 import * as Y from 'yjs';
 import { useDroppable } from '@dnd-kit/core';
 import { usePileViewerOpenStore } from '@/features/game-dock/pileViewerOpenStore';
 import { useGameInstance } from '@/app/stores/gameInstanceStore';
 import { useHotkeyStore } from '@/app/stores/hotkeyStore';
-import { HotkeyTooltip } from '@/features/hotkeys/HotkeyTooltip';
+import { useContextMenuStore } from '@/features/hotkeys/contextMenuStore';
 import { isHandViewDisabled, resolvePileOpenRequest } from './pileNodeLogic';
 import type { PileType } from '@/features/player';
 
@@ -44,32 +44,33 @@ export const PileNode = memo(function PileNode({ data }: NodeProps) {
     disabled: !canReceiveDrop,
   });
 
-  const [hovered, setHovered] = useState(false);
-  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
-
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     const request = resolvePileOpenRequest({ ownerId, isLocal, pileKind, allowViewHand });
     if (request) usePileViewerOpenStore.getState().open(request);
   };
 
-  const handleMouseEnter = (e: React.MouseEvent) => {
-    setHovered(true);
-    setMousePos({ x: e.clientX, y: e.clientY });
+  const handleMouseEnter = () => {
     if (isLocal && HOTKEY_PILE_KINDS.has(pileKind)) {
       useHotkeyStore.getState().setHoveredPile(pileKind);
     }
   };
 
-  const handleMouseMove = (e: React.MouseEvent) => {
-    setMousePos({ x: e.clientX, y: e.clientY });
-  };
-
   const handleMouseLeave = () => {
-    setHovered(false);
     if (isLocal && HOTKEY_PILE_KINDS.has(pileKind)) {
       useHotkeyStore.getState().setHoveredPile(null);
     }
+  };
+
+  const handleContextMenu = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!isLocal || !HOTKEY_PILE_KINDS.has(pileKind)) return;
+    useContextMenuStore.getState().openMenu({
+      target: { kind: 'pile', pileType: pileKind as 'deck' | 'exile' | 'discard' },
+      x: e.clientX,
+      y: e.clientY,
+    });
   };
 
   return (
@@ -95,8 +96,8 @@ export const PileNode = memo(function PileNode({ data }: NodeProps) {
       onClick={handleClick}
       onPointerDown={(e) => e.stopPropagation()}
       onMouseEnter={handleMouseEnter}
-      onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
+      onContextMenu={handleContextMenu}
     >
       <div className="pile-label" style={{ fontSize: 8 }}>
         {PILE_LABELS[pileKind]}
@@ -112,9 +113,6 @@ export const PileNode = memo(function PileNode({ data }: NodeProps) {
         >
           Draw
         </button>
-      )}
-      {hovered && isLocal && HOTKEY_PILE_KINDS.has(pileKind) && (
-        <HotkeyTooltip context={pileKind} mouseX={mousePos.x} mouseY={mousePos.y} />
       )}
     </div>
   );

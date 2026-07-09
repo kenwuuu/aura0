@@ -33,7 +33,15 @@ function DropdownMenuContent({
   className,
   sideOffset = 4,
   ...props
-}: React.ComponentProps<typeof DropdownMenuPrimitive.Content>) {
+}: React.ComponentProps<typeof DropdownMenuPrimitive.Content> & {
+  // Radix's DropdownMenuContent forwards unknown props straight to the
+  // underlying Menu primitive, which does support onOpenAutoFocus — the
+  // published type just omits it (nudging callers away from disabling
+  // default menu accessibility). Widened here so a caller that genuinely
+  // needs to suppress the open-focus jump (e.g. a cursor-anchored context
+  // menu that must not steal focus from what's behind it) can.
+  onOpenAutoFocus?: (event: Event) => void
+}) {
   return (
     <DropdownMenuPrimitive.Portal>
       <DropdownMenuPrimitive.Content

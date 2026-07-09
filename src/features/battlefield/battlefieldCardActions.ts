@@ -9,7 +9,7 @@ import * as Y from 'yjs';
 import { WhiteboardCard } from './types';
 import { KeywordToken } from '@/features/keyword-tokens/types';
 import { nodeCenter } from './nodeAttachment';
-import { useHotkeyMenuStore } from '@/features/hotkeys/hotkeyMenuStore';
+import { useContextMenuStore } from '@/features/hotkeys/contextMenuStore';
 import { logAction, cardLogName } from '@/features/action-log/actionLog';
 import { spawnTokenAtPosition, getMaxZIndex, detachTokens } from './spawnToken';
 import {
@@ -129,7 +129,7 @@ export function executeBattlefieldCardAction(
       );
       break;
     case 'delete':
-      useHotkeyMenuStore.getState().close();
+      useContextMenuStore.getState().close();
       detachTokens(cardId, yTokens);
       yCards.delete(cardId);
       if (yDoc) {
@@ -147,31 +147,31 @@ export function executeBattlefieldCardAction(
     // steps: close the menu, detach any attached tokens, and remove the card
     // from the board.
     case 'moveToHand':
-      useHotkeyMenuStore.getState().close();
+      useContextMenuStore.getState().close();
       detachTokens(cardId, yTokens);
       yCards.delete(cardId);
       moveCardToHand(card);
       break;
     case 'moveToDiscard':
-      useHotkeyMenuStore.getState().close();
+      useContextMenuStore.getState().close();
       detachTokens(cardId, yTokens);
       yCards.delete(cardId);
       moveCardToDiscard(card);
       break;
     case 'moveToExile':
-      useHotkeyMenuStore.getState().close();
+      useContextMenuStore.getState().close();
       detachTokens(cardId, yTokens);
       yCards.delete(cardId);
       moveCardToExile(card);
       break;
     case 'moveToDeckTop':
-      useHotkeyMenuStore.getState().close();
+      useContextMenuStore.getState().close();
       detachTokens(cardId, yTokens);
       yCards.delete(cardId);
       moveCardToDeckTop(card);
       break;
     case 'moveToDeckBottom':
-      useHotkeyMenuStore.getState().close();
+      useContextMenuStore.getState().close();
       detachTokens(cardId, yTokens);
       yCards.delete(cardId);
       moveCardToDeckBottom(card);

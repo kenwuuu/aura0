@@ -1,27 +1,10 @@
 import { expect, test } from '../../fixtures';
-import {boardCards, boardTokens, expectPileCount, playCreature} from '../../harness';
-import { Locator } from '@playwright/test';
-
-export async function getElementOrientation(
-  locator: Locator
-): Promise<"portrait" | "landscape" | "square"> {
-  const box = await locator.boundingBox();
-
-  if (!box) {
-    throw new Error("Element not found or not visible.");
-  }
-
-  const { width, height } = box;
-
-  if (width > height) return "landscape";
-  if (height > width) return "portrait";
-  return "square";
-}
+import {boardCards, boardTokens, expectPileCount, getElementOrientation, playCreature} from '../../harness';
 
 test('testExileTooltip', async ({ page }) => {
   const card = await playCreature(page);
   await card.click({ button: 'right' });
-  const tooltipRow = page.getByText('SExile');
+  const tooltipRow = page.getByText('ExileS');
   await tooltipRow.waitFor({ state: 'visible' });
   await tooltipRow.click();
   await expectPileCount(page, 'exile', 1);
@@ -30,7 +13,7 @@ test('testExileTooltip', async ({ page }) => {
 test('testDiscardTooltip', async ({ page }) => {
   const card = await playCreature(page);
   await card.click({ button: 'right' });
-  const tooltipRow = page.getByText('DDiscard');
+  const tooltipRow = page.getByText('DiscardD');
   await tooltipRow.waitFor({ state: 'visible' });
   await tooltipRow.click();
   await expectPileCount(page, 'discard', 1);
@@ -39,7 +22,7 @@ test('testDiscardTooltip', async ({ page }) => {
 test('testDeckTooltip', async ({ page }) => {
   const card = await playCreature(page);
   await card.click({ button: 'right' });
-  const tooltipRow = page.getByText('TTo deck top');
+  const tooltipRow = page.getByText('To deck topT');
   await tooltipRow.waitFor({ state: 'visible' });
   await tooltipRow.click();
 
@@ -54,7 +37,7 @@ test('testHandTooltip', async ({ page }) => {
   await expect(eighthHandCard).toBeHidden();
 
   await card.click({ button: 'right' });
-  const tooltipRow = page.getByText('HHand');
+  const tooltipRow = page.getByText('HandH');
   await tooltipRow.waitFor({ state: 'visible' });
   await tooltipRow.click();
 
@@ -71,46 +54,45 @@ test('testInteractiveTooltip', async ({ page }) => {
   expect(await getElementOrientation(firstBoardCard)).toBe('portrait');
 
   await firstBoardCard.click({ button: 'right' });
-  await page.getByText('SpaceTap').click();
+  await page.getByText('TapSpace').click();
   expect(await getElementOrientation(firstBoardCard)).toBe('landscape');
 
   await firstBoardCard.click({ button: 'right' });
-  await page.getByText('XUntap all').click();
+  await page.getByText('Untap allX').click();
   expect(await getElementOrientation(firstBoardCard)).toBe('portrait');
 
   await firstBoardCard.click({ button: 'right' });
-  await page.getByText('FFlip').click();
+  await page.getByText('FlipF').click();
   const cardImgSrc = await firstBoardCard.locator('img').getAttribute('src');
   expect(cardImgSrc === '/assets/card-back.png')
 
   // copy first card to make second card.
   // copy second card to make third card
   await firstBoardCard.click({ button: 'right' });
-  await page.getByText('KCopy/clone').click();
+  await page.getByText('Copy/cloneK').click();
   await secondBoardCard.waitFor({ state: 'visible' });
   await secondBoardCard.click({ button: 'right' });
-  await page.getByText('KCopy/clone').click();
+  await page.getByText('Copy/cloneK').click();
   await thirdBoardCard.waitFor({ state: 'visible' });
   await expect(thirdBoardCard).toBeVisible();
 
   // delete third card
   await thirdBoardCard.click({ button: 'right' });
-  await page.getByText('BackDelete').click();
+  await page.getByText('DeleteBack').click();
   await expect(thirdBoardCard).toBeHidden();
 
   // move second card to hand
   await secondBoardCard.click({ button: 'right' });
-  await page.getByText('HHand').click();
+  await page.getByText('HandH').click();
   await expect(secondBoardCard).toBeHidden();
 
   // 'addCounter' spawns a "+1/+1" keyword token at the card's position (see
-  // executeBattlefieldCardAction) rather than an in-card counter overlay —
-  // CardCounter.tsx exists but is unused/orphaned. Assert the real behavior.
+  // executeBattlefieldCardAction) rather than an in-card counter overlay.
   // Done last: the spawned token sits on top of the card and would intercept
   // pointer events for any further right-clicks on it.
   const tokensBefore = await boardTokens(page).count();
   await firstBoardCard.click({ button: 'right' });
-  await page.getByText('UCounter').click();
+  await page.getByText('CounterU').click();
   await expect(boardTokens(page)).toHaveCount(tokensBefore + 1);
   const counterToken = boardTokens(page).last();
   await expect(counterToken).toHaveText('1');
@@ -122,7 +104,7 @@ test('testRemoveCounterContextMenuItem', async ({ page }) => {
   const card = await playCreature(page);
   const tokensBefore = await boardTokens(page).count();
   await card.click({ button: 'right' });
-  await page.getByText('I-1/-1 counter').click();
+  await page.getByText('-1/-1 counterI').click();
   await expect(boardTokens(page)).toHaveCount(tokensBefore + 1);
   const counterToken = boardTokens(page).last();
   await expect(counterToken).toHaveText('-1');

@@ -6,7 +6,7 @@ import { usePlayerStore } from '@/app/stores/playerStore';
 import { useHotkeyStore } from '@/app/stores/hotkeyStore';
 import { useSettingsStore } from '@/app/stores/settingsStore';
 import { useCardPreviewStore } from '@/features/card-preview/cardPreviewStore';
-import { useHotkeyMenuStore } from '@/features/hotkeys/hotkeyMenuStore';
+import { useContextMenuStore } from '@/features/hotkeys/contextMenuStore';
 import { usePileViewerOpenStore } from '@/features/game-dock/pileViewerOpenStore';
 import { usePileViewerHotkeyStore } from '@/features/game-dock/pileViewerHotkeyStore';
 import { useScryStore } from '@/features/game-dock/scryStore';
@@ -32,14 +32,7 @@ afterEach(() => {
     mouseX: 0,
     mouseY: 0,
   });
-  useHotkeyMenuStore.setState({
-    isOpen: false,
-    mode: 'menu',
-    context: null,
-    cardId: null,
-    title: undefined,
-    onSelect: null,
-  });
+  useContextMenuStore.setState({ isOpen: false, target: null, x: 0, y: 0 });
   usePileViewerOpenStore.setState({ request: null });
   usePileViewerHotkeyStore.setState({ actionHandler: null });
   useScryStore.setState({ requested: false });

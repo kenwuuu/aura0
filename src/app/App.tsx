@@ -16,7 +16,7 @@ import { coordinatesFromPointerEvent, coordinatesFromTouchMoveEvent } from './dr
 
 import { BattlefieldCanvas } from '@/features/battlefield/BattlefieldCanvas';
 import { CardPreview } from '@/features/card-preview';
-import { HotkeyMenu } from '@/features/hotkeys/HotkeyMenu';
+import { GameContextMenu } from '@/features/hotkeys/GameContextMenu';
 import { GameHotkeysManager } from '@/features/hotkeys/GameHotkeysManager';
 import { OpponentPileViewers } from '@/features/opponents/OpponentPileViewers';
 import { FloatingHand } from '@/features/game-dock/FloatingHand';
@@ -185,7 +185,7 @@ export function App({ yDoc, yjsNetworkProvider, player, roomManager, playerId, c
       <ConfirmDialogManager />
       <TokenCardSearchModal cardLookup={cardLookup} />
       <CardPreview />
-      <HotkeyMenu />
+      <GameContextMenu />
       <GameHotkeysManager />
       <Toaster />
       <SettingsModal />

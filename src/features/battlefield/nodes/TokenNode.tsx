@@ -3,9 +3,8 @@ import { NodeProps } from '@xyflow/react';
 import * as Y from 'yjs';
 import { KeywordToken } from '@/features/keyword-tokens/types';
 import { useHotkeyStore } from '@/app/stores/hotkeyStore';
-import { useHotkeyMenuStore } from '@/features/hotkeys/hotkeyMenuStore';
-import { HotkeyContext } from '@/features/hotkeys/hotkeys';
-import { isOwnToken, applyTokenDelta } from './tokenNodeLogic';
+import { useContextMenuStore } from '@/features/hotkeys/contextMenuStore';
+import { isOwnToken, applyTokenDelta, clickedTopHalf } from './tokenNodeLogic';
 
 export const TOKEN_SIZE = 20;
 export const FONT_SCALE = 30 / 40 ;
@@ -27,37 +26,41 @@ export const TokenNode = memo(function TokenNode({ data, id }: NodeProps) {
     yTokens.set(id, { ...latest, count: applyTokenDelta(latest.count, delta) });
   }, [id, yTokens, isOwn]);
 
+  // Click adjusts the count: top half +1, bottom half -1 (right-click is now
+  // the context menu, so both signs need to live on left-click).
   const handleClick = useCallback((e: React.MouseEvent) => {
     if (e.button !== 0 || !isOwn) return;
     e.stopPropagation();
-    modifyCount(1);
+    const rect = e.currentTarget.getBoundingClientRect();
+    modifyCount(clickedTopHalf(e.clientY, rect.top, rect.height) ? 1 : -1);
   }, [modifyCount, isOwn]);
 
   const handleContextMenu = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (isOwn) modifyCount(-1);
-  }, [modifyCount, isOwn]);
-
-  const handleMouseEnter = useCallback((e: React.MouseEvent) => {
-    useHotkeyStore.getState().setHoveredToken(id);
-    useHotkeyMenuStore.getState().showHint({
-      context: HotkeyContext.KeywordToken,
+    useContextMenuStore.getState().openMenu({
+      target: { kind: 'token', id },
       x: e.clientX,
       y: e.clientY,
-      title: token.title,
     });
-  }, [id, token.title]);
+  }, [id]);
+
+  const handleMouseEnter = useCallback(() => {
+    useHotkeyStore.getState().setHoveredToken(id);
+  }, [id]);
 
   const handleMouseLeave = useCallback(() => {
     useHotkeyStore.getState().setHoveredToken(null);
-    useHotkeyMenuStore.getState().close();
   }, []);
 
   return (
     <div
       data-testid="battlefield-token"
       data-token-id={id}
+      // Native tooltip: the only remaining way to see a token's name on
+      // hover, now that the hotkey hint (which doubled as a name label) is
+      // gone in favor of the right-click menu.
+      title={token.title}
       style={{
         width: TOKEN_SIZE,
         height: TOKEN_SIZE,

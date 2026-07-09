@@ -15,3 +15,13 @@ export function isOwnToken(ownerId: string, localPlayerId: string): boolean {
 export function applyTokenDelta(count: number | undefined, delta: number): number {
   return (count ?? 0) + delta;
 }
+
+/**
+ * Whether a click at `clientY` landed in the top half of an element spanning
+ * [rectTop, rectTop + rectHeight). Drives the token's click-to-adjust gesture:
+ * top half = +1, bottom half = -1 (replaces the old left-click-always-+1 /
+ * right-click-always--1 scheme now that right-click opens the context menu).
+ */
+export function clickedTopHalf(clientY: number, rectTop: number, rectHeight: number): boolean {
+  return clientY - rectTop < rectHeight / 2;
+}

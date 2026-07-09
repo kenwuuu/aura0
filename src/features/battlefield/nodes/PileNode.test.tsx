@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { screen } from '@testing-library/react';
+import { screen, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import * as Y from 'yjs';
 import { PileNode, type PileNodeData } from './PileNode';
@@ -7,6 +7,7 @@ import { renderNode } from '@/test/nodeHarness';
 import { makeCard } from '@/test/factories';
 import { usePileViewerOpenStore } from '@/features/game-dock/pileViewerOpenStore';
 import { useGameInstance } from '@/app/stores/gameInstanceStore';
+import { useContextMenuStore } from '@/features/hotkeys/contextMenuStore';
 import type { RenderNodeOptions } from '@/test/nodeHarness';
 
 const LOCAL_PLAYER = 'p1';
@@ -84,6 +85,34 @@ describe('PileNode — click routes to the right viewer', () => {
       playerId: OPPONENT,
       pile: 'hand',
     });
+  });
+});
+
+describe('PileNode — right-click opens the context menu', () => {
+  it('opens the pile context menu for a local deck/exile/discard pile', () => {
+    renderPile({ pileKind: 'exile', count: 2 });
+
+    fireEvent.contextMenu(screen.getByTestId('pile'));
+
+    const menu = useContextMenuStore.getState();
+    expect(menu.isOpen).toBe(true);
+    expect(menu.target).toEqual({ kind: 'pile', pileType: 'exile' });
+  });
+
+  it('does not open for the local hand pile (no pile-level actions exist for it)', () => {
+    renderPile({ pileKind: 'hand', isLocal: true, count: 5 });
+
+    fireEvent.contextMenu(screen.getByTestId('pile'));
+
+    expect(useContextMenuStore.getState().isOpen).toBe(false);
+  });
+
+  it("does not open for an opponent's pile", () => {
+    renderPile({ ownerId: OPPONENT, isLocal: false, pileKind: 'discard', count: 3 });
+
+    fireEvent.contextMenu(screen.getByTestId('pile'));
+
+    expect(useContextMenuStore.getState().isOpen).toBe(false);
   });
 });
 
