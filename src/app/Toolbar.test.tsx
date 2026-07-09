@@ -39,6 +39,22 @@ describe('<Toolbar>', () => {
     expect(screen.getByRole('button', { name: /more toolbar options/i })).toBeInTheDocument();
   });
 
+  it('renders the Ko-fi support link and mirrors it in the overflow menu', async () => {
+    const user = userEvent.setup();
+    const openSpy = vi.spyOn(window, 'open').mockImplementation(() => null);
+    renderToolbar();
+
+    // Desktop row: a plain external link (the old Ko-fi widget script is gone).
+    const link = screen.getByRole('link', { name: 'Support me on Ko-fi' });
+    expect(link).toHaveAttribute('href', 'https://ko-fi.com/Z8Z11OOHFX');
+    expect(link).toHaveAttribute('target', '_blank');
+
+    // Overflow menu drives the same destination for phone widths.
+    await user.click(screen.getByRole('button', { name: /more toolbar options/i }));
+    await user.click(screen.getByRole('menuitem', { name: 'Support me on Ko-fi' }));
+    expect(openSpy).toHaveBeenCalledWith('https://ko-fi.com/Z8Z11OOHFX', '_blank');
+  });
+
   it('opens the Hotkeys modal from the desktop button', async () => {
     const user = userEvent.setup();
     renderToolbar();

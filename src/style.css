@@ -838,6 +838,21 @@ body {
   border-color: #4752C4;
 }
 
+/* Ko-fi support link — an <a> carrying .toolbar-button, so reset anchor
+   styling; brand color matches the retired Ko-fi widget. */
+.toolbar-kofi {
+  background-color: #72a4f2;
+  border-color: #72a4f2;
+  color: #0a0a0a;
+  text-decoration: none;
+  padding: 8px 12px;
+}
+
+.toolbar-kofi:hover {
+  background-color: #5a8ee2;
+  border-color: #5a8ee2;
+}
+
 /* ── Toolbar responsive collapse ──────────────────────────────────────────
    See src/app/Toolbar.tsx for why this is plain (unlayered) CSS rather than
    Tailwind's `hidden`/`sm:` utility classes: those live in `@layer utilities`,

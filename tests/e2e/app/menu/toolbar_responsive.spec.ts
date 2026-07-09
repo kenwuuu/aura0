@@ -13,6 +13,7 @@ import {
   hotkeysButton,
   helpButton,
   discordButton,
+  kofiButton,
   connectionStatus,
   roomLinkButton,
   newGameButton,
@@ -30,19 +31,21 @@ test.describe('toolbar responsive collapse', () => {
     await expect(hotkeysButton(page)).toBeVisible();
     await expect(helpButton(page)).toBeVisible();
     await expect(discordButton(page)).toBeVisible();
+    await expect(kofiButton(page)).toBeVisible();
     await expect(connectionStatus(page)).toBeVisible();
     await expect(newGameButton(page)).toBeVisible();
     await expect(roomLinkButton(page)).toBeVisible();
     await expect(toolbarMoreButton(page)).not.toBeVisible();
   });
 
-  test('phone width hides Hotkeys and collapses Help/Discord into the overflow menu', async ({ page }) => {
+  test('phone width hides Hotkeys and collapses Help/Discord/Ko-fi into the overflow menu', async ({ page }) => {
     await page.setViewportSize(PHONE_VIEWPORT);
 
     await expect(deckImportOpenButton(page)).toBeVisible();
     await expect(hotkeysButton(page)).not.toBeVisible();
     await expect(helpButton(page)).not.toBeVisible();
     await expect(discordButton(page)).not.toBeVisible();
+    await expect(kofiButton(page)).not.toBeVisible();
     await expect(connectionStatus(page)).toBeVisible();
     await expect(newGameButton(page)).toBeVisible();
     await expect(roomLinkButton(page)).toBeVisible();
@@ -52,6 +55,7 @@ test.describe('toolbar responsive collapse', () => {
     await moreButton.click();
     await expect(page.getByRole('menuitem', { name: 'Help' })).toBeVisible();
     await expect(page.getByRole('menuitem', { name: 'Discord' })).toBeVisible();
+    await expect(page.getByRole('menuitem', { name: 'Support me on Ko-fi' })).toBeVisible();
   });
 
   test('phone width keeps the right-aligned cluster flush against the right edge', async ({ page }) => {

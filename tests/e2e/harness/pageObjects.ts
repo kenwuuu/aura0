@@ -126,6 +126,11 @@ export function discordButton(page: Page): Locator {
   return toolbar(page).getByRole('button', { name: 'Join Discord Server' });
 }
 
+/** The Ko-fi support link in the top bar (desktop row; moves into the overflow menu on phone). */
+export function kofiButton(page: Page): Locator {
+  return toolbar(page).getByRole('link', { name: 'Support me on Ko-fi' });
+}
+
 /** The room connection-status indicator (dot + label). */
 export function connectionStatus(page: Page): Locator {
   return page.getByTestId(TESTID.connectionStatus);
