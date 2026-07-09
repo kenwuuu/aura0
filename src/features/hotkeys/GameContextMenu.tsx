@@ -79,6 +79,18 @@ export function GameContextMenu() {
         onOpenAutoFocus={(e) => e.preventDefault()}
         onCloseAutoFocus={(e) => e.preventDefault()}
         onMouseDown={(e) => e.preventDefault()}
+        // The pile-viewer Dialog is modal, so its Radix FocusScope is
+        // `trapped` — it keeps yanking focus back inside the Dialog. Each
+        // forced refocus fires a `focusin` on a Dialog element, which is
+        // "outside" this portaled, non-modal menu; DismissableLayer treats
+        // that as a focus-outside interaction and dismisses. On a real cursor
+        // path from the right-clicked card toward a menu row, this focus churn
+        // fires within the first hop or two and the menu vanishes before the
+        // pointer ever reaches it (a teleporting `.click()` skips the churn,
+        // which is why the bug hid from the old coverage). This menu is
+        // cursor-anchored, not focus-driven, so it should only dismiss on a
+        // real outside pointer-down or Escape — never on focus movement.
+        onFocusOutside={(e) => e.preventDefault()}
       >
         {target && rows.map((hotkey, index) => (
           <DropdownMenuItem

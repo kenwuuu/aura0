@@ -9,21 +9,24 @@ import {
 } from '../../harness';
 
 /**
- * Reproduces a reported bug: a pile-viewer card's right-click context menu
- * is inaccessible to a real user, even though it opens fine under a
- * teleporting `.click({button:'right'})` + `getByText(...).click()` (the
- * existing coverage in pile_viewer.spec.ts). Per the "Simulate real mouse
- * travel" rule in docs/testing/e2e.md, these drive the whole gesture — hover
- * onto the card, right-click, then travel to a menu row and click it — via
- * real incremental `page.mouse.move(..., { steps })`, not a teleport.
+ * Regression coverage for a fixed bug: a pile-viewer card's right-click
+ * context menu was inaccessible to a real user, even though it opened fine
+ * under a teleporting `.click({button:'right'})` + `getByText(...).click()`
+ * (the existing coverage in pile_viewer.spec.ts). Per the "Simulate real
+ * mouse travel" rule in docs/testing/e2e.md, these drive the whole gesture —
+ * hover onto the card, right-click, then travel to a menu row and click it —
+ * via real incremental `page.mouse.move(..., { steps })`, not a teleport.
  *
- * Observed (not yet root-caused): the menu vanishes within the first 1–3 of
- * the 6 travel hops below — i.e. almost immediately once the pointer starts
- * moving away from the card, well before it reaches another card or any
- * other content. Which exact hop varies between runs.
- *
- * KNOWN BROKEN as of this writing — do not delete/skip without a fix landing
- * alongside it. See test.fail() below.
+ * Root cause: the pile-viewer Dialog is modal, so its Radix FocusScope is
+ * `trapped` and keeps yanking focus back inside the Dialog. Each forced
+ * refocus fired a `focusin` that the menu's (non-modal, portaled)
+ * DismissableLayer read as a focus-outside interaction and dismissed on — so
+ * the menu vanished within the first hop or two of real pointer travel, well
+ * before the cursor reached it. A teleporting `.click()` skipped that focus
+ * churn, which is why the bug hid from the old coverage. Fixed by
+ * `preventDefault`-ing `onFocusOutside` on the menu (GameContextMenu.tsx): a
+ * cursor-anchored menu should only dismiss on a real outside pointer-down or
+ * Escape, never on focus movement.
  */
 
 function secondCard(page: Parameters<typeof pileViewerCards>[0]) {
@@ -31,8 +34,6 @@ function secondCard(page: Parameters<typeof pileViewerCards>[0]) {
 }
 
 test('pile-viewer card context menu is reachable via real mouse travel', async ({ page }) => {
-  test.fail(); // documents a known bug; remove test.fail() once fixed
-
   await openPileViewer(page, 'deck');
   await waitForPileViewerReady(page);
 
@@ -58,8 +59,6 @@ test('pile-viewer card context menu is reachable via real mouse travel', async (
 });
 
 test('pile-viewer card context menu stays open while the mouse travels toward it', async ({ page }) => {
-  test.fail(); // documents a known bug; remove test.fail() once fixed
-
   await openPileViewer(page, 'deck');
   await waitForPileViewerReady(page);
 
