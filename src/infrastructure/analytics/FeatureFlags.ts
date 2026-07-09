@@ -31,11 +31,11 @@ function whenFlagsReady(): Promise<void> {
  * Resolves which Yjs network transport to use *by default* (i.e. absent a
  * manual override — see isManualTransportOverrideEnabled below), via the
  * `network-transport-websocket` PostHog flag. A slow or unreachable PostHog
- * falls back to `webrtc` rather than blocking room join.
+ * falls back to `websocket` rather than blocking room join.
  */
 export async function resolveNetworkTransport(): Promise<NetworkTransport> {
   await whenFlagsReady();
-  return posthog.isFeatureEnabled(NETWORK_TRANSPORT_FLAG) ? 'websocket' : 'webrtc';
+  return posthog.isFeatureEnabled(NETWORK_TRANSPORT_FLAG) === false ? 'webrtc' : 'websocket';
 }
 
 /**
