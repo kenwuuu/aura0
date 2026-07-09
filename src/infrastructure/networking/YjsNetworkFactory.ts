@@ -60,7 +60,7 @@ async function fetchCloudFlareIceServers(): Promise<RTCIceServer[]> {
  * and document persistence
  */
 export class yjsNetworkFactory {
-  static async create(yDoc: Y.Doc, config: WebRTCConfig, transport: NetworkTransport = 'webrtc'): Promise<YjsNetworkProvider> {
+  static async create(yDoc: Y.Doc, config: WebRTCConfig, transport: NetworkTransport): Promise<YjsNetworkProvider> {
     if (transport === 'websocket') {
       console.log('Using WebSocket transport');
       return new WebsocketProvider(yDoc, config);
