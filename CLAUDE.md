@@ -32,6 +32,29 @@ npx playwright test     # e2e tests (requires dev server running)
 npx tsc --noEmit        # type-check
 ```
 
+## Branch workflow
+
+**Branch off `staging`, open PRs into `staging`.** Never work off `master` or
+target it directly. `staging` is the long-lived integration branch (and the
+repo default), so `git clone` / new branches start there by default:
+
+```bash
+git switch staging && git pull
+git switch -c feature/x     # do the work, then open a PR into staging
+```
+
+`master` is the **production/release** branch — Cloudflare Workers Builds
+deploys it to `aura0.app` on every push. It advances *only* via a single
+`staging → master` promotion PR once changes are verified on
+`staging.aura0.app`. Direct pushes to `master` are blocked by a local
+`pre-push` hook (`.husky/pre-push`); override an intentional one with
+`ALLOW_MASTER_PUSH=1 git push …`.
+
+The one exception is a **production hotfix** that can't wait for what's in
+staging: branch off `master`, PR into `master`, then back-merge
+`master → staging`. This is a human call — not a default. Full flow and the
+Cloudflare/GitHub setup are in [`docs/STAGING.md`](docs/STAGING.md).
+
 ## Architecture
 
 ### Entry point flow
