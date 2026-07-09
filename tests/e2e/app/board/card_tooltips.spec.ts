@@ -87,8 +87,7 @@ test('testInteractiveTooltip', async ({ page }) => {
   await expect(secondBoardCard).toBeHidden();
 
   // 'addCounter' spawns a "+1/+1" keyword token at the card's position (see
-  // executeBattlefieldCardAction) rather than an in-card counter overlay —
-  // CardCounter.tsx exists but is unused/orphaned. Assert the real behavior.
+  // executeBattlefieldCardAction) rather than an in-card counter overlay.
   // Done last: the spawned token sits on top of the card and would intercept
   // pointer events for any further right-clicks on it.
   const tokensBefore = await boardTokens(page).count();
