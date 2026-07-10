@@ -16,6 +16,10 @@ export class AnnouncementsService {
    * Returns true if there are new announcements since their last visit
    */
   static shouldShowAnnouncement(): boolean {
+    // Temporarily disabled: suppress the "You've used Aura more than N times"
+    // Ko-fi donation modal. Remove this early return to re-enable.
+    return false;
+
     const lastSeenVersion = parseFloat(<string>localStorage.getItem(this.STORAGE_KEY));
     const VISIT_COUNT_KEY = 'aura-visit-count';
     const visitCount = parseInt(localStorage.getItem(VISIT_COUNT_KEY) || '0', 10);
