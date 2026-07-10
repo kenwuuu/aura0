@@ -11,6 +11,7 @@ function makeMockLookup(): CardLookupService {
     results: entries.map((entry) => ({
       name: entry.name,
       count: entry.count,
+      commander: entry.commander,
       scryfallId: `${entry.name.toLowerCase().replace(/\s+/g, '-')}-id`,
       type_line: entry.name.includes('Mountain') ? 'Basic Land' : 'Instant',
       imageUris: {
@@ -65,6 +66,22 @@ DECK:
       expect(result.errors).toBeUndefined();
       expect(result.cards).toHaveLength(25);
       expect(importedNames(result).sort()).toEqual(['Flubs, the Fool', 'Lightning Bolt', 'Mountain']);
+    });
+
+    it('should tag commander-section cards so auto-draw can find them', async () => {
+      const deckText = `COMMANDER:
+1 Flubs, the Fool
+
+DECK:
+4 Lightning Bolt`;
+
+      const result = await importer.importFromText(deckText);
+
+      const flubs = result.cards.filter((c) => c.name === 'Flubs, the Fool');
+      expect(flubs).toHaveLength(1);
+      expect(flubs[0].commander).toBe(true);
+      // Main-deck cards are not flagged.
+      expect(result.cards.filter((c) => c.name === 'Lightning Bolt').every((c) => !c.commander)).toBe(true);
     });
 
     it('should keep commander + main and drop sideboard and maybeboard', async () => {

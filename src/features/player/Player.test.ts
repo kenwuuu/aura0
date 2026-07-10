@@ -746,7 +746,19 @@ describe('Player.loadNewDeck()', () => {
     player = new Player('test-player', yDoc, deck, { initialHealth: 40 });
   });
 
-  it('should replace deck and draw commander', async () => {
+  const makeNewDeck = (cards: Card[]): SavedDeck => ({
+    metadata: {
+      id: '',
+      name: 'test deck',
+      cardCount: cards.length,
+      importedAt: new Date(2020, 10, 23),
+      lastModified: new Date(2020, 10, 23),
+      source: 'manual',
+    },
+    cards,
+  });
+
+  it('should draw a normal 7-card opening hand when no card is a commander', async () => {
     const newDeckCards: Card[] = Array.from({ length: 10 }, (_, i) => ({
       id: `new-card-${i}`,
       cardNumber: i + 1,
@@ -758,23 +770,56 @@ describe('Player.loadNewDeck()', () => {
       counters: [],
     }));
 
-    const newDeck: SavedDeck = {
-      metadata: {
-        id: '',
-        name: 'test deck',
-        cardCount: newDeckCards.length,
-        importedAt: new Date(2020, 10, 23),
-        lastModified: new Date(2020, 10, 23),
-        source: 'manual',
-      },
-      cards: newDeckCards
-    };
+    await player.loadNewDeck(makeNewDeck(newDeckCards));
 
-    await player.loadNewDeck((newDeck));
+    // No commander flagged: 7 cards in hand, 3 remaining in deck.
+    expect(player.getHand().getCardCount()).toBe(7);
+    expect(player.getDeck().getCardCount()).toBe(3);
+  });
 
-    // Should draw 1 card (commander) + 7 cards = 8 total in hand, 2 remaining in deck
+  it('should auto-draw a flagged commander into the opening hand', async () => {
+    const newDeckCards: Card[] = Array.from({ length: 10 }, (_, i) => ({
+      id: `new-card-${i}`,
+      cardNumber: i + 1,
+      x: 0,
+      y: 0,
+      rotation: 0,
+      isTapped: false,
+      isFlipped: false,
+      counters: [],
+      commander: i === 3, // an arbitrary card (not the last) is the commander
+    }));
+
+    await player.loadNewDeck(makeNewDeck(newDeckCards));
+
+    // Commander + 7 = 8 cards in hand, 2 remaining in deck, and the commander
+    // is guaranteed to be in hand (not left to chance in the deck).
     expect(player.getHand().getCardCount()).toBe(8);
     expect(player.getDeck().getCardCount()).toBe(2);
+    expect(player.getHand().getCards().some((c) => c.id === 'new-card-3')).toBe(true);
+  });
+
+  it('should auto-draw multiple commanders (partners)', async () => {
+    const newDeckCards: Card[] = Array.from({ length: 12 }, (_, i) => ({
+      id: `new-card-${i}`,
+      cardNumber: i + 1,
+      x: 0,
+      y: 0,
+      rotation: 0,
+      isTapped: false,
+      isFlipped: false,
+      counters: [],
+      commander: i < 2, // two partner commanders
+    }));
+
+    await player.loadNewDeck(makeNewDeck(newDeckCards));
+
+    // 2 commanders + 7 = 9 in hand, 3 remaining, both commanders in hand.
+    expect(player.getHand().getCardCount()).toBe(9);
+    expect(player.getDeck().getCardCount()).toBe(3);
+    const handIds = player.getHand().getCards().map((c) => c.id);
+    expect(handIds).toContain('new-card-0');
+    expect(handIds).toContain('new-card-1');
   });
 
   it('should shuffle deck after loading', () => {
