@@ -14,6 +14,14 @@ import posthog from 'posthog-js';
 import { bootstrapGame } from './bootstrap';
 import { App } from './App';
 import { CrashFallback } from './CrashFallback';
+// Manabase type: Space Grotesk (display/UI) + Space Mono (numbers/labels),
+// self-hosted so the app has no runtime font dependency.
+import '@fontsource/space-grotesk/300.css';
+import '@fontsource/space-grotesk/400.css';
+import '@fontsource/space-grotesk/500.css';
+import '@fontsource/space-grotesk/600.css';
+import '@fontsource/space-mono/400.css';
+import '@fontsource/space-mono/700.css';
 import '../style.css';
 
 // ── Deploy identity ───────────────────────────────────────────────────────────

@@ -5,15 +5,13 @@ import {
   OctagonXIcon,
   TriangleAlertIcon,
 } from "lucide-react"
-import { useTheme } from "next-themes"
 import { Toaster as Sonner, type ToasterProps } from "sonner"
 
 const Toaster = ({ ...props }: ToasterProps) => {
-  const { theme = "system" } = useTheme()
-
   return (
     <Sonner
-      theme={theme as ToasterProps["theme"]}
+      // The app is dark-only (see src/tokens.css) — no theme detection.
+      theme="dark"
       className="toaster group"
       icons={{
         success: <CircleCheckIcon className="size-4" />,
@@ -24,11 +22,11 @@ const Toaster = ({ ...props }: ToasterProps) => {
       }}
       toastOptions={{
         style: {
-          backgroundColor: '#1a1a1a',
-          border: '2px solid #4a4a4a',
-          borderRadius: '12px',
-          color: '#fff',
-          fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", sans-serif',
+          backgroundColor: 'var(--bg-2)',
+          border: '1px solid var(--line-2)',
+          borderRadius: '6px',
+          color: 'var(--text)',
+          fontFamily: 'var(--font-sans)',
           padding: '12px 16px',
         },
         classNames: {
@@ -40,18 +38,18 @@ const Toaster = ({ ...props }: ToasterProps) => {
       }}
       style={
         {
-          "--normal-bg": "#1a1a1a",
-          "--normal-text": "#fff",
-          "--normal-border": "#4a4a4a",
-          "--border-radius": "12px",
-          "--success-bg": "#1a1a1a",
-          "--success-border": "#10b981",
-          "--error-bg": "#1a1a1a",
-          "--error-border": "#ef4444",
-          "--warning-bg": "#1a1a1a",
-          "--warning-border": "#facc15",
-          "--info-bg": "#1a1a1a",
-          "--info-border": "#3b82f6",
+          "--normal-bg": "var(--bg-2)",
+          "--normal-text": "var(--text)",
+          "--normal-border": "var(--line-2)",
+          "--border-radius": "6px",
+          "--success-bg": "var(--bg-2)",
+          "--success-border": "var(--good)",
+          "--error-bg": "var(--bg-2)",
+          "--error-border": "var(--danger)",
+          "--warning-bg": "var(--bg-2)",
+          "--warning-border": "var(--warn)",
+          "--info-bg": "var(--bg-2)",
+          "--info-border": "var(--accent-2)",
         } as React.CSSProperties
       }
       {...props}

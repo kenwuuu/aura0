@@ -1,0 +1,104 @@
+/*
+ * Manabase design tokens — the single source of truth for every primitive
+ * visual value in the app. Spec: design_handoff_manabase/README.md (values are
+ * final); brief: design_handoff_manabase/DESIGN_SYSTEM.md.
+ *
+ * Rules (see docs/styling.md):
+ *  - This file is the ONLY place chrome hex/rgba literals may live.
+ *  - Components consume tokens via Tailwind utilities or var(--*) — never literals.
+ *  - Dark-only system. There is no light theme; do not add one.
+ */
+
+:root {
+  /* Surfaces */
+  --bg: #08080c;
+  --bg-2: #0d0d14;
+  --surface: rgba(255, 255, 255, 0.03);
+  --surface-2: rgba(255, 255, 255, 0.055);
+  --line: rgba(255, 255, 255, 0.08);
+  --line-2: rgba(255, 255, 255, 0.14);
+
+  /* Text */
+  --text: #ececf2;
+  --text-dim: #9a9aab;
+  --text-mute: #5e5e6c;
+
+  /* Brand — purple is the only brand energy; blue/pink are rare */
+  --accent: #9b5cff;
+  --accent-2: #6e7bff;
+  --accent-pink: #ff5cad;
+  --accent-contrast: #0a0410; /* text on accent fills */
+  --accent-soft: rgba(155, 92, 255, 0.14);
+  --accent-line: rgba(155, 92, 255, 0.45);
+
+  /* Glow — elevation reads as light, not shadow. Values are accent-derived
+     (accent @ 0.5 / 0.85 alpha). A runtime accent/glow knob (applyTheme() in
+     the prototype) is deferred; if the accent ever becomes themeable, derive
+     these instead of editing them. */
+  --glow: rgba(155, 92, 255, 0.5);
+  --glow-strong: rgba(155, 92, 255, 0.85);
+
+  /* State */
+  --good: #39d98a;
+  --danger: #ff5c7a;
+  --warn: #ffc46b;
+
+  /* Mana identity — DATA ONLY (pips, filters, log tags). Never chrome. */
+  --mana-w: #efe9ce;
+  --mana-u: #4a90e2;
+  --mana-b: #3b3b44;
+  --mana-r: #e5484d;
+  --mana-g: #3aa76d;
+
+  /* Motion & elevation */
+  --ease-hud: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --shadow-sheet: 0 12px 40px rgba(0, 0, 0, 0.5); /* floating sheets only */
+
+  /* Tailwind spacing base (4px grid) */
+  --spacing: 0.25rem;
+}
+
+/*
+ * shadcn slot derivation — one dark-only set (the app never renders light).
+ * Every shadcn primitive (dialog, dropdown, button, input, …) reads these,
+ * so this block reskins all of them at once.
+ * Note: there is deliberately NO slot named --accent here — Manabase owns
+ * that name (brand purple). The shadcn semantic accent (hover wash) is mapped
+ * in style.css's @theme inline as --color-accent: var(--accent-soft).
+ */
+:root {
+  --background: var(--bg);
+  --foreground: var(--text);
+  --card: var(--bg-2);
+  --card-foreground: var(--text);
+  --popover: var(--bg-2);
+  --popover-foreground: var(--text);
+  --primary: var(--accent);
+  --primary-foreground: var(--accent-contrast);
+  --secondary: var(--surface);
+  --secondary-foreground: var(--text);
+  --muted: var(--surface);
+  --muted-foreground: var(--text-dim);
+  --destructive: var(--danger);
+  --border: var(--line);
+  --input: var(--line-2);
+  --ring: var(--accent-line);
+}
+
+/* Card "targeted" aura (design §06) — 1.2s ease-in-out infinite */
+@keyframes pulse-glow {
+  0%,
+  100% {
+    box-shadow: 0 0 0 1px var(--accent), 0 0 10px var(--glow);
+  }
+  50% {
+    box-shadow: 0 0 0 1px var(--accent), 0 0 28px var(--glow-strong);
+  }
+}
+
+/* Every game count (life, deck, discard, exile) uses this so digits never
+   shift as numbers tick. */
+.mono-num {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
