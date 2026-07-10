@@ -160,6 +160,34 @@ DECK:
         expect(result[0]).toEqual({ count: 1, name: "Atraxa, Praetors' Voice", commander: true });
       });
 
+      it('should tag every card under a commander header (partners)', () => {
+        const deckText = `COMMANDER:
+1 Thrasios, Triton Hero
+1 Tymna the Weaver
+
+DECK:
+4 Lightning Bolt`;
+
+        const result = parseDecklist(deckText);
+
+        expect(result).toHaveLength(3);
+        // Both partners are flagged — not just the first line under the header.
+        expect(result[0]).toEqual({ count: 1, name: 'Thrasios, Triton Hero', commander: true });
+        expect(result[1]).toEqual({ count: 1, name: 'Tymna the Weaver', commander: true });
+        // The section resets at the next header; main-deck cards are not flagged.
+        expect(result[2]).toEqual({ count: 4, name: 'Lightning Bolt' });
+      });
+
+      it('should not flag any card when the list has no headers', () => {
+        const deckText = `1 Sol Ring
+20 Mountain
+1 Krenko, Mob Boss`;
+
+        const result = parseDecklist(deckText);
+
+        expect(result.every((item) => item.commander === undefined)).toBe(true);
+      });
+
       it('should keep commander + main and drop sideboard and maybeboard', () => {
         const deckText = `MAIN DECK:
 4 Lightning Bolt
