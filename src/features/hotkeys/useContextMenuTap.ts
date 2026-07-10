@@ -40,6 +40,42 @@ import type { MenuTarget } from './hotkeys';
  * rather than a drag/pan. */
 const TAP_MOVE_TOLERANCE = 10;
 
+/** How close (px) a trailing synthetic click must be to the tap point to be
+ * treated as that tap's compat click and swallowed. A deliberate tap on a menu
+ * row lands elsewhere, so it stays clickable. */
+const TRAILING_CLICK_SLOP = 8;
+
+// A touch tap synthesises a trailing `click` a few ms later. `onClickCapture`
+// on the tapped element cancels it there — but when the tap opens a menu that
+// renders *under the finger* (a hand card's menu opens just above the tap
+// point), that click lands on a menu row instead and would activate it, closing
+// the menu we just opened. This document-level, capture-phase swallow catches
+// that click by matching its coordinates to the tap point, independent of which
+// element it hit or how delayed it is. It's coordinate-matched, not time-boxed,
+// so a *deliberate* tap on a menu row (at different coordinates) still works.
+let pendingTapClickAt: { x: number; y: number } | null = null;
+let clickSwallowerInstalled = false;
+
+function installTrailingClickSwallower(): void {
+  if (clickSwallowerInstalled || typeof document === 'undefined') return;
+  clickSwallowerInstalled = true;
+  document.addEventListener(
+    'click',
+    (e) => {
+      const p = pendingTapClickAt;
+      if (!p) return;
+      pendingTapClickAt = null;
+      if (Math.hypot(e.clientX - p.x, e.clientY - p.y) <= TRAILING_CLICK_SLOP) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+    },
+    true,
+  );
+}
+
+installTrailingClickSwallower();
+
 interface UseContextMenuTapOptions {
   /** Present on card surfaces: shows *this target's* preview at (x, y). Its
    * presence switches the tap into the two-tap preview-then-menu flow. */
@@ -56,6 +92,9 @@ export function useContextMenuTap(target: MenuTarget | null, opts?: UseContextMe
 
   const onPointerDown = (e: ReactPointerEvent) => {
     tapConsumedRef.current = false;
+    // A new gesture: drop any stale pending trailing-click swallow (e.g. a
+    // browser that skipped the previous tap's synthetic click).
+    pendingTapClickAt = null;
     if (e.pointerType === 'mouse') {
       startRef.current = null;
       return;
@@ -70,7 +109,11 @@ export function useContextMenuTap(target: MenuTarget | null, opts?: UseContextMe
     if (Math.hypot(e.clientX - start.x, e.clientY - start.y) > TAP_MOVE_TOLERANCE) return;
 
     // A tap always swallows its trailing synthetic click, whatever branch runs.
+    // Both the element-scoped `onClickCapture` (for a click on this element) and
+    // the document-level coordinate swallow (for a click that lands on a menu we
+    // just opened under the finger) are armed.
     tapConsumedRef.current = true;
+    pendingTapClickAt = { x: e.clientX, y: e.clientY };
     const x = e.clientX;
     const y = e.clientY;
 

@@ -105,6 +105,38 @@ describe('useContextMenuTap', () => {
     });
   });
 
+  describe('trailing synthetic click', () => {
+    it('swallows a click at the tap coordinates even when it lands on another element (menu opened under the finger)', () => {
+      const menuClick = vi.fn();
+      render(
+        <>
+          <PlainProbe />
+          <div data-testid="under-finger" onClick={menuClick} />
+        </>,
+      );
+      tap('probe-plain', 'touch'); // taps at (100, 100), arming the coord swallow
+      // The trailing compat click lands on a *different* element (a menu that
+      // opened under the finger) but at the same coordinates — it's swallowed so
+      // it can't activate a menu row and close the just-opened menu.
+      fireEvent.click(screen.getByTestId('under-finger'), { clientX: 100, clientY: 100 });
+      expect(menuClick).not.toHaveBeenCalled();
+    });
+
+    it('leaves a click at different coordinates clickable (a deliberate menu-row tap)', () => {
+      const rowClick = vi.fn();
+      render(
+        <>
+          <PlainProbe />
+          <div data-testid="menu-row" onClick={rowClick} />
+        </>,
+      );
+      tap('probe-plain', 'touch'); // taps at (100, 100)
+      // A real, later tap on a menu row is at different coordinates — not swallowed.
+      fireEvent.click(screen.getByTestId('menu-row'), { clientX: 300, clientY: 300 });
+      expect(rowClick).toHaveBeenCalledTimes(1);
+    });
+  });
+
   describe('card surface (two-tap: preview → menu)', () => {
     it('first tap shows this card\'s preview and opens no menu', () => {
       render(<CardProbe />);
