@@ -106,12 +106,14 @@ describe('TokenNode — hover shows the increment/decrement zones', () => {
     expect(screen.getByTestId('token-adjust-zones')).toBeInTheDocument();
     expect(screen.getByTestId('token-zone-top')).toBeInTheDocument();
     expect(screen.getByTestId('token-zone-bottom')).toBeInTheDocument();
+    // The +/- intent glyphs are drawn too.
+    expect(screen.getByTestId('token-adjust-glyphs')).toBeInTheDocument();
 
     fireEvent.mouseLeave(frame);
     expect(screen.queryByTestId('token-adjust-zones')).not.toBeInTheDocument();
   });
 
-  it('brightens the zone the cursor is over (top vs bottom)', () => {
+  it('darkens the zone the cursor is over (top vs bottom)', () => {
     const { container } = renderToken(makeToken({ ownerId: LOCAL_PLAYER }));
     const frame = container.firstChild as Element;
     // happy-dom has no layout, so stub the frame's rect for the top/bottom split.
@@ -121,12 +123,12 @@ describe('TokenNode — hover shows the increment/decrement zones', () => {
 
     fireEvent.mouseEnter(frame);
     fireEvent.mouseMove(frame, { clientY: 2 }); // top half
-    expect(screen.getByTestId('token-zone-top')).toHaveStyle({ backgroundColor: 'rgba(255,255,255,0.5)' });
-    expect(screen.getByTestId('token-zone-bottom')).toHaveStyle({ backgroundColor: 'rgba(255,255,255,0.18)' });
+    expect(screen.getByTestId('token-zone-top')).toHaveStyle({ backgroundColor: 'rgba(0,0,0,0.5)' });
+    expect(screen.getByTestId('token-zone-bottom')).toHaveStyle({ backgroundColor: 'rgba(0,0,0,0.28)' });
 
     fireEvent.mouseMove(frame, { clientY: 18 }); // bottom half
-    expect(screen.getByTestId('token-zone-bottom')).toHaveStyle({ backgroundColor: 'rgba(255,255,255,0.5)' });
-    expect(screen.getByTestId('token-zone-top')).toHaveStyle({ backgroundColor: 'rgba(255,255,255,0.18)' });
+    expect(screen.getByTestId('token-zone-bottom')).toHaveStyle({ backgroundColor: 'rgba(0,0,0,0.5)' });
+    expect(screen.getByTestId('token-zone-top')).toHaveStyle({ backgroundColor: 'rgba(0,0,0,0.28)' });
   });
 
   it('does not show the zones for another player\'s token', () => {
