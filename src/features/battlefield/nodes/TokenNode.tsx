@@ -4,6 +4,7 @@ import * as Y from 'yjs';
 import { KeywordToken } from '@/features/keyword-tokens/types';
 import { useHotkeyStore } from '@/app/stores/hotkeyStore';
 import { useContextMenuStore } from '@/features/hotkeys/contextMenuStore';
+import { useContextMenuTap } from '@/features/hotkeys/useContextMenuTap';
 import { isOwnToken, applyTokenDelta, clickedTopHalf } from './tokenNodeLogic';
 
 export const TOKEN_SIZE = 20;
@@ -53,6 +54,10 @@ export const TokenNode = memo(function TokenNode({ data, id }: NodeProps) {
     useHotkeyStore.getState().setHoveredToken(null);
   }, []);
 
+  // On touch, a tap opens the context menu (which carries +1/-1/delete) instead
+  // of running the left-click +/- — the synthesised click is swallowed.
+  const tapMenu = useContextMenuTap({ kind: 'token', id });
+
   return (
     <div
       data-testid="battlefield-token"
@@ -73,6 +78,7 @@ export const TokenNode = memo(function TokenNode({ data, id }: NodeProps) {
       onContextMenu={handleContextMenu}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
+      {...tapMenu}
     >
       {/* circular background */}
       <div style={{

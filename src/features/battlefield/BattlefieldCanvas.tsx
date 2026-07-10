@@ -181,6 +181,66 @@ function BattlefieldCanvasInner({ yDoc, localPlayerId }: BattlefieldCanvasProps)
   // leaving it parked on what becomes the first player's board. We stop the
   // moment the user manually pans/zooms so we never yank the viewport.
   const hasUserMovedRef = useRef(false);
+
+  // The wrapper DOM node, needed for the native touch-tap listeners below.
+  // `useDroppable`'s `setBattlefieldRef` is a callback ref, so tee it into our
+  // own ref rather than clobbering it.
+  const wrapperElRef = useRef<HTMLDivElement | null>(null);
+  const setWrapperRef = useCallback((node: HTMLDivElement | null) => {
+    wrapperElRef.current = node;
+    setBattlefieldRef(node);
+  }, [setBattlefieldRef]);
+
+  // Pointer type of the in-flight pane gesture, so `onPaneClick` (a MouseEvent,
+  // no `pointerType`) can stay out of the way of touch — a touch pane tap is
+  // handled entirely by the native listeners below, and Firefox still fires a
+  // compat `click` on the pane afterwards that would otherwise close the menu
+  // we just opened.
+  const panePointerTypeRef = useRef<string>('mouse');
+
+  // Touch tap on the empty board → open the global-actions menu (the touch
+  // equivalent of a right-click on empty space). Two reasons this must be a
+  // *native, capture-phase* listener rather than react-flow's `onPaneClick` or
+  // React's own `onPointerUpCapture`:
+  //  1. react-flow's D3-zoom swallows the touch→click on the pane, so
+  //     `onPaneClick` never fires for touch on Chromium;
+  //  2. once D3-zoom pointer-captures the pane, Firefox stops delivering the
+  //     pointer events to React's synthetic capture listeners entirely — only
+  //     a native capture listener on the wrapper still sees them.
+  // `menuWasOpen` snapshots whether a menu was open when the tap began: if it
+  // was, the tap is a dismiss (react-flow's `onMoveStart` and Radix both close
+  // it mid-gesture) and must not re-open a board menu; only a tap that began
+  // with nothing open summons one.
+  useEffect(() => {
+    const el = wrapperElRef.current;
+    if (!el) return;
+    let start: { x: number; y: number; menuWasOpen: boolean } | null = null;
+    const onDown = (e: PointerEvent) => {
+      const onPane = e.target instanceof Element && !!e.target.closest('.react-flow__pane');
+      if (onPane) panePointerTypeRef.current = e.pointerType;
+      start = onPane && e.pointerType !== 'mouse'
+        ? { x: e.clientX, y: e.clientY, menuWasOpen: useContextMenuStore.getState().isOpen }
+        : null;
+    };
+    const onUp = (e: PointerEvent) => {
+      const s = start;
+      start = null;
+      if (!s || s.menuWasOpen) return;
+      // Only a genuine tap (small travel) — a pan/pinch travels further.
+      if (Math.hypot(e.clientX - s.x, e.clientY - s.y) > 10) return;
+      useContextMenuStore.getState().openMenu({
+        target: { kind: 'board', x: e.clientX, y: e.clientY },
+        x: e.clientX,
+        y: e.clientY,
+      });
+    };
+    el.addEventListener('pointerdown', onDown, { capture: true });
+    el.addEventListener('pointerup', onUp, { capture: true });
+    return () => {
+      el.removeEventListener('pointerdown', onDown, { capture: true });
+      el.removeEventListener('pointerup', onUp, { capture: true });
+    };
+  }, []);
   const lastCenteredKeyRef = useRef<string | null>(null);
   useEffect(() => {
     if (hasUserMovedRef.current || !localMatOrigin) return;
@@ -459,7 +519,12 @@ function BattlefieldCanvasInner({ yDoc, localPlayerId }: BattlefieldCanvasProps)
   );
 
   return (
-    <div ref={setBattlefieldRef} style={{ width: '100%', height: '100%' }} onPointerMove={onPointerMove} onPointerLeave={onPointerLeave}>
+    <div
+      ref={setWrapperRef}
+      style={{ width: '100%', height: '100%' }}
+      onPointerMove={onPointerMove}
+      onPointerLeave={onPointerLeave}
+    >
       <ReactFlow
         nodes={allNodes}
         edges={[]}
@@ -476,7 +541,15 @@ function BattlefieldCanvasInner({ yDoc, localPlayerId }: BattlefieldCanvasProps)
         // The handler also keeps pointer-events:all on non-draggable/selectable nodes (enemy cards/tokens).
         onNodeMouseEnter={onNodeMouseEnter}
         onNodeMouseLeave={onNodeMouseLeave}
-        onPaneClick={() => useContextMenuStore.getState().close()}
+        // Mouse only — a left-click on the empty pane dismisses any open menu.
+        // On touch this fires inconsistently (Chromium's D3-zoom eats the
+        // touch→click, Firefox lets it through) and would close the menu the
+        // native tap listeners just opened, so touch is handled entirely above
+        // (open) plus Radix's outside-pointer dismiss (close).
+        onPaneClick={() => {
+          if (panePointerTypeRef.current !== 'mouse') return;
+          useContextMenuStore.getState().close();
+        }}
         onPaneContextMenu={(event) => {
           event.preventDefault();
           useContextMenuStore.getState().openMenu({
