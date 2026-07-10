@@ -1,72 +1,151 @@
 /**
- * Unit coverage for the touch tap-to-open gesture. The end-to-end behaviour
- * (real touch events across Chromium/WebKit) lives in
- * tests/e2e/app/board/mobile_tap_context_menu.spec.ts; here we pin the pure
- * decision logic: touch-only, drag-aware, and click-swallowing.
+ * Unit coverage for the touch tap gesture. The end-to-end behaviour (real
+ * touch events across Chromium/WebKit) lives in
+ * tests/e2e/app/board/mobile_tap_context_menu.spec.ts and
+ * mobile_card_preview.spec.ts; here we pin the pure decision logic: touch-only,
+ * drag-aware, click-swallowing, and the two-tap preview→menu machine.
  */
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, fireEvent, screen } from '@testing-library/react';
 import { useContextMenuTap } from './useContextMenuTap';
 import { useContextMenuStore } from './contextMenuStore';
+import { useCardPreviewStore } from '@/features/card-preview/cardPreviewStore';
 import type { MenuTarget } from './hotkeys';
+import type { Card } from '@/features/player/types';
 
-const TARGET: MenuTarget = { kind: 'battlefieldCard', id: 'card-1' };
+const CARD_TARGET: MenuTarget = { kind: 'battlefieldCard', id: 'card-1' };
+const TOKEN_TARGET: MenuTarget = { kind: 'token', id: 'tok-1' };
 
-function Probe({ target = TARGET, onClick }: { target?: MenuTarget | null; onClick?: () => void }) {
-  const tap = useContextMenuTap(target);
-  return <div data-testid="probe" onClick={onClick} {...tap} />;
+function card(id: string): Card {
+  return { id } as Card;
 }
 
-/** Fire a down→up pair on the probe. `travel` offsets the up point (a drag). */
-function tap(pointerType: 'touch' | 'mouse', travel = 0) {
-  const el = screen.getByTestId('probe');
+/** A card surface whose `showPreview` actually drives the preview store, so the
+ * two-tap machine can read a real "preview visible for this id" state. */
+function CardProbe({ target = CARD_TARGET, onClick }: { target?: MenuTarget; onClick?: () => void }) {
+  const tap = useContextMenuTap(target, {
+    showPreview: (x, y) => {
+      const id = 'id' in target ? target.id : 'card-1';
+      useCardPreviewStore.getState().show(card(id));
+      useCardPreviewStore.getState().updatePosition(x, y);
+    },
+  });
+  return <div data-testid={`probe-${'id' in target ? target.id : 'x'}`} onClick={onClick} {...tap} />;
+}
+
+/** A non-card surface (token/pile/board): no `showPreview`, single-tap → menu. */
+function PlainProbe({ target = TOKEN_TARGET, onClick }: { target?: MenuTarget | null; onClick?: () => void }) {
+  const tap = useContextMenuTap(target);
+  return <div data-testid="probe-plain" onClick={onClick} {...tap} />;
+}
+
+/** Fire a down→up pair on a probe. `travel` offsets the up point (a drag). */
+function tap(testid: string, pointerType: 'touch' | 'mouse', travel = 0) {
+  const el = screen.getByTestId(testid);
   fireEvent.pointerDown(el, { pointerType, pointerId: 1, clientX: 100, clientY: 100 });
   fireEvent.pointerUp(el, { pointerType, pointerId: 1, clientX: 100 + travel, clientY: 100 });
 }
 
 describe('useContextMenuTap', () => {
-  beforeEach(() => useContextMenuStore.setState({ isOpen: false, target: null, x: 0, y: 0 }));
-
-  it('opens the menu for the target on a touch tap', () => {
-    render(<Probe />);
-    tap('touch');
-    const state = useContextMenuStore.getState();
-    expect(state.isOpen).toBe(true);
-    expect(state.target).toEqual(TARGET);
-    expect(state).toMatchObject({ x: 100, y: 100 });
+  beforeEach(() => {
+    useContextMenuStore.setState({ isOpen: false, target: null, x: 0, y: 0 });
+    useCardPreviewStore.getState().hide();
   });
 
-  it('ignores a mouse press (desktop keeps right-click for the menu)', () => {
-    render(<Probe />);
-    tap('mouse');
-    expect(useContextMenuStore.getState().isOpen).toBe(false);
+  describe('non-card surface (single tap → menu)', () => {
+    it('opens the menu for the target on a touch tap', () => {
+      render(<PlainProbe />);
+      tap('probe-plain', 'touch');
+      const state = useContextMenuStore.getState();
+      expect(state.isOpen).toBe(true);
+      expect(state.target).toEqual(TOKEN_TARGET);
+      expect(state).toMatchObject({ x: 100, y: 100 });
+    });
+
+    it('ignores a mouse press (desktop keeps right-click for the menu)', () => {
+      render(<PlainProbe />);
+      tap('probe-plain', 'mouse');
+      expect(useContextMenuStore.getState().isOpen).toBe(false);
+    });
+
+    it('ignores a touch that travels past the tap tolerance (a drag/pan)', () => {
+      render(<PlainProbe />);
+      tap('probe-plain', 'touch', 40);
+      expect(useContextMenuStore.getState().isOpen).toBe(false);
+    });
+
+    it('opts out when the target is null (e.g. an opponent pile)', () => {
+      render(<PlainProbe target={null} />);
+      tap('probe-plain', 'touch');
+      expect(useContextMenuStore.getState().isOpen).toBe(false);
+    });
+
+    it('clears any stray preview so preview and menu are never both visible', () => {
+      useCardPreviewStore.getState().show(card('other'));
+      render(<PlainProbe />);
+      tap('probe-plain', 'touch');
+      expect(useCardPreviewStore.getState().isVisible).toBe(false);
+      expect(useContextMenuStore.getState().isOpen).toBe(true);
+    });
+
+    it('swallows the click a tap synthesises, so the element\'s own onClick is skipped', () => {
+      const onClick = vi.fn();
+      render(<PlainProbe onClick={onClick} />);
+      tap('probe-plain', 'touch');
+      fireEvent.click(screen.getByTestId('probe-plain'));
+      expect(onClick).not.toHaveBeenCalled();
+    });
+
+    it('leaves a real mouse click through to the element\'s onClick', () => {
+      const onClick = vi.fn();
+      render(<PlainProbe onClick={onClick} />);
+      tap('probe-plain', 'mouse');
+      fireEvent.click(screen.getByTestId('probe-plain'));
+      expect(onClick).toHaveBeenCalledTimes(1);
+    });
   });
 
-  it('ignores a touch that travels past the tap tolerance (a drag/pan)', () => {
-    render(<Probe />);
-    tap('touch', 40);
-    expect(useContextMenuStore.getState().isOpen).toBe(false);
-  });
+  describe('card surface (two-tap: preview → menu)', () => {
+    it('first tap shows this card\'s preview and opens no menu', () => {
+      render(<CardProbe />);
+      tap('probe-card-1', 'touch');
+      const preview = useCardPreviewStore.getState();
+      expect(preview.isVisible).toBe(true);
+      expect(preview.card?.id).toBe('card-1');
+      expect(useContextMenuStore.getState().isOpen).toBe(false);
+    });
 
-  it('opts out when the target is null (e.g. an opponent pile)', () => {
-    render(<Probe target={null} />);
-    tap('touch');
-    expect(useContextMenuStore.getState().isOpen).toBe(false);
-  });
+    it('second tap on the same card opens its menu and hides the preview', () => {
+      render(<CardProbe />);
+      tap('probe-card-1', 'touch'); // preview
+      tap('probe-card-1', 'touch'); // menu
+      expect(useCardPreviewStore.getState().isVisible).toBe(false);
+      const menu = useContextMenuStore.getState();
+      expect(menu.isOpen).toBe(true);
+      expect(menu.target).toEqual(CARD_TARGET);
+    });
 
-  it('swallows the click a tap synthesises, so the element\'s own onClick is skipped', () => {
-    const onClick = vi.fn();
-    render(<Probe onClick={onClick} />);
-    tap('touch');
-    fireEvent.click(screen.getByTestId('probe'));
-    expect(onClick).not.toHaveBeenCalled();
-  });
+    it('tapping a different card switches the preview instead of opening a menu', () => {
+      const otherTarget: MenuTarget = { kind: 'battlefieldCard', id: 'card-2' };
+      render(
+        <>
+          <CardProbe />
+          <CardProbe target={otherTarget} />
+        </>,
+      );
+      tap('probe-card-1', 'touch'); // preview card-1
+      tap('probe-card-2', 'touch'); // switch to card-2 (a fresh first tap)
+      const preview = useCardPreviewStore.getState();
+      expect(preview.isVisible).toBe(true);
+      expect(preview.card?.id).toBe('card-2');
+      expect(useContextMenuStore.getState().isOpen).toBe(false);
+    });
 
-  it('leaves a real mouse click through to the element\'s onClick', () => {
-    const onClick = vi.fn();
-    render(<Probe onClick={onClick} />);
-    tap('mouse');
-    fireEvent.click(screen.getByTestId('probe'));
-    expect(onClick).toHaveBeenCalledTimes(1);
+    it('a mouse press on a card surface is ignored (desktop hover/right-click path)', () => {
+      render(<CardProbe />);
+      tap('probe-card-1', 'mouse');
+      expect(useCardPreviewStore.getState().isVisible).toBe(false);
+      expect(useContextMenuStore.getState().isOpen).toBe(false);
+    });
   });
 });
