@@ -95,26 +95,46 @@ describe('TokenNode — hover tracks the hotkey hover target', () => {
   });
 });
 
-describe('TokenNode — hover shows the increment/decrement affordance', () => {
-  it('renders the top/bottom shading only while the owner hovers', () => {
+describe('TokenNode — hover shows the increment/decrement zones', () => {
+  it('renders the top/bottom click zones only while the owner hovers', () => {
     const { container } = renderToken(makeToken({ ownerId: LOCAL_PLAYER }));
     const frame = container.firstChild as Element;
 
-    expect(screen.queryByTestId('token-adjust-shading')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('token-adjust-zones')).not.toBeInTheDocument();
 
     fireEvent.mouseEnter(frame);
-    expect(screen.getByTestId('token-adjust-shading')).toBeInTheDocument();
+    expect(screen.getByTestId('token-adjust-zones')).toBeInTheDocument();
+    expect(screen.getByTestId('token-zone-top')).toBeInTheDocument();
+    expect(screen.getByTestId('token-zone-bottom')).toBeInTheDocument();
 
     fireEvent.mouseLeave(frame);
-    expect(screen.queryByTestId('token-adjust-shading')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('token-adjust-zones')).not.toBeInTheDocument();
   });
 
-  it('does not show the affordance for another player\'s token', () => {
+  it('brightens the zone the cursor is over (top vs bottom)', () => {
+    const { container } = renderToken(makeToken({ ownerId: LOCAL_PLAYER }));
+    const frame = container.firstChild as Element;
+    // happy-dom has no layout, so stub the frame's rect for the top/bottom split.
+    vi.spyOn(frame, 'getBoundingClientRect').mockReturnValue({
+      top: 0, height: 20, bottom: 20, left: 0, right: 0, width: 20, x: 0, y: 0, toJSON: () => {},
+    } as DOMRect);
+
+    fireEvent.mouseEnter(frame);
+    fireEvent.mouseMove(frame, { clientY: 2 }); // top half
+    expect(screen.getByTestId('token-zone-top')).toHaveStyle({ backgroundColor: 'rgba(255,255,255,0.5)' });
+    expect(screen.getByTestId('token-zone-bottom')).toHaveStyle({ backgroundColor: 'rgba(255,255,255,0.18)' });
+
+    fireEvent.mouseMove(frame, { clientY: 18 }); // bottom half
+    expect(screen.getByTestId('token-zone-bottom')).toHaveStyle({ backgroundColor: 'rgba(255,255,255,0.5)' });
+    expect(screen.getByTestId('token-zone-top')).toHaveStyle({ backgroundColor: 'rgba(255,255,255,0.18)' });
+  });
+
+  it('does not show the zones for another player\'s token', () => {
     const { container } = renderToken(makeToken({ ownerId: 'p2' }), LOCAL_PLAYER);
 
     fireEvent.mouseEnter(container.firstChild as Element);
 
-    expect(screen.queryByTestId('token-adjust-shading')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('token-adjust-zones')).not.toBeInTheDocument();
   });
 });
 

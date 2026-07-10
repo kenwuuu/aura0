@@ -20,6 +20,11 @@ export const TokenNode = memo(function TokenNode({ data, id }: NodeProps) {
   const { yTokens, localPlayerId } = token;
   const isOwn = isOwnToken(token.ownerId, localPlayerId);
   const [isHovered, setIsHovered] = useState(false);
+  // Which half the cursor is currently over, so that half lights up like a
+  // button — reinforcing that clicking it does something. `clickedTopHalf`
+  // is the same split the click gesture uses, so the highlight can never
+  // disagree with what a click will do.
+  const [activeHalf, setActiveHalf] = useState<'top' | 'bottom' | null>(null);
 
   const modifyCount = useCallback((delta: number) => {
     if (!isOwn) return;
@@ -52,8 +57,16 @@ export const TokenNode = memo(function TokenNode({ data, id }: NodeProps) {
     useHotkeyStore.getState().setHoveredToken(id);
   }, [id]);
 
+  const handleMouseMove = useCallback((e: React.MouseEvent) => {
+    if (!isOwn) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const half = clickedTopHalf(e.clientY, rect.top, rect.height) ? 'top' : 'bottom';
+    setActiveHalf((prev) => (prev === half ? prev : half));
+  }, [isOwn]);
+
   const handleMouseLeave = useCallback(() => {
     setIsHovered(false);
+    setActiveHalf(null);
     useHotkeyStore.getState().setHoveredToken(null);
   }, []);
 
@@ -80,6 +93,7 @@ export const TokenNode = memo(function TokenNode({ data, id }: NodeProps) {
       onClick={handleClick}
       onContextMenu={handleContextMenu}
       onMouseEnter={handleMouseEnter}
+      onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
       {...tapMenu}
     >
@@ -106,24 +120,56 @@ export const TokenNode = memo(function TokenNode({ data, id }: NodeProps) {
         )}
       </div>
 
-      {/* Hover affordance: a light cap over the top half and a dark cap over
-          the bottom half signal the two click-to-adjust zones — click the top
-          to +1, the bottom to -1 (see handleClick). Owner-only, since only the
-          owner may change the count; pointer-events:none so it never eats the
-          click it advertises. */}
+      {/* Hover affordance: split the token into a top and a bottom clickable
+          zone, so it reads as two buttons — click the top to +1, the bottom to
+          -1 (see handleClick). The zone under the cursor lights up brighter for
+          button-like feedback. Owner-only (only the owner may change the
+          count); pointer-events:none so it never eats the click it advertises.
+          Clipped to the circle by the container's borderRadius + overflow. */}
       {isOwn && isHovered && (
         <div
-          data-testid="token-adjust-shading"
+          data-testid="token-adjust-zones"
           style={{
             position: 'absolute',
-            width: '100%',
-            height: '100%',
+            inset: 0,
             borderRadius: '50%',
+            overflow: 'hidden',
             pointerEvents: 'none',
-            background:
-              'linear-gradient(to bottom, rgba(255,255,255,0.55) 0%, rgba(255,255,255,0) 42%, rgba(0,0,0,0) 58%, rgba(0,0,0,0.55) 100%)',
           }}
-        />
+        >
+          <div
+            data-testid="token-zone-top"
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              height: '50%',
+              backgroundColor: activeHalf === 'top' ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.18)',
+            }}
+          />
+          <div
+            data-testid="token-zone-bottom"
+            style={{
+              position: 'absolute',
+              bottom: 0,
+              left: 0,
+              right: 0,
+              height: '50%',
+              backgroundColor: activeHalf === 'bottom' ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.18)',
+            }}
+          />
+          {/* divider marking the boundary between the two clickable zones */}
+          <div style={{
+            position: 'absolute',
+            top: '50%',
+            left: 0,
+            right: 0,
+            height: 1,
+            transform: 'translateY(-0.5px)',
+            backgroundColor: 'rgba(0,0,0,0.45)',
+          }} />
+        </div>
       )}
 
       {/* count overlay */}
