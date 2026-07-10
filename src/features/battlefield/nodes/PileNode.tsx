@@ -6,6 +6,8 @@ import { usePileViewerOpenStore } from '@/features/game-dock/pileViewerOpenStore
 import { useGameInstance } from '@/app/stores/gameInstanceStore';
 import { useHotkeyStore } from '@/app/stores/hotkeyStore';
 import { useContextMenuStore } from '@/features/hotkeys/contextMenuStore';
+import { useContextMenuTap } from '@/features/hotkeys/useContextMenuTap';
+import type { MenuTarget } from '@/features/hotkeys/hotkeys';
 import { isHandViewDisabled, resolvePileOpenRequest } from './pileNodeLogic';
 import type { PileType } from '@/features/player';
 
@@ -62,15 +64,31 @@ export const PileNode = memo(function PileNode({ data }: NodeProps) {
     }
   };
 
+  // Only local deck/exile/discard piles carry a menu. Opponent piles get a
+  // null target, so on touch the tap detector opts out and `handleClick` runs
+  // as usual — a tap opens their viewer, the only thing they support.
+  const pileMenuTarget: MenuTarget | null =
+    isLocal && HOTKEY_PILE_KINDS.has(pileKind)
+      ? { kind: 'pile', pileType: pileKind as 'deck' | 'exile' | 'discard' }
+      : null;
+
   const handleContextMenu = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (!isLocal || !HOTKEY_PILE_KINDS.has(pileKind)) return;
+    if (!pileMenuTarget) return;
     useContextMenuStore.getState().openMenu({
-      target: { kind: 'pile', pileType: pileKind as 'deck' | 'exile' | 'discard' },
+      target: pileMenuTarget,
       x: e.clientX,
       y: e.clientY,
     });
+  };
+
+  // On touch, a tap opens the menu (which now carries a "View" row); the
+  // synthesised click that would otherwise open the viewer is swallowed.
+  const tapMenu = useContextMenuTap(pileMenuTarget);
+  const handlePointerDown = (e: React.PointerEvent) => {
+    e.stopPropagation();
+    tapMenu.onPointerDown(e);
   };
 
   return (
@@ -94,7 +112,10 @@ export const PileNode = memo(function PileNode({ data }: NodeProps) {
         outline: isOver && canReceiveDrop ? '2px solid #60a5fa' : undefined,
       }}
       onClick={handleClick}
-      onPointerDown={(e) => e.stopPropagation()}
+      onPointerDown={handlePointerDown}
+      onPointerUp={tapMenu.onPointerUp}
+      onPointerCancel={tapMenu.onPointerCancel}
+      onClickCapture={tapMenu.onClickCapture}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
       onContextMenu={handleContextMenu}

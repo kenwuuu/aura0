@@ -17,6 +17,7 @@ import { dispatchGameAction } from './gameActions';
 import { useGameInstance } from '@/app/stores/gameInstanceStore';
 import { useHotkeyStore } from '@/app/stores/hotkeyStore';
 import { usePileViewerHotkeyStore } from '@/features/game-dock/pileViewerHotkeyStore';
+import { usePileViewerOpenStore } from '@/features/game-dock/pileViewerOpenStore';
 import { HotkeyContext } from './hotkeys';
 import { getActionLog } from '@/features/action-log/actionLog';
 import { seedGame } from '@/test/seedGame';
@@ -169,6 +170,15 @@ describe('dispatchGameAction', () => {
       dispatchGameAction('draw', { kind: 'pile', pileType: 'deck' });
 
       expect(player.getState().hand.some((c) => c.id === 'card-1')).toBe(true);
+    });
+
+    it('viewPile requests the local pile viewer (the touch-tap "View" row)', () => {
+      seed();
+      usePileViewerOpenStore.getState().clear();
+
+      dispatchGameAction('viewPile', { kind: 'pile', pileType: 'exile' });
+
+      expect(usePileViewerOpenStore.getState().request).toEqual({ scope: 'local', pile: 'exile' });
     });
   });
 

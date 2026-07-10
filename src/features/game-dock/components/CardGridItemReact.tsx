@@ -16,6 +16,7 @@ import {HotkeyContext} from '@/features/hotkeys/hotkeys';
 import {DEFAULT_CARD_BACK, YSTATE_HAND, YSTATE_DECK, YSTATE_EXILE_PILE, YSTATE_DISCARD_PILE, YSTATE_SCRY} from '@/constants';
 import styles from './CardGridItemReact.module.css';
 import {useContextMenuStore} from "@/features/hotkeys/contextMenuStore";
+import {useContextMenuTap} from "@/features/hotkeys/useContextMenuTap";
 import {useCardPreviewStore} from "@/features/card-preview/cardPreviewStore";
 
 const PILE_YSTATE_KEY: Record<PileType, string> = {
@@ -86,6 +87,9 @@ export const CardGridItemReact = React.memo(function CardGridItemReact({
     });
   };
 
+  // On touch, a tap opens the same context menu right-click does on desktop.
+  const tapMenu = useContextMenuTap({ kind: 'pileViewerCard', id: card.id, context: hotkeyContext });
+
   const hasFrontImage = frontImageUrl && !frontImageError;
   const hasBackImage = backImageUrl && !backImageError;
   const hasAnyImage = hasFrontImage || hasBackImage;
@@ -100,6 +104,7 @@ export const CardGridItemReact = React.memo(function CardGridItemReact({
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
       onContextMenu={handleContextMenu}
+      {...tapMenu}
     >
       {/* Card Image */}
       <div className={styles.cardGridItemImage}>

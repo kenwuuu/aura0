@@ -6,6 +6,7 @@ import { KeywordToken } from '@/features/keyword-tokens/types';
 import { useHotkeyStore } from '@/app/stores/hotkeyStore';
 import { useCardPreviewStore } from '@/features/card-preview/cardPreviewStore';
 import { useContextMenuStore } from '@/features/hotkeys/contextMenuStore';
+import { useContextMenuTap } from '@/features/hotkeys/useContextMenuTap';
 import { resolveCardFace, resolveCardRotation } from './cardNodeLogic';
 import { CARD_WIDTH, CARD_HEIGHT } from '@/constants';
 
@@ -66,6 +67,9 @@ export const CardNode = memo(function CardNode({ data, id }: NodeProps) {
     });
   }, [id]);
 
+  // On touch, a tap opens the same context menu right-click does on desktop.
+  const tapMenu = useContextMenuTap({ kind: 'battlefieldCard', id });
+
   // tap + rotation transform
   const rotation = resolveCardRotation(card);
   const transform = rotation ? `rotate(${rotation}deg)` : undefined;
@@ -79,6 +83,7 @@ export const CardNode = memo(function CardNode({ data, id }: NodeProps) {
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
       onContextMenu={handleContextMenu}
+      {...tapMenu}
     >
       {face.src ? (
         <img

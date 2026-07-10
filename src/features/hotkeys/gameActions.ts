@@ -20,6 +20,7 @@ import { useCardPreviewStore } from '@/features/card-preview/cardPreviewStore';
 import { executeBattlefieldCardAction } from '@/features/battlefield/battlefieldCardActions';
 import { spawnTokenAtPosition } from '@/features/battlefield/spawnToken';
 import { usePileViewerHotkeyStore } from '@/features/game-dock/pileViewerHotkeyStore';
+import { usePileViewerOpenStore } from '@/features/game-dock/pileViewerOpenStore';
 import { DeckPersistenceService } from '@/infrastructure/persistence';
 import { triggerConfirmation } from '@/shared/utils/confirmation';
 import { logAction } from '@/features/action-log/actionLog';
@@ -194,7 +195,11 @@ export function dispatchGameAction(action: string, target: MenuTarget): void {
       executeHandCardAction(action, target.id);
       return;
     case 'pile':
-      if (GLOBAL_ACTIONS.has(action)) {
+      if (action === 'viewPile') {
+        // Only local piles carry a menu (see PileNode), so the viewer request
+        // is always local-scoped.
+        usePileViewerOpenStore.getState().open({ scope: 'local', pile: target.pileType });
+      } else if (GLOBAL_ACTIONS.has(action)) {
         // Deck pile menu also surfaces draw/shuffle/mulligan/addCard (its
         // HotkeyContext is tagged 'global' too) — route those to the board
         // executor instead of the pile-move executor.
