@@ -38,7 +38,7 @@ export class MtgTextListDeckImporter extends DeckImporter {
 
     if (!validateFormat(text)) {
       deck.errors = ["Invalid deck format. Expected format: \"[count] [card name]\" per line"];
-      trackImportFailed('invalid_format');
+      trackImportFailed('invalid_format', text);
       return deck;
     }
 
@@ -51,7 +51,7 @@ export class MtgTextListDeckImporter extends DeckImporter {
     } catch (e) {
       const message = e instanceof Error ? e.message : String(e);
       deck.errors = [`Failed to parse decklist: ${message}`];
-      trackImportFailed('parse_error', { message });
+      trackImportFailed('parse_error', text, { message });
       Sentry.captureException(e, {
         level: "error",
         extra: { stage: "parseDecklist", text },
@@ -61,7 +61,7 @@ export class MtgTextListDeckImporter extends DeckImporter {
 
     if (entries.length === 0) {
       deck.errors = ["No valid card entries found. Make sure each line starts with a quantity, e.g. \"4 Lightning Bolt\"."];
-      trackImportFailed('no_valid_entries');
+      trackImportFailed('no_valid_entries', text);
       return deck;
     }
 
@@ -77,7 +77,7 @@ export class MtgTextListDeckImporter extends DeckImporter {
       // which are returned as CardDataResult.error — this is a catastrophic failure)
       const message = e instanceof Error ? e.message : String(e);
       deck.errors = [`Card data fetch failed: ${message}. Please try again.`];
-      trackImportFailed('fetch_catastrophic_failure', { message });
+      trackImportFailed('fetch_catastrophic_failure', text, { message });
       Sentry.captureException(e, {
         level: "error",
         extra: { stage: "fetchImagesForList", entries },

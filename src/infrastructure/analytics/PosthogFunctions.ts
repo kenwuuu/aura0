@@ -94,12 +94,33 @@ export function trackImportStarted(text: string): void {
   });
 }
 
+/**
+ * Max characters of raw deck text captured on a failed import. A real decklist —
+ * even a 500-line paste with set codes and collector numbers — sits well under
+ * this; the cap only guards against a pathological paste bloating the event.
+ */
+const MAX_RAW_IMPORT_TEXT_CHARS = 20_000;
+
+/**
+ * `rawText` is the exact text the user pasted. We capture it on every failure so
+ * real-world failed imports can be pulled out of PostHog and replayed as parser
+ * test fixtures — there is otherwise no way to reconstruct what a user pasted
+ * (the metadata-only events told us a failure happened, not what caused it). A
+ * decklist is card names, not PII, and the raw string already flows to Sentry on
+ * parse / partial failures; this just makes the whole failed-import corpus
+ * queryable from analytics. Required (not optional) so no future failure path can
+ * silently drop it.
+ */
 export function trackImportFailed(
   reason: ImportFailureReason,
+  rawText: string,
   extra: Record<string, unknown> = {}
 ): void {
   posthog.capture('deck_import_failed', {
     reason,
+    raw_text: rawText.slice(0, MAX_RAW_IMPORT_TEXT_CHARS),
+    raw_text_truncated: rawText.length > MAX_RAW_IMPORT_TEXT_CHARS,
+    text_length: rawText.length,
     ...extra,
   });
 }
