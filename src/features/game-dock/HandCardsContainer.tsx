@@ -14,6 +14,9 @@ interface HandCardsContainerProps {
   zoomLevel: number;
   onHoveredCardChange: (cardId: string | null) => void;
   overrideCards?: Card[];
+  /** Span the full viewport width (phone layout) instead of the centered
+   * min(75vw, 950px) desktop strip. */
+  fullWidth?: boolean;
 }
 
 function useYjsObserver<T>(yMap: Y.Map<any>, key: string, defaultValue: T): T {
@@ -33,6 +36,7 @@ export const HandCardsContainer: React.FC<HandCardsContainerProps> = ({
   zoomLevel,
   onHoveredCardChange,
   overrideCards,
+  fullWidth = false,
 }) => {
   const hand = useYjsObserver<Card[]>(yPlayerState, 'hand', []);
   const displayHand = overrideCards && hand.length === 0 ? overrideCards : hand;
@@ -102,7 +106,7 @@ export const HandCardsContainer: React.FC<HandCardsContainerProps> = ({
       onWheel={handleWheel}
       style={{
         height: containerHeight,
-        maxWidth: 'min(75vw, 950px)',
+        ...(fullWidth ? { width: '100%', maxWidth: '100%' } : { maxWidth: 'min(75vw, 950px)' }),
         ['--card-zoom' as string]: zoomLevel,
       }}
     >

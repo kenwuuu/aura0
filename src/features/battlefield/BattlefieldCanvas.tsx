@@ -40,6 +40,7 @@ import type { TokenService } from '@/infrastructure/cards';
 import { useContextMenuStore } from '@/features/hotkeys/contextMenuStore';
 import { useGameInstance } from '@/app/stores/gameInstanceStore';
 import { useSettingsStore } from '@/app/stores/settingsStore';
+import { usePhoneLayout } from '@/shared/hooks';
 import { SettingsButton } from '@/features/settings/SettingsButton';
 
 const nodeTypes = {
@@ -126,6 +127,10 @@ function BattlefieldCanvasInner({ yDoc, localPlayerId }: BattlefieldCanvasProps)
   const yCards = yDoc.getMap<WhiteboardCard>(YDOC_CARDS_ON_BOARD);
   const yTokens = yDoc.getMap<KeywordToken>(YDOC_KEYWORD_TOKENS);
   const awareness = useGameInstance((s) => s.awareness);
+  // On phone the bottom-left corner belongs to nothing (the full-width hand
+  // covers the bottom edge) and the top-left hosts the HUD toggle stack, so
+  // the settings gear + zoom controls move to the top-right. docs/responsive.md.
+  const isPhone = usePhoneLayout();
 
   const { nodes: cardTokenNodes, onNodesChange, elevateNodes, translateNodes, setDraggingNodeIds } = useBattlefieldNodes(yCards, yTokens, localPlayerId, awareness);
   const { nodes: playmatNodes, localMatOrigin } = usePlaymatNodes(yDoc, localPlayerId);
@@ -583,10 +588,27 @@ function BattlefieldCanvasInner({ yDoc, localPlayerId }: BattlefieldCanvasProps)
           color="#777777"
           gap={BACKGROUND_GRID_GAP}
         />
-        {/* marginBottom lifts this above the settings button panel below — both anchor
-            to the same bottom-left corner, so without an offset they'd overlap. */}
-        <Controls position="bottom-left" showFitView={false} showInteractive={false} style={{ marginBottom: 55 }} />
-        <Panel position="bottom-left">
+        {/* The top/bottom margin offsets the Controls away from the settings
+            button — both anchor to the same corner (bottom-left on desktop,
+            top-right on phone), so without it they'd overlap. */}
+        {/* Phone margins mirror the PhoneHudStack toggles across the screen:
+            8px from the toolbar and screen edge plus the safe-area right inset
+            (the right edge's inset owner, per docs/responsive.md), and an 8px
+            gap below the 34px settings button (8 + 34 + 8 = 50). */}
+        <Controls
+          position={isPhone ? 'top-right' : 'bottom-left'}
+          showFitView={false}
+          showInteractive={false}
+          style={
+            isPhone
+              ? { margin: 8, marginTop: 50, marginRight: 'calc(8px + env(safe-area-inset-right, 0px))' }
+              : { marginBottom: 55 }
+          }
+        />
+        <Panel
+          position={isPhone ? 'top-right' : 'bottom-left'}
+          style={isPhone ? { margin: 8, marginRight: 'calc(8px + env(safe-area-inset-right, 0px))' } : undefined}
+        >
           <SettingsButton />
         </Panel>
         <ViewportPortal>

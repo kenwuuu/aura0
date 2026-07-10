@@ -20,9 +20,20 @@
  * panel today. Position is clamped to the viewport and persisted per `persistKey`
  * (see useDraggablePanel).
  */
-import { type ReactNode } from 'react';
+import { type CSSProperties, type ReactNode } from 'react';
 import { GripHorizontal } from 'lucide-react';
 import { useDraggablePanel, type DragHandleProps, type Position } from './useDraggablePanel';
+
+/** The HUD window surface (dark + blur + border + shadow). Shared with
+ * non-draggable hosts of the same content, e.g. the phone HUD stack. */
+export const panelFrameStyle: CSSProperties = {
+  borderRadius: 8,
+  background: 'rgba(18,18,24,0.92)',
+  backdropFilter: 'blur(8px)',
+  border: '1px solid rgba(255,255,255,0.08)',
+  boxShadow: '0 4px 24px rgba(0,0,0,0.5)',
+  overflow: 'hidden',
+};
 
 export function FloatingPanel({
   persistKey,
@@ -64,12 +75,7 @@ export function FloatingPanel({
         top: position.y,
         width,
         zIndex,
-        borderRadius: 8,
-        background: 'rgba(18,18,24,0.92)',
-        backdropFilter: 'blur(8px)',
-        border: '1px solid rgba(255,255,255,0.08)',
-        boxShadow: '0 4px 24px rgba(0,0,0,0.5)',
-        overflow: 'hidden',
+        ...panelFrameStyle,
       }}
     >
       {renderHandle ? (

@@ -7,7 +7,7 @@
  * mirrors Tailwind's default scale):
  *   - Hotkeys disappears entirely (it's a keyboard-shortcut reference, not
  *     useful without a keyboard) rather than moving into the overflow menu.
- *   - Help and Discord move into a "⋯ More" overflow menu.
+ *   - Help, Discord, and Ko-fi move into a "⋯ More" overflow menu.
  *   - The deck-import label shortens, the connection status collapses to a
  *     dot (see RoomConnectionStatus), and the new-game/copy-link buttons go
  *     icon-only (see NewGameButton/RoomLinkButton).
@@ -43,6 +43,7 @@ import type { SavedDeck } from '@/features/player/types';
 import type { YjsNetworkProvider } from '@/infrastructure/networking/YjsNetworkFactory';
 
 const DISCORD_URL = 'https://discord.gg/PgH2gVZYKq';
+const KOFI_URL = 'https://ko-fi.com/Z8Z11OOHFX';
 
 interface ToolbarProps {
   yjsNetworkProvider: YjsNetworkProvider;
@@ -58,6 +59,7 @@ export function Toolbar({ yjsNetworkProvider, onDeckSelected }: ToolbarProps) {
   const overflowActions = [
     { id: 'help', label: 'Help', onSelect: () => setHelpOpen(true) },
     { id: 'discord', label: 'Discord', onSelect: () => window.open(DISCORD_URL, '_blank') },
+    { id: 'kofi', label: 'Support me on Ko-fi', onSelect: () => window.open(KOFI_URL, '_blank') },
   ];
 
   return (
@@ -81,6 +83,17 @@ export function Toolbar({ yjsNetworkProvider, onDeckSelected }: ToolbarProps) {
       >
         <img src="/assets/Discord-Logo-White.svg" alt="Discord" style={{ height: '16px' }} />
       </button>
+
+      <a
+        className="toolbar-button toolbar-kofi toolbar-collapsible"
+        href={KOFI_URL}
+        target="_blank"
+        rel="noopener noreferrer"
+        title="Support me on Ko-fi"
+        aria-label="Support me on Ko-fi"
+      >
+        Ko-fi
+      </a>
 
       <span id="connection-status" data-testid="connection-status">
         <RoomConnectionStatus yjsNetworkProvider={yjsNetworkProvider} />

@@ -1,7 +1,9 @@
 /**
  * GameActionsToolbar
  *
- * Fixed-position row of buttons rendered to the right of the ActionLogPanel.
+ * Row of buttons for whole-game actions. On desktop it lives in a draggable
+ * FloatingPanel (GameActionsToolbar); the buttons themselves are exported
+ * separately as GameActionsContent so the phone HUD stack can host them too.
  * Renders three kinds of surfaces from the GAME_ACTIONS registry:
  *   - 'toolbar': plain buttons (Untap All, Draw, Pass)
  *   - 'actions': items in an "Actions ▾" dropdown
@@ -96,7 +98,14 @@ function ToolbarButton({ label, onClick, title }: { label: string; onClick: () =
 
 // ── Main component ───────────────────────────────────────────────────────────
 
-export function GameActionsToolbar() {
+/**
+ * The action buttons themselves (plain buttons + Actions/Create dropdowns).
+ * Host-agnostic: the desktop FloatingPanel and the phone HUD stack both
+ * render it. Renders nothing until the game instance is wired. `style` is
+ * merged over the base row layout (the phone host adds wrapping + a width
+ * cap).
+ */
+export function GameActionsContent({ style }: { style?: React.CSSProperties } = {}) {
   const player = useGameInstance((s) => s.player);
   const yDoc = useGameInstance((s) => s.yDoc);
   const playerId = useGameInstance((s) => s.playerId);
@@ -130,12 +139,9 @@ export function GameActionsToolbar() {
   };
 
   return (
-    // Default position matches the toolbar's old fixed spot (8px margin + 280px
-    // action-log panel + 8px gap); it's now draggable and its position persists.
-    <FloatingPanel persistKey="game-actions-toolbar" defaultPosition={{ x: 296, y: 60 }} title="Game Actions">
       <div
         data-testid="game-actions-toolbar"
-        style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 8px' }}
+        style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 8px', ...style }}
       >
       {/* Toolbar buttons */}
       {toolbarActions.map((action) => (
@@ -223,6 +229,20 @@ export function GameActionsToolbar() {
         </DropdownMenuContent>
       </DropdownMenu>
       </div>
+  );
+}
+
+export function GameActionsToolbar() {
+  // Same readiness condition as GameActionsContent's ctx guard — don't render
+  // an empty window frame before the game instance is wired.
+  const ready = useGameInstance((s) => Boolean(s.player && s.yDoc && s.playerId));
+  if (!ready) return null;
+
+  return (
+    // Default position matches the toolbar's old fixed spot (8px margin + 280px
+    // action-log panel + 8px gap); it's now draggable and its position persists.
+    <FloatingPanel persistKey="game-actions-toolbar" defaultPosition={{ x: 296, y: 60 }} title="Game Actions">
+      <GameActionsContent />
     </FloatingPanel>
   );
 }
