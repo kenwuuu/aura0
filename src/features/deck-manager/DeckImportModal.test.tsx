@@ -115,11 +115,11 @@ describe('DeckImportModal — Help dialog integration', () => {
     const guide = within(helpDialog());
 
     expect(guide.getByText('Recommended Format')).toBeInTheDocument();
-    expect(guide.getByText('Not Supported')).toBeInTheDocument();
+    expect(guide.getByText('Section Headers')).toBeInTheDocument();
     expect(guide.getByText('Supported Formats')).toBeInTheDocument();
     expect(guide.getByText(/MTGO preset/i)).toBeInTheDocument();
-    // The unsupported-headers explanation, plus a string unique to the code sample.
-    expect(guide.getByText(/section headers like SIDEBOARD or COMMANDER/i)).toBeInTheDocument();
+    // The section-header explanation, plus a string unique to the code sample.
+    expect(guide.getByText(/commander and main deck import/i)).toBeInTheDocument();
     expect(guide.getByText(/Zuran Orb/)).toBeInTheDocument();
   });
 

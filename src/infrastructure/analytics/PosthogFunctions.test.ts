@@ -14,18 +14,18 @@ describe('trackImportFailed', () => {
   });
 
   it('captures the raw pasted decklist so a real failure can be replayed as a fixture', () => {
-    const rawText = '4 Lightning Bolt\nSIDEBOARD:\n1 Drill Too Deep';
+    const rawText = '4 Lightning Bolt\n1 Drill Too Deep';
 
-    trackImportFailed('section_headers_detected', rawText, { header_count: 1 });
+    trackImportFailed('parse_error', rawText, { message: 'Unexpected token' });
 
     expect(capture).toHaveBeenCalledWith(
       'deck_import_failed',
       expect.objectContaining({
-        reason: 'section_headers_detected',
+        reason: 'parse_error',
         raw_text: rawText,
         raw_text_truncated: false,
         text_length: rawText.length,
-        header_count: 1,
+        message: 'Unexpected token',
       }),
     );
   });

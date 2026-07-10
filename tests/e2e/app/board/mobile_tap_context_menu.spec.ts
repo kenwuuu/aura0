@@ -2,10 +2,11 @@ import { expect, test } from '../../fixtures';
 import {
   boardToken,
   boardTokens,
+  cardPreview,
   dragCountedTokenToBoard,
   pileTile,
   pileViewer,
-  playCreature,
+  touchTap,
   visibleHandCard,
   handCard,
   waitForPileViewerReady,
@@ -15,7 +16,13 @@ import {
 /**
  * Touch devices have no right-click, so the context menu — the primary way to
  * act on a card/token/pile on mobile — used to be unreachable. These specs
- * cover the touch equivalent: a tap opens the same menu a right-click does.
+ * cover the touch equivalent.
+ *
+ * Card surfaces (hand card, battlefield card) use a two-tap gesture: the first
+ * tap previews the card, the second opens its menu (see
+ * mobile_card_preview.spec.ts for the full preview behaviour). Non-card
+ * surfaces (tokens, piles, the empty board) have no preview and open their menu
+ * on a single tap.
  *
  * `hasTouch` makes Playwright's touchscreen (`locator.tap()` /
  * `page.touchscreen.tap`) dispatch real touch → pointer events with
@@ -31,11 +38,16 @@ async function emptyBoardPoint(page: Parameters<typeof whiteboard>[0]) {
   return { x: box.x + box.width * 0.15, y: box.y + box.height * 0.15 };
 }
 
-test('tapping a hand card opens its context menu', async ({ page }) => {
+test('a second tap on a hand card opens its context menu (first tap previews)', async ({ page }) => {
   const { cardId } = await visibleHandCard(page);
 
-  await handCard(page, cardId).tap();
+  // First tap previews the card — no menu yet.
+  await touchTap(page, handCard(page, cardId));
+  await expect(cardPreview(page)).toBeVisible();
+  await expect(page.getByRole('menuitem', { name: /^Discard\b/ })).toBeHidden();
 
+  // Second tap on the same card opens its menu.
+  await touchTap(page, handCard(page, cardId));
   await expect(page.getByRole('menuitem', { name: /^Discard\b/ })).toBeVisible();
   await expect(page.getByRole('menuitem', { name: /^Exile\b/ })).toBeVisible();
   // "Tap" is a battlefield-only row — its absence proves this is the hand menu.
@@ -103,16 +115,16 @@ test.describe('tapping freshly-placed board nodes', () => {
     "Firefox board auto-fit hides fresh nodes under the toolbar in an empty room (harness artifact); the tap gesture itself is covered on Firefox by the hand-card/pile/empty-board specs.",
   );
 
-  test('tapping a battlefield card opens its context menu', async ({ page }) => {
-    const card = await playCreature(page);
-
-    await card.tap();
-
-    await expect(page.getByRole('menuitem', { name: /^Tap\b/ })).toBeVisible();
-    await expect(page.getByRole('menuitem', { name: /^Flip\b/ })).toBeVisible();
-    await expect(page.getByRole('menuitem', { name: /^Delete\b/ })).toBeVisible();
-  });
-
+  // A battlefield *card* is two-tap on a real touch device (first previews,
+  // second opens the menu), exactly like a hand card. That machine is covered
+  // end-to-end on hand cards (mobile_card_preview.spec.ts) and in unit tests
+  // (useContextMenuTap.test.tsx). It can't be reproduced on a react-flow *node*
+  // here: Chromium's simulated-touch emits a compat mouseenter (raising the
+  // hover preview) plus a long-press contextmenu on nodes, and the trailing
+  // compat click dismisses the just-opened menu — dual-input artifacts a real
+  // phone never produces. The token case below still pins the react-flow tap
+  // path (single tap → menu, synthetic click swallowed), which tokens exercise
+  // cleanly because they have no hover preview to pollute the gesture.
   test('tapping a token opens its menu instead of adjusting the count', async ({ page }) => {
     await dragCountedTokenToBoard(page);
     const token = boardToken(page);

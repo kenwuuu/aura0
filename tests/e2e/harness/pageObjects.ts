@@ -96,6 +96,13 @@ export function whiteboard(page: Page): Locator {
   return page.locator('#whiteboard');
 }
 
+/** The card-preview popup (hover on desktop, first tap on touch). Present in
+ * the DOM only while a preview is showing, so `.toBeVisible()` /
+ * `.toBeHidden()` read as "preview up / gone". */
+export function cardPreview(page: Page): Locator {
+  return page.locator('.card-preview-popup');
+}
+
 /** The Create ▾ > Token popover hosting the draggable KeywordTokenGrid. */
 export function tokenGrid(page: Page): Locator {
   return page.locator('[data-slot="popover-content"]').filter({ hasText: 'Drag a token onto the board' });

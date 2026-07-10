@@ -206,20 +206,27 @@ export class Player {
     // get cards
     const deckCards: Card[] = this.deck.getCards();
 
-    if (deckCards.length > 0) {  // TODO: change logic based on if deck is commander or not
-      // move commander to hand
-      const commander: Card = deckCards[deckCards.length - 1];
+    if (deckCards.length === 0) {
+      return;
+    }
+
+    // Auto-draw the commander(s) into the opening hand. Commanders are flagged
+    // at import time from a COMMANDER section header (see DeckListParser); a
+    // deck with none — a standard deck, or a list pasted without headers —
+    // just gets a normal 7-card opening hand.
+    const commanders = deckCards.filter((card) => card.commander);
+    for (const commander of commanders) {
       this.deck.removeCardById(commander.id);
       this.deck.addCardToTop(commander);
       this.drawCard(false); // opening hand draws suppressed; deck-load is its own event
+    }
 
-      this.deck.shuffle();
+    this.deck.shuffle();
 
-      // draw 7 — suppressed from action log; deck-load is its own event
-      for (let i = 0; i < 7; i++) {
-        this.drawCard(false);
-        await new Promise(r => setTimeout(r, 20));
-      }
+    // draw 7 — suppressed from action log; deck-load is its own event
+    for (let i = 0; i < 7; i++) {
+      this.drawCard(false);
+      await new Promise(r => setTimeout(r, 20));
     }
   }
 

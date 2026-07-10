@@ -11,9 +11,12 @@ interface HandCardProps {
   onMouseEnter: (cardId: string) => void;
   onMouseMove: (e: React.MouseEvent) => void;
   onMouseLeave: () => void;
+  /** Touch first-tap: show this card's preview at (x, y). Ungated (the tap hook
+   * already decides when to fire it), unlike the hover handlers above. */
+  onRequestPreview: (cardId: string, x: number, y: number) => void;
 }
 
-export const HandCard: React.FC<HandCardProps> = ({ card, onMouseEnter, onMouseMove, onMouseLeave }) => {
+export const HandCard: React.FC<HandCardProps> = ({ card, onMouseEnter, onMouseMove, onMouseLeave, onRequestPreview }) => {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: card.id });
 
   const imageUrl = card.isFlipped
@@ -30,11 +33,15 @@ export const HandCard: React.FC<HandCardProps> = ({ card, onMouseEnter, onMouseM
     });
   };
 
-  // On touch, a tap opens the context menu. dnd-kit's PointerSensor owns
-  // `onPointerDown` (drag activation), so compose it with the tap detector's —
-  // a small tap opens the menu; travel past the drag threshold reorders the
-  // hand instead.
-  const tapMenu = useContextMenuTap({ kind: 'handCard', id: card.id });
+  // On touch, a tap previews this card; a second tap on it opens the context
+  // menu (see useContextMenuTap's two-tap machine). dnd-kit's PointerSensor
+  // owns `onPointerDown` (drag activation), so compose it with the tap
+  // detector's — a small tap previews/opens; travel past the drag threshold
+  // reorders the hand instead.
+  const tapMenu = useContextMenuTap(
+    { kind: 'handCard', id: card.id },
+    { showPreview: (x, y) => onRequestPreview(card.id, x, y) },
+  );
   const onPointerDown = (e: React.PointerEvent) => {
     listeners?.onPointerDown?.(e);
     tapMenu.onPointerDown(e);

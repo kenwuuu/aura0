@@ -4,6 +4,7 @@ import { SortableContext, horizontalListSortingStrategy } from '@dnd-kit/sortabl
 import { HandCard } from './HandCard';
 import { Card } from '@/features/player';
 import { useCardPreviewStore } from '@/features/card-preview/cardPreviewStore';
+import { wasLastInputTouch } from '@/shared/pointerInput';
 import { useMediaQuery } from '@/shared/hooks/useMediaQuery';
 import { useReflowSafeHover } from '@/shared/hooks/useReflowSafeHover';
 import { CARD_HEIGHT } from '@/constants';
@@ -86,6 +87,40 @@ export const HandCardsContainer: React.FC<HandCardsContainerProps> = ({
     onMove: handleMove,
   });
 
+  // On touch the hover handlers are inert: a tap fires a synthetic mouseenter
+  // (with no matching mouseleave on finger-lift), which would fight the
+  // tap-driven preview. Gating on wasLastInputTouch() makes the tap the single
+  // source of truth for the preview (see pointerInput.ts). Desktop hover is
+  // unchanged.
+  const onCardMouseEnter = useCallback((id: string) => {
+    if (wasLastInputTouch()) return;
+    handleMouseEnter(id);
+  }, [handleMouseEnter]);
+
+  const onCardMouseMove = useCallback((e: React.MouseEvent) => {
+    if (wasLastInputTouch()) return;
+    handleMouseMove(e);
+  }, [handleMouseMove]);
+
+  const onCardMouseLeave = useCallback(() => {
+    if (wasLastInputTouch()) return;
+    handleMouseLeave();
+  }, [handleMouseLeave]);
+
+  // Touch first-tap: show a card's preview at the tap point. Ungated — the tap
+  // hook already decides when a tap should preview — so it reuses handleEnter +
+  // handleMove directly rather than the hover handlers above.
+  const handleRequestPreview = useCallback((cardId: string, x: number, y: number) => {
+    handleEnter(cardId);
+    handleMove(x, y);
+  }, [handleEnter, handleMove]);
+
+  // A touch swipe that scrolls the hand dismisses any open preview (a stationary
+  // tap never scrolls, so this only fires on an actual pan).
+  const handleScroll = useCallback(() => {
+    if (useCardPreviewStore.getState().isVisible) useCardPreviewStore.getState().hide();
+  }, []);
+
   const handleWheel = useCallback((e: React.WheelEvent<HTMLDivElement>) => {
     if (scrollRef.current) {
       scrollRef.current.scrollLeft += e.deltaY;
@@ -104,6 +139,7 @@ export const HandCardsContainer: React.FC<HandCardsContainerProps> = ({
       data-hand={playerId}
       data-testid="hand-cards-container"
       onWheel={handleWheel}
+      onScroll={handleScroll}
       style={{
         height: containerHeight,
         ...(fullWidth ? { width: '100%', maxWidth: '100%' } : { maxWidth: 'min(75vw, 950px)' }),
@@ -116,9 +152,10 @@ export const HandCardsContainer: React.FC<HandCardsContainerProps> = ({
             <HandCard
               key={card.id}
               card={card}
-              onMouseEnter={handleMouseEnter}
-              onMouseMove={handleMouseMove}
-              onMouseLeave={handleMouseLeave}
+              onMouseEnter={onCardMouseEnter}
+              onMouseMove={onCardMouseMove}
+              onMouseLeave={onCardMouseLeave}
+              onRequestPreview={handleRequestPreview}
             />
           ))}
         </div>
