@@ -18,6 +18,7 @@ import styles from './CardGridItemReact.module.css';
 import {useContextMenuStore} from "@/features/hotkeys/contextMenuStore";
 import {useContextMenuTap} from "@/features/hotkeys/useContextMenuTap";
 import {useCardPreviewStore} from "@/features/card-preview/cardPreviewStore";
+import {wasLastInputTouch} from "@/shared/pointerInput";
 
 const PILE_YSTATE_KEY: Record<PileType, string> = {
   hand: YSTATE_HAND,
@@ -59,9 +60,11 @@ export const CardGridItemReact = React.memo(function CardGridItemReact({
   const frontImageUrl = card.images?.front?.normal || card.images?.front?.small;
   const backImageUrl = DEFAULT_CARD_BACK;
 
-  const handleMouseEnter = () => {
+  // Show this card's preview at (x, y). Ungated — used both by desktop hover and
+  // by the touch tap machine. Face-down cards (deck/scry) are never previewable,
+  // so callers gate that separately (see the tap wiring below).
+  const showPreview = (x: number, y: number) => {
     onHover(card);
-    if (showFaceDown) return;
     const cardId = card.id;
     const yStateKey = PILE_YSTATE_KEY[pileType];
     const source = yPlayerState
@@ -71,9 +74,19 @@ export const CardGridItemReact = React.memo(function CardGridItemReact({
         }
       : undefined;
     useCardPreviewStore.getState().show(card, source);
+    useCardPreviewStore.getState().updatePosition(x, y);
+  };
+
+  const handleMouseEnter = (e: React.MouseEvent) => {
+    // Inert on touch: taps drive the preview (see pointerInput.ts).
+    if (wasLastInputTouch()) return;
+    onHover(card);
+    if (showFaceDown) return;
+    showPreview(e.clientX, e.clientY);
   };
 
   const handleMouseLeave = () => {
+    if (wasLastInputTouch()) return;
     onHover(null);
     useCardPreviewStore.getState().hide();
   };
@@ -87,8 +100,13 @@ export const CardGridItemReact = React.memo(function CardGridItemReact({
     });
   };
 
-  // On touch, a tap opens the same context menu right-click does on desktop.
-  const tapMenu = useContextMenuTap({ kind: 'pileViewerCard', id: card.id, context: hotkeyContext });
+  // On touch, a face-up card previews on first tap and opens its menu on the
+  // second (two-tap machine). Face-down cards can't be previewed, so they pass
+  // no showPreview and keep the single-tap → menu behaviour.
+  const tapMenu = useContextMenuTap(
+    { kind: 'pileViewerCard', id: card.id, context: hotkeyContext },
+    showFaceDown ? undefined : { showPreview },
+  );
 
   const hasFrontImage = frontImageUrl && !frontImageError;
   const hasBackImage = backImageUrl && !backImageError;

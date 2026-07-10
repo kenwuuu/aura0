@@ -5,6 +5,7 @@ import { WhiteboardCard } from '../types';
 import { KeywordToken } from '@/features/keyword-tokens/types';
 import { useHotkeyStore } from '@/app/stores/hotkeyStore';
 import { useCardPreviewStore } from '@/features/card-preview/cardPreviewStore';
+import { wasLastInputTouch } from '@/shared/pointerInput';
 import { useContextMenuStore } from '@/features/hotkeys/contextMenuStore';
 import { useContextMenuTap } from '@/features/hotkeys/useContextMenuTap';
 import { resolveCardFace, resolveCardRotation } from './cardNodeLogic';
@@ -41,12 +42,21 @@ export const CardNode = memo(function CardNode({ data, id }: NodeProps) {
 
   const face = resolveCardFace(card);
 
-  const handleMouseEnter = useCallback((e: React.MouseEvent) => {
+  // Show this card's preview at (x, y). Ungated — used both by desktop hover and
+  // by the touch tap machine, which decides when a tap should preview.
+  const showPreview = useCallback((x: number, y: number) => {
     useHotkeyStore.getState().setHoveredBattlefieldCard(id);
     const latestCard = yCards.get(id) || card;
     useCardPreviewStore.getState().show(latestCard, { yMap: yCards, isPresent: () => yCards.has(id) });
-    useCardPreviewStore.getState().updatePosition(e.clientX, e.clientY);
+    useCardPreviewStore.getState().updatePosition(x, y);
   }, [id, yCards, card]);
+
+  const handleMouseEnter = useCallback((e: React.MouseEvent) => {
+    // Inert on touch: the synthetic mouseenter from a tap would fight the
+    // tap-driven preview (see pointerInput.ts). Taps own the preview instead.
+    if (wasLastInputTouch()) return;
+    showPreview(e.clientX, e.clientY);
+  }, [showPreview]);
 
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
     useCardPreviewStore.getState().updatePosition(e.clientX, e.clientY);
@@ -67,8 +77,9 @@ export const CardNode = memo(function CardNode({ data, id }: NodeProps) {
     });
   }, [id]);
 
-  // On touch, a tap opens the same context menu right-click does on desktop.
-  const tapMenu = useContextMenuTap({ kind: 'battlefieldCard', id });
+  // On touch, a tap previews this card; a second tap on it opens the same
+  // context menu right-click does on desktop (two-tap machine).
+  const tapMenu = useContextMenuTap({ kind: 'battlefieldCard', id }, { showPreview });
 
   // tap + rotation transform
   const rotation = resolveCardRotation(card);

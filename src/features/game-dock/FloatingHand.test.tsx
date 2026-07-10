@@ -1,5 +1,5 @@
-import { describe, it, expect, vi } from 'vitest';
-import { render, screen, waitFor, act } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { render, screen, waitFor, act, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { FloatingHand } from './FloatingHand';
 import { renderWithGame } from '@/test/harness';
@@ -7,6 +7,13 @@ import { makeCards } from '@/test/factories';
 import { useSettingsStore } from '@/app/stores/settingsStore';
 import { useHotkeyStore } from '@/app/stores/hotkeyStore';
 import { useCardPreviewStore } from '@/features/card-preview/cardPreviewStore';
+import { __setLastPointerTypeForTest } from '@/shared/pointerInput';
+
+// Default to mouse so hover paths run; the touch case overrides it explicitly.
+beforeEach(() => {
+  __setLastPointerTypeForTest('mouse');
+  useCardPreviewStore.getState().hide();
+});
 
 describe('FloatingHand', () => {
   it('renders nothing until the game instance is seeded', () => {
@@ -46,6 +53,18 @@ describe('FloatingHand', () => {
 
     expect(useHotkeyStore.getState().hoverTarget).toBeNull();
     expect(useCardPreviewStore.getState().isVisible).toBe(false);
+  });
+
+  it('does not show the preview on a synthetic hover when the last input was touch', () => {
+    const hand = makeCards(1, { name: 'Lightning Bolt' });
+    renderWithGame(<FloatingHand />, { hand });
+
+    __setLastPointerTypeForTest('touch');
+    // The synthetic mouseenter a tap fires must be inert — taps own the preview.
+    fireEvent.mouseEnter(screen.getByTestId('hand-card'));
+
+    expect(useCardPreviewStore.getState().isVisible).toBe(false);
+    expect(useHotkeyStore.getState().hoverTarget).toBeNull();
   });
 
   it('re-derives hover onto the card that reflows under a stationary cursor after a hotkey move', async () => {

@@ -9,6 +9,21 @@ export async function centerOf(locator: Locator): Promise<{ x: number; y: number
 }
 
 /**
+ * Tap the centre of an element via the touchscreen at raw coordinates.
+ *
+ * Unlike `locator.tap()`, this does NOT move the real mouse to the target first.
+ * On a desktop runner with `hasTouch`, `locator.tap()`'s mouse move fires
+ * `mouseenter` (and can leave a hover preview / flip the last-input-modality
+ * signal to mouse) before the touch — a dual-input artifact a real phone never
+ * produces, which corrupts anything gated on "the last input was touch" (the
+ * card-preview/tap logic). Coordinate-based `touchscreen.tap` is a clean touch.
+ */
+export async function touchTap(page: Page, locator: Locator): Promise<void> {
+  const { x, y } = await centerOf(locator);
+  await page.touchscreen.tap(x, y);
+}
+
+/**
  * Move the mouse to a point via real incremental travel, not a teleport —
  * see "Simulate real mouse travel for hover-sensitive interactions" in
  * docs/testing/e2e.md. `page.mouse.move(x, y)` (default `steps: 1`) and

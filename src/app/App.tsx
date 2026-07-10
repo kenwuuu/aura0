@@ -49,6 +49,9 @@ import { effectiveHandZoom } from '@/features/game-dock/handZoomClamp';
 import { useCardPreviewStore } from '@/features/card-preview/cardPreviewStore';
 import { useSettingsStore } from './stores/settingsStore';
 import { DEFAULT_CARD_BACK } from '@/constants';
+// Side-effect import: installs the last-input-modality listeners at app boot so
+// hover-preview goes inert on touch (see src/shared/pointerInput.ts).
+import '@/shared/pointerInput';
 
 const isDevEnv = import.meta.env.MODE === 'development';
 
@@ -126,6 +129,10 @@ export function App({ yDoc, yjsNetworkProvider, player, roomManager, playerId, c
   const handleDragEnd = useCallback((event: DragEndEvent) => {
     const { active, over } = event;
     setActiveCard(null);
+    // Belt-and-suspenders for hand→board (bug #1): handleDragStart already hid
+    // the preview, but on touch a preview could have been raised by a first tap
+    // between start and end — clear it so nothing lingers after the drop.
+    useCardPreviewStore.getState().hide();
 
     const cardId = active.id as string;
 
