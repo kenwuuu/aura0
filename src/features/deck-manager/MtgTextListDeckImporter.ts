@@ -42,17 +42,8 @@ export class MtgTextListDeckImporter extends DeckImporter {
       return deck;
     }
 
-    // Check for section headers and error if they exist
-    const sectionHeaders = this.detectSectionHeaders(text);
-    if (sectionHeaders.length > 0) {
-      this.setSectionHeaderErrors(deck, sectionHeaders);
-      trackImportFailed('section_headers_detected', {
-        headers: sectionHeaders.slice(0, 5),
-        header_count: sectionHeaders.length,
-      });
-      return deck;
-    }
-
+    // Section headers are tolerated: parseDecklist imports the command zone and
+    // main deck while dropping non-main sections (sideboard, maybeboard, …).
     let entries: DeckLineItem[] = [];
 
     try {
@@ -140,41 +131,6 @@ export class MtgTextListDeckImporter extends DeckImporter {
     }
 
     return deck;
-  }
-
-  private setSectionHeaderErrors(deck: DeckImportResult, sectionHeaders: string[]) {
-    const headerList = sectionHeaders.slice(0, 3).map(h => `"${h}"`).join(', ');
-    const more = sectionHeaders.length > 3 ? ` and ${sectionHeaders.length - 3} more` : '';
-
-    deck.errors = [
-      `Section headers detected: ${headerList}${more}. \n` +
-      'Please remove section headers like "SIDEBOARD:", "COMMANDER:", etc. \n' +
-      'Use the MTGO preset from Moxfield for best results. \n' +
-      'Click the Help button below for more information.'
-    ];
-  }
-
-  /**
-   * Detect section headers (lines without numbers at the start)
-   * Returns an array of detected section headers
-   */
-  private detectSectionHeaders(text: string): string[] {
-    const lines = text.trim().split('\n').filter(line => line.trim().length > 0);
-    const sectionHeaders: string[] = [];
-
-    for (const line of lines) {
-      const trimmedLine = line.trim();
-
-      // Check if the line starts with a digit (including 'x' notation like "4x")
-      const startsWithNumber = /^\d/.test(trimmedLine);
-
-      // If it doesn't start with a number and the line is not empty, it's likely a section header
-      if (!startsWithNumber && trimmedLine.length > 0) {
-        sectionHeaders.push(trimmedLine);
-      }
-    }
-
-    return sectionHeaders;
   }
 
   private parseResultsIntoDeck(deckImportResult: DeckImportResult, results: CardDataResult[]) {

@@ -81,7 +81,6 @@ export function trackConnectionOutcome(props: {
 
 export type ImportFailureReason =
   | 'invalid_format'
-  | 'section_headers_detected'
   | 'parse_error'
   | 'no_valid_entries'
   | 'fetch_catastrophic_failure';
