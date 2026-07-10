@@ -46,6 +46,15 @@ export interface Hotkey {
   action: string; // Unique action identifier (e.g., "tap", "draw", "addCounter")
   /** Rendered in the danger/destructive style in the context menu (GameContextMenu). */
   destructive?: boolean;
+  /**
+   * Show this row in the context menu only when it was opened by touch (a tap),
+   * not by a mouse right-click. Used for the token +1/-1 rows: on desktop the
+   * count is adjusted by hovering and clicking the token's top/bottom half (see
+   * `TokenNode`), so the menu rows would be redundant — but touch has no hover
+   * and swallows the click (`useContextMenuTap`), leaving the menu as the only
+   * way to adjust the count there. The keyboard ↑/↓ bindings are unaffected.
+   */
+  touchMenuOnly?: boolean;
 }
 
 export const HOTKEYS: Hotkey[] = [
@@ -178,20 +187,22 @@ export const HOTKEYS: Hotkey[] = [
     action: 'moveToHand',
   },
   {
-    key: 'Left Click',
+    key: '↑',
     keys: ['arrowup'],
     context: ['kwToken'],
     shortDescription: '+1',
     longDescription: '+1',
     action: 'tokenIncrement',
+    touchMenuOnly: true,
   },
   {
-    key: 'Right Click',
+    key: '↓',
     keys: ['arrowdown'],
     context: ['kwToken'],
     shortDescription: '-1',
     longDescription: '-1',
     action: 'tokenDecrement',
+    touchMenuOnly: true,
   },
   {
     key: 'Back',

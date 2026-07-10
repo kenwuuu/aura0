@@ -54,7 +54,7 @@ export function useContextMenuTap(target: MenuTarget | null) {
     if (!start || e.pointerId !== start.id || e.pointerType === 'mouse' || !target) return;
     if (Math.hypot(e.clientX - start.x, e.clientY - start.y) > TAP_MOVE_TOLERANCE) return;
     tapConsumedRef.current = true;
-    useContextMenuStore.getState().openMenu({ target, x: e.clientX, y: e.clientY });
+    useContextMenuStore.getState().openMenu({ target, x: e.clientX, y: e.clientY, viaTouch: true });
   };
 
   const onPointerCancel = () => {

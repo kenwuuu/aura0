@@ -16,6 +16,10 @@ interface OpenMenuArgs {
   target: MenuTarget;
   x: number;
   y: number;
+  /** True when opened by a touch tap rather than a mouse right-click. Gates
+   * `touchMenuOnly` rows (e.g. a token's +1/-1) that desktop reaches by
+   * clicking the item directly. Defaults to false. */
+  viaTouch?: boolean;
 }
 
 interface ContextMenuState {
@@ -23,6 +27,8 @@ interface ContextMenuState {
   x: number;
   y: number;
   target: MenuTarget | null;
+  /** Whether the currently-open menu was opened by a touch tap. */
+  viaTouch: boolean;
   /** Open the context menu for `target` at (x, y). */
   openMenu: (args: OpenMenuArgs) => void;
   /** Close the menu. Leaves `target`/(x, y) in place so the close animation
@@ -35,6 +41,7 @@ export const useContextMenuStore = create<ContextMenuState>((set) => ({
   x: 0,
   y: 0,
   target: null,
-  openMenu: ({ target, x, y }) => set({ isOpen: true, target, x, y }),
+  viaTouch: false,
+  openMenu: ({ target, x, y, viaTouch = false }) => set({ isOpen: true, target, x, y, viaTouch }),
   close: () => set({ isOpen: false }),
 }));

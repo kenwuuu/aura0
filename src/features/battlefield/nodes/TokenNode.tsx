@@ -1,4 +1,4 @@
-import { memo, useCallback } from 'react';
+import { memo, useCallback, useState } from 'react';
 import { NodeProps } from '@xyflow/react';
 import * as Y from 'yjs';
 import { KeywordToken } from '@/features/keyword-tokens/types';
@@ -19,6 +19,7 @@ export const TokenNode = memo(function TokenNode({ data, id }: NodeProps) {
   const token = data as unknown as TokenNodeData;
   const { yTokens, localPlayerId } = token;
   const isOwn = isOwnToken(token.ownerId, localPlayerId);
+  const [isHovered, setIsHovered] = useState(false);
 
   const modifyCount = useCallback((delta: number) => {
     if (!isOwn) return;
@@ -47,10 +48,12 @@ export const TokenNode = memo(function TokenNode({ data, id }: NodeProps) {
   }, [id]);
 
   const handleMouseEnter = useCallback(() => {
+    setIsHovered(true);
     useHotkeyStore.getState().setHoveredToken(id);
   }, [id]);
 
   const handleMouseLeave = useCallback(() => {
+    setIsHovered(false);
     useHotkeyStore.getState().setHoveredToken(null);
   }, []);
 
@@ -102,6 +105,26 @@ export const TokenNode = memo(function TokenNode({ data, id }: NodeProps) {
           />
         )}
       </div>
+
+      {/* Hover affordance: a light cap over the top half and a dark cap over
+          the bottom half signal the two click-to-adjust zones — click the top
+          to +1, the bottom to -1 (see handleClick). Owner-only, since only the
+          owner may change the count; pointer-events:none so it never eats the
+          click it advertises. */}
+      {isOwn && isHovered && (
+        <div
+          data-testid="token-adjust-shading"
+          style={{
+            position: 'absolute',
+            width: '100%',
+            height: '100%',
+            borderRadius: '50%',
+            pointerEvents: 'none',
+            background:
+              'linear-gradient(to bottom, rgba(255,255,255,0.55) 0%, rgba(255,255,255,0) 42%, rgba(0,0,0,0) 58%, rgba(0,0,0,0.55) 100%)',
+          }}
+        />
+      )}
 
       {/* count overlay */}
       {token.count !== undefined && (

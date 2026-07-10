@@ -95,6 +95,29 @@ describe('TokenNode — hover tracks the hotkey hover target', () => {
   });
 });
 
+describe('TokenNode — hover shows the increment/decrement affordance', () => {
+  it('renders the top/bottom shading only while the owner hovers', () => {
+    const { container } = renderToken(makeToken({ ownerId: LOCAL_PLAYER }));
+    const frame = container.firstChild as Element;
+
+    expect(screen.queryByTestId('token-adjust-shading')).not.toBeInTheDocument();
+
+    fireEvent.mouseEnter(frame);
+    expect(screen.getByTestId('token-adjust-shading')).toBeInTheDocument();
+
+    fireEvent.mouseLeave(frame);
+    expect(screen.queryByTestId('token-adjust-shading')).not.toBeInTheDocument();
+  });
+
+  it('does not show the affordance for another player\'s token', () => {
+    const { container } = renderToken(makeToken({ ownerId: 'p2' }), LOCAL_PLAYER);
+
+    fireEvent.mouseEnter(container.firstChild as Element);
+
+    expect(screen.queryByTestId('token-adjust-shading')).not.toBeInTheDocument();
+  });
+});
+
 describe('TokenNode — rendering', () => {
   it('shows the token image with its title as alt and the count overlay', () => {
     renderToken(makeToken({ title: 'Flying', imageUrl: 'https://img/flying.svg', count: 3 }));
