@@ -29,8 +29,10 @@ component styles to it.
 ## Rules
 
 - **No hex/rgba literals outside `src/tokens.css`.** New surfaces reference
-  tokens. (Exemptions: user data colors like `token.backgroundColor`, mana
-  identity via `--mana-*`, SVG data-URIs that can't read vars.)
+  tokens. Enforced at commit time by `scripts/check-no-hex.mjs` (lint-staged).
+  (Exemptions: user data colors like `token.backgroundColor` — mark the line
+  `// hex-ok: <reason>` — mana identity via `--mana-*`, SVG data-URIs that
+  can't read vars, and pure black/white shadow/scrim alphas.)
 - **Dark-only.** There is no light theme and never will be — don't fork values
   on `.dark`, don't add theme toggles.
 - **Hairline over fill.** If a border will do, don't add a background. Panels

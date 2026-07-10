@@ -51,8 +51,8 @@ const pass: GameAction = {
       actorId: playerId,
       type: 'pass_turn',
       text: 'passed their turn',
-      // Soft amber: stands out but is not glaring
-      tone: 'rgba(250,200,80,0.95)',
+      // Soft amber (--warn): stands out but is not glaring
+      tone: 'var(--warn)',
     });
   },
 };

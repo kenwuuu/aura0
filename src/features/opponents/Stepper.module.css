@@ -9,21 +9,33 @@
   justify-content: center;
   padding: 0;
   line-height: 1;
-  color: var(--accent);
-  background-color: color-mix(in srgb, var(--accent) 20%, transparent);
-  border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
+  color: var(--player-accent);
+  background-color: color-mix(in srgb, var(--player-accent) 20%, transparent);
+  border: 1px solid color-mix(in srgb, var(--player-accent) 40%, transparent);
   border-radius: 4px;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: color 0.16s var(--ease-hud), background-color 0.16s var(--ease-hud),
+    border-color 0.16s var(--ease-hud), box-shadow 0.16s var(--ease-hud);
 }
 
-.button:hover {
-  background-color: color-mix(in srgb, var(--accent) 30%, transparent);
-  border-color: var(--accent);
+/* Design §03: − hover tints danger, + hover tints good (state on a control,
+   not chrome). Classes set in Stepper.tsx. */
+.decrement:hover {
+  color: var(--danger);
+  background-color: color-mix(in srgb, var(--danger) 15%, transparent);
+  border-color: var(--danger);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--danger) 35%, transparent);
+}
+
+.increment:hover {
+  color: var(--good);
+  background-color: color-mix(in srgb, var(--good) 15%, transparent);
+  border-color: var(--good);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--good) 35%, transparent);
 }
 
 .button:active {
-  background-color: color-mix(in srgb, var(--accent) 40%, transparent);
+  background-color: color-mix(in srgb, var(--player-accent) 40%, transparent);
 }
 
 .md {

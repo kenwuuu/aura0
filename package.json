@@ -20,6 +20,9 @@
   "lint-staged": {
     "*.{js,jsx,ts,tsx}": [
       "vitest related --run"
+    ],
+    "src/**/*.{ts,tsx,css}": [
+      "node scripts/check-no-hex.mjs"
     ]
   },
   "dependencies": {

@@ -167,8 +167,8 @@ function executeBoardAction(action: string, cursor: { x: number; y: number }): v
       const yCards = yDoc.getMap<WhiteboardCard>(YDOC_CARDS_ON_BOARD);
       const yTokens = yDoc.getMap<KeywordToken>(YDOC_KEYWORD_TOKENS);
       const template = action === 'addCounter'
-        ? { title: '+1/+1', backgroundColor: '#e8e1df', count: 1 }
-        : { title: '-1/-1', backgroundColor: '#e8e1df', count: -1 };
+        ? { title: '+1/+1', backgroundColor: '#e8e1df', count: 1 } // hex-ok: token data color
+        : { title: '-1/-1', backgroundColor: '#e8e1df', count: -1 }; // hex-ok: token data color
       spawnTokenAtPosition(template, screenToFlowPosition(cursor), yCards, yTokens, playerId);
       break;
     }

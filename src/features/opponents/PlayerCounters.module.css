@@ -12,10 +12,10 @@
   justify-content: center;
   width: 24px;
   height: 24px;
-  color: #9ca3af;
-  background-color: #2d2d2d;
-  border: 2px dashed color-mix(in srgb, var(--accent) 40%, transparent);
-  border-radius: 8px;
+  color: var(--text-dim);
+  background-color: var(--surface);
+  border: 1px dashed color-mix(in srgb, var(--player-accent) 40%, transparent);
+  border-radius: 4px;
   font-size: 14px;
   line-height: 1;
   cursor: pointer;
@@ -23,7 +23,7 @@
 }
 
 .addButton:hover {
-  color: var(--accent);
-  background-color: color-mix(in srgb, var(--accent) 20%, transparent);
-  border-color: var(--accent);
+  color: var(--player-accent);
+  background-color: color-mix(in srgb, var(--player-accent) 20%, transparent);
+  border-color: var(--player-accent);
 }

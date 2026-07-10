@@ -59,7 +59,7 @@ function HudUnit({
             fontWeight: 600,
             letterSpacing: '0.06em',
             textTransform: 'uppercase',
-            color: 'rgba(255,255,255,0.4)',
+            color: 'var(--text-mute)',
             userSelect: 'none',
             paddingRight: 10,
           }}

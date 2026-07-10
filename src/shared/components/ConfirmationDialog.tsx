@@ -24,30 +24,30 @@ const styles = {
     zIndex: 10000,
   } as React.CSSProperties,
   content: {
-    backgroundColor: '#1a1a1a',
-    border: '2px solid #3d3d3d',
+    backgroundColor: 'var(--bg-2)',
+    border: '1px solid var(--line-2)',
     borderRadius: '16px',
     maxWidth: '500px',
     width: '90%',
-    boxShadow: '0 20px 60px rgba(0, 0, 0, 0.8)',
+    boxShadow: 'var(--shadow-sheet)',
     outline: 'none',
   } as React.CSSProperties,
   header: {
     padding: '20px',
-    borderBottom: '2px solid #2d2d2d',
+    borderBottom: '1px solid var(--line)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
   } as React.CSSProperties,
   title: {
-    color: '#ffffff',
+    color: 'var(--text)',
     fontSize: '20px',
     margin: 0,
   } as React.CSSProperties,
   close: {
     background: 'none',
     border: 'none',
-    color: '#9ca3af',
+    color: 'var(--text-dim)',
     fontSize: '32px',
     cursor: 'pointer',
     padding: 0,
@@ -63,13 +63,13 @@ const styles = {
     padding: '24px 20px',
   } as React.CSSProperties,
   message: {
-    color: '#e5e7eb',
+    color: 'var(--text)',
     fontSize: '16px',
     lineHeight: '1.6',
     marginBottom: '20px',
   } as React.CSSProperties,
   instruction: {
-    color: '#9ca3af',
+    color: 'var(--text-dim)',
     fontSize: '14px',
     display: 'flex',
     alignItems: 'center',
@@ -78,12 +78,12 @@ const styles = {
   key: {
     fontFamily: "'Courier New', monospace",
     fontWeight: 'bold',
-    color: '#3b82f6',
+    color: 'var(--accent)',
     fontSize: '16px',
-    backgroundColor: '#0f0f0f',
+    backgroundColor: 'var(--surface)',
     padding: '4px 12px',
     borderRadius: '6px',
-    border: '1px solid #3d3d3d',
+    border: '1px solid var(--line-2)',
   } as React.CSSProperties,
 };
 
@@ -125,12 +125,12 @@ export const ConfirmationDialog: React.FC<ConfirmationDialogProps> = ({
                   style={styles.close}
                   onClick={onCancel}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = '#2d2d2d';
-                    e.currentTarget.style.color = '#ffffff';
+                    e.currentTarget.style.backgroundColor = 'var(--surface-2)';
+                    e.currentTarget.style.color = 'var(--text)';
                   }}
                   onMouseLeave={(e) => {
                     e.currentTarget.style.backgroundColor = 'transparent';
-                    e.currentTarget.style.color = '#9ca3af';
+                    e.currentTarget.style.color = 'var(--text-dim)';
                   }}
                 >
                   ×

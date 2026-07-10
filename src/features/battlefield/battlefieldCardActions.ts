@@ -114,7 +114,7 @@ export function executeBattlefieldCardAction(
       // added with the I/U hotkeys
     case 'addCounter':
       spawnTokenAtPosition(
-        { title: '+1/+1', backgroundColor: '#e8e1df', count: 1 },
+        { title: '+1/+1', backgroundColor: '#e8e1df', count: 1 }, // hex-ok: token data color
         nodeCenter(card, 'card'),
         yCards, yTokens, playerId,
       );
@@ -123,7 +123,7 @@ export function executeBattlefieldCardAction(
       // Mirrors the 'I' global hotkey's cursor-position spawn (useAllGameHotkeys.ts)
       // — same template, just anchored to the card instead of the cursor.
       spawnTokenAtPosition(
-        { title: '-1/-1', backgroundColor: '#e8e1df', count: -1 },
+        { title: '-1/-1', backgroundColor: '#e8e1df', count: -1 }, // hex-ok: token data color
         nodeCenter(card, 'card'),
         yCards, yTokens, playerId,
       );

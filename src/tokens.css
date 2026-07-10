@@ -50,6 +50,10 @@
   --mana-r: #e5484d;
   --mana-g: #3aa76d;
 
+  /* Playmat radial-gradient center — the one surface tone between --bg and
+     --bg-2 (PlaymatNode). */
+  --playmat-center: #10101a;
+
   /* Motion & elevation */
   --ease-hud: cubic-bezier(0.2, 0.7, 0.2, 1);
   --shadow-sheet: 0 12px 40px rgba(0, 0, 0, 0.5); /* floating sheets only */

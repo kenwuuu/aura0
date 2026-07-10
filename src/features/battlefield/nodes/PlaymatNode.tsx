@@ -24,7 +24,7 @@ export const PlaymatNode = memo(function PlaymatNode({ data }: NodeProps) {
   // hairline. Name plates + cursor colors disambiguate which opponent.
   const background = d.matImageUrl
     ? `url(${d.matImageUrl}) center/cover no-repeat`
-    : 'radial-gradient(ellipse at center, #10101a 0%, var(--bg) 100%)';
+    : 'radial-gradient(ellipse at center, var(--playmat-center) 0%, var(--bg) 100%)';
 
   return (
     <div
