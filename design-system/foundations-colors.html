@@ -1,0 +1,130 @@
+<!-- @dsCard group="Foundations" -->
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Manabase — Colors</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./tokens.css">
+<style>
+  * { box-sizing: border-box; margin: 0; }
+  body {
+    background: var(--bg); color: var(--text);
+    font-family: 'Space Grotesk', system-ui, sans-serif;
+    padding: 28px; min-height: 100vh;
+  }
+  .mono { font-family: 'Space Mono', monospace; }
+  .cap { font-family: 'Space Mono', monospace; font-size: 10px; letter-spacing: 1px;
+         text-transform: uppercase; color: var(--text-mute); margin: 0 0 12px; }
+  .row { display: flex; gap: 16px; flex-wrap: wrap; align-items: center; }
+
+</style>
+</head>
+<body>
+<p class="cap">Surfaces</p>
+<div class="row" style="margin-bottom:24px">
+<div style="width:118px">
+  <div style="height:56px;border-radius:4px;background:var(--bg);border:1px solid var(--line-2)"></div>
+  <div class="mono" style="font-size:10px;color:var(--text);margin-top:6px">--bg</div>
+  <div class="mono" style="font-size:9px;color:var(--text-mute)">#08080c</div>
+</div><div style="width:118px">
+  <div style="height:56px;border-radius:4px;background:var(--bg-2);border:1px solid var(--line-2)"></div>
+  <div class="mono" style="font-size:10px;color:var(--text);margin-top:6px">--bg-2</div>
+  <div class="mono" style="font-size:9px;color:var(--text-mute)">#0d0d14</div>
+</div><div style="width:118px">
+  <div style="height:56px;border-radius:4px;background:var(--surface);border:1px solid var(--line)"></div>
+  <div class="mono" style="font-size:10px;color:var(--text);margin-top:6px">--surface</div>
+  <div class="mono" style="font-size:9px;color:var(--text-mute)">white 3%</div>
+</div><div style="width:118px">
+  <div style="height:56px;border-radius:4px;background:var(--surface-2);border:1px solid var(--line)"></div>
+  <div class="mono" style="font-size:10px;color:var(--text);margin-top:6px">--surface-2</div>
+  <div class="mono" style="font-size:9px;color:var(--text-mute)">white 5.5%</div>
+</div><div style="width:118px">
+  <div style="height:56px;border-radius:4px;background:var(--line);border:1px solid var(--line)"></div>
+  <div class="mono" style="font-size:10px;color:var(--text);margin-top:6px">--line</div>
+  <div class="mono" style="font-size:9px;color:var(--text-mute)">white 8%</div>
+</div><div style="width:118px">
+  <div style="height:56px;border-radius:4px;background:var(--line-2);border:1px solid var(--line)"></div>
+  <div class="mono" style="font-size:10px;color:var(--text);margin-top:6px">--line-2</div>
+  <div class="mono" style="font-size:9px;color:var(--text-mute)">white 14%</div>
+</div>
+</div>
+<p class="cap">Brand — purple is the only brand energy</p>
+<div class="row" style="margin-bottom:24px">
+<div style="width:118px">
+  <div style="height:56px;border-radius:4px;background:var(--accent);border:1px solid var(--line)"></div>
+  <div class="mono" style="font-size:10px;color:var(--text);margin-top:6px">--accent</div>
+  <div class="mono" style="font-size:9px;color:var(--text-mute)">#9B5CFF</div>
+</div><div style="width:118px">
+  <div style="height:56px;border-radius:4px;background:var(--accent-2);border:1px solid var(--line)"></div>
+  <div class="mono" style="font-size:10px;color:var(--text);margin-top:6px">--accent-2 (rare)</div>
+  <div class="mono" style="font-size:9px;color:var(--text-mute)">#6E7BFF</div>
+</div><div style="width:118px">
+  <div style="height:56px;border-radius:4px;background:var(--accent-pink);border:1px solid var(--line)"></div>
+  <div class="mono" style="font-size:10px;color:var(--text);margin-top:6px">--accent-pink (sparing)</div>
+  <div class="mono" style="font-size:9px;color:var(--text-mute)">#FF5CAD</div>
+</div><div style="width:118px">
+  <div style="height:56px;border-radius:4px;background:var(--accent-soft);border:1px solid var(--line)"></div>
+  <div class="mono" style="font-size:10px;color:var(--text);margin-top:6px">--accent-soft</div>
+  <div class="mono" style="font-size:9px;color:var(--text-mute)">14% wash</div>
+</div><div style="width:118px">
+  <div style="height:56px;border-radius:4px;background:var(--accent-line);border:1px solid var(--line)"></div>
+  <div class="mono" style="font-size:10px;color:var(--text);margin-top:6px">--accent-line</div>
+  <div class="mono" style="font-size:9px;color:var(--text-mute)">45%</div>
+</div>
+</div>
+<p class="cap">Text &amp; state</p>
+<div class="row" style="margin-bottom:24px">
+<div style="width:118px">
+  <div style="height:56px;border-radius:4px;background:var(--text);border:1px solid var(--line)"></div>
+  <div class="mono" style="font-size:10px;color:var(--text);margin-top:6px">--text</div>
+  <div class="mono" style="font-size:9px;color:var(--text-mute)">#ECECF2</div>
+</div><div style="width:118px">
+  <div style="height:56px;border-radius:4px;background:var(--text-dim);border:1px solid var(--line)"></div>
+  <div class="mono" style="font-size:10px;color:var(--text);margin-top:6px">--text-dim</div>
+  <div class="mono" style="font-size:9px;color:var(--text-mute)">#9A9AAB</div>
+</div><div style="width:118px">
+  <div style="height:56px;border-radius:4px;background:var(--text-mute);border:1px solid var(--line)"></div>
+  <div class="mono" style="font-size:10px;color:var(--text);margin-top:6px">--text-mute</div>
+  <div class="mono" style="font-size:9px;color:var(--text-mute)">#5E5E6C</div>
+</div><div style="width:118px">
+  <div style="height:56px;border-radius:4px;background:var(--good);border:1px solid var(--line)"></div>
+  <div class="mono" style="font-size:10px;color:var(--text);margin-top:6px">--good</div>
+  <div class="mono" style="font-size:9px;color:var(--text-mute)">#39D98A</div>
+</div><div style="width:118px">
+  <div style="height:56px;border-radius:4px;background:var(--danger);border:1px solid var(--line)"></div>
+  <div class="mono" style="font-size:10px;color:var(--text);margin-top:6px">--danger</div>
+  <div class="mono" style="font-size:9px;color:var(--text-mute)">#FF5C7A</div>
+</div><div style="width:118px">
+  <div style="height:56px;border-radius:4px;background:var(--warn);border:1px solid var(--line)"></div>
+  <div class="mono" style="font-size:10px;color:var(--text);margin-top:6px">--warn</div>
+  <div class="mono" style="font-size:9px;color:var(--text-mute)">#FFC46B</div>
+</div>
+</div>
+<p class="cap">Mana identity — data only, never chrome</p>
+<div class="row">
+<div style="width:118px">
+  <div style="height:56px;border-radius:4px;background:var(--mana-w);border:1px solid var(--line)"></div>
+  <div class="mono" style="font-size:10px;color:var(--text);margin-top:6px">--mana-w</div>
+  <div class="mono" style="font-size:9px;color:var(--text-mute)">W</div>
+</div><div style="width:118px">
+  <div style="height:56px;border-radius:4px;background:var(--mana-u);border:1px solid var(--line)"></div>
+  <div class="mono" style="font-size:10px;color:var(--text);margin-top:6px">--mana-u</div>
+  <div class="mono" style="font-size:9px;color:var(--text-mute)">U</div>
+</div><div style="width:118px">
+  <div style="height:56px;border-radius:4px;background:var(--mana-b);border:1px solid var(--line)"></div>
+  <div class="mono" style="font-size:10px;color:var(--text);margin-top:6px">--mana-b</div>
+  <div class="mono" style="font-size:9px;color:var(--text-mute)">B</div>
+</div><div style="width:118px">
+  <div style="height:56px;border-radius:4px;background:var(--mana-r);border:1px solid var(--line)"></div>
+  <div class="mono" style="font-size:10px;color:var(--text);margin-top:6px">--mana-r</div>
+  <div class="mono" style="font-size:9px;color:var(--text-mute)">R</div>
+</div><div style="width:118px">
+  <div style="height:56px;border-radius:4px;background:var(--mana-g);border:1px solid var(--line)"></div>
+  <div class="mono" style="font-size:10px;color:var(--text);margin-top:6px">--mana-g</div>
+  <div class="mono" style="font-size:9px;color:var(--text-mute)">G</div>
+</div>
+</div>
+</body>
+</html>

@@ -1,0 +1,52 @@
+<!-- @dsCard group="Toolbar" -->
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Manabase — Toolbar</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./tokens.css">
+<style>
+  * { box-sizing: border-box; margin: 0; }
+  body {
+    background: var(--bg); color: var(--text);
+    font-family: 'Space Grotesk', system-ui, sans-serif;
+    padding: 28px; min-height: 100vh;
+  }
+  .mono { font-family: 'Space Mono', monospace; }
+  .cap { font-family: 'Space Mono', monospace; font-size: 10px; letter-spacing: 1px;
+         text-transform: uppercase; color: var(--text-mute); margin: 0 0 12px; }
+  .row { display: flex; gap: 16px; flex-wrap: wrap; align-items: center; }
+  .bar { display:flex; gap:16px; align-items:center; background:var(--bg-2);
+    background-image:linear-gradient(180deg, var(--surface), transparent);
+    border-bottom:1px solid var(--line); padding:8px 20px; margin:0 -28px; }
+  .tb { display:flex; align-items:center; gap:8px; background:transparent; color:var(--text-dim);
+    border:1px solid transparent; border-radius:4px; padding:8px 16px;
+    font:500 13px 'Space Grotesk',sans-serif; cursor:pointer; transition:all .16s var(--ease-hud); white-space:nowrap; }
+  .tb:hover { background:var(--surface); color:var(--text); border-color:var(--line); }
+  .tb.primary { background:var(--accent); color:var(--accent-contrast); font-weight:600;
+    box-shadow:0 0 0 1px var(--accent-line), 0 0 16px var(--glow); }
+  .tb.discord { border-color:color-mix(in srgb, var(--accent-2) 45%, transparent); color:var(--text); }
+  .tb.kofi { border-color:color-mix(in srgb, var(--accent-pink) 35%, transparent); color:var(--accent-pink); }
+  .pip { display:flex; align-items:center; gap:6px; margin-left:auto;
+    font:400 11px 'Space Mono',monospace; letter-spacing:1px; color:var(--good); }
+  .dot { width:8px; height:8px; border-radius:50%; background:var(--good); }
+  .link { font:400 11px 'Space Mono',monospace; letter-spacing:1px; color:var(--text-dim);
+    border:1px solid var(--line-2); border-radius:4px; padding:8px 16px; background:transparent; cursor:pointer; text-transform:uppercase; }
+  .link:hover { color:var(--text); border-color:var(--accent); box-shadow:0 0 14px var(--glow); }
+</style>
+</head>
+<body>
+<p class="cap">Top toolbar — raised bar, ghost buttons, one primary</p>
+<div class="bar">
+  <button class="tb primary">📚 Choose Deck</button>
+  <button class="tb">Hotkeys</button>
+  <button class="tb">Help</button>
+  <button class="tb discord">Discord</button>
+  <button class="tb kofi">Ko-fi</button>
+  <span class="pip"><span class="dot"></span>CONNECTED</span>
+  <button class="link">COPY ROOM LINK</button>
+</div>
+</body>
+</html>

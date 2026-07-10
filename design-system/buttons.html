@@ -1,0 +1,50 @@
+<!-- @dsCard group="Buttons" -->
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Manabase — Buttons</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./tokens.css">
+<style>
+  * { box-sizing: border-box; margin: 0; }
+  body {
+    background: var(--bg); color: var(--text);
+    font-family: 'Space Grotesk', system-ui, sans-serif;
+    padding: 28px; min-height: 100vh;
+  }
+  .mono { font-family: 'Space Mono', monospace; }
+  .cap { font-family: 'Space Mono', monospace; font-size: 10px; letter-spacing: 1px;
+         text-transform: uppercase; color: var(--text-mute); margin: 0 0 12px; }
+  .row { display: flex; gap: 16px; flex-wrap: wrap; align-items: center; }
+  .btn { display:inline-flex; align-items:center; justify-content:center; gap:8px;
+    border-radius:4px; padding:11px 20px; font:500 14px 'Space Grotesk',sans-serif;
+    cursor:pointer; transition:all .16s var(--ease-hud); border:1px solid transparent; }
+  .primary { background:var(--accent); color:var(--accent-contrast); font-weight:600;
+    box-shadow:0 0 0 1px var(--accent-line), 0 0 18px var(--glow); }
+  .primary:hover { transform:translateY(-2px); box-shadow:0 0 0 1px var(--accent), 0 6px 22px var(--glow-strong); }
+  .secondary { background:var(--surface); color:var(--text); border-color:var(--line-2); }
+  .secondary:hover { border-color:var(--accent); box-shadow:0 0 0 1px var(--accent-line), 0 0 16px var(--glow); }
+  .ghost { background:transparent; color:var(--text-dim); }
+  .ghost:hover { background:var(--surface); color:var(--text); border-color:var(--line); }
+  .destroy { background:transparent; color:var(--danger); border-color:color-mix(in srgb, var(--danger) 35%, transparent); }
+  .destroy:hover { background:color-mix(in srgb, var(--danger) 10%, transparent); }
+  .icon { width:40px; height:40px; padding:0; background:var(--surface); color:var(--text-dim); border-color:var(--line-2); }
+  .icon:hover { border-color:var(--accent); color:var(--text); box-shadow:0 0 12px var(--glow); }
+  .disabled { background:var(--surface); color:var(--text-mute); opacity:.5; cursor:not-allowed; border-color:var(--line); }
+</style>
+</head>
+<body>
+<p class="cap">Variants — one Primary per view</p>
+<div class="row">
+  <button class="btn primary">Choose Deck</button>
+  <button class="btn secondary">Secondary</button>
+  <button class="btn ghost">Ghost</button>
+  <button class="btn destroy">Destroy</button>
+  <button class="btn icon">⚙</button>
+  <button class="btn disabled">Disabled</button>
+</div>
+<p class="cap" style="margin-top:24px">Hover to see elevation-as-glow (no shadows except floating sheets)</p>
+</body>
+</html>
