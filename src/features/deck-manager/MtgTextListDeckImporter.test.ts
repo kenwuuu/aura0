@@ -24,15 +24,19 @@ function makeMockLookup(): CardLookupService {
   return lookup;
 }
 
-describe('MtgTextListDeckImporter - Section Header Detection', () => {
+describe('MtgTextListDeckImporter - Section Headers', () => {
   let importer: MtgTextListDeckImporter;
 
   beforeEach(() => {
     importer = new MtgTextListDeckImporter(undefined, makeMockLookup());
   });
 
-  describe('Section header detection', () => {
-    it('should detect SIDEBOARD section header', async () => {
+  // Distinct card names in the imported deck (each is expanded by its count).
+  const importedNames = (result: { cards: { name?: string }[] }): string[] =>
+    [...new Set(result.cards.map((c) => c.name).filter((n): n is string => !!n))];
+
+  describe('Section header tolerance', () => {
+    it('should import the main deck and skip a SIDEBOARD', async () => {
       const deckText = `4 Lightning Bolt
 20 Mountain
 
@@ -42,165 +46,90 @@ SIDEBOARD:
 
       const result = await importer.importFromText(deckText);
 
-      expect(result.cards).toHaveLength(0);
-      expect(result.errors).toBeDefined();
-      expect(result.errors).toHaveLength(1);
-      expect(result.errors![0]).toContain('Section headers detected');
-      expect(result.errors![0]).toContain('SIDEBOARD:');
+      expect(result.errors).toBeUndefined();
+      // 4 Lightning Bolt + 20 Mountain = 24 cards, no sideboard cards.
+      expect(result.cards).toHaveLength(24);
+      expect(importedNames(result).sort()).toEqual(['Lightning Bolt', 'Mountain']);
     });
 
-    it('should detect COMMANDER section header', async () => {
-      const deckText = `4 Lightning Bolt
-20 Mountain
+    it('should import a COMMANDER section together with the main deck', async () => {
+      const deckText = `COMMANDER:
+1 Flubs, the Fool
 
-COMMANDER:
-1 Flubs, the Fool`;
+DECK:
+4 Lightning Bolt
+20 Mountain`;
 
       const result = await importer.importFromText(deckText);
 
-      expect(result.cards).toHaveLength(0);
-      expect(result.errors).toBeDefined();
-      expect(result.errors![0]).toContain('Section headers detected');
-      expect(result.errors![0]).toContain('COMMANDER:');
+      expect(result.errors).toBeUndefined();
+      expect(result.cards).toHaveLength(25);
+      expect(importedNames(result).sort()).toEqual(['Flubs, the Fool', 'Lightning Bolt', 'Mountain']);
     });
 
-    it('should detect multiple section headers', async () => {
-      const deckText = `4 Lightning Bolt
+    it('should keep commander + main and drop sideboard and maybeboard', async () => {
+      const deckText = `COMMANDER:
+1 Flubs, the Fool
+
+4 Lightning Bolt
 
 SIDEBOARD:
 1 Drill Too Deep
 
-COMMANDER:
-1 Flubs, the Fool`;
-
-      const result = await importer.importFromText(deckText);
-
-      expect(result.cards).toHaveLength(0);
-      expect(result.errors).toBeDefined();
-      expect(result.errors![0]).toContain('Section headers detected');
-      expect(result.errors![0]).toContain('SIDEBOARD:');
-      expect(result.errors![0]).toContain('COMMANDER:');
-    });
-
-    it('should show first 3 headers and count if more than 3', async () => {
-      const deckText = `4 Lightning Bolt
-
-SIDEBOARD:
-1 Card A
-
-COMMANDER:
-1 Card B
-
 MAYBEBOARD:
-1 Card C
-
-CONSIDERING:
-1 Card D`;
+2 Counterspell`;
 
       const result = await importer.importFromText(deckText);
 
-      expect(result.cards).toHaveLength(0);
-      expect(result.errors).toBeDefined();
-      expect(result.errors![0]).toContain('and 1 more');
-    });
-
-    it('should suggest MTGO preset in error message', async () => {
-      const deckText = `4 Lightning Bolt
-
-SIDEBOARD:
-1 Drill Too Deep`;
-
-      const result = await importer.importFromText(deckText);
-
-      expect(result.errors![0]).toContain('MTGO preset');
-      expect(result.errors![0]).toContain('Moxfield');
-    });
-
-    it('should direct users to Help button', async () => {
-      const deckText = `4 Lightning Bolt
-
-SIDEBOARD:
-1 Drill Too Deep`;
-
-      const result = await importer.importFromText(deckText);
-
-      expect(result.errors![0]).toContain('Help button');
-    });
-
-    it('should NOT detect valid card lines as section headers', async () => {
-      const deckText = `4 Lightning Bolt
-20 Mountain
-1 Bonfire of the Damned`;
-
-      const result = await importer.importFromText(deckText);
-
-      // Should succeed - no section headers detected
-      expect(result.cards.length).toBeGreaterThan(0);
       expect(result.errors).toBeUndefined();
+      expect(importedNames(result).sort()).toEqual(['Flubs, the Fool', 'Lightning Bolt']);
     });
 
-    it('should handle case where line starts with text but is actually a card name', async () => {
-      // This edge case: a card name that doesn't start with a number won't be imported
-      // but we're testing that the error message is clear
+    it('should import unrecognized (Archidekt-style) category headers', async () => {
+      const deckText = `Creatures
+4 Monastery Swiftspear
+
+Lands
+20 Mountain
+
+Maybeboard
+1 Counterspell`;
+
+      const result = await importer.importFromText(deckText);
+
+      expect(result.errors).toBeUndefined();
+      expect(importedNames(result).sort()).toEqual(['Monastery Swiftspear', 'Mountain']);
+    });
+
+    it('should treat a leading non-numbered line as a header and still import numbered cards', async () => {
       const deckText = `Lightning Bolt
 4 Mountain`;
 
       const result = await importer.importFromText(deckText);
 
-      // This will be detected as a section header since it doesn't start with a number
-      expect(result.cards).toHaveLength(0);
-      expect(result.errors).toBeDefined();
-      expect(result.errors![0]).toContain('Section headers detected');
-      expect(result.errors![0]).toContain('"Lightning Bolt"');
+      expect(result.errors).toBeUndefined();
+      expect(importedNames(result)).toEqual(['Mountain']);
     });
 
-    it('should handle mixed valid and invalid lines', async () => {
-      const deckText = `4 Lightning Bolt
-SIDEBOARD:
+    it('should report no valid entries when every card is in an excluded section', async () => {
+      const deckText = `SIDEBOARD:
 1 Drill Too Deep
-20 Mountain`;
+4 Pygmy Pyrosaur`;
 
       const result = await importer.importFromText(deckText);
 
       expect(result.cards).toHaveLength(0);
       expect(result.errors).toBeDefined();
-      expect(result.errors![0]).toContain('SIDEBOARD:');
+      expect(result.errors![0]).toContain('No valid card entries');
     });
 
-    it('should handle section headers with trailing colons', async () => {
-      const deckText = `4 Lightning Bolt
-
-Sideboard:
-1 Card A`;
-
-      const result = await importer.importFromText(deckText);
-
-      expect(result.cards).toHaveLength(0);
-      expect(result.errors).toBeDefined();
-      expect(result.errors![0]).toContain('Sideboard:');
-    });
-
-    it('should handle section headers without colons', async () => {
-      const deckText = `4 Lightning Bolt
-
-SIDEBOARD
-1 Card A`;
-
-      const result = await importer.importFromText(deckText);
-
-      expect(result.cards).toHaveLength(0);
-      expect(result.errors).toBeDefined();
-      expect(result.errors![0]).toContain('SIDEBOARD');
-    });
-
-    it('should allow importing valid deck without section headers', async () => {
+    it('should allow importing a valid deck without section headers', async () => {
       const deckText = `4 Lightning Bolt
 20 Mountain
 1 Zuran Orb`;
 
       const result = await importer.importFromText(deckText);
 
-      // Should succeed
       expect(result.cards.length).toBeGreaterThan(0);
       expect(result.errors).toBeUndefined();
     });
