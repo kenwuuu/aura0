@@ -69,10 +69,10 @@ function CardDragOverlay({ card, zoom }: { card: Card; zoom: number }) {
   return (
     <div style={{
       width: 63 * zoom, height: 88 * zoom,
-      borderRadius: 8,
+      borderRadius: 4,
       overflow: 'hidden',
-      boxShadow: '0 12px 40px rgba(0,0,0,0.8)',
-      background: '#2d2d2d',
+      boxShadow: '0 10px 24px rgba(0, 0, 0, 0.5), 0 0 16px var(--glow)',
+      background: 'var(--bg-2)',
       cursor: 'grabbing',
     }}>
       {imageUrl && (

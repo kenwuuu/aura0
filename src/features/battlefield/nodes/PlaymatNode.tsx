@@ -19,11 +19,12 @@ export interface PlaymatNodeData {
 export const PlaymatNode = memo(function PlaymatNode({ data }: NodeProps) {
   const d = data as unknown as PlaymatNodeData;
 
+  // HUD identity (design guardrail: no colored felt — chrome stays neutral):
+  // your mat carries the purple accent hairline; opponents get a neutral
+  // hairline. Name plates + cursor colors disambiguate which opponent.
   const background = d.matImageUrl
     ? `url(${d.matImageUrl}) center/cover no-repeat`
-    : d.isLocal
-      ? 'radial-gradient(ellipse at center, #1a3a2a 0%, #0f2018 100%)'
-      : 'radial-gradient(ellipse at center, #1a2a3a 0%, #0f1820 100%)';
+    : 'radial-gradient(ellipse at center, #10101a 0%, var(--bg) 100%)';
 
   return (
     <div
@@ -32,8 +33,8 @@ export const PlaymatNode = memo(function PlaymatNode({ data }: NodeProps) {
         height: MAT_HEIGHT,
         background,
         border: d.isLocal
-          ? '1px solid rgba(74, 222, 128, 0.3)'
-          : '1px solid rgba(96, 165, 250, 0.3)',
+          ? '1px solid var(--accent-line)'
+          : '1px solid var(--line-2)',
         borderRadius: 8,
         pointerEvents: 'none',
         userSelect: 'none',

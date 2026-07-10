@@ -132,42 +132,50 @@ body {
 
 /* Game Resources Dock */
 
+/* Zone counters (design §04): deck is the single ACTIVE zone (accent border +
+   glow + accent count); discard/exile/hand are quiet (hairline, muted count).
+   The old per-pile identity colors (deck=blue/discard=red/exile=purple) are
+   retired with the HUD palette. */
 .resource-pile {
-  background-color: #1a1a1a;
-  border: 0.5px solid #3d3d3d;
-  border-radius: 12px;
+  background-color: var(--bg-2);
+  border: 1px solid var(--line);
+  border-radius: 4px;
   padding: 12px 16px;
   min-width: 80px;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 8px;
-  transition: all 0.2s;
+  transition: border-color 0.16s var(--ease-hud), background-color 0.16s var(--ease-hud),
+    box-shadow 0.16s var(--ease-hud);
   cursor: pointer;
 }
 
 .resource-pile:hover {
-  border-color: #5d5d5d;
-  background-color: #2a2a2a;
+  border-color: var(--line-2);
+  background-color: var(--surface-2);
 }
 
 .pile-label {
+  font-family: var(--font-mono);
   font-size: 11px;
-  color: #9ca3af;
+  color: var(--text-mute);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 1px;
 }
 
 .pile-count {
   font-size: 24px;
-  font-weight: bold;
-  color: #ffffff;
-  font-family: 'Courier New', monospace;
+  font-weight: 700;
+  color: var(--text-dim);
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
 }
 
+/* Draw: micro primary (accent fill + glow). */
 .draw-button {
-  background-color: #3b82f6;
-  color: white;
+  background-color: var(--accent);
+  color: var(--accent-contrast);
   border: none;
   padding: 6px 16px;
   border-radius: 2px;
@@ -175,17 +183,19 @@ body {
   font-weight: 600;
   font-family: inherit;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: box-shadow 0.16s var(--ease-hud), transform 0.16s var(--ease-hud);
+  box-shadow: 0 0 0 1px var(--accent-line), 0 0 10px var(--glow);
   margin-top: 4px;
 }
 
 .draw-button:hover {
-  background-color: #2563eb;
+  background-color: var(--accent);
   transform: translateY(-1px);
+  box-shadow: 0 0 0 1px var(--accent), 0 4px 14px var(--glow-strong);
 }
 
 .draw-button:active {
-  background-color: #1d4ed8;
+  background-color: var(--accent);
   transform: translateY(0);
 }
 
@@ -194,12 +204,12 @@ body {
   filter: brightness(0) saturate(100%);
 }
 /* Horizontal scroll wrapper. Height is set inline as card_height*zoom + 20px so
-   the hover-lift (translateY(-12px)) fits within bounds without clipping. */
+   the hover-lift (translateY(-10px), design §06) fits within bounds without clipping. */
 .hand-scroll {
   overflow-x: auto;
   overflow-y: hidden;
   scrollbar-width: thin;
-  scrollbar-color: #4a4a4a transparent;
+  scrollbar-color: var(--line-2) transparent;
 }
 
 /* Cards sit at the bottom; the 20px headroom at the top absorbs the hover lift. */
@@ -217,24 +227,27 @@ body {
   /* the 3 multiplier matches HandCardsContainer.tsx. multiply by 3 bc 1x is too small */
   width: calc(3 * 63px * var(--card-zoom, 1));
   height: calc(3 * 88px * var(--card-zoom, 1));
-  background-color: #2d2d2d;
-  border: 2px solid #4a4a4a;
-  border-radius: 10px;
+  background-color: var(--bg-2);
+  border: 1px solid var(--line-2);
+  border-radius: 6px;
   cursor: grab;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 10px;
-  color: #9ca3af;
-  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+  color: var(--text-dim);
+  transition: transform 0.15s var(--ease-hud), box-shadow 0.15s ease, border-color 0.15s ease;
   user-select: none;
   overflow: hidden;
 }
 
+/* Hand cards DO get the design §06 hover lift (unlike board cards — no
+   react-flow transform to fight here). The .hand-scroll 20px headroom
+   absorbs the -10px travel without clipping. */
 .hand-card:hover {
-  transform: translateY(-6px);
-  border-color: #6a6a6a;
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.6);
+  transform: translateY(-10px);
+  border-color: var(--accent);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.55), 0 0 16px var(--glow);
 }
 
 .hand-card-image {
@@ -243,57 +256,37 @@ body {
   object-fit: contain;
   display: block;
   pointer-events: none;
-  border-radius: 10px;
+  border-radius: 6px;
 }
 
-/* Specific pile colors */
-.exile-pile {
-  border-color: #8b5cf6;
-}
-
-.exile-pile:hover {
-  border-color: #a78bfa;
-}
-
-.exile-pile .pile-count {
-  color: #c4b5fd;
-}
-
-.discard-pile {
-  border-color: #ef4444;
-}
-
-.discard-pile:hover {
-  border-color: #f87171;
-}
-
-.discard-pile .pile-count {
-  color: #fca5a5;
-}
-
+/* Deck = the active zone (class is template-constructed in PileNode.tsx:
+   `${pileKind}-pile` — deck-pile/discard-pile/exile-pile/hand-pile). */
 .deck-pile {
-  border-color: #3b82f6;
+  border-color: var(--accent-line);
+  box-shadow: 0 0 10px var(--glow);
 }
 
 .deck-pile:hover {
-  border-color: #60a5fa;
+  border-color: var(--accent);
 }
 
 .deck-pile .pile-count {
-  color: #93c5fd;
+  color: var(--accent);
+  text-shadow: 0 0 12px var(--glow);
 }
 
 /* Card Number Badge */
 .card-number-badge {
   position: absolute;
   right: 4px;
-  background-color: rgba(59, 130, 246, 0.9);
-  color: white;
+  background-color: rgba(8, 8, 12, 0.85); /* --bg @ 85% */
+  color: var(--accent);
   font-size: 9px;
-  font-weight: bold;
+  font-weight: 700;
   padding: 2px 6px;
-  border-radius: 4px;
-  font-family: 'Courier New', monospace;
+  border-radius: 2px;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
   pointer-events: none;
 }
 

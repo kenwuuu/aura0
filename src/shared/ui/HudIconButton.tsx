@@ -36,22 +36,24 @@ export function HudIconButton({
         width: 34,
         height: 34,
         borderRadius: 8,
-        border: '1px solid #4a4a4a',
-        background: 'rgba(26, 26, 26, 0.85)',
-        color: '#d1d5db',
+        border: '1px solid var(--line-2)',
+        background: 'rgba(13, 13, 20, 0.85)',
+        color: 'var(--text-dim)',
         cursor: 'pointer',
         backdropFilter: 'blur(8px)',
         transition: 'background 0.15s, color 0.15s, border-color 0.15s',
       }}
       onMouseEnter={(e) => {
-        (e.currentTarget as HTMLButtonElement).style.background = '#2d2d2d';
-        (e.currentTarget as HTMLButtonElement).style.color = '#ffffff';
-        (e.currentTarget as HTMLButtonElement).style.borderColor = '#6b7280';
+        (e.currentTarget as HTMLButtonElement).style.background = 'rgba(13, 13, 20, 0.95)';
+        (e.currentTarget as HTMLButtonElement).style.color = 'var(--text)';
+        (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--accent)';
+        (e.currentTarget as HTMLButtonElement).style.boxShadow = '0 0 12px var(--glow)';
       }}
       onMouseLeave={(e) => {
-        (e.currentTarget as HTMLButtonElement).style.background = 'rgba(26, 26, 26, 0.85)';
-        (e.currentTarget as HTMLButtonElement).style.color = '#d1d5db';
-        (e.currentTarget as HTMLButtonElement).style.borderColor = '#4a4a4a';
+        (e.currentTarget as HTMLButtonElement).style.background = 'rgba(13, 13, 20, 0.85)';
+        (e.currentTarget as HTMLButtonElement).style.color = 'var(--text-dim)';
+        (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--line-2)';
+        (e.currentTarget as HTMLButtonElement).style.boxShadow = '';
       }}
     >
       {icon}

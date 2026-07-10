@@ -124,6 +124,7 @@ export const TokenNode = memo(function TokenNode({ data, id }: NodeProps) {
             textAnchor="middle"
             fontSize={TOKEN_SIZE * FONT_SCALE}
             fontWeight="bold"
+            fontFamily="var(--font-mono)"
             fill="white"
             stroke="black"
             strokeWidth="1.5"
