@@ -515,25 +515,26 @@ function BattlefieldCanvasInner({ yDoc, localPlayerId }: BattlefieldCanvasProps)
           color="#777777"
           gap={BACKGROUND_GRID_GAP}
         />
-        {/* The margin offsets the Controls away from the settings button — both
-            anchor to the same corner (bottom-left on desktop, top-right on
-            phone), so without it they'd overlap. */}
-        {/* On phone both add the safe-area right inset on top of react-flow's
-            default 15px panel margin (the right edge's inset owner, per
-            docs/responsive.md). */}
+        {/* The top/bottom margin offsets the Controls away from the settings
+            button — both anchor to the same corner (bottom-left on desktop,
+            top-right on phone), so without it they'd overlap. */}
+        {/* Phone margins mirror the PhoneHudStack toggles across the screen:
+            8px from the toolbar and screen edge plus the safe-area right inset
+            (the right edge's inset owner, per docs/responsive.md), and an 8px
+            gap below the 34px settings button (8 + 34 + 8 = 50). */}
         <Controls
           position={isPhone ? 'top-right' : 'bottom-left'}
           showFitView={false}
           showInteractive={false}
           style={
             isPhone
-              ? { marginTop: 55, marginRight: 'calc(15px + env(safe-area-inset-right, 0px))' }
+              ? { margin: 8, marginTop: 50, marginRight: 'calc(8px + env(safe-area-inset-right, 0px))' }
               : { marginBottom: 55 }
           }
         />
         <Panel
           position={isPhone ? 'top-right' : 'bottom-left'}
-          style={isPhone ? { marginRight: 'calc(15px + env(safe-area-inset-right, 0px))' } : undefined}
+          style={isPhone ? { margin: 8, marginRight: 'calc(8px + env(safe-area-inset-right, 0px))' } : undefined}
         >
           <SettingsButton />
         </Panel>

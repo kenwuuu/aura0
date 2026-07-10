@@ -66,6 +66,13 @@ test.describe('phone HUD', () => {
     expect(settingsBox!.y).toBeLessThan(PHONE_VIEWPORT.height / 3);
     expect(zoomBox!.x).toBeGreaterThan(PHONE_VIEWPORT.width / 2);
     expect(zoomBox!.y).toBeGreaterThan(settingsBox!.y);
+
+    // The cluster mirrors the top-left HUD toggles: same distance below the
+    // toolbar, and the same 8px gap to its screen edge.
+    const toggleBox = await phoneHudGameActionsToggle(page).boundingBox();
+    expect(Math.abs(settingsBox!.y - toggleBox!.y)).toBeLessThanOrEqual(1);
+    const rightGap = PHONE_VIEWPORT.width - (settingsBox!.x + settingsBox!.width);
+    expect(Math.abs(rightGap - toggleBox!.x)).toBeLessThanOrEqual(1);
   });
 
   test('desktop width keeps the floating panels and bottom-left controls', async ({ page }) => {
