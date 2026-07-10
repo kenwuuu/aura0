@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { screen, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import * as Y from 'yjs';
@@ -9,7 +9,16 @@ import { YDOC_CARDS_ON_BOARD, YDOC_KEYWORD_TOKENS, DEFAULT_CARD_BACK } from '@/c
 import { useCardPreviewStore } from '@/features/card-preview/cardPreviewStore';
 import { useHotkeyStore } from '@/app/stores/hotkeyStore';
 import { useContextMenuStore } from '@/features/hotkeys/contextMenuStore';
+import { __setLastPointerTypeForTest } from '@/shared/pointerInput';
 import type { Card } from '@/features/player/types';
+
+// Default the input modality to mouse so hover paths run; individual touch
+// tests override it. Keeps the store state from leaking between cases.
+beforeEach(() => {
+  __setLastPointerTypeForTest('mouse');
+  useCardPreviewStore.getState().hide();
+  useContextMenuStore.setState({ isOpen: false, target: null, x: 0, y: 0 });
+});
 
 /**
  * Characterization tests for CardNode's CURRENT behavior, written before the
@@ -105,6 +114,17 @@ describe('CardNode — hover drives the card preview', () => {
     await user.unhover(frame);
     expect(useCardPreviewStore.getState().isVisible).toBe(false);
     expect(useHotkeyStore.getState().hoverTarget).toBeNull();
+  });
+
+  it('does not drive the preview on a synthetic mouseenter when the last input was touch', () => {
+    __setLastPointerTypeForTest('touch');
+    const { container } = renderCard(makeCard({ name: 'Lightning Bolt' }));
+
+    // A touch tap fires a synthetic mouseenter with no matching mouseleave; it
+    // must not open the preview (the tap machine owns that instead).
+    fireEvent.mouseEnter(container.firstChild as Element);
+
+    expect(useCardPreviewStore.getState().isVisible).toBe(false);
   });
 });
 
