@@ -7,7 +7,13 @@ import { makeCard } from '@/test/factories';
 function renderHandCard(overrides: Partial<Parameters<typeof makeCard>[0]> = {}) {
   const card = makeCard({ id: 'card-1', name: 'Lightning Bolt', ...overrides });
   return render(
-    <HandCard card={card} onMouseEnter={vi.fn()} onMouseMove={vi.fn()} onMouseLeave={vi.fn()} />,
+    <HandCard
+      card={card}
+      onMouseEnter={vi.fn()}
+      onMouseMove={vi.fn()}
+      onMouseLeave={vi.fn()}
+      onRequestPreview={vi.fn()}
+    />,
   );
 }
 
