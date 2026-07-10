@@ -252,19 +252,6 @@ SIDEBOARD:
         expect(result[0]).toEqual({ count: 4, name: 'Lightning Bolt' });
       });
 
-      it('should import cards under generic non-section text (treated as main)', () => {
-        const deckText = `Some random text
-4 Lightning Bolt
-Another line of text
-20 Mountain`;
-
-        const result = parseDecklist(deckText);
-
-        expect(result).toHaveLength(2);
-        expect(result[0]).toEqual({ count: 4, name: 'Lightning Bolt' });
-        expect(result[1]).toEqual({ count: 20, name: 'Mountain' });
-      });
-
       it('should handle deck with only section headers (returns empty)', () => {
         const deckText = `SIDEBOARD:
 COMMANDER:
@@ -273,6 +260,197 @@ MAYBEBOARD:`;
         const result = parseDecklist(deckText);
 
         expect(result).toHaveLength(0);
+      });
+    });
+
+    describe('quantity-less lists', () => {
+      it('should treat an unrecognized non-header line as a single (count 1) card', () => {
+        const deckText = `Sol Ring
+4 Lightning Bolt
+Arcane Signet
+20 Mountain`;
+
+        const result = parseDecklist(deckText);
+
+        expect(result).toEqual([
+          { count: 1, name: 'Sol Ring' },
+          { count: 4, name: 'Lightning Bolt' },
+          { count: 1, name: 'Arcane Signet' },
+          { count: 20, name: 'Mountain' },
+        ]);
+      });
+
+      it('should import a fully quantity-less singleton list', () => {
+        const deckText = `Sol Ring
+Arcane Signet
+Command Tower`;
+
+        const result = parseDecklist(deckText);
+
+        expect(result).toEqual([
+          { count: 1, name: 'Sol Ring' },
+          { count: 1, name: 'Arcane Signet' },
+          { count: 1, name: 'Command Tower' },
+        ]);
+      });
+
+      it('should duplicate repeated basic lands per line', () => {
+        // A quantity-less export has no quantity field, so N copies of a basic
+        // are N separate lines. Each becomes one card.
+        const deckText = `Island
+Island
+Island
+Forest
+Forest`;
+
+        const result = parseDecklist(deckText);
+
+        expect(result).toEqual([
+          { count: 1, name: 'Island' },
+          { count: 1, name: 'Island' },
+          { count: 1, name: 'Island' },
+          { count: 1, name: 'Forest' },
+          { count: 1, name: 'Forest' },
+        ]);
+      });
+
+      it('should not read a basic-land card name as a "Lands" header', () => {
+        // "Island"/"Wasteland" contain the substring "land" but are cards, while
+        // a bare "Lands" line is a category header.
+        const deckText = `Lands
+Island
+Wasteland`;
+
+        const result = parseDecklist(deckText);
+
+        expect(result).toEqual([
+          { count: 1, name: 'Island' },
+          { count: 1, name: 'Wasteland' },
+        ]);
+      });
+
+      it('should not treat a card whose name contains a section word as a header', () => {
+        const deckText = `Commander's Sphere
+Command Tower
+Sol Ring`;
+
+        const result = parseDecklist(deckText);
+
+        expect(result).toEqual([
+          { count: 1, name: "Commander's Sphere" },
+          { count: 1, name: 'Command Tower' },
+          { count: 1, name: 'Sol Ring' },
+        ]);
+      });
+
+      it('should tag quantity-less partner commanders under a commander header', () => {
+        const deckText = `Commander
+Kraum, Ludevic's Opus
+Tymna the Weaver
+
+Deck
+Sol Ring
+Command Tower`;
+
+        const result = parseDecklist(deckText);
+
+        expect(result).toEqual([
+          { count: 1, name: "Kraum, Ludevic's Opus", commander: true },
+          { count: 1, name: 'Tymna the Weaver', commander: true },
+          { count: 1, name: 'Sol Ring' },
+          { count: 1, name: 'Command Tower' },
+        ]);
+      });
+
+      it('should mix quantity-prefixed and quantity-less lines', () => {
+        const deckText = `Commander
+Krenko, Mob Boss
+
+Deck
+1 Sol Ring
+Island
+Island`;
+
+        const result = parseDecklist(deckText);
+
+        expect(result).toEqual([
+          { count: 1, name: 'Krenko, Mob Boss', commander: true },
+          { count: 1, name: 'Sol Ring' },
+          { count: 1, name: 'Island' },
+          { count: 1, name: 'Island' },
+        ]);
+      });
+
+      it('should parse set info on a quantity-less line', () => {
+        const deckText = `Sol Ring (C21) 263`;
+
+        const result = parseDecklist(deckText);
+
+        expect(result).toEqual([
+          { count: 1, name: 'Sol Ring', setCode: 'C21', collectorNumber: '263' },
+        ]);
+      });
+
+      it('should skip quantity-less cards under an excluded section', () => {
+        const deckText = `Deck
+Sol Ring
+
+Sideboard
+Swords to Plowshares`;
+
+        const result = parseDecklist(deckText);
+
+        expect(result).toEqual([{ count: 1, name: 'Sol Ring' }]);
+      });
+
+      it('should treat an Archidekt category header with a trailing count as a header', () => {
+        const deckText = `Ramp (2)
+1 Sol Ring
+Arcane Signet
+Removal (1)
+1 Swords to Plowshares`;
+
+        const result = parseDecklist(deckText);
+
+        expect(result).toEqual([
+          { count: 1, name: 'Sol Ring' },
+          { count: 1, name: 'Arcane Signet' },
+          { count: 1, name: 'Swords to Plowshares' },
+        ]);
+      });
+    });
+
+    describe('comment-style section markers', () => {
+      it('should recognize // and # prefixed section headers', () => {
+        const deckText = `// Commander
+Krenko, Mob Boss
+# Deck
+1 Sol Ring
+// Sideboard
+1 Swords to Plowshares`;
+
+        const result = parseDecklist(deckText);
+
+        expect(result).toEqual([
+          { count: 1, name: 'Krenko, Mob Boss', commander: true },
+          { count: 1, name: 'Sol Ring' },
+        ]);
+      });
+
+      it('should keep treating a // or # note that is not a section as a comment', () => {
+        const deckText = `# This is my deck
+4 Lightning Bolt
+// a flavor note
+20 Mountain`;
+
+        const result = parseDecklist(deckText);
+
+        // The comment lines are ignored (not turned into cards) and do not
+        // change the active section.
+        expect(result).toEqual([
+          { count: 4, name: 'Lightning Bolt' },
+          { count: 20, name: 'Mountain' },
+        ]);
       });
     });
 
@@ -536,6 +714,16 @@ COMMANDER:`;
       const result = validateFormat(deckText);
 
       expect(result).toBe(false);
+    });
+
+    it('should validate a quantity-less list', () => {
+      const deckText = `Sol Ring
+Arcane Signet
+Command Tower`;
+
+      const result = validateFormat(deckText);
+
+      expect(result).toBe(true);
     });
 
 //     it('should validate deck even if it contains lines to be ignored', () => {

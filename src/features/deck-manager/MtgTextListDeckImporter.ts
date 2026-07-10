@@ -37,7 +37,7 @@ export class MtgTextListDeckImporter extends DeckImporter {
     }
 
     if (!validateFormat(text)) {
-      deck.errors = ["Invalid deck format. Expected format: \"[count] [card name]\" per line"];
+      deck.errors = ["No cards found. Add one card per line, e.g. \"1 Sol Ring\" or just \"Sol Ring\"."];
       trackImportFailed('invalid_format', text);
       return deck;
     }
@@ -60,7 +60,7 @@ export class MtgTextListDeckImporter extends DeckImporter {
     }
 
     if (entries.length === 0) {
-      deck.errors = ["No valid card entries found. Make sure each line starts with a quantity, e.g. \"4 Lightning Bolt\"."];
+      deck.errors = ["No valid card entries found. If your cards are all under a Sideboard or Maybeboard section, move them under a Deck or Commander section."];
       trackImportFailed('no_valid_entries', text);
       return deck;
     }
