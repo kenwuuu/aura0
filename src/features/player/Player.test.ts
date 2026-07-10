@@ -6,6 +6,7 @@ import {YDOC_CARDS_ON_BOARD} from "@/constants";
 import { seededRandom } from '@/test/seededRandom';
 import { getActionLog } from '@/features/action-log/actionLog';
 import { makeCards } from '@/test/factories';
+import { DEFAULT_DECK } from '@/features/deck-manager/defaultDeck';
 
 describe('Player.reset()', () => {
   let yDoc: Y.Doc;
@@ -797,6 +798,16 @@ describe('Player.loadNewDeck()', () => {
     expect(player.getHand().getCardCount()).toBe(8);
     expect(player.getDeck().getCardCount()).toBe(2);
     expect(player.getHand().getCards().some((c) => c.id === 'new-card-3')).toBe(true);
+  });
+
+  it('should auto-draw the commander from the default (Krenko) deck', async () => {
+    // Guards the bundled default deck against losing its commander flag: the
+    // opening hand must be 8 (Krenko + 7), matching the e2e boot assertion.
+    await player.loadNewDeck(DEFAULT_DECK);
+
+    expect(player.getHand().getCardCount()).toBe(8);
+    expect(player.getDeck().getCardCount()).toBe(92);
+    expect(player.getHand().getCards().some((c) => c.name === 'Krenko, Mob Boss')).toBe(true);
   });
 
   it('should auto-draw multiple commanders (partners)', async () => {
