@@ -41,11 +41,11 @@ function Slider({
     >
       <SliderPrimitive.Track
         data-slot="slider-track"
-        className="bg-[#3d3d3d] relative grow overflow-hidden rounded-full data-[orientation=horizontal]:h-1.5 data-[orientation=horizontal]:w-full data-[orientation=vertical]:h-full data-[orientation=vertical]:w-1.5"
+        className="bg-line-2 relative grow overflow-hidden rounded-full data-[orientation=horizontal]:h-1.5 data-[orientation=horizontal]:w-full data-[orientation=vertical]:h-full data-[orientation=vertical]:w-1.5"
       >
         <SliderPrimitive.Range
           data-slot="slider-range"
-          className="bg-[#3b82f6] absolute data-[orientation=horizontal]:h-full data-[orientation=vertical]:w-full"
+          className="bg-primary absolute data-[orientation=horizontal]:h-full data-[orientation=vertical]:w-full"
         />
       </SliderPrimitive.Track>
       {Array.from({ length: _values.length }, (_, i) => (
@@ -55,7 +55,7 @@ function Slider({
           // role="slider" lives on the Thumb, not the Root — an aria-label on
           // the Root wouldn't be picked up by the accessible-name computation.
           aria-label={ariaLabel}
-          className="border-[#3b82f6] bg-white ring-offset-background focus-visible:ring-[#3b82f6]/50 block size-4 shrink-0 rounded-full border-2 shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50"
+          className="border-primary bg-foreground ring-offset-background focus-visible:ring-ring/50 block size-4 shrink-0 rounded-full border-2 shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50"
         />
       ))}
     </SliderPrimitive.Root>

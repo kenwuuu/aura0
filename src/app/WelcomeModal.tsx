@@ -52,16 +52,16 @@ export const WelcomeModal: React.FC = () => {
       <DialogContent className="max-w-md border-1">
         <DialogHeader className="border-none px-8 pt-8">
           <DialogTitle>Welcome to Aura</DialogTitle>
-          <DialogDescription className="space-y-3 pt-2 text-md text-gray-200">
+          <DialogDescription className="space-y-3 pt-2 text-md text-foreground">
             <p>
               <strong >Start a game</strong> by sharing a game link with friends by clicking
               the <strong>Copy Room Link</strong> button on the top right.
             </p>
             <p>
-              Import a new deck using the <strong className="text-white">Choose Deck</strong> button in the top left.
+              Import a new deck using the <strong className="text-primary">Choose Deck</strong> button in the top left.
             </p>
             <p>
-              View all hotkeys in the <strong className="text-white">Hotkeys</strong> button next to it.
+              View all hotkeys in the <strong className="text-primary">Hotkeys</strong> button next to it.
             </p>
           </DialogDescription>
         </DialogHeader>
@@ -69,14 +69,15 @@ export const WelcomeModal: React.FC = () => {
           {showDontShowAgain && (
             <Button
               onClick={handleDontShowAgain}
-              className="flex-1 h-12 text-md font-semibold rounded-lg border border-[#4a4a4a] bg-[#2d2d2d] text-white hover:bg-[#3a3a3a]"
+              variant="secondary"
+              className="flex-1 h-12 text-md"
             >
               Don't show again
             </Button>
           )}
           <Button
             onClick={() => setIsVisible(false)}
-            className="flex-1 h-12 text-md font-semibold rounded-xl border border-[#3d3d3d] bg-blue-500 text-white hover:bg-blue-600"
+            className="flex-1 h-12 text-md"
           >
             Got it
           </Button>

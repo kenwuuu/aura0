@@ -19,19 +19,19 @@ const styles: { [key: string]: React.CSSProperties } = {
     top: '50%',
     left: '50%',
     transform: 'translate(-50%, -50%)',
-    backgroundColor: '#1f1f1f',
-    border: '2px solid #3d3d3d',
-    borderRadius: '16px',
+    backgroundColor: 'var(--bg-2)',
+    border: '1px solid var(--line-2)',
+    borderRadius: '8px',
     padding: '24px',
     maxWidth: '500px',
     maxHeight: '85vh',
     overflow: 'auto',
-    boxShadow: '0 8px 30px rgba(0, 0, 0, 0.5)',
+    boxShadow: 'var(--shadow-sheet)',
     zIndex: 10004,
     animation: 'slideIn 200ms ease-out',
   },
   title: {
-    color: '#fff',
+    color: 'var(--text)',
     fontSize: '18px',
     fontWeight: 600,
     marginBottom: '16px',
@@ -41,7 +41,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     marginBottom: '20px',
   },
   sectionTitle: {
-    color: '#3b82f6',
+    color: 'var(--accent)',
     fontSize: '14px',
     fontWeight: 600,
     marginBottom: '8px',
@@ -49,24 +49,24 @@ const styles: { [key: string]: React.CSSProperties } = {
     letterSpacing: '0.05em',
   },
   text: {
-    color: '#d1d5db',
+    color: 'var(--text-dim)',
     fontSize: '14px',
     lineHeight: 1.6,
     marginBottom: '8px',
   },
   code: {
-    backgroundColor: '#2d2d2d',
-    border: '1px solid #4a4a4a',
+    backgroundColor: 'var(--surface)',
+    border: '1px solid var(--line-2)',
     borderRadius: '4px',
     padding: '12px',
     fontSize: '13px',
     fontFamily: 'monospace',
-    color: '#e5e7eb',
+    color: 'var(--text)',
     whiteSpace: 'pre-wrap' as const,
     marginBottom: '8px',
   },
   ul: {
-    color: '#d1d5db',
+    color: 'var(--text-dim)',
     fontSize: '14px',
     lineHeight: 1.6,
     marginLeft: '20px',
@@ -78,10 +78,11 @@ const styles: { [key: string]: React.CSSProperties } = {
     padding: '10px 16px',
     fontSize: '14px',
     fontWeight: 600,
-    borderRadius: '6px',
-    border: '1px solid #3d3d3d',
-    backgroundColor: '#3b82f6',
-    color: '#fff',
+    borderRadius: '4px',
+    border: 'none',
+    backgroundColor: 'var(--accent)',
+    color: 'var(--accent-contrast)',
+    boxShadow: '0 0 0 1px var(--accent-line), 0 0 14px var(--glow)',
     cursor: 'pointer',
     transition: 'all 0.2s',
   },
@@ -94,7 +95,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     borderRadius: '4px',
     border: 'none',
     backgroundColor: 'transparent',
-    color: '#9ca3af',
+    color: 'var(--text-dim)',
     fontSize: '20px',
     cursor: 'pointer',
     display: 'flex',
@@ -116,7 +117,7 @@ export function DeckImportHelpDialog({ isOpen, onClose }: DeckImportHelpDialogPr
           <div style={styles.section}>
             <div style={styles.sectionTitle}>Recommended Format</div>
             <p style={styles.text}>
-              For best results, use the <strong style={{ color: '#fff' }}>MTGO preset</strong> from Moxfield's download button:
+              For best results, use the <strong style={{ color: 'var(--accent)' }}>MTGO preset</strong> from Moxfield's download button:
             </p>
             <div style={styles.code}>
               4 Lightning Bolt{'\n'}

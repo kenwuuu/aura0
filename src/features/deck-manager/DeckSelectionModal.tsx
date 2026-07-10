@@ -128,7 +128,7 @@ export function DeckSelectionModal({
           )}
 
           {decks.length === 0 && (
-            <div className="text-center py-8 text-gray-400">
+            <div className="text-center py-8 text-dim">
               <p>No decks found. Import your first deck to get started!</p>
             </div>
           )}
@@ -138,22 +138,22 @@ export function DeckSelectionModal({
               {decks.map((deck) => (
                 <div
                   key={deck.id}
-                  className="mx-6 border-2 flex items-center justify-between p-4 bg-[#2a2a2a] border-[#3d3d3d] rounded-lg hover:bg-[#1a1a1a] hover:border-[#3b82f6] hover:scale-[1.02] ease transition-all duration-200 cursor-pointer"
+                  className="mx-6 border flex items-center justify-between p-4 bg-surface border-line-2 rounded-md hover:border-primary hover:shadow-[0_0_14px_var(--glow)] hover:scale-[1.02] ease transition-all duration-200 cursor-pointer"
                   onClick={() => handleSelectDeck(deck.id)}
                 >
                   <div className="flex-1">
-                    <h3 className="text-white font-semibold mb-1">{deck.name}</h3>
-                    <div className="flex gap-3 text-sm text-gray-400 mb-1">
+                    <h3 className="text-foreground font-semibold mb-1">{deck.name}</h3>
+                    <div className="flex gap-3 text-sm text-dim mb-1">
                       <span>{deck.cardCount} cards</span>
                       {deck.format && <span>{deck.format}</span>}
                       <span>{deck.source}</span>
                     </div>
-                    <p className="text-xs text-gray-500">
+                    <p className="text-xs text-mute">
                       Last modified: {formatDate(deck.lastModified)}
                     </p>
                   </div>
                   <button
-                    className="ml-4 px-3 py-2 text-gray-400 hover:text-red-400 hover:bg-[#2a2a2a] rounded transition-colors"
+                    className="ml-4 px-3 py-2 text-dim hover:text-danger hover:bg-surface rounded transition-colors"
                     onClick={(e) => handleDeleteDeck(deck.id, e)}
                     title="Delete deck"
                   >
@@ -169,14 +169,13 @@ export function DeckSelectionModal({
           <Button
             type="button"
             onClick={onClose}
-            className="bg-[#2a2a2a] border border-[#3d3d3d] text-gray-400 hover:bg-[#3d3d3d] hover:text-white"
+            variant="secondary"
           >
             Cancel
           </Button>
           <Button
             type="button"
             onClick={handleImportNew}
-            className="bg-blue-500 text-white hover:bg-blue-600"
           >
             Import New Deck
           </Button>

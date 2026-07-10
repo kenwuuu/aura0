@@ -10,7 +10,7 @@
   justify-content: space-between;
   gap: 24px;
   padding: 12px 0;
-  border-bottom: 1px solid #2d2d2d;
+  border-bottom: 1px solid var(--line);
 }
 
 .row:last-child {
@@ -27,13 +27,13 @@
 .label {
   font-size: 14px;
   font-weight: 500;
-  color: #e5e7eb;
+  color: var(--text);
   line-height: 1.4;
 }
 
 .description {
   font-size: 12px;
-  color: #9ca3af;
+  color: var(--text-dim);
   line-height: 1.4;
 }
 

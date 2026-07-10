@@ -13,6 +13,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/shared/ui/dialog';
+import { Button } from '@/shared/ui/button';
 
 interface ConfirmDialogProps {
   isOpen: boolean;
@@ -42,24 +43,19 @@ export function ConfirmDialog({
           <DialogTitle>{title}</DialogTitle>
         </DialogHeader>
         <div className="p-6 pt-0">
-          <p className="text-gray-400 text-md mb-5">{description}</p>
+          <p className="text-dim text-md mb-5">{description}</p>
           <div className="flex gap-3">
-            <button
-              className="flex-1 px-3 py-3 rounded-lg border-none text-base font-bold cursor-pointer transition-colors bg-[#2d2d2d] text-[#9ca3af] hover:bg-[#3d3d3d]"
-              onClick={onCancel}
-            >
+            <Button variant="secondary" size="lg" className="flex-1" onClick={onCancel}>
               {cancelLabel}
-            </button>
-            <button
-              className={
-                destructive
-                  ? 'flex-1 px-3 py-3 rounded-lg border-none text-base font-bold cursor-pointer transition-colors bg-red-600 text-white hover:bg-red-700'
-                  : 'flex-1 px-3 py-3 rounded-lg border-none text-base font-bold cursor-pointer transition-colors bg-blue-500 text-white hover:bg-blue-600'
-              }
+            </Button>
+            <Button
+              variant={destructive ? 'destructive' : 'default'}
+              size="lg"
+              className="flex-1"
               onClick={onConfirm}
             >
               {confirmLabel}
-            </button>
+            </Button>
           </div>
         </div>
       </DialogContent>
