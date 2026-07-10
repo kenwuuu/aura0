@@ -16,6 +16,7 @@
  */
 
 import * as Sentry from '@sentry/browser';
+import { v4 as uuidv4 } from 'uuid';
 import { trackConnectionOutcome, type TransportLabel } from '@/infrastructure/analytics/PosthogFunctions';
 
 export interface ConnectionMonitorConfig {
@@ -33,6 +34,16 @@ export class ConnectionMonitor {
   private disconnectedSince: number | null = null;
   private errorReported = false;
   private stuckTimer: ReturnType<typeof setTimeout> | null = null;
+  // Correlates the two events a single disconnected episode can emit — the
+  // 'failed' fired at the grace mark and the 'connected' fired if it later
+  // recovers — so analytics can tell a hard failure (failed only) from a
+  // slow-but-successful connect (failed + connected sharing this id). Minted
+  // when an episode begins, cleared when it connects.
+  private episodeId: string | null = null;
+  // Distinguishes the first connection of this monitor's life from every
+  // reconnect after it, so initial-connect health and mid-session resilience
+  // can be read separately rather than blended into one rate.
+  private hasEverConnected = false;
 
   constructor(private readonly config: ConnectionMonitorConfig) {
     // Not connected yet at construction — arm the clock immediately so an
@@ -49,17 +60,31 @@ export class ConnectionMonitor {
     const connectMs = this.disconnectedSince === null
       ? undefined
       : Date.now() - this.disconnectedSince;
+    const episodeId = this.episodeId;
+    // Read the type before flipping the flag: a slow initial connect is still
+    // an 'initial' outcome even though this call is what makes future connects
+    // count as reconnects.
+    const episodeType = this.hasEverConnected ? 'reconnect' : 'initial';
     this.disconnectedSince = null;
+    this.episodeId = null;
     this.errorReported = false;
+    this.hasEverConnected = true;
     this.clearTimer();
     if (connectMs !== undefined) {
-      trackConnectionOutcome({ transport: this.config.transport, outcome: 'connected', connectMs });
+      trackConnectionOutcome({
+        transport: this.config.transport,
+        outcome: 'connected',
+        episodeId: episodeId ?? undefined,
+        episodeType,
+        connectMs,
+      });
     }
   }
 
   markDisconnected(): void {
     if (this.disconnectedSince !== null) return; // already counting down
     this.disconnectedSince = Date.now();
+    this.episodeId = uuidv4();
     this.stuckTimer = setTimeout(() => {
       this.stuckTimer = null;
       this.reportStuck();
@@ -100,7 +125,15 @@ export class ConnectionMonitor {
       tags: { transport: this.config.transport },
       extra: { ...this.config.context, unreachableForMs },
     });
-    // Same episode also feeds the PostHog failure/total proportion.
-    trackConnectionOutcome({ transport: this.config.transport, outcome: 'failed', unreachableForMs });
+    // Same episode also feeds the PostHog failure/total proportion. It carries
+    // the episode id so a later recovery ('connected' with the same id) can be
+    // distinguished from a connection that truly never came back.
+    trackConnectionOutcome({
+      transport: this.config.transport,
+      outcome: 'failed',
+      episodeId: this.episodeId ?? undefined,
+      episodeType: this.hasEverConnected ? 'reconnect' : 'initial',
+      unreachableForMs,
+    });
   }
 }

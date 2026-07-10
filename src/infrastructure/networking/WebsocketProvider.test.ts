@@ -113,36 +113,62 @@ describe('WebsocketProvider connection monitor', () => {
     expect(h.captureMessage).not.toHaveBeenCalled();
   });
 
-  it('records one PostHog outcome per episode for both success and failure', () => {
+  it('emits a single connected outcome for a fast initial connect, and no failure', () => {
     new WebsocketProvider(new Y.Doc(), { roomName: 'room-1' });
-    const ws = latestSocket();
+    latestSocket().connect();
 
-    // Fails to connect on load → one 'failed' outcome (Sentry + PostHog).
-    vi.advanceTimersByTime(GRACE_MS);
-    expect(h.captureMessage).toHaveBeenCalledTimes(1);
     expect(h.posthogCapture).toHaveBeenCalledTimes(1);
     expect(h.posthogCapture).toHaveBeenLastCalledWith(
       'connection_outcome',
-      expect.objectContaining({ transport: 'websocket', outcome: 'failed' }),
+      expect.objectContaining({
+        transport: 'websocket',
+        outcome: 'connected',
+        episode_type: 'initial',
+        episode_id: expect.any(String),
+        connect_ms: expect.any(Number),
+      }),
     );
 
-    // Recovers → one 'connected' outcome, carrying the time-to-connect.
+    // Past the grace period, still connected → nothing further reported.
+    vi.advanceTimersByTime(GRACE_MS * 2);
+    expect(h.captureMessage).not.toHaveBeenCalled();
+    expect(h.posthogCapture).toHaveBeenCalledTimes(1);
+  });
+
+  it('links an episode failure and its recovery by episode_id, then starts a fresh episode', () => {
+    new WebsocketProvider(new Y.Doc(), { roomName: 'room-1' });
+    const ws = latestSocket();
+
+    // Fails to connect on load → one 'failed' outcome (Sentry + PostHog) tagged
+    // as the initial episode.
+    vi.advanceTimersByTime(GRACE_MS);
+    expect(h.captureMessage).toHaveBeenCalledTimes(1);
+    expect(h.posthogCapture).toHaveBeenCalledTimes(1);
+    const failedProps = h.posthogCapture.mock.calls[0][1] as Record<string, unknown>;
+    expect(failedProps).toMatchObject({ transport: 'websocket', outcome: 'failed', episode_type: 'initial' });
+    expect(failedProps.episode_id).toEqual(expect.any(String));
+
+    // Recovers → 'connected' carrying the SAME episode_id: a slow-but-successful
+    // initial connect, which analytics must not count as a hard failure.
     ws.connect();
     expect(h.posthogCapture).toHaveBeenCalledTimes(2);
-    expect(h.posthogCapture).toHaveBeenLastCalledWith(
-      'connection_outcome',
-      expect.objectContaining({ transport: 'websocket', outcome: 'connected', connect_ms: expect.any(Number) }),
-    );
+    const connectedProps = h.posthogCapture.mock.calls[1][1] as Record<string, unknown>;
+    expect(connectedProps).toMatchObject({
+      transport: 'websocket',
+      outcome: 'connected',
+      episode_type: 'initial',
+      connect_ms: expect.any(Number),
+    });
+    expect(connectedProps.episode_id).toBe(failedProps.episode_id);
 
-    // A later drop that stays down is a fresh episode → reports again.
+    // A later drop that stays down is a fresh episode: new id, now a reconnect.
     ws.drop();
     vi.advanceTimersByTime(GRACE_MS);
     expect(h.captureMessage).toHaveBeenCalledTimes(2);
     expect(h.posthogCapture).toHaveBeenCalledTimes(3);
-    expect(h.posthogCapture).toHaveBeenLastCalledWith(
-      'connection_outcome',
-      expect.objectContaining({ transport: 'websocket', outcome: 'failed' }),
-    );
+    const reconnectFailedProps = h.posthogCapture.mock.calls[2][1] as Record<string, unknown>;
+    expect(reconnectFailedProps).toMatchObject({ transport: 'websocket', outcome: 'failed', episode_type: 'reconnect' });
+    expect(reconnectFailedProps.episode_id).not.toBe(failedProps.episode_id);
   });
 
   it('reports the failure only once while the connection stays stuck', () => {

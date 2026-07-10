@@ -3,6 +3,8 @@
  * Each hotkey has both a short description (for tooltips) and a long description (for the modal)
  */
 
+import type { PileType } from '@/features/player';
+
 export const HotkeyContext = {
   Global: 'global',
   Battlefield: 'battlefield',
@@ -42,6 +44,8 @@ export interface Hotkey {
   shortDescription: string;
   longDescription: string;
   action: string; // Unique action identifier (e.g., "tap", "draw", "addCounter")
+  /** Rendered in the danger/destructive style in the context menu (GameContextMenu). */
+  destructive?: boolean;
 }
 
 export const HOTKEYS: Hotkey[] = [
@@ -77,6 +81,18 @@ export const HOTKEYS: Hotkey[] = [
     shortDescription: 'Add any card',
     longDescription: 'Add a card from outside of game',
     action: 'addCard',
+  },
+  // Pointer-only (no key binding): opens the pile's card viewer. Left-click
+  // already opens it on desktop; this surfaces the same thing as a menu row so
+  // the viewer stays reachable on touch, where a tap opens the menu instead of
+  // opening the viewer directly.
+  {
+    key: '',
+    keys: [],
+    context: ['deck', 'exile', 'discard'],
+    shortDescription: 'View',
+    longDescription: 'View pile contents',
+    action: 'viewPile',
   },
   {
     key: '+  or  =',
@@ -151,6 +167,7 @@ export const HOTKEYS: Hotkey[] = [
     shortDescription: 'Delete',
     longDescription: 'Delete a card',
     action: 'delete',
+    destructive: true,
   },
   {
     key: 'H',
@@ -183,6 +200,7 @@ export const HOTKEYS: Hotkey[] = [
     shortDescription: 'Delete token',
     longDescription: 'Delete a keyword token',
     action: 'tokenDelete',
+    destructive: true,
   },
 
   // Hand and pile shortcuts
@@ -243,4 +261,38 @@ export function getAllHotkeysWithLongDescriptions(): Array<{ key: string; action
 export function getKeyBindingsForAction(action: string): string[] {
   const hotkey = HOTKEYS.find((h) => h.action === action);
   return hotkey?.keys ?? [];
+}
+
+/**
+ * A "what did the user right-click" discriminant for the game context menu.
+ * Each variant maps to exactly one `HotkeyContext` (see `getMenuActionsForTarget`),
+ * so the menu's rows and the keyboard hotkeys are always reading the same catalog.
+ */
+export type MenuTarget =
+  | { kind: 'battlefieldCard'; id: string }
+  | { kind: 'handCard'; id: string }
+  | { kind: 'pile'; pileType: Exclude<PileType, 'scry' | 'hand'> }
+  | { kind: 'token'; id: string }
+  | { kind: 'health' }
+  | { kind: 'board'; x: number; y: number }
+  | { kind: 'pileViewerCard'; id: string; context: HotkeyContext };
+
+/** Resolve a menu target to the rows its context menu should show. */
+export function getMenuActionsForTarget(target: MenuTarget): Hotkey[] {
+  switch (target.kind) {
+    case 'battlefieldCard':
+      return getHotkeysForContext(HotkeyContext.Battlefield);
+    case 'handCard':
+      return getHotkeysForContext(HotkeyContext.Hand);
+    case 'pile':
+      return getHotkeysForContext(target.pileType);
+    case 'token':
+      return getHotkeysForContext(HotkeyContext.KeywordToken);
+    case 'health':
+      return getHotkeysForContext(HotkeyContext.Health);
+    case 'board':
+      return getHotkeysForContext(HotkeyContext.Global);
+    case 'pileViewerCard':
+      return getHotkeysForContext(target.context);
+  }
 }

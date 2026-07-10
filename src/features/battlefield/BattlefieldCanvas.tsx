@@ -37,9 +37,10 @@ import { YDOC_CARDS_ON_BOARD, YDOC_KEYWORD_TOKENS } from '@/constants';
 import { MIN_ZOOM, MAX_ZOOM, MAT_WIDTH, MAT_HEIGHT, BACKGROUND_GRID_GAP } from './boardWorld';
 import type { Player } from '@/features/player';
 import type { TokenService } from '@/infrastructure/cards';
-import { useHotkeyMenuStore } from '@/features/hotkeys/hotkeyMenuStore';
+import { useContextMenuStore } from '@/features/hotkeys/contextMenuStore';
 import { useGameInstance } from '@/app/stores/gameInstanceStore';
 import { useSettingsStore } from '@/app/stores/settingsStore';
+import { usePhoneLayout } from '@/shared/hooks';
 import { SettingsButton } from '@/features/settings/SettingsButton';
 
 const nodeTypes = {
@@ -126,6 +127,10 @@ function BattlefieldCanvasInner({ yDoc, localPlayerId }: BattlefieldCanvasProps)
   const yCards = yDoc.getMap<WhiteboardCard>(YDOC_CARDS_ON_BOARD);
   const yTokens = yDoc.getMap<KeywordToken>(YDOC_KEYWORD_TOKENS);
   const awareness = useGameInstance((s) => s.awareness);
+  // On phone the bottom-left corner belongs to nothing (the full-width hand
+  // covers the bottom edge) and the top-left hosts the HUD toggle stack, so
+  // the settings gear + zoom controls move to the top-right. docs/responsive.md.
+  const isPhone = usePhoneLayout();
 
   const { nodes: cardTokenNodes, onNodesChange, elevateNodes, translateNodes, setDraggingNodeIds } = useBattlefieldNodes(yCards, yTokens, localPlayerId, awareness);
   const { nodes: playmatNodes, localMatOrigin } = usePlaymatNodes(yDoc, localPlayerId);
@@ -181,6 +186,66 @@ function BattlefieldCanvasInner({ yDoc, localPlayerId }: BattlefieldCanvasProps)
   // leaving it parked on what becomes the first player's board. We stop the
   // moment the user manually pans/zooms so we never yank the viewport.
   const hasUserMovedRef = useRef(false);
+
+  // The wrapper DOM node, needed for the native touch-tap listeners below.
+  // `useDroppable`'s `setBattlefieldRef` is a callback ref, so tee it into our
+  // own ref rather than clobbering it.
+  const wrapperElRef = useRef<HTMLDivElement | null>(null);
+  const setWrapperRef = useCallback((node: HTMLDivElement | null) => {
+    wrapperElRef.current = node;
+    setBattlefieldRef(node);
+  }, [setBattlefieldRef]);
+
+  // Pointer type of the in-flight pane gesture, so `onPaneClick` (a MouseEvent,
+  // no `pointerType`) can stay out of the way of touch — a touch pane tap is
+  // handled entirely by the native listeners below, and Firefox still fires a
+  // compat `click` on the pane afterwards that would otherwise close the menu
+  // we just opened.
+  const panePointerTypeRef = useRef<string>('mouse');
+
+  // Touch tap on the empty board → open the global-actions menu (the touch
+  // equivalent of a right-click on empty space). Two reasons this must be a
+  // *native, capture-phase* listener rather than react-flow's `onPaneClick` or
+  // React's own `onPointerUpCapture`:
+  //  1. react-flow's D3-zoom swallows the touch→click on the pane, so
+  //     `onPaneClick` never fires for touch on Chromium;
+  //  2. once D3-zoom pointer-captures the pane, Firefox stops delivering the
+  //     pointer events to React's synthetic capture listeners entirely — only
+  //     a native capture listener on the wrapper still sees them.
+  // `menuWasOpen` snapshots whether a menu was open when the tap began: if it
+  // was, the tap is a dismiss (react-flow's `onMoveStart` and Radix both close
+  // it mid-gesture) and must not re-open a board menu; only a tap that began
+  // with nothing open summons one.
+  useEffect(() => {
+    const el = wrapperElRef.current;
+    if (!el) return;
+    let start: { x: number; y: number; menuWasOpen: boolean } | null = null;
+    const onDown = (e: PointerEvent) => {
+      const onPane = e.target instanceof Element && !!e.target.closest('.react-flow__pane');
+      if (onPane) panePointerTypeRef.current = e.pointerType;
+      start = onPane && e.pointerType !== 'mouse'
+        ? { x: e.clientX, y: e.clientY, menuWasOpen: useContextMenuStore.getState().isOpen }
+        : null;
+    };
+    const onUp = (e: PointerEvent) => {
+      const s = start;
+      start = null;
+      if (!s || s.menuWasOpen) return;
+      // Only a genuine tap (small travel) — a pan/pinch travels further.
+      if (Math.hypot(e.clientX - s.x, e.clientY - s.y) > 10) return;
+      useContextMenuStore.getState().openMenu({
+        target: { kind: 'board', x: e.clientX, y: e.clientY },
+        x: e.clientX,
+        y: e.clientY,
+      });
+    };
+    el.addEventListener('pointerdown', onDown, { capture: true });
+    el.addEventListener('pointerup', onUp, { capture: true });
+    return () => {
+      el.removeEventListener('pointerdown', onDown, { capture: true });
+      el.removeEventListener('pointerup', onUp, { capture: true });
+    };
+  }, []);
   const lastCenteredKeyRef = useRef<string | null>(null);
   useEffect(() => {
     if (hasUserMovedRef.current || !localMatOrigin) return;
@@ -226,7 +291,7 @@ function BattlefieldCanvasInner({ yDoc, localPlayerId }: BattlefieldCanvasProps)
 
   const onNodeDragStart: OnNodeDrag = useCallback(
     (_, node) => {
-      useHotkeyMenuStore.getState().close();
+      useContextMenuStore.getState().close();
       const newZ = getMaxZIndex(yCards, yTokens) + 1;
       dragElevationRef.current.set(node.id, newZ);
 
@@ -288,7 +353,7 @@ function BattlefieldCanvasInner({ yDoc, localPlayerId }: BattlefieldCanvasProps)
   const onSelectionDragStart = useCallback(
     (_: React.MouseEvent, nodes: Node[]) => {
       isMultiDragRef.current = true;
-      useHotkeyMenuStore.getState().close();
+      useContextMenuStore.getState().close();
       const baseZ = getMaxZIndex(yCards, yTokens);
 
       // Collect ids of tokens already in the selection so we don't assign them
@@ -459,7 +524,12 @@ function BattlefieldCanvasInner({ yDoc, localPlayerId }: BattlefieldCanvasProps)
   );
 
   return (
-    <div ref={setBattlefieldRef} style={{ width: '100%', height: '100%' }} onPointerMove={onPointerMove} onPointerLeave={onPointerLeave}>
+    <div
+      ref={setWrapperRef}
+      style={{ width: '100%', height: '100%' }}
+      onPointerMove={onPointerMove}
+      onPointerLeave={onPointerLeave}
+    >
       <ReactFlow
         nodes={allNodes}
         edges={[]}
@@ -476,9 +546,25 @@ function BattlefieldCanvasInner({ yDoc, localPlayerId }: BattlefieldCanvasProps)
         // The handler also keeps pointer-events:all on non-draggable/selectable nodes (enemy cards/tokens).
         onNodeMouseEnter={onNodeMouseEnter}
         onNodeMouseLeave={onNodeMouseLeave}
-        onPaneClick={() => useHotkeyMenuStore.getState().close()}
+        // Mouse only — a left-click on the empty pane dismisses any open menu.
+        // On touch this fires inconsistently (Chromium's D3-zoom eats the
+        // touch→click, Firefox lets it through) and would close the menu the
+        // native tap listeners just opened, so touch is handled entirely above
+        // (open) plus Radix's outside-pointer dismiss (close).
+        onPaneClick={() => {
+          if (panePointerTypeRef.current !== 'mouse') return;
+          useContextMenuStore.getState().close();
+        }}
+        onPaneContextMenu={(event) => {
+          event.preventDefault();
+          useContextMenuStore.getState().openMenu({
+            target: { kind: 'board', x: event.clientX, y: event.clientY },
+            x: event.clientX,
+            y: event.clientY,
+          });
+        }}
         onMoveStart={(event) => {
-          useHotkeyMenuStore.getState().close();
+          useContextMenuStore.getState().close();
 
           // event is null for programmatic moves (our fitBounds), non-null for
           // a real user pan/zoom — only the latter stops board auto-centering
@@ -502,10 +588,27 @@ function BattlefieldCanvasInner({ yDoc, localPlayerId }: BattlefieldCanvasProps)
           color="#777777"
           gap={BACKGROUND_GRID_GAP}
         />
-        {/* marginBottom lifts this above the settings button panel below — both anchor
-            to the same bottom-left corner, so without an offset they'd overlap. */}
-        <Controls position="bottom-left" showFitView={false} showInteractive={false} style={{ marginBottom: 55 }} />
-        <Panel position="bottom-left">
+        {/* The top/bottom margin offsets the Controls away from the settings
+            button — both anchor to the same corner (bottom-left on desktop,
+            top-right on phone), so without it they'd overlap. */}
+        {/* Phone margins mirror the PhoneHudStack toggles across the screen:
+            8px from the toolbar and screen edge plus the safe-area right inset
+            (the right edge's inset owner, per docs/responsive.md), and an 8px
+            gap below the 34px settings button (8 + 34 + 8 = 50). */}
+        <Controls
+          position={isPhone ? 'top-right' : 'bottom-left'}
+          showFitView={false}
+          showInteractive={false}
+          style={
+            isPhone
+              ? { margin: 8, marginTop: 50, marginRight: 'calc(8px + env(safe-area-inset-right, 0px))' }
+              : { marginBottom: 55 }
+          }
+        />
+        <Panel
+          position={isPhone ? 'top-right' : 'bottom-left'}
+          style={isPhone ? { margin: 8, marginRight: 'calc(8px + env(safe-area-inset-right, 0px))' } : undefined}
+        >
           <SettingsButton />
         </Panel>
         <ViewportPortal>

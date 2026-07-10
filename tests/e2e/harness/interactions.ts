@@ -2,10 +2,38 @@ import { Page, Locator, expect } from '@playwright/test';
 import { boardCard, pileTile, whiteboard, deckImportOpenButton, deckImportModal, boardTokens } from './pageObjects';
 import { TESTID, PileKind } from './selectors';
 
-async function centerOf(locator: Locator): Promise<{ x: number; y: number }> {
+export async function centerOf(locator: Locator): Promise<{ x: number; y: number }> {
   const box = await locator.boundingBox();
   if (!box) throw new Error('Element has no bounding box (not rendered/visible).');
   return { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+}
+
+/**
+ * Move the mouse to a point via real incremental travel, not a teleport —
+ * see "Simulate real mouse travel for hover-sensitive interactions" in
+ * docs/testing/e2e.md. `page.mouse.move(x, y)` (default `steps: 1`) and
+ * `locator.click()`/`page.mouse.click()` jump straight to the target and
+ * skip the intermediate `mousemove`/`mouseenter`/`mouseleave` events a real
+ * cursor crossing the screen would fire — anything gated by hover/focus
+ * state (a context menu you then move the mouse across other elements to
+ * reach) can pass under a teleporting click while staying broken for a real
+ * user. Follow with `page.mouse.down()`/`up()` (add `{ button: 'right' }`
+ * for a right-click) rather than `page.mouse.click()`, which would re-jump.
+ */
+export async function realMouseMoveTo(page: Page, to: { x: number; y: number }, steps = 20): Promise<void> {
+  await page.mouse.move(to.x, to.y, { steps });
+}
+
+/** A card's aspect ratio flips between portrait (untapped) and landscape
+ * (tapped) — used as a DOM-visible proxy for tap state, since there's no
+ * dedicated `data-tapped` attribute. */
+export async function getElementOrientation(locator: Locator): Promise<'portrait' | 'landscape' | 'square'> {
+  const box = await locator.boundingBox();
+  if (!box) throw new Error('Element not found or not visible.');
+  const { width, height } = box;
+  if (width > height) return 'landscape';
+  if (height > width) return 'portrait';
+  return 'square';
 }
 
 /**
@@ -179,6 +207,20 @@ export async function dragCountedTokenToBoard(page: Page): Promise<void> {
 /** Open a local resource pile's viewer. Follow with `waitForPileViewerReady`. */
 export async function openPileViewer(page: Page, kind: PileKind): Promise<void> {
   await pileTile(page, kind).click();
+}
+
+/**
+ * Click a battlefield token's top half (+1) or bottom half (-1) — the
+ * click-to-adjust gesture (see `clickedTopHalf` in tokenNodeLogic.ts).
+ * Playwright's default `.click()` targets the element's exact center, which
+ * is the boundary between the two halves, so this always needs an explicit
+ * `position` a bit off-center in the desired direction.
+ */
+export async function clickTokenHalf(token: Locator, half: 'top' | 'bottom'): Promise<void> {
+  const box = await token.boundingBox();
+  if (!box) throw new Error('Token has no bounding box (not rendered/visible).');
+  const y = half === 'top' ? box.height * 0.25 : box.height * 0.75;
+  await token.click({ position: { x: box.width / 2, y } });
 }
 
 /**

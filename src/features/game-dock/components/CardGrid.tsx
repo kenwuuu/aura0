@@ -29,7 +29,7 @@ import {
   rectSortingStrategy,
 } from '@dnd-kit/sortable';
 import { Card, PileType } from '@/features/player';
-import { HotkeyContext, Hotkey } from '@/features/hotkeys/hotkeys';
+import { HotkeyContext } from '@/features/hotkeys/hotkeys';
 import { CardGridItemReact } from './CardGridItemReact';
 import { SortableCardGridItem } from './SortableCardGridItem';
 import { useReflowSafeHover } from '@/shared/hooks/useReflowSafeHover';
@@ -45,7 +45,6 @@ export interface CardGridProps {
   onCardReorder?: (reorderedCards: Card[]) => void;
   onHover: (card: Card | null) => void;
   hotkeyContext: HotkeyContext;
-  onMenuSelect: (hotkey: Hotkey, cardId: string) => void;
   enableReordering?: boolean;
 }
 
@@ -69,7 +68,6 @@ export const CardGrid = React.memo(function CardGrid({
   onCardReorder,
   onHover,
   hotkeyContext,
-  onMenuSelect,
   enableReordering = false,
 }: CardGridProps) {
   const [localCards, setLocalCards] = React.useState(cards);
@@ -155,7 +153,6 @@ export const CardGrid = React.memo(function CardGrid({
                 showFaceDown={shouldShowFaceDown}
                 onHover={handleItemHover}
                 hotkeyContext={hotkeyContext}
-                onMenuSelect={onMenuSelect}
                 pileType={pileType}
                 yPlayerState={yPlayerState}
               />
@@ -209,7 +206,6 @@ export const CardGrid = React.memo(function CardGrid({
                   showFaceDown={shouldShowFaceDown}
                   onHover={handleItemHover}
                   hotkeyContext={hotkeyContext}
-                  onMenuSelect={onMenuSelect}
                   pileType={pileType}
                   yPlayerState={yPlayerState}
                 />

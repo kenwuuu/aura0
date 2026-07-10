@@ -4,26 +4,49 @@
 @custom-variant dark (&:is(.dark *));
 
 
+html,
+body {
+  /* The app is a fixed full-viewport surface: no document scrolling, and no
+     pull-to-refresh / rubber-band from touch gestures at the edges. */
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
     'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  overflow: hidden;
 }
 
 #app-react-root {
-  width: 100vw;
+  width: 100%;
+  /* dvh tracks the *visible* viewport as mobile browser chrome collapses and
+     expands; the vh declaration before it is the fallback for browsers
+     without dvh support (Safari <15.4, Chrome <108). Keep the pair in this
+     order — see docs/responsive.md. */
   height: 100vh;
+  height: 100dvh;
   display: flex;
   flex-direction: column;
   position: relative;
 }
 
+/* dvh-with-fallback for components that size themselves inline (inline styles
+   can't express two declarations for one property). */
+.full-viewport-height {
+  height: 100vh;
+  height: 100dvh;
+}
+
 #toolbar {
   background-color: #0a0a0a;
-  padding: 8px 20px;
+  /* Safe-area: the toolbar owns the top edge (and the sides at its own row),
+     so it absorbs the notch/status-bar insets. Requires viewport-fit=cover. */
+  padding: calc(8px + env(safe-area-inset-top, 0px))
+    calc(20px + env(safe-area-inset-right, 0px)) 8px
+    calc(20px + env(safe-area-inset-left, 0px));
   display: flex;
   gap: 16px;
   align-items: center;
@@ -838,6 +861,21 @@ body {
   border-color: #4752C4;
 }
 
+/* Ko-fi support link — an <a> carrying .toolbar-button, so reset anchor
+   styling; brand color matches the retired Ko-fi widget. */
+.toolbar-kofi {
+  background-color: #72a4f2;
+  border-color: #72a4f2;
+  color: #0a0a0a;
+  text-decoration: none;
+  padding: 8px 12px;
+}
+
+.toolbar-kofi:hover {
+  background-color: #5a8ee2;
+  border-color: #5a8ee2;
+}
+
 /* ── Toolbar responsive collapse ──────────────────────────────────────────
    See src/app/Toolbar.tsx for why this is plain (unlayered) CSS rather than
    Tailwind's `hidden`/`sm:` utility classes: those live in `@layer utilities`,
@@ -865,7 +903,9 @@ body {
 @media (max-width: 639px) {
   #toolbar {
     gap: 8px;
-    padding: 8px 12px;
+    padding: calc(8px + env(safe-area-inset-top, 0px))
+      calc(12px + env(safe-area-inset-right, 0px)) 8px
+      calc(12px + env(safe-area-inset-left, 0px));
   }
 
   .toolbar-hotkeys,
@@ -891,6 +931,13 @@ body {
   }
 }
 
+/* ── Phone layout (below sm) — see docs/responsive.md ─────────────────────
+   Show/hide rules for the phone layout accumulate here, in one place, as
+   plain unlayered CSS (same cascade rationale as the toolbar collapse
+   above). Structural/behavioral phone branches live in JS via
+   usePhoneLayout(). 639px = sm(640) − 1, synced by hand with
+   src/shared/hooks/breakpoints.ts. */
+
 /* ===== Deck Pile Viewer Components ===== */
 
 /* Deck Pile Viewer Modal */
@@ -898,8 +945,9 @@ body {
   position: fixed;
   top: 0;
   left: 0;
-  width: 100vw;
+  width: 100%;
   height: 100vh;
+  height: 100dvh;
   background-color: rgba(0, 0, 0, 0.85);
   display: flex;
   align-items: center;

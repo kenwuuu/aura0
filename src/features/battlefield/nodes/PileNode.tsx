@@ -1,11 +1,13 @@
-import React, { memo, useState } from 'react';
+import React, { memo } from 'react';
 import { NodeProps } from '@xyflow/react';
 import * as Y from 'yjs';
 import { useDroppable } from '@dnd-kit/core';
 import { usePileViewerOpenStore } from '@/features/game-dock/pileViewerOpenStore';
 import { useGameInstance } from '@/app/stores/gameInstanceStore';
 import { useHotkeyStore } from '@/app/stores/hotkeyStore';
-import { HotkeyTooltip } from '@/features/hotkeys/HotkeyTooltip';
+import { useContextMenuStore } from '@/features/hotkeys/contextMenuStore';
+import { useContextMenuTap } from '@/features/hotkeys/useContextMenuTap';
+import type { MenuTarget } from '@/features/hotkeys/hotkeys';
 import { isHandViewDisabled, resolvePileOpenRequest } from './pileNodeLogic';
 import type { PileType } from '@/features/player';
 
@@ -44,32 +46,49 @@ export const PileNode = memo(function PileNode({ data }: NodeProps) {
     disabled: !canReceiveDrop,
   });
 
-  const [hovered, setHovered] = useState(false);
-  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
-
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     const request = resolvePileOpenRequest({ ownerId, isLocal, pileKind, allowViewHand });
     if (request) usePileViewerOpenStore.getState().open(request);
   };
 
-  const handleMouseEnter = (e: React.MouseEvent) => {
-    setHovered(true);
-    setMousePos({ x: e.clientX, y: e.clientY });
+  const handleMouseEnter = () => {
     if (isLocal && HOTKEY_PILE_KINDS.has(pileKind)) {
       useHotkeyStore.getState().setHoveredPile(pileKind);
     }
   };
 
-  const handleMouseMove = (e: React.MouseEvent) => {
-    setMousePos({ x: e.clientX, y: e.clientY });
-  };
-
   const handleMouseLeave = () => {
-    setHovered(false);
     if (isLocal && HOTKEY_PILE_KINDS.has(pileKind)) {
       useHotkeyStore.getState().setHoveredPile(null);
     }
+  };
+
+  // Only local deck/exile/discard piles carry a menu. Opponent piles get a
+  // null target, so on touch the tap detector opts out and `handleClick` runs
+  // as usual — a tap opens their viewer, the only thing they support.
+  const pileMenuTarget: MenuTarget | null =
+    isLocal && HOTKEY_PILE_KINDS.has(pileKind)
+      ? { kind: 'pile', pileType: pileKind as 'deck' | 'exile' | 'discard' }
+      : null;
+
+  const handleContextMenu = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!pileMenuTarget) return;
+    useContextMenuStore.getState().openMenu({
+      target: pileMenuTarget,
+      x: e.clientX,
+      y: e.clientY,
+    });
+  };
+
+  // On touch, a tap opens the menu (which now carries a "View" row); the
+  // synthesised click that would otherwise open the viewer is swallowed.
+  const tapMenu = useContextMenuTap(pileMenuTarget);
+  const handlePointerDown = (e: React.PointerEvent) => {
+    e.stopPropagation();
+    tapMenu.onPointerDown(e);
   };
 
   return (
@@ -93,10 +112,13 @@ export const PileNode = memo(function PileNode({ data }: NodeProps) {
         outline: isOver && canReceiveDrop ? '2px solid #60a5fa' : undefined,
       }}
       onClick={handleClick}
-      onPointerDown={(e) => e.stopPropagation()}
+      onPointerDown={handlePointerDown}
+      onPointerUp={tapMenu.onPointerUp}
+      onPointerCancel={tapMenu.onPointerCancel}
+      onClickCapture={tapMenu.onClickCapture}
       onMouseEnter={handleMouseEnter}
-      onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
+      onContextMenu={handleContextMenu}
     >
       <div className="pile-label" style={{ fontSize: 8 }}>
         {PILE_LABELS[pileKind]}
@@ -112,9 +134,6 @@ export const PileNode = memo(function PileNode({ data }: NodeProps) {
         >
           Draw
         </button>
-      )}
-      {hovered && isLocal && HOTKEY_PILE_KINDS.has(pileKind) && (
-        <HotkeyTooltip context={pileKind} mouseX={mousePos.x} mouseY={mousePos.y} />
       )}
     </div>
   );

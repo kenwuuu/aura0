@@ -3,7 +3,11 @@
   <head>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orestbida/cookieconsent@3.1.0/dist/cookieconsent.css">
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- viewport-fit=cover lets the app draw under notches/home bars so the
+         env(safe-area-inset-*) paddings in style.css take effect (they
+         resolve to 0 without it). Pinch-zoom stays enabled (a11y); the board
+         opts out of browser gestures via touch-action, not the viewport. -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <link rel="icon" href="/assets/aura_favicon.png" type="image/x-icon">
     <title>Aura - Play MTG, Instantly</title>
     <meta name="description" content="The fastest way to play Magic. No accounts, no downloads. Just instantaneous magic.
@@ -12,9 +16,6 @@
   <body>
     <div id="app-react-root"></div>
     <script type="module" src="/src/app/main.ts"></script>
-
-    <script type='text/javascript' src='https://storage.ko-fi.com/cdn/widget/Widget_2.js'></script>
-    <script type='text/javascript'>kofiwidget2.init('Support me on Ko-fi', '#72a4f2', 'Z8Z11OOHFX');kofiwidget2.draw();</script>
 
     <!-- Google tag (gtag.js) -->
     <script async

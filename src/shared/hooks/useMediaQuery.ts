@@ -37,3 +37,13 @@ export function useMediaQuery(query: string): boolean {
 export function useBreakpoint(breakpoint: Breakpoint): boolean {
   return useMediaQuery(minWidthQuery(breakpoint));
 }
+
+/**
+ * True below the `sm` breakpoint — the app's single "phone layout" line.
+ * Use this (not ad-hoc widths) for JS structural branches: a different
+ * component tree, react-flow props, disabling drag. Pure show/hide belongs
+ * in CSS instead. Full contract: docs/responsive.md.
+ */
+export function usePhoneLayout(): boolean {
+  return !useBreakpoint('sm');
+}

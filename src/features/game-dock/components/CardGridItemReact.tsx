@@ -12,10 +12,11 @@
 import * as React from 'react';
 import type * as Y from 'yjs';
 import {Card, PileType} from '@/features/player';
-import {HotkeyContext, Hotkey} from '@/features/hotkeys/hotkeys';
+import {HotkeyContext} from '@/features/hotkeys/hotkeys';
 import {DEFAULT_CARD_BACK, YSTATE_HAND, YSTATE_DECK, YSTATE_EXILE_PILE, YSTATE_DISCARD_PILE, YSTATE_SCRY} from '@/constants';
 import styles from './CardGridItemReact.module.css';
-import {useHotkeyMenuStore} from "@/features/hotkeys/hotkeyMenuStore";
+import {useContextMenuStore} from "@/features/hotkeys/contextMenuStore";
+import {useContextMenuTap} from "@/features/hotkeys/useContextMenuTap";
 import {useCardPreviewStore} from "@/features/card-preview/cardPreviewStore";
 
 const PILE_YSTATE_KEY: Record<PileType, string> = {
@@ -34,7 +35,6 @@ export interface CardGridItemReactProps {
   showFaceDown: boolean;
   onHover: (card: Card | null) => void;
   hotkeyContext: HotkeyContext;
-  onMenuSelect: (hotkey: Hotkey, cardId: string) => void;
   pileType: PileType;
   yPlayerState: Y.Map<any> | null;
 }
@@ -47,7 +47,6 @@ export const CardGridItemReact = React.memo(function CardGridItemReact({
   showFaceDown,
   onHover,
   hotkeyContext,
-  onMenuSelect,
   pileType,
   yPlayerState,
 }: CardGridItemReactProps) {
@@ -81,14 +80,15 @@ export const CardGridItemReact = React.memo(function CardGridItemReact({
 
   const handleContextMenu = (e: React.MouseEvent) => {
     e.preventDefault();
-    useHotkeyMenuStore.getState().openMenu({
-      cardId: card.id,
-      context: hotkeyContext,
+    useContextMenuStore.getState().openMenu({
+      target: { kind: 'pileViewerCard', id: card.id, context: hotkeyContext },
       x: e.clientX,
       y: e.clientY,
-      onSelect: onMenuSelect,
     });
   };
+
+  // On touch, a tap opens the same context menu right-click does on desktop.
+  const tapMenu = useContextMenuTap({ kind: 'pileViewerCard', id: card.id, context: hotkeyContext });
 
   const hasFrontImage = frontImageUrl && !frontImageError;
   const hasBackImage = backImageUrl && !backImageError;
@@ -104,6 +104,7 @@ export const CardGridItemReact = React.memo(function CardGridItemReact({
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
       onContextMenu={handleContextMenu}
+      {...tapMenu}
     >
       {/* Card Image */}
       <div className={styles.cardGridItemImage}>

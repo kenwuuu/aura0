@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
-import { useMediaQuery } from './useMediaQuery';
+import { useMediaQuery, usePhoneLayout } from './useMediaQuery';
 
 /** A minimal fake MediaQueryList: tracks the single registered listener and
  * lets the test flip `matches` and fire a synthetic `change` event. */
@@ -62,5 +62,30 @@ describe('useMediaQuery', () => {
 
     unmount();
     expect(mql.removeEventListener).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('usePhoneLayout', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('queries the sm breakpoint and inverts it: phone when narrower', () => {
+    const matchMedia = vi.fn(() => makeMatchMedia(false));
+    vi.stubGlobal('matchMedia', matchMedia);
+
+    const { result } = renderHook(() => usePhoneLayout());
+
+    // Below sm → min-width query doesn't match → phone layout.
+    expect(matchMedia).toHaveBeenCalledWith('(min-width: 640px)');
+    expect(result.current).toBe(true);
+  });
+
+  it('is false at or above the sm breakpoint', () => {
+    vi.stubGlobal('matchMedia', vi.fn(() => makeMatchMedia(true)));
+
+    const { result } = renderHook(() => usePhoneLayout());
+
+    expect(result.current).toBe(false);
   });
 });

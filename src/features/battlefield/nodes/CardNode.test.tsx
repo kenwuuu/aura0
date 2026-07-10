@@ -8,8 +8,7 @@ import { makeCard } from '@/test/factories';
 import { YDOC_CARDS_ON_BOARD, YDOC_KEYWORD_TOKENS, DEFAULT_CARD_BACK } from '@/constants';
 import { useCardPreviewStore } from '@/features/card-preview/cardPreviewStore';
 import { useHotkeyStore } from '@/app/stores/hotkeyStore';
-import { useHotkeyMenuStore } from '@/features/hotkeys/hotkeyMenuStore';
-import { HotkeyContext } from '@/features/hotkeys/hotkeys';
+import { useContextMenuStore } from '@/features/hotkeys/contextMenuStore';
 import type { Card } from '@/features/player/types';
 
 /**
@@ -109,16 +108,14 @@ describe('CardNode — hover drives the card preview', () => {
   });
 });
 
-describe('CardNode — right-click opens the hotkey menu', () => {
+describe('CardNode — right-click opens the context menu', () => {
   it('opens the battlefield context menu for this card', () => {
     const { container } = renderCard(makeCard({ name: 'Lightning Bolt' }));
 
     fireEvent.contextMenu(container.firstChild as Element);
 
-    const menu = useHotkeyMenuStore.getState();
+    const menu = useContextMenuStore.getState();
     expect(menu.isOpen).toBe(true);
-    expect(menu.mode).toBe('menu');
-    expect(menu.cardId).toBe(NODE_ID);
-    expect(menu.context).toBe(HotkeyContext.Battlefield);
+    expect(menu.target).toEqual({ kind: 'battlefieldCard', id: NODE_ID });
   });
 });
