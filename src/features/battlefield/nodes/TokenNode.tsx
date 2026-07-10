@@ -200,6 +200,10 @@ export const TokenNode = memo(function TokenNode({ data, id }: NodeProps) {
             height: TOKEN_SIZE * FONT_SCALE,
             pointerEvents: 'none',
             userSelect: 'none',
+            // The outermost <svg> clips to its viewport by default, which chops
+            // the sides off counts wider than the box (e.g. "-10"). The text is
+            // center-anchored, so let it overflow symmetrically instead.
+            overflow: 'visible',
           }}
           viewBox={`0 0 ${TOKEN_SIZE * FONT_SCALE} ${TOKEN_SIZE * FONT_SCALE}`}
         >
