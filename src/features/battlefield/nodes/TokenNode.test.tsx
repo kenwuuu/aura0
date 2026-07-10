@@ -95,6 +95,51 @@ describe('TokenNode — hover tracks the hotkey hover target', () => {
   });
 });
 
+describe('TokenNode — hover shows the increment/decrement zones', () => {
+  it('renders the top/bottom click zones only while the owner hovers', () => {
+    const { container } = renderToken(makeToken({ ownerId: LOCAL_PLAYER }));
+    const frame = container.firstChild as Element;
+
+    expect(screen.queryByTestId('token-adjust-zones')).not.toBeInTheDocument();
+
+    fireEvent.mouseEnter(frame);
+    expect(screen.getByTestId('token-adjust-zones')).toBeInTheDocument();
+    expect(screen.getByTestId('token-zone-top')).toBeInTheDocument();
+    expect(screen.getByTestId('token-zone-bottom')).toBeInTheDocument();
+    // The +/- intent glyphs are drawn too.
+    expect(screen.getByTestId('token-adjust-glyphs')).toBeInTheDocument();
+
+    fireEvent.mouseLeave(frame);
+    expect(screen.queryByTestId('token-adjust-zones')).not.toBeInTheDocument();
+  });
+
+  it('darkens the zone the cursor is over (top vs bottom)', () => {
+    const { container } = renderToken(makeToken({ ownerId: LOCAL_PLAYER }));
+    const frame = container.firstChild as Element;
+    // happy-dom has no layout, so stub the frame's rect for the top/bottom split.
+    vi.spyOn(frame, 'getBoundingClientRect').mockReturnValue({
+      top: 0, height: 20, bottom: 20, left: 0, right: 0, width: 20, x: 0, y: 0, toJSON: () => {},
+    } as DOMRect);
+
+    fireEvent.mouseEnter(frame);
+    fireEvent.mouseMove(frame, { clientY: 2 }); // top half
+    expect(screen.getByTestId('token-zone-top')).toHaveStyle({ backgroundColor: 'rgba(0,0,0,0.5)' });
+    expect(screen.getByTestId('token-zone-bottom')).toHaveStyle({ backgroundColor: 'rgba(0,0,0,0.28)' });
+
+    fireEvent.mouseMove(frame, { clientY: 18 }); // bottom half
+    expect(screen.getByTestId('token-zone-bottom')).toHaveStyle({ backgroundColor: 'rgba(0,0,0,0.5)' });
+    expect(screen.getByTestId('token-zone-top')).toHaveStyle({ backgroundColor: 'rgba(0,0,0,0.28)' });
+  });
+
+  it('does not show the zones for another player\'s token', () => {
+    const { container } = renderToken(makeToken({ ownerId: 'p2' }), LOCAL_PLAYER);
+
+    fireEvent.mouseEnter(container.firstChild as Element);
+
+    expect(screen.queryByTestId('token-adjust-zones')).not.toBeInTheDocument();
+  });
+});
+
 describe('TokenNode — rendering', () => {
   it('shows the token image with its title as alt and the count overlay', () => {
     renderToken(makeToken({ title: 'Flying', imageUrl: 'https://img/flying.svg', count: 3 }));

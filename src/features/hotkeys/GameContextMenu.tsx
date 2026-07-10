@@ -32,9 +32,14 @@ export function GameContextMenu() {
   const x = useContextMenuStore((s) => s.x);
   const y = useContextMenuStore((s) => s.y);
   const target = useContextMenuStore((s) => s.target);
+  const viaTouch = useContextMenuStore((s) => s.viaTouch);
   const close = useContextMenuStore((s) => s.close);
 
-  const rows = target ? getMenuActionsForTarget(target) : [];
+  // `touchMenuOnly` rows (a token's +1/-1) only belong in the menu on touch,
+  // where there's no hover-and-click affordance — desktop right-click hides
+  // them. See the `touchMenuOnly` doc on the Hotkey type.
+  const rows = (target ? getMenuActionsForTarget(target) : [])
+    .filter((row) => viaTouch || !row.touchMenuOnly);
   const open = isOpen && rows.length > 0;
 
   // The hand is anchored to the bottom of the screen (both desktop and phone),

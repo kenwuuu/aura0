@@ -117,6 +117,9 @@ export function useContextMenuTap(target: MenuTarget | null, opts?: UseContextMe
     const x = e.clientX;
     const y = e.clientY;
 
+    // Every openMenu below is a touch tap, so pass viaTouch:true — that's what
+    // surfaces a token's touch-only +1/-1 rows (see the `touchMenuOnly` doc on
+    // the Hotkey type / the filter in GameContextMenu).
     if (showPreview) {
       const preview = useCardPreviewStore.getState();
       const targetId = 'id' in target ? target.id : undefined;
@@ -124,7 +127,7 @@ export function useContextMenuTap(target: MenuTarget | null, opts?: UseContextMe
       if (previewIsThisTarget) {
         // Second tap on the same previewed card → open its menu.
         preview.hide();
-        useContextMenuStore.getState().openMenu({ target, x, y });
+        useContextMenuStore.getState().openMenu({ target, x, y, viaTouch: true });
       } else {
         // First tap (or switching from another card) → show this card's preview.
         // Close any open menu so preview and menu are never both visible.
@@ -137,7 +140,7 @@ export function useContextMenuTap(target: MenuTarget | null, opts?: UseContextMe
     // Non-card surface (token, pile, board): single tap opens the menu, clearing
     // any stray preview so the two are mutually exclusive on touch.
     useCardPreviewStore.getState().hide();
-    useContextMenuStore.getState().openMenu({ target, x, y });
+    useContextMenuStore.getState().openMenu({ target, x, y, viaTouch: true });
   };
 
   const onPointerCancel = () => {
