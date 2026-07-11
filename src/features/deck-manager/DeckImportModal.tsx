@@ -190,7 +190,7 @@ export function DeckImportModal({ isOpen, onClose, onDeckImported }: DeckImportM
             <InfoIcon />
             <AlertTitle>To automatically draw your commander...</AlertTitle>
             <AlertDescription>
-              Make sure your commander is on the last line.
+              Put it under a "Commander" header in your list.
             </AlertDescription>
           </Alert>
 

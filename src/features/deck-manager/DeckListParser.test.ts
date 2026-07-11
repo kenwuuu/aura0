@@ -112,11 +112,23 @@ describe('DeckListParser', () => {
       });
     });
 
-    describe('ignoring non-numeral lines', () => {
-      it('should ignore lines that start with text', () => {
+    describe('section filtering', () => {
+      it('should exclude cards under a SIDEBOARD header', () => {
         const deckText = `SIDEBOARD:
 4 Lightning Bolt
 20 Mountain`;
+
+        const result = parseDecklist(deckText);
+
+        expect(result).toHaveLength(0);
+      });
+
+      it('should exclude the sideboard but keep cards before it', () => {
+        const deckText = `4 Lightning Bolt
+20 Mountain
+
+SIDEBOARD:
+2 Ancient Grudge`;
 
         const result = parseDecklist(deckText);
 
@@ -125,7 +137,7 @@ describe('DeckListParser', () => {
         expect(result[1]).toEqual({ count: 20, name: 'Mountain' });
       });
 
-      it('should ignore section headers like "COMMANDER:"', () => {
+      it('should import the main deck and tag commander-section cards', () => {
         const deckText = `COMMANDER:
 1 Flubs, the Fool
 DECK:
@@ -134,11 +146,49 @@ DECK:
         const result = parseDecklist(deckText);
 
         expect(result).toHaveLength(2);
-        expect(result[0]).toEqual({ count: 1, name: 'Flubs, the Fool' });
+        expect(result[0]).toEqual({ count: 1, name: 'Flubs, the Fool', commander: true });
         expect(result[1]).toEqual({ count: 4, name: 'Lightning Bolt' });
       });
 
-      it('should ignore multiple section headers', () => {
+      it('should tag cards under a "Command Zone" header', () => {
+        const deckText = `Command Zone
+1 Atraxa, Praetors' Voice`;
+
+        const result = parseDecklist(deckText);
+
+        expect(result).toHaveLength(1);
+        expect(result[0]).toEqual({ count: 1, name: "Atraxa, Praetors' Voice", commander: true });
+      });
+
+      it('should tag every card under a commander header (partners)', () => {
+        const deckText = `COMMANDER:
+1 Thrasios, Triton Hero
+1 Tymna the Weaver
+
+DECK:
+4 Lightning Bolt`;
+
+        const result = parseDecklist(deckText);
+
+        expect(result).toHaveLength(3);
+        // Both partners are flagged — not just the first line under the header.
+        expect(result[0]).toEqual({ count: 1, name: 'Thrasios, Triton Hero', commander: true });
+        expect(result[1]).toEqual({ count: 1, name: 'Tymna the Weaver', commander: true });
+        // The section resets at the next header; main-deck cards are not flagged.
+        expect(result[2]).toEqual({ count: 4, name: 'Lightning Bolt' });
+      });
+
+      it('should not flag any card when the list has no headers', () => {
+        const deckText = `1 Sol Ring
+20 Mountain
+1 Krenko, Mob Boss`;
+
+        const result = parseDecklist(deckText);
+
+        expect(result.every((item) => item.commander === undefined)).toBe(true);
+      });
+
+      it('should keep commander + main and drop sideboard and maybeboard', () => {
         const deckText = `MAIN DECK:
 4 Lightning Bolt
 SIDEBOARD:
@@ -148,13 +198,35 @@ MAYBEBOARD:
 
         const result = parseDecklist(deckText);
 
-        expect(result).toHaveLength(3);
+        expect(result).toHaveLength(1);
         expect(result[0]).toEqual({ count: 4, name: 'Lightning Bolt' });
-        expect(result[1]).toEqual({ count: 1, name: 'Ancient Grudge' });
-        expect(result[2]).toEqual({ count: 2, name: 'Counterspell' });
       });
 
-      it('should ignore comment lines', () => {
+      it('should import unrecognized headers as part of the deck (Archidekt categories)', () => {
+        const deckText = `Creatures
+4 Monastery Swiftspear
+Lands
+20 Mountain`;
+
+        const result = parseDecklist(deckText);
+
+        expect(result).toHaveLength(2);
+        expect(result[0]).toEqual({ count: 4, name: 'Monastery Swiftspear' });
+        expect(result[1]).toEqual({ count: 20, name: 'Mountain' });
+      });
+
+      it('should match excluded headers case-insensitively and with a trailing count', () => {
+        const deckText = `4 Lightning Bolt
+sideboard (15)
+1 Ancient Grudge`;
+
+        const result = parseDecklist(deckText);
+
+        expect(result).toHaveLength(1);
+        expect(result[0]).toEqual({ count: 4, name: 'Lightning Bolt' });
+      });
+
+      it('should ignore comment lines without changing the active section', () => {
         const deckText = `# This is my deck
 4 Lightning Bolt
 // Another comment
@@ -167,17 +239,17 @@ MAYBEBOARD:
         expect(result[1]).toEqual({ count: 20, name: 'Mountain' });
       });
 
-      it('should ignore lines with only text (no numbers)', () => {
-        const deckText = `Some random text
-4 Lightning Bolt
-Another line of text
-20 Mountain`;
+      it('should keep a comment from leaking sideboard cards into the deck', () => {
+        const deckText = `4 Lightning Bolt
+
+SIDEBOARD:
+// my flex slot
+2 Ancient Grudge`;
 
         const result = parseDecklist(deckText);
 
-        expect(result).toHaveLength(2);
+        expect(result).toHaveLength(1);
         expect(result[0]).toEqual({ count: 4, name: 'Lightning Bolt' });
-        expect(result[1]).toEqual({ count: 20, name: 'Mountain' });
       });
 
       it('should handle deck with only section headers (returns empty)', () => {
@@ -188,6 +260,197 @@ MAYBEBOARD:`;
         const result = parseDecklist(deckText);
 
         expect(result).toHaveLength(0);
+      });
+    });
+
+    describe('quantity-less lists', () => {
+      it('should treat an unrecognized non-header line as a single (count 1) card', () => {
+        const deckText = `Sol Ring
+4 Lightning Bolt
+Arcane Signet
+20 Mountain`;
+
+        const result = parseDecklist(deckText);
+
+        expect(result).toEqual([
+          { count: 1, name: 'Sol Ring' },
+          { count: 4, name: 'Lightning Bolt' },
+          { count: 1, name: 'Arcane Signet' },
+          { count: 20, name: 'Mountain' },
+        ]);
+      });
+
+      it('should import a fully quantity-less singleton list', () => {
+        const deckText = `Sol Ring
+Arcane Signet
+Command Tower`;
+
+        const result = parseDecklist(deckText);
+
+        expect(result).toEqual([
+          { count: 1, name: 'Sol Ring' },
+          { count: 1, name: 'Arcane Signet' },
+          { count: 1, name: 'Command Tower' },
+        ]);
+      });
+
+      it('should duplicate repeated basic lands per line', () => {
+        // A quantity-less export has no quantity field, so N copies of a basic
+        // are N separate lines. Each becomes one card.
+        const deckText = `Island
+Island
+Island
+Forest
+Forest`;
+
+        const result = parseDecklist(deckText);
+
+        expect(result).toEqual([
+          { count: 1, name: 'Island' },
+          { count: 1, name: 'Island' },
+          { count: 1, name: 'Island' },
+          { count: 1, name: 'Forest' },
+          { count: 1, name: 'Forest' },
+        ]);
+      });
+
+      it('should not read a basic-land card name as a "Lands" header', () => {
+        // "Island"/"Wasteland" contain the substring "land" but are cards, while
+        // a bare "Lands" line is a category header.
+        const deckText = `Lands
+Island
+Wasteland`;
+
+        const result = parseDecklist(deckText);
+
+        expect(result).toEqual([
+          { count: 1, name: 'Island' },
+          { count: 1, name: 'Wasteland' },
+        ]);
+      });
+
+      it('should not treat a card whose name contains a section word as a header', () => {
+        const deckText = `Commander's Sphere
+Command Tower
+Sol Ring`;
+
+        const result = parseDecklist(deckText);
+
+        expect(result).toEqual([
+          { count: 1, name: "Commander's Sphere" },
+          { count: 1, name: 'Command Tower' },
+          { count: 1, name: 'Sol Ring' },
+        ]);
+      });
+
+      it('should tag quantity-less partner commanders under a commander header', () => {
+        const deckText = `Commander
+Kraum, Ludevic's Opus
+Tymna the Weaver
+
+Deck
+Sol Ring
+Command Tower`;
+
+        const result = parseDecklist(deckText);
+
+        expect(result).toEqual([
+          { count: 1, name: "Kraum, Ludevic's Opus", commander: true },
+          { count: 1, name: 'Tymna the Weaver', commander: true },
+          { count: 1, name: 'Sol Ring' },
+          { count: 1, name: 'Command Tower' },
+        ]);
+      });
+
+      it('should mix quantity-prefixed and quantity-less lines', () => {
+        const deckText = `Commander
+Krenko, Mob Boss
+
+Deck
+1 Sol Ring
+Island
+Island`;
+
+        const result = parseDecklist(deckText);
+
+        expect(result).toEqual([
+          { count: 1, name: 'Krenko, Mob Boss', commander: true },
+          { count: 1, name: 'Sol Ring' },
+          { count: 1, name: 'Island' },
+          { count: 1, name: 'Island' },
+        ]);
+      });
+
+      it('should parse set info on a quantity-less line', () => {
+        const deckText = `Sol Ring (C21) 263`;
+
+        const result = parseDecklist(deckText);
+
+        expect(result).toEqual([
+          { count: 1, name: 'Sol Ring', setCode: 'C21', collectorNumber: '263' },
+        ]);
+      });
+
+      it('should skip quantity-less cards under an excluded section', () => {
+        const deckText = `Deck
+Sol Ring
+
+Sideboard
+Swords to Plowshares`;
+
+        const result = parseDecklist(deckText);
+
+        expect(result).toEqual([{ count: 1, name: 'Sol Ring' }]);
+      });
+
+      it('should treat an Archidekt category header with a trailing count as a header', () => {
+        const deckText = `Ramp (2)
+1 Sol Ring
+Arcane Signet
+Removal (1)
+1 Swords to Plowshares`;
+
+        const result = parseDecklist(deckText);
+
+        expect(result).toEqual([
+          { count: 1, name: 'Sol Ring' },
+          { count: 1, name: 'Arcane Signet' },
+          { count: 1, name: 'Swords to Plowshares' },
+        ]);
+      });
+    });
+
+    describe('comment-style section markers', () => {
+      it('should recognize // and # prefixed section headers', () => {
+        const deckText = `// Commander
+Krenko, Mob Boss
+# Deck
+1 Sol Ring
+// Sideboard
+1 Swords to Plowshares`;
+
+        const result = parseDecklist(deckText);
+
+        expect(result).toEqual([
+          { count: 1, name: 'Krenko, Mob Boss', commander: true },
+          { count: 1, name: 'Sol Ring' },
+        ]);
+      });
+
+      it('should keep treating a // or # note that is not a section as a comment', () => {
+        const deckText = `# This is my deck
+4 Lightning Bolt
+// a flavor note
+20 Mountain`;
+
+        const result = parseDecklist(deckText);
+
+        // The comment lines are ignored (not turned into cards) and do not
+        // change the active section.
+        expect(result).toEqual([
+          { count: 4, name: 'Lightning Bolt' },
+          { count: 20, name: 'Mountain' },
+        ]);
       });
     });
 
@@ -288,12 +551,14 @@ MAYBEBOARD:`;
       it('should handle lines with Archidekt formatting', () => {
         const deckText = `Commander
 1 Ms. Bumbleflower (blc) 3 [Commander{top}]
+
+Artifact
 1 Arcane Signet (blc) 127 [Artifact]
 `;
         const result = parseDecklist(deckText);
 
         expect(result).toHaveLength(2);
-        expect(result[0]).toEqual({ count: 1, name: 'Ms. Bumbleflower', setCode: 'blc', collectorNumber: '3' });
+        expect(result[0]).toEqual({ count: 1, name: 'Ms. Bumbleflower', setCode: 'blc', collectorNumber: '3', commander: true });
         expect(result[1]).toEqual({ count: 1, name: 'Arcane Signet', setCode: 'blc', collectorNumber: '127' });
       });
 
@@ -352,7 +617,7 @@ MAYBEBOARD:`;
     });
 
     describe('complex mixed scenarios', () => {
-      it('should handle deck with all features combined', () => {
+      it('should tag the commander, keep the main deck, and drop the sideboard', () => {
         const deckText = `COMMANDER:
 1 Flubs, the Fool
 
@@ -368,16 +633,14 @@ SIDEBOARD:
 
         const result = parseDecklist(deckText);
 
-        expect(result).toHaveLength(6);
-        expect(result[0]).toEqual({ count: 1, name: 'Flubs, the Fool' });
+        expect(result).toHaveLength(4);
+        expect(result[0]).toEqual({ count: 1, name: 'Flubs, the Fool', commander: true });
         expect(result[1]).toEqual({ count: 4, name: 'Lightning Bolt' });
         expect(result[2]).toEqual({ count: 20, name: 'Mountain' });
         expect(result[3]).toEqual({ count: 1, name: 'Sol Ring' });
-        expect(result[4]).toEqual({ count: 2, name: 'Ancient Grudge' });
-        expect(result[5]).toEqual({ count: 3, name: 'Counterspell' });
       });
 
-      it('should handle multiple sets', () => {
+      it('should drop set-annotated cards that live under the sideboard', () => {
         const deckText = `COMMANDER:
 1 Flubs, the Fool
 
@@ -385,27 +648,23 @@ MAIN DECK:
 4x Lightning Bolt
 20 Mountain
 1X Sol Ring
+1 Mabel, Heir to Cragflame (BLB) 336
 
 // Some comment
 SIDEBOARD:
 2 Ancient Grudge
 3   Counterspell
-1 Mabel, Heir to Cragflame (BLB) 336
 1 Aegis of the Legion (CLU) 22
 1 Arcane Signet (BLC) 127`;
 
         const result = parseDecklist(deckText);
 
-        expect(result).toHaveLength(9);
-        expect(result[0]).toEqual({ count: 1, name: 'Flubs, the Fool' });
+        expect(result).toHaveLength(5);
+        expect(result[0]).toEqual({ count: 1, name: 'Flubs, the Fool', commander: true });
         expect(result[1]).toEqual({ count: 4, name: 'Lightning Bolt' });
         expect(result[2]).toEqual({ count: 20, name: 'Mountain' });
         expect(result[3]).toEqual({ count: 1, name: 'Sol Ring' });
-        expect(result[4]).toEqual({ count: 2, name: 'Ancient Grudge' });
-        expect(result[5]).toEqual({ count: 3, name: 'Counterspell' });
-        expect(result[6]).toEqual({ count: 1, name: 'Mabel, Heir to Cragflame', setCode: 'BLB', collectorNumber: '336' });
-        expect(result[7]).toEqual({ count: 1, name: 'Aegis of the Legion', setCode: 'CLU', collectorNumber: '22' });
-        expect(result[8]).toEqual({ count: 1, name: 'Arcane Signet', setCode: 'BLC', collectorNumber: '127' });
+        expect(result[4]).toEqual({ count: 1, name: 'Mabel, Heir to Cragflame', setCode: 'BLB', collectorNumber: '336' });
       });
 
       it('should handle letters in collector number', () => {
@@ -455,6 +714,16 @@ COMMANDER:`;
       const result = validateFormat(deckText);
 
       expect(result).toBe(false);
+    });
+
+    it('should validate a quantity-less list', () => {
+      const deckText = `Sol Ring
+Arcane Signet
+Command Tower`;
+
+      const result = validateFormat(deckText);
+
+      expect(result).toBe(true);
     });
 
 //     it('should validate deck even if it contains lines to be ignored', () => {

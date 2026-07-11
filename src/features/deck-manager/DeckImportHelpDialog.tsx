@@ -126,29 +126,31 @@ export function DeckImportHelpDialog({ isOpen, onClose }: DeckImportHelpDialogPr
           </div>
 
           <div style={styles.section}>
-            <div style={styles.sectionTitle}>Not Supported</div>
-            <p style={styles.text}>We don't support section headers like SIDEBOARD or COMMANDER:</p>
-            <div style={styles.code}>
-              {`1 Zuran Orb
-
-SIDEBOARD:
-1 Drill Too Deep
-4 Pygmy Pyrosaur
-
-COMMANDER:
-1 Flubs, the Fool`}
-            </div>
+            <div style={styles.sectionTitle}>Section Headers</div>
             <p style={styles.text}>
-              Remove these headers before importing or the cards below them won't be recognized.
+              Headers are fine — your commander and main deck import, and a
+              sideboard or maybeboard is skipped:
             </p>
+            <div style={styles.code}>
+              {`COMMANDER:
+1 Flubs, the Fool
+
+DECK:
+1 Zuran Orb
+
+SIDEBOARD:      ← skipped
+4 Pygmy Pyrosaur`}
+            </div>
           </div>
 
           <div style={styles.section}>
             <div style={styles.sectionTitle}>Supported Formats</div>
             <ul style={styles.ul}>
-              <li>Simple quantity + name format (e.g., "4 Lightning Bolt")</li>
+              <li>Quantity + name (e.g., "4 Lightning Bolt")</li>
+              <li>Name only — counts as one copy (e.g., "Sol Ring"); repeat a line for extra copies</li>
               {/*<li>Set codes in parentheses (e.g., "4 Lightning Bolt (M10)")</li>*/}
               <li>Blank lines between cards (ignored)</li>
+              <li>Section headers (Commander / Deck imported, Sideboard / Maybeboard skipped)</li>
             </ul>
           </div>
 

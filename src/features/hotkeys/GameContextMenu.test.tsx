@@ -78,7 +78,7 @@ describe('GameContextMenu', () => {
     expect(deleteItem).toHaveAttribute('data-variant', 'destructive');
   });
 
-  it('shows different rows for a token target', async () => {
+  it('shows only Delete for a token on desktop right-click — the +1/-1 rows are hidden', async () => {
     renderWithGame(<GameContextMenu />);
 
     act(() => {
@@ -90,6 +90,27 @@ describe('GameContextMenu', () => {
     });
 
     expect(await screen.findByRole('menuitem', { name: /^Delete token\b/ })).toBeInTheDocument();
+    // +1/-1 are `touchMenuOnly`: desktop adjusts the count by clicking the
+    // token's top/bottom half, so the menu drops them.
+    expect(screen.queryByRole('menuitem', { name: /^\+1\b/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('menuitem', { name: /^-1\b/ })).not.toBeInTheDocument();
     expect(screen.queryByRole('menuitem', { name: /^Tap\b/ })).not.toBeInTheDocument();
+  });
+
+  it('keeps the +1/-1 rows for a token when opened via touch', async () => {
+    renderWithGame(<GameContextMenu />);
+
+    act(() => {
+      useContextMenuStore.getState().openMenu({
+        target: { kind: 'token', id: 'token-1' },
+        x: 10,
+        y: 10,
+        viaTouch: true,
+      });
+    });
+
+    expect(await screen.findByRole('menuitem', { name: /^\+1\b/ })).toBeInTheDocument();
+    expect(screen.getByRole('menuitem', { name: /^-1\b/ })).toBeInTheDocument();
+    expect(screen.getByRole('menuitem', { name: /^Delete token\b/ })).toBeInTheDocument();
   });
 });

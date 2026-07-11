@@ -25,5 +25,6 @@ export type CardDataResult = {
   oracleText?: string;
   scryfallId: string;
   imageUris: CardImages;
+  commander?: boolean;
   error?: string;
 };

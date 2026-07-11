@@ -23,7 +23,7 @@ describe('DeckImportHelpDialog', () => {
     render(<DeckImportHelpDialog isOpen={true} onClose={onClose} />);
 
     expect(screen.getByText('Recommended Format')).toBeInTheDocument();
-    expect(screen.getByText('Not Supported')).toBeInTheDocument();
+    expect(screen.getByText('Section Headers')).toBeInTheDocument();
     expect(screen.getByText('Supported Formats')).toBeInTheDocument();
   });
 
@@ -35,13 +35,14 @@ describe('DeckImportHelpDialog', () => {
     expect(screen.getByText(/Moxfield's download button/i)).toBeInTheDocument();
   });
 
-  it('should show unsupported format examples', () => {
+  it('should show the section-header example', () => {
     const onClose = vi.fn();
     render(<DeckImportHelpDialog isOpen={true} onClose={onClose} />);
 
-    // Check that unsupported keywords appear in the document
-    expect(document.body.textContent).toContain('SIDEBOARD:');
+    // The example illustrates which sections import vs. get skipped
     expect(document.body.textContent).toContain('COMMANDER:');
+    expect(document.body.textContent).toContain('SIDEBOARD:');
+    expect(document.body.textContent).toContain('skipped');
     expect(document.body.textContent).toContain('Zuran Orb');
   });
 
@@ -49,7 +50,8 @@ describe('DeckImportHelpDialog', () => {
     const onClose = vi.fn();
     render(<DeckImportHelpDialog isOpen={true} onClose={onClose} />);
 
-    expect(screen.getByText(/Simple quantity \+ name format/)).toBeInTheDocument();
+    expect(screen.getByText(/Quantity \+ name/)).toBeInTheDocument();
+    expect(screen.getByText(/Name only/)).toBeInTheDocument();
     expect(screen.getByText(/Blank lines between cards/)).toBeInTheDocument();
   });
 
