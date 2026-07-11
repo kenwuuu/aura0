@@ -147,7 +147,16 @@ async def lifespan(app: FastAPI):
 # App + middleware
 # ---------------------------------------------------------------------------
 
-app = FastAPI(title="Card Lookup API", lifespan=lifespan)
+# Interactive docs (/docs, /redoc) and the OpenAPI schema (/openapi.json) map
+# the entire API surface, so they're disabled unless EXPOSE_DOCS is set (see
+# settings.expose_docs). Passing None for these URLs removes the routes
+# entirely rather than just hiding them.
+_docs_kwargs = (
+    {}
+    if settings.expose_docs
+    else {"docs_url": None, "redoc_url": None, "openapi_url": None}
+)
+app = FastAPI(title="Card Lookup API", lifespan=lifespan, **_docs_kwargs)
 
 app.add_middleware(
     CORSMiddleware,
