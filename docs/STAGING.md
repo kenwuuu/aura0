@@ -175,10 +175,20 @@ To restore post-deploy smoke coverage for **both** environments, pick one:
   (prod) / `wrangler deploy --env staging` from a workflow instead of Workers
   Builds, then run `@smoke` against the URL in the same job. Most control; you'd
   turn off the Workers Builds auto-deploy for the branch you move.
-- **Poll the deployed URL on a schedule** (`on: schedule`) with the existing
-  `PLAYWRIGHT_BASE_URL` smoke job, per environment.
+- ~~**Poll the deployed URL on a schedule** (`on: schedule`) with the existing
+  `PLAYWRIGHT_BASE_URL` smoke job, per environment.~~ **Done for production** —
+  `.github/workflows/synthetic-canary.yml` polls `aura0.app` every 30 minutes.
+  Read the distinction carefully: it is a **recurring health canary**, not a
+  **post-deploy check** — it runs on a fixed clock regardless of whether a
+  deploy just happened, and it only runs the `@canary`-tagged subset (today:
+  the two-player WebRTC sync test), not the full `@smoke` suite. It does not
+  tell you "did *this* deploy break something," only "is the P2P path healthy
+  right now." **Staging is not yet covered** — extend by adding a second job
+  (or reusing the same one with a `matrix`/second workflow) pointed at
+  `staging.aura0.app`, once that's worth the CI minutes.
 - **Trigger off the Worker's GitHub check-run** completing (`on: check_run`) and
-  read the deployed URL from it.
+  read the deployed URL from it — still open, would give the real
+  deploy-triggered `@smoke` coverage this section originally described.
 
 This is out of scope for standing up staging, but worth fixing soon — it's a
 silent hole in deploy-break detection today. See `DEPLOYMENT_RUNBOOK.md`.

@@ -1,0 +1,56 @@
+name: Synthetic canary (production)
+
+# Active, on-demand check that the P2P path actually works in production —
+# not just that the page loads. Runs the @canary-tagged two-player sync test
+# (tests/e2e/smoke/two_player_sync.spec.ts) against aura0.app on a schedule:
+# two real browser contexts join the same (fresh, random) room and one must
+# see the other's card sync over real WebRTC. This is the only check that
+# exercises signaling AND peer sync end-to-end; PostHog/Sentry only see it if
+# a real user hits the same failure.
+#
+# PostHog-silent by design: the e2e harness's blockAnalytics (used by every
+# client the fixtures/scenarios create) aborts all PostHog requests, so this
+# never inflates real user/session counts.
+on:
+  schedule:
+    - cron: '*/30 * * * *'
+  workflow_dispatch:
+
+jobs:
+  canary:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Run @canary E2E suite against production
+        env:
+          PLAYWRIGHT_BASE_URL: https://aura0.app
+        run: npm run test:e2e:canary
+
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-synthetic-canary
+          path: playwright-report/
+          retention-days: 7
+
+      # Notification swap point: a failed job here already emails whoever has
+      # GitHub Actions failure notifications enabled — that's the "email now"
+      # channel with no extra wiring. To add PagerDuty/Slack/webhook later,
+      # add one step here (e.g. a webhook POST) rather than touching the rest
+      # of this workflow — this is the single seam for new destinations.

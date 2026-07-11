@@ -2,8 +2,9 @@
 
 How we know when a deployment breaks, and how to trace an error back to the
 commit that caused it. Covers the wiring added in `src/app/main.ts`,
-`vite.config.ts`, `playwright.config.ts`, and
-`.github/workflows/post-deploy-smoke.yml`.
+`vite.config.ts`, `playwright.config.ts`,
+`.github/workflows/post-deploy-smoke.yml`, and
+`.github/workflows/synthetic-canary.yml`.
 
 ## The pieces
 
@@ -12,8 +13,11 @@ commit that caused it. Covers the wiring added in `src/app/main.ts`,
 | Sentry (errors, releases, alerts)   | `main.ts` `Sentry.init`                   | Thrown exceptions, crash-free session rate      |
 | PostHog (`app_version`, dashboards) | `main.ts` `posthog.register`              | Boot-rate drops, product-metric shifts, connection/sync/backend health — see [Reading the health metrics](#reading-the-health-metrics) |
 | Post-deploy smoke test              | `.github/workflows/post-deploy-smoke.yml` | Broken build/boot, before any real user hits it — ⚠️ **dormant, see below** |
+| Synthetic canary (production)       | `.github/workflows/synthetic-canary.yml`  | The P2P path itself — two real browsers join a room and one must see the other's card sync over real WebRTC, every 30 min. Runs on a clock, not on deploys — it answers "is P2P healthy right now," not "did this deploy break something." PostHog-silent (harness blocks analytics). |
 
-Sentry owns *errors*. PostHog owns *product signals*.
+Sentry owns *errors*. PostHog owns *product signals*. The synthetic canary
+owns *"does the core P2P loop actually still work,"* independent of both —
+everything else above can look green while peering or sync is silently broken.
 
 > ⚠️ **Post-deploy smoke is currently dormant.** That workflow triggers
 > `on: deployment_status`, which was a Cloudflare **Pages** signal. We now
@@ -103,6 +107,31 @@ is deliberately not wired because of this — see that doc before adding a 6th.
 basics (wizard)*) still queries the old `ws_connection_outcome` event name,
 renamed to `connection_outcome` in PR #22 — it's been silently dead since.
 Worth deleting or repointing; not touched by this work.
+
+## Synthetic canary
+
+`.github/workflows/synthetic-canary.yml` runs the `@canary`-tagged Playwright
+test(s) against `https://aura0.app` every 30 minutes (`workflow_dispatch` for
+an on-demand run). Today that's just
+`tests/e2e/smoke/two_player_sync.spec.ts` — two real browser contexts join a
+fresh random room and one must see the other's card sync over real WebRTC. It
+reuses the same harness (`tests/e2e/harness/`) as every other e2e test, just
+pointed at production instead of a local dev server via `PLAYWRIGHT_BASE_URL`.
+
+- **Green**: the P2P path (signaling → peering → sync) works end-to-end right
+  now. Independent of whether anyone is actually online.
+- **Red**: check the uploaded Playwright report artifact
+  (`playwright-report-synthetic-canary`) on the failed run first — same report
+  format as any other e2e failure. Cross-reference
+  [Site Health & Uptime](https://us.posthog.com/project/476486/dashboard/1831980)
+  for the same window: a canary failure alongside a WS/WebRTC hard-failure or
+  sync-timeout spike confirms a real outage, not e2e flakiness.
+- **PostHog-silent by design** — the harness's `blockAnalytics` aborts all
+  PostHog requests for every client it creates, so canary runs never inflate
+  real connection/session counts. This means the canary can't be found *in*
+  PostHog; it's a separate signal, not a PostHog event.
+- To add a `staging.aura0.app` tier or a new `@canary` scenario, see
+  [`STAGING.md`](./STAGING.md#known-gap-post-deploy-smoke-test-is-dormant).
 
 ## "A deploy just broke something" — first response
 
