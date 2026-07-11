@@ -1,0 +1,79 @@
+name: Card Search (Python)
+
+# The Node workflow (test.yml) never covered mtg_card_search/. This is the
+# Python service's own CI. Path-filtered so Node-only PRs don't run it.
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'mtg_card_search/**'
+      - '.github/workflows/card-search.yml'
+  pull_request:
+    branches: ['**']
+    paths:
+      - 'mtg_card_search/**'
+      - '.github/workflows/card-search.yml'
+  schedule:
+    - cron: '0 8 * * *'   # nightly full-dataset fidelity walk (08:00 UTC)
+  workflow_dispatch:
+
+defaults:
+  run:
+    working-directory: mtg_card_search
+
+jobs:
+  tests:
+    # Fast, hermetic PR gate — runs the contract suite against the committed
+    # stratified fixture. Blocking. (Skip on the nightly schedule.)
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+          cache-dependency-path: mtg_card_search/requirements.txt
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Unit + lookup-contract suite
+        run: python -m pytest tests/ -q
+      - name: Import smoke (catches config/import breakage before deploy)
+        env:
+          CARD_JSON_DIR: ${{ github.workspace }}/mtg_card_search/tests/fixtures
+          BULK_DATA_TYPES: sample_cards
+        run: python -c "import api, data_updater"
+
+  full-dataset-walk:
+    # Tier 2 fidelity: every real card resolves by name + set/collector. Slow and
+    # Scryfall-network-dependent, so nightly/manual and advisory — never blocks a
+    # PR (mirrors the Node e2e-full advisory tier).
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    env:
+      CARD_JSON_DIR: ${{ github.workspace }}/mtg_card_search/cards
+      BULK_DATA_TYPES: default_cards
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+          cache-dependency-path: mtg_card_search/requirements.txt
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Download + convert the real Scryfall dataset
+        run: python data_updater.py
+      - name: Walk every card against a live server
+        env:
+          CARD_API_BASE_URL: http://127.0.0.1:8000
+          CARD_NDJSON_PATH: ${{ github.workspace }}/mtg_card_search/cards/default_cards.ndjson
+        run: |
+          uvicorn api:app --host 127.0.0.1 --port 8000 &
+          server=$!
+          curl --retry 60 --retry-connrefused --retry-delay 2 -sf http://127.0.0.1:8000/v1/health
+          python tests/test_all_cards.py
+          rc=$?
+          kill "$server" 2>/dev/null || true
+          exit $rc

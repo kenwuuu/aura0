@@ -12,16 +12,28 @@ around `data_updater.py`, see [SETUP.md](SETUP.md).
 
 ## Running tests
 
-`tests/test_data_updater.py` is the fast, no-network, no-real-data suite (lock,
-sanity-check, alerting no-op paths) — run this one routinely:
+`pytest tests/` is the fast, hermetic, no-network suite — run it routinely (and
+CI runs it on every `mtg_card_search/**` PR, see
+[`.github/workflows/card-search.yml`](../.github/workflows/card-search.yml)):
 ```
 .venv/bin/python3 -m pytest tests/
 ```
+It covers `test_data_updater.py` (lock, sanity-check, alerting no-op paths) and
+`test_lookup_contract.py`, which drives the API against a committed **stratified
+real fixture** (`tests/fixtures/sample_cards.ndjson` — real Scryfall objects, one
+of every layout, edge-case keying fields, a duplicate-name pair). Regenerate the
+fixture only when Scryfall adds a layout:
+```
+python3 scripts/make_fixture.py   # reads cards/default_cards.ndjson
+```
 
-`tests/test_all_cards.py` walks every card in `CARD_JSON_DIR` and hits a
-running server to check name/set lookups resolve — slow, exhaustive, not a
-routine check (see [SETUP.md](SETUP.md#before-deploying-to-production) for
-`scripts/smoke_test.sh`, the fast alternative). Start the server first, then:
+`tests/test_all_cards.py` is the **full-dataset fidelity walk** — every card in
+`CARD_JSON_DIR` hit against a running server. Slow, network-dependent, and
+excluded from the fast suite; CI runs it nightly (advisory). Locally, start the
+server first, then:
 ```
 python3 tests/test_all_cards.py
 ```
+It reads `CARD_API_BASE_URL` / `CARD_NDJSON_PATH` from the environment (defaults:
+`http://localhost:8000`, `cards/default_cards.ndjson`) and exits non-zero on any
+lookup failure.
