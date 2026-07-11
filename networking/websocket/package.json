@@ -1,0 +1,18 @@
+{
+  "name": "aura-websocket-relay",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Yjs WebSocket relay for Aura — the default transport, deployed to the DigitalOcean droplet under pm2.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test \"test/*.test.js\""
+  },
+  "dependencies": {
+    "@y/websocket-server": "^0.1.1",
+    "lib0": "^0.2.102",
+    "ws": "^8.18.0",
+    "yjs": "^13.6.27"
+  }
+}
