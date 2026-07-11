@@ -182,6 +182,70 @@ restart again to roll back.
 > Zero-downtime, two-instance blue-green deploys (no restart blip at all) are
 > documented in [Zero-downtime deploys (blue-green)](#zero-downtime-deploys-blue-green).
 
+## Zero-downtime deploys (blue-green)
+
+The fast restart above still drops connections for the ~second the process is
+down. For *zero*-downtime deploys on the single droplet, run two instances behind
+Caddy and flip between them. This is cheap here: the loaded marisa index is only
+single-digit MB, so a second instance barely adds memory (this is exactly why the
+off-heap index matters — with the old in-RAM dict, doubling instances risked the
+OOM).
+
+**One-time setup.** A port-templated systemd unit
+(`deploy/mtg-card-search@.service`, where `%i` is the port):
+```ini
+[Unit]
+Description=MTG Card Search API (port %i)
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/root/aura-api/mtg_card_search
+ExecStart=/root/aura-api/mtg_card_search/.venv/bin/uvicorn api:app --host 127.0.0.1 --port %i
+Restart=always
+RestartSec=3
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=multi-user.target
+```
+Enable both colors and point Caddy at the "live" one:
+```
+sudo systemctl enable --now mtg-card-search@8000 mtg-card-search@8001
+```
+```
+api.example.com {
+    reverse_proxy localhost:8000   # the live port; each deploy flips this
+}
+```
+
+**Each deploy** detects the idle port, deploys + smoke-tests there, then flips
+Caddy (a graceful reload drops no connections) and drains the old instance. As a
+`scripts/deploy.sh`:
+```bash
+#!/usr/bin/env bash
+set -euo pipefail
+cd /root/aura-api/mtg_card_search
+git pull
+.venv/bin/pip install -r requirements.txt
+.venv/bin/python3 data_updater.py --build-index
+
+# Which port is Caddy serving now? Deploy to the other one.
+live=$(grep -oE 'localhost:(8000|8001)' /etc/caddy/Caddyfile | grep -oE '8000|8001' | head -1)
+idle=$([ "$live" = 8000 ] && echo 8001 || echo 8000)
+
+sudo systemctl restart "mtg-card-search@${idle}"
+BASE_URL="http://localhost:${idle}" ./scripts/smoke_test.sh   # must pass before the flip
+
+sudo sed -i "s/localhost:${live}/localhost:${idle}/" /etc/caddy/Caddyfile
+sudo caddy reload --config /etc/caddy/Caddyfile               # graceful: zero dropped conns
+echo "Flipped ${live} -> ${idle}"
+```
+Rollback is just a re-flip: the previous instance is still running the old code on
+the old port, so point Caddy back at it and reload. The two instances share
+nothing but the read-only NDJSON + index files, so running both is safe.
+
 ## Manually running data_updater
 
 ```
@@ -228,6 +292,47 @@ Where this silently breaks, and what to do:
   the in-memory default.
 
 ## Alerting
+
+Two axes to watch: the **server process** (is the API up, is the box healthy)
+and the **`data_updater` job** (did the weekly refresh run and succeed).
+
+### The server process — memory and liveness
+
+The droplet has OOM-killed before: the card index plus the co-tenant WS relay
+crossed ~97% memory, and once the box goes over, DigitalOcean's `do-agent` dies
+with it — the memory graph just goes blank (a *gap*, not a reading at zero).
+Two layered alerts:
+
+1. **Memory, with lead time (DigitalOcean).** In the DO control panel →
+   **Monitoring → Create Alert Policy**, add *Memory utilization > 80% for 5 min*
+   (warning) and *> 90% for 1 min* (critical), notifying email/Slack. The
+   threshold must sit well under ~97%: once the box OOMs the agent can't page
+   you, so an at-the-limit alert never fires — you want it on the way up.
+2. **Liveness, agent-independent (external uptime monitor).** A memory alert
+   can't fire once the box is frozen, so also poll the API from *outside* with an
+   uptime monitor (UptimeRobot, BetterStack, or DigitalOcean Uptime) hitting
+   `/v1/health` — it returns 200 only when at least one index is loaded, so it's
+   a genuine readiness probe, and an alert on silence catches the dark-box OOM.
+   ⚠️ The API sits behind Cloudflare, which 403s non-browser clients (a plain
+   `curl` gets a challenge page, not the origin). Point the monitor at the origin
+   host directly, or add a Cloudflare WAF **skip** rule for the monitor's
+   user-agent/IP — otherwise it reads the challenge as a false up/down.
+   (healthchecks.io, used below, is a dead-man's-switch for a scheduled job, not
+   an active prober — not the right tool for API liveness.)
+
+**Swap as a safety net.** DO droplets ship without swap, so a spike OOM-kills
+instantly. A small swapfile turns a spike into a survivable slowdown the 80%
+alert can catch first:
+```
+sudo fallocate -l 2G /swapfile && sudo chmod 600 /swapfile
+sudo mkswap /swapfile && sudo swapon /swapfile
+echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
+```
+Swap is insurance, not a fix — the real remedy is a smaller footprint, which is
+why the index is now a loaded marisa trie (single-digit MB) instead of a
+multi-GB scan into a big Python dict.
+
+### The `data_updater` job
 
 `data_updater.py` runs unattended via cron, so failures need to surface on
 their own. Two mechanisms are wired (set the env var to activate — see
