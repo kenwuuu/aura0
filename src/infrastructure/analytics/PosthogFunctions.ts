@@ -344,15 +344,21 @@ export function trackImportSucceeded(props: {
 }): void {
   settleImport();
 
-  // Every card resolved, so a non-standard size can only mean the *list* was odd
-  // (or we dropped lines parsing it). Keep the raw text for exactly those cases —
-  // capturing it on every clean 100-card import would be mostly noise.
-  const anomalous = !STANDARD_DECK_SIZES.has(props.counts.importedCardCount);
-
   posthog.capture('deck_import_succeeded', {
     ...countProperties(props.counts),
     duration_ms: props.durationMs,
-    ...(anomalous ? rawTextProperties(props.rawText) : {}),
+
+    // Captured on *every* success, not just the odd-sized ones. Anomalies alone
+    // would tell us what breaks but never what "working" looks like — and a
+    // clean 100-card Moxfield export is precisely the regression baseline any
+    // parser has to keep passing. It is also where the format diversity lives:
+    // ~83% of imports are ordinary decks, and skipping them would mean owning a
+    // corpus made entirely of weird lists.
+    //
+    // The cost argument for skipping them doesn't hold: PostHog bills per event,
+    // not per byte, and this rides on an event that already fires. A 100-card
+    // list is ~3KB, so a busy day is ~1MB.
+    ...rawTextProperties(props.rawText),
 
     // Legacy property names, kept so existing insights keep resolving.
     card_count: props.counts.importedCardCount,
