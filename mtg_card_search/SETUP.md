@@ -54,8 +54,10 @@ if you'd rather do it by hand or understand what it's doing. Either way, step
    mkdir -p cards   # or wherever CARD_JSON_DIR points
    python3 data_updater.py
    ```
-   This downloads Scryfall's bulk JSON and converts it to NDJSON; expect it
-   to take roughly a minute depending on dataset size and network speed.
+   This downloads Scryfall's bulk JSON, converts it to NDJSON, and builds the
+   memory-mapped index artifacts (`<name>.marisa` / `.offsets` / `.index.json`)
+   the server loads at startup. Expect it to take roughly a minute depending on
+   dataset size and network speed.
 
 5. Install [Caddy](https://caddyserver.com/docs/install) as a reverse proxy
    in front of uvicorn. Example `Caddyfile` (adjust the domain, or use
@@ -98,8 +100,11 @@ if you'd rather do it by hand or understand what it's doing. Either way, step
    ```
    Update `WorkingDirectory`/`ExecStart` to match the actual clone path.
 
-7. Start the server. It takes ~20 seconds to come up on first boot since it
-   indexes the `.ndjson` files before accepting traffic.
+7. Start the server. It comes up in a few seconds — it *loads* the prebuilt
+   index artifacts from step 4 rather than rescanning the multi-GB NDJSON. (If
+   the artifacts are ever missing or stale versus the NDJSON, it falls back to a
+   one-time in-process build and logs a warning; run
+   `python3 data_updater.py --build-index` to avoid that.)
    ```
    sudo systemctl daemon-reload
    sudo systemctl enable mtg-card-search
@@ -115,9 +120,10 @@ if you'd rather do it by hand or understand what it's doing. Either way, step
    TZ=America/New_York
    0 5 * * 2 /root/aura-api/mtg_card_search/.venv/bin/python3 /root/aura-api/mtg_card_search/data_updater.py >> /var/log/mtg-card-search-updater.log 2>&1
    ```
-   `api.py` watches the `.ndjson` files and rebuilds the affected in-memory
-   index automatically when `data_updater.py` overwrites them — no restart
-   needed after a data refresh.
+   `data_updater.py` rebuilds each dataset's index artifacts after refreshing its
+   NDJSON, and `api.py` watches the data dir and hot-reloads a dataset when its
+   `.index.json` (written last, once every artifact is in place) changes — so a
+   data refresh needs no restart.
 
 ## Before deploying to production
 
@@ -129,8 +135,10 @@ layering fast, cheap checks before anything touches the real server:
    healthchecks.io ping sequence, and the PostHog/Sentry no-op behavior, all
    against `tmp_path` fixtures — no network, no real data, runs in ~2 seconds.
    This is what to run on every commit, not just before a deploy.
-2. `.venv/bin/python3 -c "import api; import data_updater"` — catches
+2. `.venv/bin/python3 -c "import api, data_updater, card_index"` — catches
    config/import errors (a broken `.env`, a typo) before they reach the server.
+   (CI runs this and the fast suite on every `mtg_card_search/**` PR — see
+   `.github/workflows/card-search.yml`.)
 3. Run the server locally against real data and `./scripts/smoke_test.sh` it —
    covers `/v1/health`, a known-good lookup, a 404, and a mixed bulk lookup in
    a few seconds. Run this again immediately after every deploy, against the
@@ -157,11 +165,86 @@ cd /root/aura-api/mtg_card_search
 git pull
 source .venv/bin/activate
 pip install -r requirements.txt
+python3 data_updater.py --build-index    # rebuild artifacts to match the new code
 sudo systemctl restart mtg-card-search
 ```
+The restart is now ~seconds, not minutes: the server *loads* the prebuilt index
+instead of rescanning the NDJSON. `--build-index` rebuilds the index artifacts
+from the NDJSON already on disk (no Scryfall download), so the index always
+matches the code you just pulled — skip it and a key-extraction change would
+serve a mismatched index until the next data refresh.
+
 Then run `./scripts/smoke_test.sh` (or at minimum
 `curl localhost:8000/v1/health`). If something's wrong,
-`git checkout <previous-commit>` and restart again to roll back.
+`git checkout <previous-commit>`, re-run `data_updater.py --build-index`, and
+restart again to roll back.
+
+> Zero-downtime, two-instance blue-green deploys (no restart blip at all) are
+> documented in [Zero-downtime deploys (blue-green)](#zero-downtime-deploys-blue-green).
+
+## Zero-downtime deploys (blue-green)
+
+The fast restart above still drops connections for the ~second the process is
+down. For *zero*-downtime deploys on the single droplet, run two instances behind
+Caddy and flip between them. This is cheap here: the loaded marisa index is only
+single-digit MB, so a second instance barely adds memory (this is exactly why the
+off-heap index matters — with the old in-RAM dict, doubling instances risked the
+OOM).
+
+**One-time setup.** A port-templated systemd unit
+(`deploy/mtg-card-search@.service`, where `%i` is the port):
+```ini
+[Unit]
+Description=MTG Card Search API (port %i)
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/root/aura-api/mtg_card_search
+ExecStart=/root/aura-api/mtg_card_search/.venv/bin/uvicorn api:app --host 127.0.0.1 --port %i
+Restart=always
+RestartSec=3
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=multi-user.target
+```
+Enable both colors and point Caddy at the "live" one:
+```
+sudo systemctl enable --now mtg-card-search@8000 mtg-card-search@8001
+```
+```
+api.example.com {
+    reverse_proxy localhost:8000   # the live port; each deploy flips this
+}
+```
+
+**Each deploy** detects the idle port, deploys + smoke-tests there, then flips
+Caddy (a graceful reload drops no connections) and drains the old instance. As a
+`scripts/deploy.sh`:
+```bash
+#!/usr/bin/env bash
+set -euo pipefail
+cd /root/aura-api/mtg_card_search
+git pull
+.venv/bin/pip install -r requirements.txt
+.venv/bin/python3 data_updater.py --build-index
+
+# Which port is Caddy serving now? Deploy to the other one.
+live=$(grep -oE 'localhost:(8000|8001)' /etc/caddy/Caddyfile | grep -oE '8000|8001' | head -1)
+idle=$([ "$live" = 8000 ] && echo 8001 || echo 8000)
+
+sudo systemctl restart "mtg-card-search@${idle}"
+BASE_URL="http://localhost:${idle}" ./scripts/smoke_test.sh   # must pass before the flip
+
+sudo sed -i "s/localhost:${live}/localhost:${idle}/" /etc/caddy/Caddyfile
+sudo caddy reload --config /etc/caddy/Caddyfile               # graceful: zero dropped conns
+echo "Flipped ${live} -> ${idle}"
+```
+Rollback is just a re-flip: the previous instance is still running the old code on
+the old port, so point Caddy back at it and reload. The two instances share
+nothing but the read-only NDJSON + index files, so running both is safe.
 
 ## Manually running data_updater
 
@@ -209,6 +292,47 @@ Where this silently breaks, and what to do:
   the in-memory default.
 
 ## Alerting
+
+Two axes to watch: the **server process** (is the API up, is the box healthy)
+and the **`data_updater` job** (did the weekly refresh run and succeed).
+
+### The server process — memory and liveness
+
+The droplet has OOM-killed before: the card index plus the co-tenant WS relay
+crossed ~97% memory, and once the box goes over, DigitalOcean's `do-agent` dies
+with it — the memory graph just goes blank (a *gap*, not a reading at zero).
+Two layered alerts:
+
+1. **Memory, with lead time (DigitalOcean).** In the DO control panel →
+   **Monitoring → Create Alert Policy**, add *Memory utilization > 80% for 5 min*
+   (warning) and *> 90% for 1 min* (critical), notifying email/Slack. The
+   threshold must sit well under ~97%: once the box OOMs the agent can't page
+   you, so an at-the-limit alert never fires — you want it on the way up.
+2. **Liveness, agent-independent (external uptime monitor).** A memory alert
+   can't fire once the box is frozen, so also poll the API from *outside* with an
+   uptime monitor (UptimeRobot, BetterStack, or DigitalOcean Uptime) hitting
+   `/v1/health` — it returns 200 only when at least one index is loaded, so it's
+   a genuine readiness probe, and an alert on silence catches the dark-box OOM.
+   ⚠️ The API sits behind Cloudflare, which 403s non-browser clients (a plain
+   `curl` gets a challenge page, not the origin). Point the monitor at the origin
+   host directly, or add a Cloudflare WAF **skip** rule for the monitor's
+   user-agent/IP — otherwise it reads the challenge as a false up/down.
+   (healthchecks.io, used below, is a dead-man's-switch for a scheduled job, not
+   an active prober — not the right tool for API liveness.)
+
+**Swap as a safety net.** DO droplets ship without swap, so a spike OOM-kills
+instantly. A small swapfile turns a spike into a survivable slowdown the 80%
+alert can catch first:
+```
+sudo fallocate -l 2G /swapfile && sudo chmod 600 /swapfile
+sudo mkswap /swapfile && sudo swapon /swapfile
+echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
+```
+Swap is insurance, not a fix — the real remedy is a smaller footprint, which is
+why the index is now a loaded marisa trie (single-digit MB) instead of a
+multi-GB scan into a big Python dict.
+
+### The `data_updater` job
 
 `data_updater.py` runs unattended via cron, so failures need to surface on
 their own. Two mechanisms are wired (set the env var to activate — see

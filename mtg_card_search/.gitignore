@@ -26,3 +26,9 @@ failures
 data_updater.log
 *.lock
 .dataset_counts.json
+
+# Generated index artifacts (built by data_updater / the API fallback build).
+# The source NDJSON is committed for the test fixture; the derived index is not.
+*.marisa
+*.offsets
+*.index.json

@@ -42,7 +42,7 @@ jobs:
         env:
           CARD_JSON_DIR: ${{ github.workspace }}/mtg_card_search/tests/fixtures
           BULK_DATA_TYPES: sample_cards
-        run: python -c "import api, data_updater"
+        run: python -c "import api, data_updater, card_index"
 
   full-dataset-walk:
     # Tier 2 fidelity: every real card resolves by name + set/collector. Slow and
