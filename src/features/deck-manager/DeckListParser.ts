@@ -72,8 +72,6 @@ export function parseDecklist(text: string): DeckLineItem[] {
         section = parsed.section;
         break;
       case 'card':
-        // Blank lines and comments leave `section` untouched (a comment inside a
-        // sideboard shouldn't leak its cards into the deck).
         if (section === 'excluded') {
           break;
         }
@@ -81,6 +79,17 @@ export function parseDecklist(text: string): DeckLineItem[] {
           parsed.item.commander = true;
         }
         items.push(parsed.item);
+        break;
+      case 'blank':
+        // A blank line closes a sideboard/maybeboard section so that cards
+        // listed after it import again — MTGO/Arena exports can place a card
+        // (e.g. a companion) below the "SIDEBOARD:" block. Only `excluded`
+        // resets: a blank inside the command zone must keep tagging its cards,
+        // and comments never reset (a comment inside a sideboard shouldn't leak
+        // its cards into the deck).
+        if (section === 'excluded') {
+          section = 'default';
+        }
         break;
       default:
         break;
