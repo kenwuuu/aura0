@@ -1,0 +1,19 @@
+[Unit]
+Description=Run the Aura heartbeat for %i every minute
+Documentation=https://github.com/kenwuuu/aura0/blob/master/ops/heartbeat/README.md
+
+[Timer]
+# Wait before the first tick after boot. pm2 (relay) and systemd (card API) need a
+# moment to come up, and paging for a service that is merely still starting is how a
+# monitor teaches you to ignore it. This is also the failure that actually bit us:
+# after the 2026-07-11 reboot pm2 had no boot unit and the relay stayed dead — silent,
+# because memory looked healthy. This timer is what turns that into a page.
+OnBootSec=2min
+OnUnitActiveSec=1min
+AccuracySec=10s
+Unit=aura-heartbeat@%i.service
+
+[Install]
+# `systemctl enable` on this timer IS the survives-a-reboot story — no pm2-style
+# hand-run process to forget.
+WantedBy=timers.target
