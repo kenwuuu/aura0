@@ -7,6 +7,8 @@
 # Usage: scripts/smoke_test.sh [-u BASE_URL]
 #   BASE_URL can also be set via the $BASE_URL env var. Defaults to
 #   http://localhost:8000.
+#   SMOKE_CORS_ORIGIN sets the browser origin the CORS check expects to be
+#   allowed (defaults to the prod frontend, https://aura0.app).
 set -euo pipefail
 
 BASE_URL="${BASE_URL:-http://localhost:8000}"
@@ -65,6 +67,18 @@ if 'this-card-does-not-exist-xyz' not in not_found:
     sys.exit('bogus id missing from not_found')
 " || fail "bulk lookup response failed validation: ${bulk_body}"
 echo "OK: POST /v1/cards/bulk/lookup"
+
+# --- CORS: the browser frontend's origin must be reflected in the
+# Access-Control-Allow-Origin header. This is the check that would have caught
+# the prod card-import outage — the API only echoed ACAO for a stale dev origin,
+# so real cross-origin card fetches were silently blocked by the browser while a
+# plain (originless) curl still returned 200. Override the expected origin with
+# $SMOKE_CORS_ORIGIN (defaults to the prod frontend). ---
+cors_origin="${SMOKE_CORS_ORIGIN:-https://aura0.app}"
+acao="$(curl -s -D - -o /dev/null -H "Origin: ${cors_origin}" "${BASE_URL}/v1/cards/lightningbolt" \
+  | tr -d '\r' | grep -i '^access-control-allow-origin:')" \
+  || fail "CORS: no Access-Control-Allow-Origin for Origin ${cors_origin} — the browser would block card import. Check CORS_ORIGIN in .env."
+echo "OK: CORS (${acao})"
 
 echo
 echo "All smoke tests passed."

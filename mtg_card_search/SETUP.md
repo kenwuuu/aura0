@@ -191,6 +191,13 @@ single-digit MB, so a second instance barely adds memory (this is exactly why th
 off-heap index matters — with the old in-RAM dict, doubling instances risked the
 OOM).
 
+> This is now codified: the unit is committed as
+> [`deploy/mtg-card-search@.service`](deploy/mtg-card-search@.service) and the
+> flip is [`scripts/deploy.sh`](scripts/deploy.sh) (which gates on
+> `scripts/smoke_test.sh`, **including a CORS check** — the guard that catches a
+> misconfigured `CORS_ORIGIN` before it reaches users). The blocks below mirror
+> those files.
+
 **One-time setup.** A port-templated systemd unit
 (`deploy/mtg-card-search@.service`, where `%i` is the port):
 ```ini
