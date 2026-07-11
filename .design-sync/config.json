@@ -1,0 +1,52 @@
+{
+  "projectId": "24b1b395-dcc8-4851-b62f-e056169dbe52",
+  "shape": "package",
+  "pkg": "aura",
+  "globalName": "AuraUI",
+  "tsconfig": "./tsconfig.json",
+  "cssEntry": ".design-sync/.cache/ds-tailwind.css",
+  "extraFonts": [".design-sync/fonts.css"],
+  "guidelinesGlob": ["docs/styling.md"],
+  "readmeHeader": ".design-sync/conventions.md",
+  "overrides": {
+    "Dialog": { "cardMode": "single", "viewport": "680x380" },
+    "Select": { "cardMode": "single", "viewport": "380x420" },
+    "DropdownMenu": { "cardMode": "single", "viewport": "380x420" },
+    "Popover": { "cardMode": "single", "viewport": "380x320" },
+    "Tooltip": { "cardMode": "single", "viewport": "380x240" },
+    "Toaster": { "cardMode": "single", "viewport": "440x360" },
+    "FloatingPanel": { "cardMode": "single", "viewport": "380x320" }
+  },
+  "componentSrcMap": {
+    "Button": "src/shared/ui/button.tsx",
+    "Dialog": "src/shared/ui/dialog.tsx",
+    "DropdownMenu": "src/shared/ui/dropdown-menu.tsx",
+    "Popover": "src/shared/ui/popover.tsx",
+    "Select": "src/shared/ui/select.tsx",
+    "Checkbox": "src/shared/ui/checkbox.tsx",
+    "Input": "src/shared/ui/input.tsx",
+    "Tooltip": "src/shared/ui/tooltip.tsx",
+    "ScrollArea": "src/shared/ui/scroll-area.tsx",
+    "Slider": "src/shared/ui/slider.tsx",
+    "Alert": "src/shared/ui/alert.tsx",
+    "Toaster": "src/shared/ui/sonner.tsx",
+    "HudIconButton": "src/shared/ui/HudIconButton.tsx",
+    "FloatingPanel": "src/shared/ui/FloatingPanel.tsx"
+  },
+  "dtsPropsFor": {
+    "Button": "  /** Visual style. One primary (`default`) per view. @default \"default\" */\n  variant?: \"default\" | \"destructive\" | \"outline\" | \"secondary\" | \"ghost\" | \"link\";\n  /** Size preset. `icon*` sizes render a square button for a lone icon. @default \"default\" */\n  size?: \"default\" | \"sm\" | \"lg\" | \"icon\" | \"icon-sm\" | \"icon-lg\";\n  /** Render as the single child element (Radix Slot) instead of a <button>. @default false */\n  asChild?: boolean;\n  disabled?: boolean;\n  type?: \"button\" | \"submit\" | \"reset\";\n  onClick?: React.MouseEventHandler<HTMLButtonElement>;\n  className?: string;\n  children?: React.ReactNode;\n  /** Plus all native <button> attributes. */\n  [prop: `data-${string}`]: unknown;",
+    "Input": "  /** Input type. @default \"text\" */\n  type?: React.HTMLInputTypeAttribute;\n  value?: string | number;\n  defaultValue?: string | number;\n  placeholder?: string;\n  disabled?: boolean;\n  onChange?: React.ChangeEventHandler<HTMLInputElement>;\n  className?: string;\n  /** Plus all native <input> attributes (name, required, min, max, …). */\n  [prop: `data-${string}`]: unknown;",
+    "Checkbox": "  /** Controlled checked state. `\"indeterminate\"` shows the mixed state. */\n  checked?: boolean | \"indeterminate\";\n  defaultChecked?: boolean;\n  onCheckedChange?: (checked: boolean | \"indeterminate\") => void;\n  disabled?: boolean;\n  required?: boolean;\n  name?: string;\n  value?: string;\n  className?: string;",
+    "Slider": "  /** Controlled value (array — one entry per thumb). */\n  value?: number[];\n  defaultValue?: number[];\n  onValueChange?: (value: number[]) => void;\n  onValueCommit?: (value: number[]) => void;\n  /** @default 0 */\n  min?: number;\n  /** @default 100 */\n  max?: number;\n  /** @default 1 */\n  step?: number;\n  orientation?: \"horizontal\" | \"vertical\";\n  disabled?: boolean;\n  \"aria-label\"?: string;\n  className?: string;",
+    "Alert": "  /** `destructive` tints the title/description with the danger token. @default \"default\" */\n  variant?: \"default\" | \"destructive\";\n  /** Compose an optional lucide icon, <AlertTitle>, and <AlertDescription> as children. */\n  children?: React.ReactNode;\n  className?: string;\n  /** Plus all native <div> attributes. */\n  [prop: `data-${string}`]: unknown;",
+    "Dialog": "  /** Controlled open state. */\n  open?: boolean;\n  defaultOpen?: boolean;\n  onOpenChange?: (open: boolean) => void;\n  /** Trap focus + block the background while open. @default true */\n  modal?: boolean;\n  /** Compose <DialogTrigger>, <DialogContent> (which holds <DialogHeader> → <DialogTitle> + <DialogDescription>, body, <DialogFooter>, <DialogClose>). */\n  children?: React.ReactNode;",
+    "DropdownMenu": "  /** Controlled open state. */\n  open?: boolean;\n  defaultOpen?: boolean;\n  onOpenChange?: (open: boolean) => void;\n  modal?: boolean;\n  dir?: \"ltr\" | \"rtl\";\n  /** Compose <DropdownMenuTrigger> + <DropdownMenuContent> holding <DropdownMenuItem>, <DropdownMenuCheckboxItem>, <DropdownMenuRadioGroup>/<DropdownMenuRadioItem>, <DropdownMenuLabel>, <DropdownMenuSeparator>, <DropdownMenuSub>. */\n  children?: React.ReactNode;",
+    "Popover": "  /** Controlled open state. */\n  open?: boolean;\n  defaultOpen?: boolean;\n  onOpenChange?: (open: boolean) => void;\n  modal?: boolean;\n  /** Compose <PopoverTrigger> + <PopoverContent> (optionally <PopoverAnchor>). */\n  children?: React.ReactNode;",
+    "Select": "  /** Controlled selected value. */\n  value?: string;\n  defaultValue?: string;\n  onValueChange?: (value: string) => void;\n  open?: boolean;\n  defaultOpen?: boolean;\n  onOpenChange?: (open: boolean) => void;\n  disabled?: boolean;\n  required?: boolean;\n  name?: string;\n  dir?: \"ltr\" | \"rtl\";\n  /** Compose <SelectTrigger> (holding <SelectValue>) + <SelectContent> holding <SelectItem>, <SelectGroup>/<SelectLabel>, <SelectSeparator>. */\n  children?: React.ReactNode;",
+    "Tooltip": "  /** Controlled open state. */\n  open?: boolean;\n  defaultOpen?: boolean;\n  onOpenChange?: (open: boolean) => void;\n  /** Delay in ms before the tooltip opens on hover. */\n  delayDuration?: number;\n  disableHoverableContent?: boolean;\n  /** Compose <TooltipTrigger> + <TooltipContent>. Wrap the app (or the tooltip) in <TooltipProvider>. */\n  children?: React.ReactNode;",
+    "ScrollArea": "  /** When scrollbars show. @default \"hover\" */\n  type?: \"auto\" | \"always\" | \"scroll\" | \"hover\";\n  /** Delay in ms before hover/scroll scrollbars hide. */\n  scrollHideDelay?: number;\n  dir?: \"ltr\" | \"rtl\";\n  /** The scrollable content. Pair with <ScrollBar> for a horizontal bar. */\n  children?: React.ReactNode;\n  className?: string;",
+    "Toaster": "  /** Screen corner for the toast stack. @default \"bottom-right\" */\n  position?: \"top-left\" | \"top-center\" | \"top-right\" | \"bottom-left\" | \"bottom-center\" | \"bottom-right\";\n  /** Auto-dismiss delay in ms. */\n  duration?: number;\n  /** Show a close button on each toast. */\n  closeButton?: boolean;\n  /** Stack expanded instead of collapsed. */\n  expand?: boolean;\n  richColors?: boolean;\n  className?: string;\n  /** Mount once near the app root; fire toasts imperatively via sonner's `toast()`. Dark-themed, Manabase-tokened, with success/info/warning/error/loading icons preset. */\n  [prop: `data-${string}`]: unknown;",
+    "HudIconButton": "  /** The icon element (e.g. a lucide <SettingsIcon />). */\n  icon: React.ReactNode;\n  /** Accessible label (also the default title). */\n  ariaLabel: string;\n  onClick: () => void;\n  title?: string;\n  /** For toggle buttons: whether the surface this button controls is open. */\n  ariaExpanded?: boolean;\n  testId?: string;",
+    "FloatingPanel": "  /** Stable key for saving/restoring this panel's viewport position. */\n  persistKey: string;\n  /** Where the panel first appears if nothing is persisted yet. */\n  defaultPosition: { x: number; y: number };\n  /** Label shown in the built-in grip handle. Ignored when `renderHandle` is set. */\n  title?: string;\n  /** Render a custom drag handle instead of the built-in grip. Must spread the given handle props onto its root and set `touchAction: 'none'`. */\n  renderHandle?: (handleProps: React.HTMLAttributes<HTMLElement>) => React.ReactNode;\n  /** Fixed panel width. Omit to size to content. */\n  width?: number | string;\n  /** @default 40 */\n  zIndex?: number;\n  children: React.ReactNode;"
+  }
+}
