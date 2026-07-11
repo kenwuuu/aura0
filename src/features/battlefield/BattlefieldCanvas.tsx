@@ -224,9 +224,19 @@ function BattlefieldCanvasInner({ yDoc, localPlayerId }: BattlefieldCanvasProps)
     if (!el) return;
     let start: { x: number; y: number; menuWasOpen: boolean; previewWasVisible: boolean } | null = null;
     const onDown = (e: PointerEvent) => {
-      const onPane = e.target instanceof Element && !!e.target.closest('.react-flow__pane');
-      if (onPane) panePointerTypeRef.current = e.pointerType;
-      start = onPane && e.pointerType !== 'mouse'
+      const el = e.target instanceof Element ? e.target : null;
+      const insidePane = !!el?.closest('.react-flow__pane');
+      if (insidePane) panePointerTypeRef.current = e.pointerType;
+      // `.react-flow__pane` is an *ancestor* of the viewport, so every node
+      // (card, token, pile, health) is "inside the pane" by `closest`. This
+      // handler summons the *empty-board* menu, so it must fire only where
+      // there is no node under the finger — otherwise it hijacks every node
+      // tap, and on a card that's fatal: the `previewWasVisible` branch below
+      // runs on the second tap, hiding the preview and returning before the
+      // card's own handler sees it, so the two-tap machine can never advance
+      // from preview to menu.
+      const onEmptyPane = insidePane && !el?.closest('.react-flow__node');
+      start = onEmptyPane && e.pointerType !== 'mouse'
         ? {
             x: e.clientX,
             y: e.clientY,

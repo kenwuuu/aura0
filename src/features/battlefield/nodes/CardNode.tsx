@@ -63,6 +63,12 @@ export const CardNode = memo(function CardNode({ data, id }: NodeProps) {
   }, []);
 
   const handleMouseLeave = useCallback(() => {
+    // Inert on touch, for the same reason as mouseenter above: a tap's compat
+    // mouse sequence can hand the card a stray mouseleave, which would tear down
+    // the preview the tap just raised and strand the two-tap machine on its
+    // first step (it re-previews forever, never reaching the menu). Taps own the
+    // preview on touch; the tap machine and the board/drag handlers dismiss it.
+    if (wasLastInputTouch()) return;
     useHotkeyStore.getState().setHoveredBattlefieldCard(null);
     useCardPreviewStore.getState().hide();
   }, []);

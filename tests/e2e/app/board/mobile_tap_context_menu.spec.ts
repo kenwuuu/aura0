@@ -4,8 +4,10 @@ import {
   boardTokens,
   cardPreview,
   dragCountedTokenToBoard,
+  parkMouseAwayFromBoard,
   pileTile,
   pileViewer,
+  playCreature,
   touchTap,
   visibleHandCard,
   handCard,
@@ -115,16 +117,35 @@ test.describe('tapping freshly-placed board nodes', () => {
     "Firefox board auto-fit hides fresh nodes under the toolbar in an empty room (harness artifact); the tap gesture itself is covered on Firefox by the hand-card/pile/empty-board specs.",
   );
 
-  // A battlefield *card* is two-tap on a real touch device (first previews,
-  // second opens the menu), exactly like a hand card. That machine is covered
-  // end-to-end on hand cards (mobile_card_preview.spec.ts) and in unit tests
-  // (useContextMenuTap.test.tsx). It can't be reproduced on a react-flow *node*
-  // here: Chromium's simulated-touch emits a compat mouseenter (raising the
-  // hover preview) plus a long-press contextmenu on nodes, and the trailing
-  // compat click dismisses the just-opened menu — dual-input artifacts a real
-  // phone never produces. The token case below still pins the react-flow tap
-  // path (single tap → menu, synthetic click swallowed), which tokens exercise
-  // cleanly because they have no hover preview to pollute the gesture.
+  // A battlefield card is two-tap, exactly like a hand card: first tap previews,
+  // second opens the menu. The only dual-input artifact to neutralise is the
+  // mouse `playCreature` leaves parked on the card it just dragged — see
+  // `parkMouseAwayFromBoard`. Both halves of this regressed once and are worth
+  // holding: the pane's touch-tap listener used to claim node taps as
+  // empty-board taps (`.react-flow__pane` is an *ancestor* of every node, so
+  // `closest()` matches), so the second tap dismissed the preview and returned
+  // before the card ever saw it — the menu was unreachable and the card just
+  // re-previewed forever.
+  test('a second tap on a battlefield card opens its context menu (first tap previews)', async ({ page }) => {
+    const card = await playCreature(page);
+    await parkMouseAwayFromBoard(page);
+
+    // First tap previews the card — no menu yet.
+    await touchTap(page, card);
+    await expect(cardPreview(page)).toBeVisible();
+    await expect(page.getByRole('menuitem', { name: /^Tap\b/ })).toBeHidden();
+
+    // Second tap on the same card opens its menu, and the preview steps aside.
+    await touchTap(page, card);
+    await expect(page.getByRole('menuitem', { name: /^Tap\b/ })).toBeVisible();
+    await expect(page.getByRole('menuitem', { name: /^Flip\b/ })).toBeVisible();
+    await expect(cardPreview(page)).toBeHidden();
+    // "Shuffle" is an empty-board row, absent from a card's menu — its absence
+    // proves the pane's tap listener didn't claim this node tap and summon the
+    // board menu in the card's place, which is exactly what it used to do.
+    await expect(page.getByRole('menuitem', { name: /^Shuffle\b/ })).toBeHidden();
+  });
+
   test('tapping a token opens its menu instead of adjusting the count', async ({ page }) => {
     await dragCountedTokenToBoard(page);
     const token = boardToken(page);

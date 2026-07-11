@@ -1,5 +1,5 @@
 import { Page, Locator, expect } from '@playwright/test';
-import { boardCard, pileTile, whiteboard, deckImportOpenButton, deckImportModal, boardTokens } from './pageObjects';
+import { boardCard, cardPreview, pileTile, whiteboard, deckImportOpenButton, deckImportModal, boardTokens } from './pageObjects';
 import { TESTID, PileKind } from './selectors';
 
 export async function centerOf(locator: Locator): Promise<{ x: number; y: number }> {
@@ -37,6 +37,27 @@ export async function touchTap(page: Page, locator: Locator): Promise<void> {
  */
 export async function realMouseMoveTo(page: Page, to: { x: number; y: number }, steps = 20): Promise<void> {
   await page.mouse.move(to.x, to.y, { steps });
+}
+
+/**
+ * Park the real mouse cursor clear of the board and wait for the hover preview
+ * it was holding open to clear.
+ *
+ * A desktop runner with `hasTouch` has *both* a mouse and a touchscreen. Any
+ * harness step that uses the mouse — `playCreature` drags a card from hand to
+ * board — leaves the cursor sitting on the card it just placed, with the
+ * desktop hover preview up for it. A real phone has neither a cursor nor hover.
+ * Call this before touch-tapping a board card so the tap begins from the state
+ * a touch device is actually in: without it, the first tap finds a preview
+ * already open for that very card and behaves like a *second* tap, opening the
+ * menu immediately and hiding whatever the first tap was supposed to do.
+ *
+ * The park point is the far-left edge at mid-height — clear of the board's
+ * nodes, of the toolbar along the top, and of the dock along the bottom.
+ */
+export async function parkMouseAwayFromBoard(page: Page): Promise<void> {
+  await realMouseMoveTo(page, { x: 5, y: 400 });
+  await expect(cardPreview(page)).toBeHidden();
 }
 
 /** A card's aspect ratio flips between portrait (untapped) and landscape
