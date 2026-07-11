@@ -29,3 +29,22 @@ os.environ.setdefault("BULK_DATA_TYPES", "sample_cards")
 # The full-dataset fidelity walk needs a running server + real data; it is the
 # nightly Tier-2 job, not part of the fast, hermetic suite.
 collect_ignore = ["test_all_cards.py"]
+
+
+# marisa-trie's C extension intermittently segfaults during CPython's interpreter
+# teardown on Linux — visible in CI as "N passed" followed by exit 139. All tests
+# have run and been reported by the time session-finish fires, so exit immediately
+# with the real status and skip the crashing global finalization. This only
+# affects process *exit* — never a running server (which never finalizes) nor a
+# test outcome.
+import pytest  # noqa: E402
+
+
+@pytest.hookimpl(hookwrapper=True, tryfirst=True)
+def pytest_sessionfinish(session, exitstatus):
+    # Outermost wrapper (tryfirst) so our post-yield runs LAST — after pytest's
+    # own terminal-summary wrapper has printed the result — then exit hard.
+    yield
+    sys.stdout.flush()
+    sys.stderr.flush()
+    os._exit(int(exitstatus))
