@@ -54,5 +54,11 @@ systemctl reload caddy
 echo "== drain old instance :${live} =="
 systemctl stop "${UNIT}${live}"
 
+# Keep the boot unit consistent with what Caddy serves: enable the now-live
+# instance and disable the drained one. Without this, a reboot would start the
+# other port and Caddy would 502 against a dead upstream.
+systemctl enable "${UNIT}${idle}" >/dev/null 2>&1 || true
+systemctl disable "${UNIT}${live}" >/dev/null 2>&1 || true
+
 echo "== done — serving new code on :${idle}."
 echo "   Rollback: sed Caddy back to localhost:${live}, 'systemctl start ${UNIT}${live}', reload caddy."

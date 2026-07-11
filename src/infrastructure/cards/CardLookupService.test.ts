@@ -44,7 +44,12 @@ describe('CardLookupService — Aura -> Scryfall fallback policy', () => {
 
       const result = await service.fetchImagesForList([makeEntry('Sol Ring')]);
 
-      expect(result).toEqual({ ...primaryRun, fallbackTriggeredCount: 0 });
+      expect(result).toEqual({
+        ...primaryRun,
+        fallbackTriggeredCount: 0,
+        fallbackRecoveredCount: 0,
+        fallbackFailedCount: 0,
+      });
       expect(fallback.fetchImagesForList).not.toHaveBeenCalled();
     });
 
@@ -92,6 +97,37 @@ describe('CardLookupService — Aura -> Scryfall fallback policy', () => {
 
       expect(result.failedItems).toEqual([makeEntry('Obscure Card')]);
       expect(result.fallbackTriggeredCount).toBe(1);
+    });
+
+    it('splits the fallback outcome into cards it recovered and cards nothing could resolve', async () => {
+      // Aura misses two cards; Scryfall saves one and loses the other. Without the
+      // split, both look identical from analytics — but one is a coverage gap in
+      // our index and the other is a card the player actually never gets.
+      const primaryRun: FetchListResult = {
+        results: [
+          makeResult('Sol Ring'),
+          makeResult('Recovered Card', 'not found'),
+          makeResult('Doomed Card', 'not found'),
+        ],
+        failedItems: [makeEntry('Recovered Card'), makeEntry('Doomed Card')],
+      };
+      const fallbackRun: FetchListResult = {
+        results: [makeResult('Recovered Card'), makeResult('Doomed Card', 'still not found')],
+        failedItems: [makeEntry('Doomed Card')],
+      };
+      const primary = makeClient({ fetchImagesForList: vi.fn().mockResolvedValue(primaryRun) });
+      const fallback = makeClient({ fetchImagesForList: vi.fn().mockResolvedValue(fallbackRun) });
+      const service = new CardLookupService(primary, fallback);
+
+      const result = await service.fetchImagesForList([
+        makeEntry('Sol Ring'),
+        makeEntry('Recovered Card'),
+        makeEntry('Doomed Card'),
+      ]);
+
+      expect(result.fallbackTriggeredCount).toBe(2);
+      expect(result.fallbackRecoveredCount).toBe(1);
+      expect(result.fallbackFailedCount).toBe(1);
     });
   });
 

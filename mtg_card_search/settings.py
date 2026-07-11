@@ -42,6 +42,11 @@ class Settings:
     card_json_dir: Path
     dataset_names: List[str]
     cors_origins: List[str]
+    # When false (the default), FastAPI's interactive docs (/docs, /redoc) and
+    # the OpenAPI schema (/openapi.json) are disabled. They map the whole API
+    # surface, so we keep them off in production and opt in for local dev via
+    # EXPOSE_DOCS=true. See api.py where this gates the FastAPI() kwargs.
+    expose_docs: bool
     # DESIGN DECISION: when a lookup misses in dataset A, which dataset (if any)
     # should be tried next? Keyed/valued by dataset name, e.g. {"cards": "unique_artwork"}.
     # Configure via DATASET_FALLBACKS="cards:unique_artwork,other:default" in .env.
@@ -72,6 +77,13 @@ class Settings:
         cors_env = os.getenv("CORS_ORIGIN", "").strip()
         cors_origins = [o.strip() for o in cors_env.split(",") if o.strip()] or ["*"]
 
+        expose_docs = os.getenv("EXPOSE_DOCS", "").strip().lower() in {
+            "1",
+            "true",
+            "yes",
+            "on",
+        }
+
         dataset_fallbacks: Dict[str, str] = {}
         for pair in os.getenv("DATASET_FALLBACKS", "").split(","):
             pair = pair.strip()
@@ -95,6 +107,7 @@ class Settings:
             card_json_dir=card_json_dir,
             dataset_names=dataset_names,
             cors_origins=cors_origins,
+            expose_docs=expose_docs,
             dataset_fallbacks=dataset_fallbacks,
             posthog_api_key=os.getenv("POSTHOG_API_KEY") or None,
             posthog_host=os.getenv("POSTHOG_HOST", "https://us.i.posthog.com"),

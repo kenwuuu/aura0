@@ -57,12 +57,26 @@ Alert**.
   the value. `scripts/post-posthog-deploy-annotation.sh` reads it via
   `post-deploy-smoke.yml`; if it's absent the script just skips (never fails
   the deploy over a missing secret).
-- **Boot-drop alert**: Insights → New → Trends on `game_session_started`
-  (unique count, hourly) → Save → bell icon on the insight → New Alert →
-  threshold on % decrease → email.
-- **Import-failure alert**: same flow, Trends with formula `A/B`
-  (`deck_import_failed` / `deck_import_started`) → alert above ~20%.
-- **Dashboard**: Dashboards → New → add the two insights above plus boots/hr.
+- **Import-failure alert**: Insights → Trends with formula `A/B`
+  (`deck_import_failed` / `deck_import_started`) → alert above ~20%. Already
+  live as **"Deck import error rate"**, on the *Analytics basics (wizard)*
+  dashboard.
+- **Dashboard**: **[Site Health & Uptime](https://us.posthog.com/project/476486/dashboard/1831980)**
+  is the home for all reliability/uptime insights — reliability signals for
+  connection success/failure, latency, error rates, and backend availability
+  all belong there (not a separate new dashboard). See
+  [`DEPLOYMENT_RUNBOOK.md`](./DEPLOYMENT_RUNBOOK.md#reading-the-health-metrics)
+  for what each tile means and how to read it.
+
+  > ⚠️ **PostHog alert quota: 5 per project on the current plan, and it's at
+  > the cap.** The **boot-drop alert** this section used to instruct you to
+  > create (Trends on `game_session_started`, alert on % decrease) was never
+  > actually wired — the "Silent boot drops" insight it would attach to exists
+  > (on *Analytics basics (wizard)*, ratio of `game_session_started` /
+  > `$pageview`, 30d range 0.65–0.93) but has no alert. Adding it means either
+  > dropping one of the current 5 (WS hard-failure, WebRTC hard-failure,
+  > Scryfall fallback rate, `hand_clobbered` rate, Deck import error rate) or
+  > upgrading the plan. Deliberately left open — a human call, not a default.
 
 ## 4. Rotate the Cloudflare TURN token
 

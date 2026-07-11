@@ -65,7 +65,19 @@ const h = vi.hoisted(() => {
     off(event: string, fn: (e: unknown) => void): void {
       this.handlers[event] = (this.handlers[event] ?? []).filter((f) => f !== fn);
     }
+    private emit(event: string, payload: unknown): void {
+      (this.handlers[event] ?? []).forEach((fn) => fn(payload));
+    }
     destroy(): void {}
+
+    /** Simulate y-webrtc's 'peers' event (the live peer-id list). */
+    peers(webrtcPeers: string[]): void {
+      this.emit('peers', { webrtcPeers });
+    }
+    /** Simulate y-webrtc's 'synced' event. */
+    syncDoc(state: boolean): void {
+      this.emit('synced', { synced: state });
+    }
   }
 
   return { captureMessage, posthogCapture, rtcInstances, FakeWebrtc };
@@ -180,5 +192,70 @@ describe('WebRTCProvider signaling monitor', () => {
     conn.drop();
     vi.advanceTimersByTime(GRACE_MS * 2);
     expect(h.captureMessage).not.toHaveBeenCalled();
+  });
+});
+
+describe('WebRTCProvider sync monitor', () => {
+  const SYNC_GRACE_MS = 8000;
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+    h.rtcInstances.length = 0;
+    h.captureMessage.mockClear();
+    h.posthogCapture.mockClear();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  function syncOutcomeCalls() {
+    return h.posthogCapture.mock.calls.filter(([event]) => event === 'sync_outcome');
+  }
+
+  it('never arms while alone in the room (no peers, no report)', () => {
+    new WebRTCProvider(new Y.Doc(), { roomName: 'room-1' });
+
+    vi.advanceTimersByTime(SYNC_GRACE_MS * 2);
+    expect(syncOutcomeCalls()).toHaveLength(0);
+  });
+
+  it('reports a synced outcome, carrying peer count, once a peer appears and the doc syncs', () => {
+    new WebRTCProvider(new Y.Doc(), { roomName: 'room-1' });
+    const provider = latestProvider();
+    provider.peers(['peer-a']);
+    provider.syncDoc(true);
+
+    expect(syncOutcomeCalls()).toHaveLength(1);
+    expect(syncOutcomeCalls()[0][1]).toMatchObject({
+      transport: 'webrtc',
+      outcome: 'synced',
+      episode_id: expect.any(String),
+      sync_ms: expect.any(Number),
+      peer_count: 1,
+    });
+  });
+
+  it('reports a sync timeout if a peer appears but the doc never syncs', () => {
+    new WebRTCProvider(new Y.Doc(), { roomName: 'room-1' });
+    latestProvider().peers(['peer-a']);
+
+    vi.advanceTimersByTime(SYNC_GRACE_MS);
+    expect(h.captureMessage).toHaveBeenCalledWith(
+      'WebRTC peer sync timed out',
+      expect.objectContaining({ level: 'error', tags: { transport: 'webrtc' } }),
+    );
+    expect(syncOutcomeCalls()).toHaveLength(1);
+    expect(syncOutcomeCalls()[0][1]).toMatchObject({ transport: 'webrtc', outcome: 'timed_out' });
+  });
+
+  it('does not report a timeout if the peer disappears before syncing', () => {
+    new WebRTCProvider(new Y.Doc(), { roomName: 'room-1' });
+    const provider = latestProvider();
+    provider.peers(['peer-a']);
+    provider.peers([]);
+
+    vi.advanceTimersByTime(SYNC_GRACE_MS * 2);
+    expect(syncOutcomeCalls()).toHaveLength(0);
   });
 });

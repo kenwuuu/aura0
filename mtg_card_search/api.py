@@ -147,7 +147,16 @@ async def lifespan(app: FastAPI):
 # App + middleware
 # ---------------------------------------------------------------------------
 
-app = FastAPI(title="Card Lookup API", lifespan=lifespan)
+# Interactive docs (/docs, /redoc) and the OpenAPI schema (/openapi.json) map
+# the entire API surface, so they're disabled unless EXPOSE_DOCS is set (see
+# settings.expose_docs). Passing None for these URLs removes the routes
+# entirely rather than just hiding them.
+_docs_kwargs = (
+    {}
+    if settings.expose_docs
+    else {"docs_url": None, "redoc_url": None, "openapi_url": None}
+)
+app = FastAPI(title="Card Lookup API", lifespan=lifespan, **_docs_kwargs)
 
 app.add_middleware(
     CORSMiddleware,
@@ -163,6 +172,17 @@ app.add_middleware(
 # this is only the real client IP if uvicorn trusts the proxy's X-Forwarded-For
 # (--forwarded-allow-ips); otherwise every request collapses to the proxy IP and
 # the limit becomes global. See "Rate limiting behind the proxy" in SETUP.md.
+#
+# CAVEAT (prod topology, verified 2026-07): the origin runs behind
+# Cloudflare -> Caddy -> uvicorn. uvicorn does trust Caddy (127.0.0.1), but the
+# stock Caddyfile forwards Cloudflare's *edge* IP, not the end user's — it has no
+# `trusted_proxies` block and doesn't promote Cloudflare's `CF-Connecting-IP`
+# header. So this limiter currently keys on a small pool of Cloudflare edge IPs:
+# it does NOT partition by real client, making it a weak per-user control. To
+# make it meaningful: (1) give Caddy `trusted_proxies` = Cloudflare's ranges and
+# have it forward CF-Connecting-IP, and (2) restrict 80/443 to Cloudflare so the
+# origin can't be reached directly (a direct hit bypasses both Cloudflare's edge
+# limits and this one). See "Rate limiting behind the proxy" in SETUP.md.
 limiter = Limiter(key_func=get_remote_address)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)

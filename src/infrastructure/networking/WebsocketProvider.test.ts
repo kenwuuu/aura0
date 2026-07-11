@@ -51,6 +51,10 @@ const h = vi.hoisted(() => {
       this.wsconnected = false;
       this.emit('status', { status: 'disconnected' });
     }
+    /** Simulate the relay's own 'sync' event (y-websocket emits a raw boolean). */
+    syncDoc(state: boolean): void {
+      this.emit('sync', state);
+    }
   }
 
   return { captureMessage, posthogCapture, wsInstances, FakeWs };
@@ -107,7 +111,9 @@ describe('WebsocketProvider connection monitor', () => {
 
   it('does not report when the relay connects within the grace period', () => {
     new WebsocketProvider(new Y.Doc(), { roomName: 'room-1' });
-    latestSocket().connect();
+    const ws = latestSocket();
+    ws.connect();
+    ws.syncDoc(true); // otherwise the sync monitor's own grace period fires below
 
     vi.advanceTimersByTime(GRACE_MS * 2);
     expect(h.captureMessage).not.toHaveBeenCalled();
@@ -115,7 +121,8 @@ describe('WebsocketProvider connection monitor', () => {
 
   it('emits a single connected outcome for a fast initial connect, and no failure', () => {
     new WebsocketProvider(new Y.Doc(), { roomName: 'room-1' });
-    latestSocket().connect();
+    const ws = latestSocket();
+    ws.connect();
 
     expect(h.posthogCapture).toHaveBeenCalledTimes(1);
     expect(h.posthogCapture).toHaveBeenLastCalledWith(
@@ -128,11 +135,12 @@ describe('WebsocketProvider connection monitor', () => {
         connect_ms: expect.any(Number),
       }),
     );
+    ws.syncDoc(true); // otherwise the sync monitor's own grace period fires below
 
     // Past the grace period, still connected → nothing further reported.
     vi.advanceTimersByTime(GRACE_MS * 2);
     expect(h.captureMessage).not.toHaveBeenCalled();
-    expect(h.posthogCapture).toHaveBeenCalledTimes(1);
+    expect(h.posthogCapture).toHaveBeenCalledTimes(2);
   });
 
   it('links an episode failure and its recovery by episode_id, then starts a fresh episode', () => {
@@ -191,5 +199,86 @@ describe('WebsocketProvider connection monitor', () => {
 
     vi.advanceTimersByTime(GRACE_MS * 2);
     expect(h.captureMessage).not.toHaveBeenCalled();
+  });
+});
+
+describe('WebsocketProvider sync monitor', () => {
+  const SYNC_GRACE_MS = 5000;
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+    h.wsInstances.length = 0;
+    h.captureMessage.mockClear();
+    h.posthogCapture.mockClear();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  function syncOutcomeCalls() {
+    return h.posthogCapture.mock.calls.filter(([event]) => event === 'sync_outcome');
+  }
+
+  it('reports a synced outcome once the relay syncs after connecting', () => {
+    new WebsocketProvider(new Y.Doc(), { roomName: 'room-1' });
+    const ws = latestSocket();
+    ws.connect();
+    ws.syncDoc(true);
+
+    expect(syncOutcomeCalls()).toHaveLength(1);
+    expect(syncOutcomeCalls()[0][1]).toMatchObject({
+      transport: 'websocket',
+      outcome: 'synced',
+      episode_id: expect.any(String),
+      sync_ms: expect.any(Number),
+    });
+  });
+
+  it('reports a sync timeout if the relay connects but never syncs', () => {
+    new WebsocketProvider(new Y.Doc(), { roomName: 'room-1' });
+    latestSocket().connect();
+
+    vi.advanceTimersByTime(SYNC_GRACE_MS - 1);
+    expect(h.captureMessage).not.toHaveBeenCalledWith(
+      'WebSocket relay sync timed out',
+      expect.anything(),
+    );
+
+    vi.advanceTimersByTime(1);
+    expect(h.captureMessage).toHaveBeenCalledWith(
+      'WebSocket relay sync timed out',
+      expect.objectContaining({ level: 'error' }),
+    );
+    expect(syncOutcomeCalls()).toHaveLength(1);
+    expect(syncOutcomeCalls()[0][1]).toMatchObject({
+      transport: 'websocket',
+      outcome: 'timed_out',
+      unsynced_for_ms: expect.any(Number),
+    });
+  });
+
+  it('does not report a timeout if the relay disconnects before syncing', () => {
+    new WebsocketProvider(new Y.Doc(), { roomName: 'room-1' });
+    const ws = latestSocket();
+    ws.connect();
+    ws.drop();
+
+    vi.advanceTimersByTime(SYNC_GRACE_MS * 2);
+    expect(syncOutcomeCalls()).toHaveLength(0);
+  });
+
+  it('starts a fresh sync episode on reconnect', () => {
+    new WebsocketProvider(new Y.Doc(), { roomName: 'room-1' });
+    const ws = latestSocket();
+    ws.connect();
+    ws.syncDoc(true);
+    ws.drop();
+    ws.connect();
+    ws.syncDoc(true);
+
+    expect(syncOutcomeCalls()).toHaveLength(2);
+    const [first, second] = syncOutcomeCalls().map((call) => call[1] as { episode_id: string });
+    expect(second.episode_id).not.toBe(first.episode_id);
   });
 });

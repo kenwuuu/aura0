@@ -47,8 +47,25 @@ type LineKind =
   | { kind: 'header'; section: SectionType }
   | { kind: 'card'; item: DeckLineItem };
 
+export type ParsedDecklist = {
+  /** Card entries the importer should look up. */
+  items: DeckLineItem[];
+  /**
+   * How many physical cards we deliberately dropped because they sat under a
+   * non-main header (sideboard, maybeboard, …).
+   *
+   * This exists to keep analytics honest. A deck that imports as 60 cards when
+   * the raw text held 75 card lines is either a correct sideboard drop or a
+   * parser bug, and the imported count alone cannot tell those apart. Reporting
+   * what we *intentionally* discarded turns "the numbers don't add up" into a
+   * checkable equation.
+   */
+  excludedCardCount: number;
+};
+
 /**
- * Parse a text decklist into card entries.
+ * Parse a text decklist into card entries, plus the stats analytics needs to
+ * explain the resulting deck size.
  *
  * Section headers are tolerated. If a list has headers, cards under a
  * non-main section (sideboard, maybeboard, …) are dropped while every other
@@ -59,8 +76,9 @@ type LineKind =
  * is how singleton (Commander) exports list singletons and repeat basics one
  * per line.
  */
-export function parseDecklist(text: string): DeckLineItem[] {
+export function parseDecklistWithStats(text: string): ParsedDecklist {
   const items: DeckLineItem[] = [];
+  let excludedCardCount = 0;
   let section: SectionType = 'default';
 
   for (const rawLine of text.trim().split('\n')) {
@@ -73,6 +91,7 @@ export function parseDecklist(text: string): DeckLineItem[] {
         break;
       case 'card':
         if (section === 'excluded') {
+          excludedCardCount += parsed.item.count;
           break;
         }
         if (section === 'commander') {
@@ -96,7 +115,12 @@ export function parseDecklist(text: string): DeckLineItem[] {
     }
   }
 
-  return items;
+  return { items, excludedCardCount };
+}
+
+/** Parse a text decklist into card entries. See {@link parseDecklistWithStats}. */
+export function parseDecklist(text: string): DeckLineItem[] {
+  return parseDecklistWithStats(text).items;
 }
 
 /**

@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import posthog from 'posthog-js';
 import { DeckImportModal } from './DeckImportModal';
 import { DeckSelectionModal } from './DeckSelectionModal';
 import { SavedDeck } from '@/features/player/types';
@@ -16,12 +15,12 @@ export function DeckManager({ onDeckSelected }: DeckManagerProps) {
     setShowSelectionModal(true);
   };
 
+  // No analytics here on purpose. The importer owns the import funnel end to end
+  // (`deck_import_started` → `…_succeeded` / `…_partial_failure` / `…_failed` /
+  // `…_abandoned`). The old `deck_imported` event fired from this UI layer and was
+  // an exact duplicate of `deck_import_succeeded` — the modal refuses to hand a
+  // deck back when any card failed — so it only ever double-counted successes.
   const handleDeckImported = (deck: SavedDeck) => {
-    posthog.capture('deck_imported', {
-      deck_name: deck.metadata.name,
-      card_count: deck.cards.length,
-      deck_format: deck.metadata.format,
-    });
     setShowImportModal(false);
     onDeckSelected(deck);
   };
