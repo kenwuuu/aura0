@@ -111,6 +111,23 @@ else
 fi
 
 # ---------------------------------------------------------------------------
+section "Building index artifacts"
+# ---------------------------------------------------------------------------
+# The API loads prebuilt marisa artifacts at startup (fast) and only falls back
+# to a slow in-process build if they're missing. A fresh fetch above already
+# built them; otherwise build them now from whatever NDJSON is present, so the
+# first server start is fast.
+if [ "${FETCH_DATA}" -eq 1 ]; then
+  echo "Index already built by the data fetch above."
+elif ls "${CARD_JSON_DIR}"/*.ndjson >/dev/null 2>&1; then
+  echo "Data present — building index artifacts so the first start is fast..."
+  "${VENV_DIR}/bin/python3" data_updater.py --build-index
+  echo "OK: index artifacts built"
+else
+  echo "No .ndjson present yet — skipping (the index builds with the data fetch)."
+fi
+
+# ---------------------------------------------------------------------------
 section "Caddy reverse proxy"
 # ---------------------------------------------------------------------------
 echo "Not automated — domain/TLS config is environment-specific."

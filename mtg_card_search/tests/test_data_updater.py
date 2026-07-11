@@ -70,6 +70,9 @@ def test_convert_json_to_ndjson_rejects_sharp_drop(tmp_path, monkeypatch):
     assert (tmp_path / f"{dataset_name}.ndjson").read_text() == ndjson_before
     assert json.loads((tmp_path / ".dataset_counts.json").read_text()) == counts_before
     assert not (tmp_path / f"{dataset_name}.ndjson_new").exists()
+    # A rejected download is NOT deleted — we didn't promote it, so keep it for
+    # debugging rather than silently discarding it.
+    assert (tmp_path / f"{dataset_name}.json").exists()
 
 
 def test_convert_json_to_ndjson_accepts_growth(tmp_path, monkeypatch):
@@ -84,6 +87,20 @@ def test_convert_json_to_ndjson_accepts_growth(tmp_path, monkeypatch):
     assert second_counts[dataset_name] == 12
     assert json.loads((tmp_path / ".dataset_counts.json").read_text())[dataset_name] == 12
     assert len((tmp_path / f"{dataset_name}.ndjson").read_text().splitlines()) == 12
+
+
+def test_convert_removes_raw_json_after_success(tmp_path, monkeypatch):
+    # The raw .json is only needed for the conversion; leaving it around is what
+    # filled the prod disk. A successful convert must delete it.
+    dataset_name = _isolate(tmp_path, monkeypatch)
+
+    _write_fixture(tmp_path, dataset_name, 10)
+    assert (tmp_path / f"{dataset_name}.json").exists()
+
+    data_updater.convert_json_to_ndjson()
+
+    assert (tmp_path / f"{dataset_name}.ndjson").exists()
+    assert not (tmp_path / f"{dataset_name}.json").exists()
 
 
 def _patched_settings(monkeypatch, **overrides):

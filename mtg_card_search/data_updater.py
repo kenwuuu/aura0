@@ -26,6 +26,7 @@ import posthog
 import requests
 
 from settings import settings
+import card_index
 
 BULK_DATA_TYPES = settings.dataset_names
 CHUNK_SIZE = 20 * 1024 * 1024  # 20 MB
@@ -238,13 +239,40 @@ def convert_json_to_ndjson():
             )
 
         os.replace(temp_path, output_path)
+        # The raw .json download is only needed for this conversion. Delete it so
+        # it doesn't accumulate (~1-2 GB per dataset) and fill the disk — an
+        # uncleaned raw download filling `/` is what wedged the prod droplet.
+        # Best-effort: a failed cleanup shouldn't fail an otherwise-good run.
+        try:
+            os.remove(input_path)
+        except OSError:
+            logger.warning(f"Could not remove raw download {input_path}", exc_info=True)
         logger.info(f"{data_type}: {count} entries (previous: {previous})")
         counts[data_type] = count
 
     _save_counts(counts)
     return counts
 
+
+@time_it(title="Building indices")
+def build_all_indices():
+    """Build the mmap index artifacts (`<name>.marisa` / `.offsets` /
+    `.index.json`) the API loads, one per dataset, from the NDJSON on disk.
+
+    Doing this here — offline, right after the NDJSON is refreshed — is what keeps
+    the API's cold start fast: it maps a prebuilt index instead of scanning the
+    multi-GB file, and never pays the build's transient memory spike.
+    """
+    for data_type in BULK_DATA_TYPES:
+        card_index.build_artifacts(Path(FOLDER), data_type)
+
+
 if __name__ == '__main__':
+    # `--build-index` (alias `--index-only`) rebuilds the index artifacts from the
+    # NDJSON already on disk, skipping the Scryfall download — used by a deploy or
+    # rollback to (re)generate the index a new code version expects, fast.
+    index_only = "--build-index" in sys.argv or "--index-only" in sys.argv
+
     lock_file = acquire_lock()
     if lock_file is None:
         logger.warning("Another data_updater run is already in progress; exiting.")
@@ -260,8 +288,12 @@ if __name__ == '__main__':
     run_start = perf_counter()
 
     try:
-        download_bulk_data()
-        counts = convert_json_to_ndjson()
+        if index_only:
+            counts = _load_counts()
+        else:
+            download_bulk_data()
+            counts = convert_json_to_ndjson()
+        build_all_indices()
     except Exception as exc:
         logger.exception("data_updater run failed")
         if sentry_sdk is not None:

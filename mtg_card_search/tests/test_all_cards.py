@@ -1,13 +1,21 @@
 import asyncio
 import json
-import httpx
+import os
+import sys
+from pathlib import Path
 from urllib.parse import quote
 
-# --- configure these ---
-BASE_URL = "http://localhost:8000"  # TODO: update if different
-NDJSON_PATH = "../cards/default_cards.ndjson"
+import httpx
+
+# The full-dataset fidelity walk (Tier 2). Configurable via env so CI can point
+# it at cached data + a server it starts; defaults keep the manual
+# `python3 tests/test_all_cards.py` workflow from README working unchanged.
+BASE_URL = os.environ.get("CARD_API_BASE_URL", "http://localhost:8000")
+NDJSON_PATH = os.environ.get(
+    "CARD_NDJSON_PATH",
+    str(Path(__file__).resolve().parent.parent / "cards" / "default_cards.ndjson"),
+)
 API_ENDPOINT = "/v1/cards/"
-# -----------------------
 
 
 async def test_all_cards():
@@ -34,7 +42,7 @@ async def test_all_cards():
 
             # --- call 1: look up by name ---
             try:
-                r = await client.get(f"/v1/cards/{quote(name, safe="")}")
+                r = await client.get(f"/v1/cards/{quote(name, safe='')}")
                 if r.status_code != 200:
                     failures.append({
                         "card": name,
@@ -49,7 +57,7 @@ async def test_all_cards():
 
             # --- call 2: look up by set name + code ---
             try:
-                r = await client.get(f"/v1/cards/{quote(set_name + set_code, safe="")}")
+                r = await client.get(f"/v1/cards/{quote(set_name + set_code, safe='')}")
                 if r.status_code != 200:
                     failures.append({
                         "card": name,
@@ -89,6 +97,8 @@ def main():
             print(f)
 
     print(f"{'='*50}")
+    # Non-zero exit so CI (the nightly Tier-2 job) fails on any lookup regression.
+    sys.exit(1 if failures else 0)
 
 
 if __name__ == "__main__":
