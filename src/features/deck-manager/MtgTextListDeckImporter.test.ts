@@ -281,8 +281,14 @@ DECK:
         is_standard_deck_size: true,
         is_standard_imported_size: true,
       });
-      // A clean, legal import doesn't need its raw text kept.
-      expect(props).not.toHaveProperty('raw_text');
+    });
+
+    it('keeps the raw text of a clean import too, not just the broken ones', async () => {
+      // A corpus of only anomalies tells us what breaks but never what "working"
+      // looks like — and a clean, legal deck is the regression baseline.
+      await importWith(COMMANDER_100);
+
+      expect(capturedProps('deck_import_succeeded')!.raw_text).toBe(COMMANDER_100);
     });
 
     it('reports a legal 60-card deck as a standard size', async () => {
