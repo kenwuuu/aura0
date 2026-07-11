@@ -37,6 +37,7 @@ collect_ignore = ["test_all_cards.py"]
 # with the real status and skip the crashing global finalization. This only
 # affects process *exit* — never a running server (which never finalizes) nor a
 # test outcome. `trylast` so pytest's own summary prints first.
+
 import pytest  # noqa: E402
 
 
