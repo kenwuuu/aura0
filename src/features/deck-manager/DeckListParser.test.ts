@@ -137,6 +137,43 @@ SIDEBOARD:
         expect(result[1]).toEqual({ count: 20, name: 'Mountain' });
       });
 
+      it('should resume importing after a blank line closes the sideboard (MTGO card below SIDEBOARD:)', () => {
+        // MTGO/Arena can list a card (e.g. a companion) below the sideboard.
+        // A blank line closes the sideboard so that card is imported again,
+        // while the sideboard cards between the header and the blank are dropped.
+        const deckText = `1 Whiskervale Forerunner
+
+SIDEBOARD:
+1 Festival of Embers
+1 Warleader's Call
+
+1 Mabel, Heir to Cragflame`;
+
+        const result = parseDecklist(deckText);
+
+        expect(result).toEqual([
+          { count: 1, name: 'Whiskervale Forerunner' },
+          { count: 1, name: 'Mabel, Heir to Cragflame' },
+        ]);
+      });
+
+      it('should not let a blank line reset the command zone (only `excluded` resets)', () => {
+        // The blank-line reset is scoped to `excluded` sections. A blank inside
+        // the command zone must not turn it off, so cards after it keep the
+        // commander tag (the section still only truly ends at the next header).
+        const deckText = `COMMANDER:
+1 Krenko, Mob Boss
+
+1 Sol Ring`;
+
+        const result = parseDecklist(deckText);
+
+        expect(result).toEqual([
+          { count: 1, name: 'Krenko, Mob Boss', commander: true },
+          { count: 1, name: 'Sol Ring', commander: true },
+        ]);
+      });
+
       it('should import the main deck and tag commander-section cards', () => {
         const deckText = `COMMANDER:
 1 Flubs, the Fool
