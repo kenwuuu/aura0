@@ -10,8 +10,6 @@
  */
 import { WebSocketServer } from 'ws';
 import http from 'http';
-import { pathToFileURL } from 'node:url';
-import * as number from 'lib0/number';
 import { setupWSConnection, setPersistence, docs } from '@y/websocket-server/utils';
 
 /**
@@ -42,7 +40,10 @@ function installRoomEviction() {
   });
 }
 
-/** Builds the relay's http server. Does not listen — callers choose the port. */
+/**
+ * Builds the relay's http server. Does not listen — callers choose the port, so tests can
+ * boot on an ephemeral one. The program that listens for real is main.js.
+ */
 export function createRelay() {
   installRoomEviction();
 
@@ -70,13 +71,4 @@ export function createRelay() {
   });
 
   return server;
-}
-
-// Listen only when run as a program, so tests can boot the relay on an ephemeral port.
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  const host = process.env.HOST || 'localhost';
-  const port = number.parseInt(process.env.PORT || '1234');
-  createRelay().listen(port, host, () => {
-    console.log(`y-websocket relay running at '${host}' on port ${port}`);
-  });
 }

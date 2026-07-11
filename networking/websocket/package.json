@@ -6,7 +6,7 @@
   "description": "Yjs WebSocket relay for Aura — the default transport, deployed to the DigitalOcean droplet under pm2.",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js",
+    "start": "node main.js",
     "test": "node --test \"test/*.test.js\""
   },
   "dependencies": {
