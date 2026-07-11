@@ -239,6 +239,14 @@ def convert_json_to_ndjson():
             )
 
         os.replace(temp_path, output_path)
+        # The raw .json download is only needed for this conversion. Delete it so
+        # it doesn't accumulate (~1-2 GB per dataset) and fill the disk — an
+        # uncleaned raw download filling `/` is what wedged the prod droplet.
+        # Best-effort: a failed cleanup shouldn't fail an otherwise-good run.
+        try:
+            os.remove(input_path)
+        except OSError:
+            logger.warning(f"Could not remove raw download {input_path}", exc_info=True)
         logger.info(f"{data_type}: {count} entries (previous: {previous})")
         counts[data_type] = count
 
