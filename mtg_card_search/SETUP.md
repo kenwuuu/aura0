@@ -54,8 +54,10 @@ if you'd rather do it by hand or understand what it's doing. Either way, step
    mkdir -p cards   # or wherever CARD_JSON_DIR points
    python3 data_updater.py
    ```
-   This downloads Scryfall's bulk JSON and converts it to NDJSON; expect it
-   to take roughly a minute depending on dataset size and network speed.
+   This downloads Scryfall's bulk JSON, converts it to NDJSON, and builds the
+   memory-mapped index artifacts (`<name>.marisa` / `.offsets` / `.index.json`)
+   the server loads at startup. Expect it to take roughly a minute depending on
+   dataset size and network speed.
 
 5. Install [Caddy](https://caddyserver.com/docs/install) as a reverse proxy
    in front of uvicorn. Example `Caddyfile` (adjust the domain, or use
@@ -98,8 +100,11 @@ if you'd rather do it by hand or understand what it's doing. Either way, step
    ```
    Update `WorkingDirectory`/`ExecStart` to match the actual clone path.
 
-7. Start the server. It takes ~20 seconds to come up on first boot since it
-   indexes the `.ndjson` files before accepting traffic.
+7. Start the server. It comes up in a few seconds — it *loads* the prebuilt
+   index artifacts from step 4 rather than rescanning the multi-GB NDJSON. (If
+   the artifacts are ever missing or stale versus the NDJSON, it falls back to a
+   one-time in-process build and logs a warning; run
+   `python3 data_updater.py --build-index` to avoid that.)
    ```
    sudo systemctl daemon-reload
    sudo systemctl enable mtg-card-search
@@ -115,9 +120,10 @@ if you'd rather do it by hand or understand what it's doing. Either way, step
    TZ=America/New_York
    0 5 * * 2 /root/aura-api/mtg_card_search/.venv/bin/python3 /root/aura-api/mtg_card_search/data_updater.py >> /var/log/mtg-card-search-updater.log 2>&1
    ```
-   `api.py` watches the `.ndjson` files and rebuilds the affected in-memory
-   index automatically when `data_updater.py` overwrites them — no restart
-   needed after a data refresh.
+   `data_updater.py` rebuilds each dataset's index artifacts after refreshing its
+   NDJSON, and `api.py` watches the data dir and hot-reloads a dataset when its
+   `.index.json` (written last, once every artifact is in place) changes — so a
+   data refresh needs no restart.
 
 ## Before deploying to production
 
@@ -129,8 +135,10 @@ layering fast, cheap checks before anything touches the real server:
    healthchecks.io ping sequence, and the PostHog/Sentry no-op behavior, all
    against `tmp_path` fixtures — no network, no real data, runs in ~2 seconds.
    This is what to run on every commit, not just before a deploy.
-2. `.venv/bin/python3 -c "import api; import data_updater"` — catches
+2. `.venv/bin/python3 -c "import api, data_updater, card_index"` — catches
    config/import errors (a broken `.env`, a typo) before they reach the server.
+   (CI runs this and the fast suite on every `mtg_card_search/**` PR — see
+   `.github/workflows/card-search.yml`.)
 3. Run the server locally against real data and `./scripts/smoke_test.sh` it —
    covers `/v1/health`, a known-good lookup, a 404, and a mixed bulk lookup in
    a few seconds. Run this again immediately after every deploy, against the
@@ -157,11 +165,22 @@ cd /root/aura-api/mtg_card_search
 git pull
 source .venv/bin/activate
 pip install -r requirements.txt
+python3 data_updater.py --build-index    # rebuild artifacts to match the new code
 sudo systemctl restart mtg-card-search
 ```
+The restart is now ~seconds, not minutes: the server *loads* the prebuilt index
+instead of rescanning the NDJSON. `--build-index` rebuilds the index artifacts
+from the NDJSON already on disk (no Scryfall download), so the index always
+matches the code you just pulled — skip it and a key-extraction change would
+serve a mismatched index until the next data refresh.
+
 Then run `./scripts/smoke_test.sh` (or at minimum
 `curl localhost:8000/v1/health`). If something's wrong,
-`git checkout <previous-commit>` and restart again to roll back.
+`git checkout <previous-commit>`, re-run `data_updater.py --build-index`, and
+restart again to roll back.
+
+> Zero-downtime, two-instance blue-green deploys (no restart blip at all) are
+> documented in [Zero-downtime deploys (blue-green)](#zero-downtime-deploys-blue-green).
 
 ## Manually running data_updater
 
