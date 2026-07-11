@@ -146,7 +146,8 @@ SIDEBOARD:      ← skipped
           <div style={styles.section}>
             <div style={styles.sectionTitle}>Supported Formats</div>
             <ul style={styles.ul}>
-              <li>Simple quantity + name format (e.g., "4 Lightning Bolt")</li>
+              <li>Quantity + name (e.g., "4 Lightning Bolt")</li>
+              <li>Name only — counts as one copy (e.g., "Sol Ring"); repeat a line for extra copies</li>
               {/*<li>Set codes in parentheses (e.g., "4 Lightning Bolt (M10)")</li>*/}
               <li>Blank lines between cards (ignored)</li>
               <li>Section headers (Commander / Deck imported, Sideboard / Maybeboard skipped)</li>

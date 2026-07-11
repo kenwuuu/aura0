@@ -118,14 +118,16 @@ Maybeboard
       expect(importedNames(result).sort()).toEqual(['Monastery Swiftspear', 'Mountain']);
     });
 
-    it('should treat a leading non-numbered line as a header and still import numbered cards', async () => {
+    it('should import a quantity-less line as a single card', async () => {
       const deckText = `Lightning Bolt
 4 Mountain`;
 
       const result = await importer.importFromText(deckText);
 
       expect(result.errors).toBeUndefined();
-      expect(importedNames(result)).toEqual(['Mountain']);
+      // "Lightning Bolt" (no quantity) imports as one card; "4 Mountain" as four.
+      expect(result.cards).toHaveLength(5);
+      expect(importedNames(result).sort()).toEqual(['Lightning Bolt', 'Mountain']);
     });
 
     it('should report no valid entries when every card is in an excluded section', async () => {

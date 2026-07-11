@@ -50,7 +50,8 @@ describe('DeckImportHelpDialog', () => {
     const onClose = vi.fn();
     render(<DeckImportHelpDialog isOpen={true} onClose={onClose} />);
 
-    expect(screen.getByText(/Simple quantity \+ name format/)).toBeInTheDocument();
+    expect(screen.getByText(/Quantity \+ name/)).toBeInTheDocument();
+    expect(screen.getByText(/Name only/)).toBeInTheDocument();
     expect(screen.getByText(/Blank lines between cards/)).toBeInTheDocument();
   });
 
