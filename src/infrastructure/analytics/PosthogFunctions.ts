@@ -57,6 +57,31 @@ export type TransportLabel = 'websocket' | 'webrtc';
  * for alerting — but a proportion needs the denominator, and high-volume
  * success events belong in analytics, not the error tracker.
  */
+/**
+ * Emitted per sync episode, mirroring `trackConnectionOutcome`'s episode_id /
+ * honest-rate reasoning above — but one level downstream: signaling can be
+ * `connected` while state never actually syncs, which only this event can
+ * detect. `peerCount` is only meaningful for the webrtc transport (a
+ * websocket episode syncs against the relay itself, peers or not).
+ */
+export function trackSyncOutcome(props: {
+  transport: TransportLabel;
+  outcome: 'synced' | 'timed_out';
+  episodeId?: string;
+  syncMs?: number;
+  unsyncedForMs?: number;
+  peerCount?: number;
+}): void {
+  posthog.capture('sync_outcome', {
+    transport: props.transport,
+    outcome: props.outcome,
+    ...(props.episodeId !== undefined ? { episode_id: props.episodeId } : {}),
+    ...(props.syncMs !== undefined ? { sync_ms: props.syncMs } : {}),
+    ...(props.unsyncedForMs !== undefined ? { unsynced_for_ms: props.unsyncedForMs } : {}),
+    ...(props.peerCount !== undefined ? { peer_count: props.peerCount } : {}),
+  });
+}
+
 export function trackConnectionOutcome(props: {
   transport: TransportLabel;
   outcome: 'connected' | 'failed';
