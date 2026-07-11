@@ -13,6 +13,14 @@ ExecStart=${VENV_DIR}/bin/uvicorn api:app --host 0.0.0.0 --port 8000
 Restart=always
 RestartSec=3
 
+# Cap memory so a leak or fallback-build spike restarts THIS service instead of
+# OOM-killing the whole box (on a small droplet the API shares RAM with the
+# co-tenant WS relay). MemoryHigh throttles (soft); MemoryMax hard-limits — the
+# cgroup OOM-kills the API and Restart=always brings it back. Tune to the box:
+# the loaded marisa index makes the API ~50 MB, so 256 MB leaves ample headroom.
+MemoryHigh=200M
+MemoryMax=256M
+
 Environment=PYTHONUNBUFFERED=1
 
 [Install]
