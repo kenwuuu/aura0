@@ -13,6 +13,8 @@ import { CardLookupService, TokenService } from '@/infrastructure/cards';
 import { yjsNetworkFactory } from '@/infrastructure/networking';
 import { YjsNetworkProvider } from '@/infrastructure/networking/YjsNetworkFactory';
 import { getOrCreatePlayerId, getOrCreatePeerId } from '@/infrastructure/networking';
+import { watchRoomOccupancy } from '@/infrastructure/networking/roomOccupancy';
+import { trackRoomOccupancyChanged } from '@/infrastructure/analytics/PosthogFunctions';
 import { DeckPersistenceService, DeckStorageService } from '@/infrastructure/persistence';
 import { useGameInstance } from '@/app/stores/gameInstanceStore';
 import { usePlayerStore } from '@/app/stores/playerStore';
@@ -78,6 +80,7 @@ export async function bootstrapGame(): Promise<GameContext> {
   useGameInstance.getState().setAwareness(awareness);
   // Broadcast playerId so peers can look up this player's Yjs name from the cursor overlay.
   awareness.setLocalStateField('playerId', playerId);
+  watchRoomOccupancy(awareness, trackRoomOccupancyChanged);
 
   // ── 6. Deck seeding + auto-load ────────────────────────────────────────────
   const storage = new DeckStorageService();
