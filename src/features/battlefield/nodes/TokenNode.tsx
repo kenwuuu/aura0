@@ -1,4 +1,4 @@
-import { memo, useCallback } from 'react';
+import { memo, useCallback, useState } from 'react';
 import { NodeProps } from '@xyflow/react';
 import * as Y from 'yjs';
 import { KeywordToken } from '@/features/keyword-tokens/types';
@@ -19,6 +19,12 @@ export const TokenNode = memo(function TokenNode({ data, id }: NodeProps) {
   const token = data as unknown as TokenNodeData;
   const { yTokens, localPlayerId } = token;
   const isOwn = isOwnToken(token.ownerId, localPlayerId);
+  const [isHovered, setIsHovered] = useState(false);
+  // Which half the cursor is currently over, so that half lights up like a
+  // button — reinforcing that clicking it does something. `clickedTopHalf`
+  // is the same split the click gesture uses, so the highlight can never
+  // disagree with what a click will do.
+  const [activeHalf, setActiveHalf] = useState<'top' | 'bottom' | null>(null);
 
   const modifyCount = useCallback((delta: number) => {
     if (!isOwn) return;
@@ -47,10 +53,20 @@ export const TokenNode = memo(function TokenNode({ data, id }: NodeProps) {
   }, [id]);
 
   const handleMouseEnter = useCallback(() => {
+    setIsHovered(true);
     useHotkeyStore.getState().setHoveredToken(id);
   }, [id]);
 
+  const handleMouseMove = useCallback((e: React.MouseEvent) => {
+    if (!isOwn) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const half = clickedTopHalf(e.clientY, rect.top, rect.height) ? 'top' : 'bottom';
+    setActiveHalf((prev) => (prev === half ? prev : half));
+  }, [isOwn]);
+
   const handleMouseLeave = useCallback(() => {
+    setIsHovered(false);
+    setActiveHalf(null);
     useHotkeyStore.getState().setHoveredToken(null);
   }, []);
 
@@ -77,6 +93,7 @@ export const TokenNode = memo(function TokenNode({ data, id }: NodeProps) {
       onClick={handleClick}
       onContextMenu={handleContextMenu}
       onMouseEnter={handleMouseEnter}
+      onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
       {...tapMenu}
     >
@@ -103,6 +120,75 @@ export const TokenNode = memo(function TokenNode({ data, id }: NodeProps) {
         )}
       </div>
 
+      {/* Hover affordance: split the token into a top (+1) and a bottom (-1)
+          clickable zone (see handleClick), each carrying its sign glyph so the
+          click intent is explicit. The zone under the cursor darkens more, like
+          a pressable button. Owner-only (only the owner may change the count);
+          pointer-events:none so it never eats the click it advertises. Clipped
+          to the circle by the container's borderRadius + overflow. */}
+      {isOwn && isHovered && (
+        <div
+          data-testid="token-adjust-zones"
+          style={{
+            position: 'absolute',
+            inset: 0,
+            borderRadius: '50%',
+            overflow: 'hidden',
+            pointerEvents: 'none',
+          }}
+        >
+          <div
+            data-testid="token-zone-top"
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              height: '50%',
+              backgroundColor: activeHalf === 'top' ? 'rgba(0,0,0,0.5)' : 'rgba(0,0,0,0.28)',
+            }}
+          />
+          <div
+            data-testid="token-zone-bottom"
+            style={{
+              position: 'absolute',
+              bottom: 0,
+              left: 0,
+              right: 0,
+              height: '50%',
+              backgroundColor: activeHalf === 'bottom' ? 'rgba(0,0,0,0.5)' : 'rgba(0,0,0,0.28)',
+            }}
+          />
+          {/* divider marking the boundary between the two clickable zones */}
+          <div style={{
+            position: 'absolute',
+            top: '50%',
+            left: 0,
+            right: 0,
+            height: 1,
+            transform: 'translateY(-0.5px)',
+            backgroundColor: 'rgba(255,255,255,0.55)',
+          }} />
+          {/* + / - glyphs spelling out what each zone's click does. White on
+              the darkened zones; drawn as strokes so they stay crisp at 20px. */}
+          <svg
+            data-testid="token-adjust-glyphs"
+            viewBox="0 0 20 20"
+            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}
+            stroke="white"
+            strokeWidth={1.6}
+            strokeLinecap="round"
+            fill="none"
+          >
+            {/* + on the top half */}
+            <line x1="7" y1="6" x2="13" y2="6" />
+            <line x1="10" y1="3" x2="10" y2="9" />
+            {/* - on the bottom half */}
+            <line x1="7" y1="14" x2="13" y2="14" />
+          </svg>
+        </div>
+      )}
+
       {/* count overlay */}
       {token.count !== undefined && (
         <svg
@@ -114,6 +200,10 @@ export const TokenNode = memo(function TokenNode({ data, id }: NodeProps) {
             height: TOKEN_SIZE * FONT_SCALE,
             pointerEvents: 'none',
             userSelect: 'none',
+            // The outermost <svg> clips to its viewport by default, which chops
+            // the sides off counts wider than the box (e.g. "-10"). The text is
+            // center-anchored, so let it overflow symmetrically instead.
+            overflow: 'visible',
           }}
           viewBox={`0 0 ${TOKEN_SIZE * FONT_SCALE} ${TOKEN_SIZE * FONT_SCALE}`}
         >

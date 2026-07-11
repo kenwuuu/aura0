@@ -12,13 +12,64 @@ export type DeckLineItem = {
   commander?: boolean;
 }
 
+/**
+ * Which part of a deck list the parser is currently reading.
+ *  - `default`   : cards before any header (or a list with no headers at all)
+ *  - `main`      : an ordinary deck/mainboard section, or an unrecognized header
+ *  - `commander` : the command zone — its cards are tagged `commander: true`
+ *  - `excluded`  : a non-main section (sideboard, maybeboard, …) — cards skipped
+ */
+type SectionType = 'default' | 'main' | 'commander' | 'excluded';
+
+// Headers whose cards must NOT be imported. Everything not matched here (and not
+// the commander zone) is treated as part of the deck, so unusual/custom headers
+// — e.g. Archidekt's per-type categories ("Creatures", "Lands") — still import.
+const EXCLUDED_SECTION = /\b(sideboard|maybeboard|maybe board|consider(?:ing|ation)|wish\s?list|tokens?)\b/i;
+
+// Headers that mark the command zone.
+const COMMANDER_SECTION = /\b(commanders?|command zone)\b/i;
+
+/**
+ * Parse a text decklist into card entries.
+ *
+ * Section headers are tolerated. If a list has headers, cards under a
+ * non-main section (sideboard, maybeboard, …) are dropped while every other
+ * section — the command zone, the main deck, and any unrecognized header — is
+ * imported. A list with no headers imports every card line.
+ */
 export function parseDecklist(text: string): DeckLineItem[] {
-  return text
-    .trim()
-    .split('\n')
-    .filter(isValidDeckLine)
-    .map(parseLine)
-    .filter(entry => !isNaN(entry.count) && entry.name.length > 0);
+  const items: DeckLineItem[] = [];
+  let section: SectionType = 'default';
+
+  for (const rawLine of text.trim().split('\n')) {
+    const line = rawLine.trim();
+
+    // Blank lines and comments are ignored and do NOT change the active section
+    // (a comment inside a sideboard shouldn't leak its cards into the deck).
+    if (line.length === 0 || isComment(line)) {
+      continue;
+    }
+
+    if (isCardLine(line)) {
+      if (section === 'excluded') {
+        continue;
+      }
+      const item = parseLine(line);
+      if (isNaN(item.count) || item.name.length === 0) {
+        continue;
+      }
+      if (section === 'commander') {
+        item.commander = true;
+      }
+      items.push(item);
+    } else {
+      // A non-card, non-comment line is a section header: switch context for the
+      // card lines that follow it.
+      section = classifySection(line);
+    }
+  }
+
+  return items;
 }
 
 /**
@@ -57,6 +108,25 @@ export function validateFormat(text: string): boolean {
   });
 
   return validLines.length > 0;
+}
+
+// Classify a section header line. Commander is checked first so a "Commander"
+// header is never mistaken for the excluded set; anything unrecognized is
+// treated as part of the main deck (imported).
+function classifySection(header: string): SectionType {
+  if (COMMANDER_SECTION.test(header)) return 'commander';
+  if (EXCLUDED_SECTION.test(header)) return 'excluded';
+  return 'main';
+}
+
+// Card lines start with a quantity, e.g. "4 Lightning Bolt" or "4x Sol Ring".
+function isCardLine(line: string): boolean {
+  return /^\d/.test(line);
+}
+
+// Common comment markers used by deck exporters.
+function isComment(line: string): boolean {
+  return line.startsWith('#') || line.startsWith('//');
 }
 
 function parseCount(firstPart: string): number {
@@ -105,28 +175,15 @@ function extractCardName(line: string, parts: string[]): string {
 }
 
 function parseLine(line: string): DeckLineItem {
-  console.log(`Parsing line: line = ${line}`);
-
   line = line.trim()
   const parts = line.trim().split(/\s+/);
   const count = parseCount(parts[0]);
   const name = extractCardName(line, parts);
   const setInfo = extractSetInfo(line);
 
-  console.log(`Parsing line: name = ${name}`);
-  console.log(`Parsing line: setCode = ${setInfo?.setCode}; collectorNumber = ${setInfo?.collectorNumber}`);
-
   if (setInfo) {
-    console.log(`Returning set and code for = ${name}`)
     return { count, name, setCode: setInfo.setCode, collectorNumber: setInfo.collectorNumber };
   }
 
-  console.log(`Returning parsed name for = ${name}`)
   return { count, name };
-}
-
-// Ignore lines that don't start with a number
-function isValidDeckLine(line: string): boolean {
-  const trimmed = line.trim();
-  return trimmed.length > 0 && /^\d/.test(trimmed);
 }

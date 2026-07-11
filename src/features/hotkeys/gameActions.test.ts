@@ -205,16 +205,27 @@ describe('dispatchGameAction', () => {
       expect(yTokens.get('token-1')!.count).toBe(1);
     });
 
-    it('tokenDecrement below 1 deletes the token instead of going to 0', () => {
+    it('tokenDecrement to 0 keeps the token (no longer deletes it at zero)', () => {
       const { yDoc, playerId } = seed();
       const yTokens = yDoc.getMap<KeywordToken>(YDOC_KEYWORD_TOKENS);
       yTokens.set('token-1', makeToken({ ownerId: playerId, count: 1 }));
 
       dispatchGameAction('tokenDecrement', { kind: 'token', id: 'token-1' });
 
-      expect(yTokens.get('token-1')).toBeUndefined();
+      expect(yTokens.get('token-1')!.count).toBe(0);
       const log = getActionLog(yDoc).toArray();
-      expect(log.some((e) => e.type === 'delete')).toBe(true);
+      expect(log.some((e) => e.type === 'token_count')).toBe(true);
+      expect(log.some((e) => e.type === 'delete')).toBe(false);
+    });
+
+    it('tokenDecrement can take the count below 0 (matches the click path)', () => {
+      const { yDoc, playerId } = seed();
+      const yTokens = yDoc.getMap<KeywordToken>(YDOC_KEYWORD_TOKENS);
+      yTokens.set('token-1', makeToken({ ownerId: playerId, count: 0 }));
+
+      dispatchGameAction('tokenDecrement', { kind: 'token', id: 'token-1' });
+
+      expect(yTokens.get('token-1')!.count).toBe(-1);
     });
 
     it('tokenDelete removes the token and logs it', () => {

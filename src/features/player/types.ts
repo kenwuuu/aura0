@@ -24,6 +24,7 @@ export interface Card {
   oracleText?: string; // Official card text
   images?: CardImages; // Image URIs from Scryfall
   scryfallId?: string; // Scryfall ID for future API calls
+  commander?: boolean; // Imported under a commander header — auto-drawn into the opening hand
   x: number;
   y: number;
   rotation: number;

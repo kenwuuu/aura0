@@ -27,6 +27,7 @@ function extractImageUris(cardObj: ScryfallCard): CardImages {
 export function toCardDataResult(
   scryfallCard: ScryfallCard,
   count: number = 1,
+  commander: boolean = false,
 ): CardDataResult {
   return {
     count,
@@ -35,6 +36,7 @@ export function toCardDataResult(
     oracleText: scryfallCard.oracle_text,
     scryfallId: scryfallCard.id,
     imageUris: extractImageUris(scryfallCard),
+    ...(commander ? { commander: true } : {}),
   };
 }
 
@@ -67,6 +69,7 @@ export function fromCardDataResult(
     oracleText: result.oracleText,
     scryfallId: result.scryfallId,
     images: result.imageUris,
+    ...(result.commander ? { commander: true } : {}),
     ...overrides,
   });
 }

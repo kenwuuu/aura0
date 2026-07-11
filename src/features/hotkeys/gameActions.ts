@@ -19,6 +19,7 @@ import { useHotkeyStore } from '@/app/stores/hotkeyStore';
 import { useCardPreviewStore } from '@/features/card-preview/cardPreviewStore';
 import { executeBattlefieldCardAction } from '@/features/battlefield/battlefieldCardActions';
 import { spawnTokenAtPosition } from '@/features/battlefield/spawnToken';
+import { applyTokenDelta } from '@/features/battlefield/nodes/tokenNodeLogic';
 import { usePileViewerHotkeyStore } from '@/features/game-dock/pileViewerHotkeyStore';
 import { usePileViewerOpenStore } from '@/features/game-dock/pileViewerOpenStore';
 import { DeckPersistenceService } from '@/infrastructure/persistence';
@@ -110,14 +111,13 @@ function executeTokenAction(action: string, tokenId: string): void {
 
   if (action !== 'tokenIncrement' && action !== 'tokenDecrement') return;
   const delta = action === 'tokenIncrement' ? 1 : -1;
-  const next = (token.count ?? 0) + delta;
-  if (next <= 0 && action === 'tokenDecrement') {
-    yTokens.delete(tokenId);
-    logAction(yDoc, { actorId: playerId, type: 'delete', text: `removed a ${token.title} token` });
-  } else {
-    yTokens.set(tokenId, { ...token, count: next });
-    logAction(yDoc, { actorId: playerId, type: 'token_count', text: `set a ${token.title} token to ${next}` });
-  }
+  // Adjust the count in place, mirroring the click-to-adjust path
+  // (`applyTokenDelta`, used by TokenNode). Decrementing to 0 or below no
+  // longer deletes the token — removal is only ever the explicit `tokenDelete`
+  // (Backspace / the menu's Delete row).
+  const next = applyTokenDelta(token.count, delta);
+  yTokens.set(tokenId, { ...token, count: next });
+  logAction(yDoc, { actorId: playerId, type: 'token_count', text: `set a ${token.title} token to ${next}` });
 }
 
 /** Global/board actions: draw, shuffle, mulligan, add-card, untap-all, and

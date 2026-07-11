@@ -2397,6 +2397,7 @@ export const DEFAULT_DECK: SavedDeck = {
       "id": "card-olxm0e4sh",
       "cardNumber": 100,
       "name": "Krenko, Mob Boss",
+      "commander": true,
       "type_line": "Legendary Creature — Goblin Warrior",
       "images": {
         "front": {

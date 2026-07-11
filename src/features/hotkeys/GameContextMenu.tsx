@@ -32,10 +32,21 @@ export function GameContextMenu() {
   const x = useContextMenuStore((s) => s.x);
   const y = useContextMenuStore((s) => s.y);
   const target = useContextMenuStore((s) => s.target);
+  const viaTouch = useContextMenuStore((s) => s.viaTouch);
   const close = useContextMenuStore((s) => s.close);
 
-  const rows = target ? getMenuActionsForTarget(target) : [];
+  // `touchMenuOnly` rows (a token's +1/-1) only belong in the menu on touch,
+  // where there's no hover-and-click affordance — desktop right-click hides
+  // them. See the `touchMenuOnly` doc on the Hotkey type.
+  const rows = (target ? getMenuActionsForTarget(target) : [])
+    .filter((row) => viaTouch || !row.touchMenuOnly);
   const open = isOpen && rows.length > 0;
+
+  // The hand is anchored to the bottom of the screen (both desktop and phone),
+  // so a hand-card menu anchored at the tap/cursor point with the default
+  // side="right" would collision-flip upward and cover the hand. Open it
+  // upward and centered so it sits over the board above the hand instead.
+  const isHandCard = target?.kind === 'handCard';
 
   return (
     // modal={false}: Radix's DropdownMenu defaults to modal (unlike Popover,
@@ -50,8 +61,8 @@ export function GameContextMenu() {
         <span style={{ position: 'fixed', left: x, top: y, width: 0, height: 0 }} />
       </DropdownMenuTrigger>
       <DropdownMenuContent
-        side="right"
-        align="start"
+        side={isHandCard ? 'top' : 'right'}
+        align={isHandCard ? 'center' : 'start'}
         sideOffset={2}
         collisionPadding={8}
         data-game-context-menu

@@ -38,6 +38,7 @@ import { MIN_ZOOM, MAX_ZOOM, MAT_WIDTH, MAT_HEIGHT, BACKGROUND_GRID_GAP } from '
 import type { Player } from '@/features/player';
 import type { TokenService } from '@/infrastructure/cards';
 import { useContextMenuStore } from '@/features/hotkeys/contextMenuStore';
+import { useCardPreviewStore } from '@/features/card-preview/cardPreviewStore';
 import { useGameInstance } from '@/app/stores/gameInstanceStore';
 import { useSettingsStore } from '@/app/stores/settingsStore';
 import { usePhoneLayout } from '@/shared/hooks';
@@ -215,16 +216,23 @@ function BattlefieldCanvasInner({ yDoc, localPlayerId }: BattlefieldCanvasProps)
   // `menuWasOpen` snapshots whether a menu was open when the tap began: if it
   // was, the tap is a dismiss (react-flow's `onMoveStart` and Radix both close
   // it mid-gesture) and must not re-open a board menu; only a tap that began
-  // with nothing open summons one.
+  // with nothing open summons one. `previewWasVisible` does the same for the
+  // card preview: an empty-board tap while a preview is up dismisses the
+  // preview and must NOT summon a board menu in its place.
   useEffect(() => {
     const el = wrapperElRef.current;
     if (!el) return;
-    let start: { x: number; y: number; menuWasOpen: boolean } | null = null;
+    let start: { x: number; y: number; menuWasOpen: boolean; previewWasVisible: boolean } | null = null;
     const onDown = (e: PointerEvent) => {
       const onPane = e.target instanceof Element && !!e.target.closest('.react-flow__pane');
       if (onPane) panePointerTypeRef.current = e.pointerType;
       start = onPane && e.pointerType !== 'mouse'
-        ? { x: e.clientX, y: e.clientY, menuWasOpen: useContextMenuStore.getState().isOpen }
+        ? {
+            x: e.clientX,
+            y: e.clientY,
+            menuWasOpen: useContextMenuStore.getState().isOpen,
+            previewWasVisible: useCardPreviewStore.getState().isVisible,
+          }
         : null;
     };
     const onUp = (e: PointerEvent) => {
@@ -233,6 +241,11 @@ function BattlefieldCanvasInner({ yDoc, localPlayerId }: BattlefieldCanvasProps)
       if (!s || s.menuWasOpen) return;
       // Only a genuine tap (small travel) — a pan/pinch travels further.
       if (Math.hypot(e.clientX - s.x, e.clientY - s.y) > 10) return;
+      // A tap on empty space while a preview is up dismisses it — no menu.
+      if (s.previewWasVisible) {
+        useCardPreviewStore.getState().hide();
+        return;
+      }
       useContextMenuStore.getState().openMenu({
         target: { kind: 'board', x: e.clientX, y: e.clientY },
         x: e.clientX,
@@ -292,6 +305,9 @@ function BattlefieldCanvasInner({ yDoc, localPlayerId }: BattlefieldCanvasProps)
   const onNodeDragStart: OnNodeDrag = useCallback(
     (_, node) => {
       useContextMenuStore.getState().close();
+      // Dragging a board card dismisses any preview showing for it (on touch the
+      // preview was raised by a first tap; the drag supersedes it).
+      useCardPreviewStore.getState().hide();
       const newZ = getMaxZIndex(yCards, yTokens) + 1;
       dragElevationRef.current.set(node.id, newZ);
 
@@ -565,6 +581,8 @@ function BattlefieldCanvasInner({ yDoc, localPlayerId }: BattlefieldCanvasProps)
         }}
         onMoveStart={(event) => {
           useContextMenuStore.getState().close();
+          // Panning/zooming the board dismisses a raised preview as well.
+          useCardPreviewStore.getState().hide();
 
           // event is null for programmatic moves (our fitBounds), non-null for
           // a real user pan/zoom — only the latter stops board auto-centering
