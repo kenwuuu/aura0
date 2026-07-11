@@ -56,7 +56,7 @@ CORS_ORIGINS  = settings.cors_origins
 # Loaded datasets (mmap-backed) + thread-local file handles
 # ---------------------------------------------------------------------------
 
-# name -> Dataset (mmap trie + per-card offsets + generation). A reload swaps a
+# name -> Dataset (loaded trie + per-card offsets + generation). A reload swaps a
 # whole Dataset in; single-key dict assignment is atomic under the GIL, and every
 # reader snapshots the current Dataset, so a lookup's offset and file bytes always
 # come from the same NDJSON generation.

@@ -12,10 +12,13 @@ On-disk layout, per dataset ``<name>`` in the data dir:
     <name>.offsets      packed uint64 byte offsets, one per indexed card (random)
     <name>.index.json   meta: entry/card counts + source identity (generation)
 
-The trie is *mmap-loaded* (near-zero RSS; the OS page cache owns it), so the API
-never holds the index on the Python heap and starts in ~seconds instead of
-rebuilding it from the multi-GB NDJSON. Because build and load live in one module,
-`data_updater` builds the artifacts offline and the API only maps them.
+The API loads the prebuilt trie (`RecordTrie.load`) instead of rebuilding it from
+the multi-GB NDJSON, so it starts in ~seconds. marisa is a *succinct* structure —
+even a few hundred thousand keys is only single-digit MB, an order of magnitude
+smaller than the equivalent Python dict — so the loaded trie is effectively off
+the heap for our purposes. (We deliberately do NOT `mmap` it: marisa's mmap
+teardown segfaults at interpreter shutdown on Linux, and at this scale the RSS
+saving over `load` isn't worth that fragility.)
 
 Build and load are always co-located on one host (data_updater and the API run on
 the same droplet; the API's fallback build writes what it then reads), so the
@@ -150,7 +153,7 @@ def build_artifacts(
 
 @dataclass
 class Dataset:
-    """A loaded, mmap-backed dataset.
+    """A loaded dataset (trie + per-card offsets + source generation).
 
     ``generation`` ties the NDJSON file handle to this exact index version, so a
     reader that snapshots one `Dataset` always reads offsets and file bytes from
@@ -208,7 +211,9 @@ def load_dataset(
         build_artifacts(data_dir, name, should_skip=should_skip, extract_keys=extract_keys)
 
     trie = marisa_trie.RecordTrie(TRIE_FMT)
-    trie.mmap(str(marisa_path))
+    # load (not mmap): mmap'd marisa tries segfault at interpreter shutdown on
+    # Linux, and the trie is only single-digit MB, so loading it is fine.
+    trie.load(str(marisa_path))
 
     offsets = array(OFFSETS_TYPECODE)
     with offsets_path.open("rb") as f:
