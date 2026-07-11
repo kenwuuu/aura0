@@ -11,6 +11,10 @@ import { useGameInstance } from '@/app/stores/gameInstanceStore';
  * covered by their own suites (GameActionsToolbar.test.tsx, action-log); here
  * we only assert the toggle wiring. The phone/desktop branch itself lives in
  * App.tsx via usePhoneLayout, not in this component.
+ *
+ * The action log's presence is probed via its dice controls ("Die type"), not
+ * its empty state: renderWithGame seeds a Player, whose join is itself a logged
+ * action, so the log is never empty here.
  */
 
 /** PhoneHudStack takes yDoc/localPlayerId as props; read them back out of the
@@ -29,7 +33,7 @@ describe('PhoneHudStack', () => {
     expect(screen.getByRole('button', { name: 'Toggle game actions' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Toggle action log' })).toBeInTheDocument();
     expect(screen.queryByTestId('game-actions-toolbar')).not.toBeInTheDocument();
-    expect(screen.queryByText('No actions yet')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Die type')).not.toBeInTheDocument();
   });
 
   it('expands and collapses the game-actions panel from its toggle', async () => {
@@ -54,10 +58,10 @@ describe('PhoneHudStack', () => {
     renderWithGame(<Subject />);
 
     await user.click(screen.getByRole('button', { name: 'Toggle action log' }));
-    expect(screen.getByText('No actions yet')).toBeInTheDocument();
+    expect(screen.getByLabelText('Die type')).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Toggle action log' }));
-    expect(screen.queryByText('No actions yet')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Die type')).not.toBeInTheDocument();
   });
 
   it('keeps the two panels independent', async () => {
@@ -67,10 +71,10 @@ describe('PhoneHudStack', () => {
     await user.click(screen.getByRole('button', { name: 'Toggle game actions' }));
     await user.click(screen.getByRole('button', { name: 'Toggle action log' }));
     expect(screen.getByTestId('game-actions-toolbar')).toBeInTheDocument();
-    expect(screen.getByText('No actions yet')).toBeInTheDocument();
+    expect(screen.getByLabelText('Die type')).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Toggle game actions' }));
     expect(screen.queryByTestId('game-actions-toolbar')).not.toBeInTheDocument();
-    expect(screen.getByText('No actions yet')).toBeInTheDocument();
+    expect(screen.getByLabelText('Die type')).toBeInTheDocument();
   });
 });
