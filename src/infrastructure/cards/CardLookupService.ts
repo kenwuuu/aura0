@@ -7,6 +7,18 @@ import { CardDataResult, ScryfallCard } from './types';
 export type LookupListResult = FetchListResult & {
   /** How many items the primary client couldn't resolve and got handed to the fallback. */
   fallbackTriggeredCount: number;
+  /**
+   * Of those, how many the fallback then resolved. `triggered - recovered - failed === 0`.
+   *
+   * Reporting the trigger alone can't distinguish "Aura missed it, Scryfall
+   * saved it" (a silent recovery — the user never notices) from "neither backend
+   * had it" (a card the user actually loses). Those are different problems: the
+   * first is an Aura index-coverage gap, the second is a dead card. Splitting the
+   * outcome is what makes the fallback's recovery rate a real proportion.
+   */
+  fallbackRecoveredCount: number;
+  /** Of those handed to the fallback, how many it also failed to resolve. */
+  fallbackFailedCount: number;
 };
 
 /**
@@ -35,7 +47,12 @@ export class CardLookupService {
     const primaryRun = await this.primary.fetchImagesForList(entries, onProgress);
 
     if (primaryRun.failedItems.length === 0) {
-      return { ...primaryRun, fallbackTriggeredCount: 0 };
+      return {
+        ...primaryRun,
+        fallbackTriggeredCount: 0,
+        fallbackRecoveredCount: 0,
+        fallbackFailedCount: 0,
+      };
     }
 
     const fallbackTriggeredCount = primaryRun.failedItems.length;
@@ -49,10 +66,14 @@ export class CardLookupService {
     // the fallback found (success or final error).
     const primarySuccesses = primaryRun.results.filter((r) => !r.error);
 
+    const fallbackFailedCount = fallbackRun.failedItems.length;
+
     return {
       results: [...fallbackRun.results, ...primarySuccesses],
       failedItems: fallbackRun.failedItems,
       fallbackTriggeredCount,
+      fallbackRecoveredCount: fallbackTriggeredCount - fallbackFailedCount,
+      fallbackFailedCount,
     };
   }
 
