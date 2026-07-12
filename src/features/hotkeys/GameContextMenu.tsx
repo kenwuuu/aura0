@@ -33,6 +33,7 @@ export function GameContextMenu() {
   const y = useContextMenuStore((s) => s.y);
   const target = useContextMenuStore((s) => s.target);
   const viaTouch = useContextMenuStore((s) => s.viaTouch);
+  const anchorRect = useContextMenuStore((s) => s.anchorRect);
   const close = useContextMenuStore((s) => s.close);
 
   // `touchMenuOnly` rows (a token's +1/-1) only belong in the menu on touch,
@@ -57,8 +58,26 @@ export function GameContextMenu() {
     // keyboard hotkeys that read it — hover a card, right-click it, then
     // press a hotkey key must still act on that card while the menu is open.
     <DropdownMenu open={open} onOpenChange={(next) => !next && close()} modal={false}>
+      {/* Radix's DropdownMenu has no `Anchor` primitive, so the Trigger doubles
+          as one. For a mouse right-click it's a zero-size point at the cursor.
+          For a tap it's the tapped item's own box (`anchorRect`), so Popper
+          places the menu *beside* the item instead of under the finger that is
+          currently covering it. */}
       <DropdownMenuTrigger asChild>
-        <span style={{ position: 'fixed', left: x, top: y, width: 0, height: 0 }} />
+        <span
+          style={
+            anchorRect
+              ? {
+                  position: 'fixed',
+                  left: anchorRect.x,
+                  top: anchorRect.y,
+                  width: anchorRect.width,
+                  height: anchorRect.height,
+                  pointerEvents: 'none',
+                }
+              : { position: 'fixed', left: x, top: y, width: 0, height: 0 }
+          }
+        />
       </DropdownMenuTrigger>
       <DropdownMenuContent
         side={isHandCard ? 'top' : 'right'}

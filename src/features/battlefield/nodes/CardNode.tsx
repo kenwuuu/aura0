@@ -83,9 +83,11 @@ export const CardNode = memo(function CardNode({ data, id }: NodeProps) {
     });
   }, [id]);
 
-  // On touch, a tap previews this card; a second tap on it opens the same
-  // context menu right-click does on desktop (two-tap machine).
-  const tapMenu = useContextMenuTap({ kind: 'battlefieldCard', id }, { showPreview });
+  // On touch, a tap opens the same context menu right-click does on desktop; a
+  // second tap on the card swaps that for its preview (menu-first two-tap). On
+  // the board the menu is what you're usually reaching for — tap, flip, add a
+  // counter — so it leads, unlike hand / pile-viewer cards where the preview does.
+  const tapMenu = useContextMenuTap({ kind: 'battlefieldCard', id }, { showPreview, menuFirst: true });
 
   // tap + rotation transform
   const rotation = resolveCardRotation(card);

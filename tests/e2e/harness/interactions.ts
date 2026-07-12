@@ -60,6 +60,42 @@ export async function parkMouseAwayFromBoard(page: Page): Promise<void> {
   await expect(cardPreview(page)).toBeHidden();
 }
 
+/**
+ * Zoom the board out until a pile is actually within the viewport, and return it.
+ *
+ * A fresh room auto-fits the board to the **local** player's mat, so an
+ * opponent's mat sits above the visible area — their discard pile lands at a
+ * negative `y`, and a tap at its "centre" hits nothing at all (`boundingBox()`
+ * still reports a box, so this fails silently rather than erroring). A real
+ * player pans or zooms to see their opponent; the harness zooms, which is
+ * deterministic. Any spec that interacts with an opponent's board furniture
+ * needs this first.
+ */
+export async function revealPile(
+  page: Page,
+  kind: PileKind,
+  ownerId: string,
+  maxZoomOuts = 6,
+): Promise<Locator> {
+  const tile = pileTile(page, kind, ownerId);
+  const zoomOut = page.getByRole('button', { name: /zoom out/i });
+  for (let i = 0; i <= maxZoomOuts; i++) {
+    const box = await tile.boundingBox();
+    const vp = page.viewportSize();
+    if (
+      box && vp &&
+      box.x >= 0 && box.y >= 0 &&
+      box.x + box.width <= vp.width && box.y + box.height <= vp.height
+    ) {
+      return tile;
+    }
+    await zoomOut.click();
+  }
+  throw new Error(
+    `The ${kind} pile owned by ${ownerId} never came fully on screen after ${maxZoomOuts} zoom-outs.`,
+  );
+}
+
 /** A card's aspect ratio flips between portrait (untapped) and landscape
  * (tapped) — used as a DOM-visible proxy for tap state, since there's no
  * dedicated `data-tapped` attribute. */
