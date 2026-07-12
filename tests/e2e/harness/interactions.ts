@@ -1,5 +1,5 @@
 import { Page, Locator, expect } from '@playwright/test';
-import { boardCard, pileTile, whiteboard, deckImportOpenButton, deckImportModal, boardTokens } from './pageObjects';
+import { boardCard, cardPreview, pileTile, whiteboard, deckImportOpenButton, deckImportModal, boardTokens } from './pageObjects';
 import { TESTID, PileKind } from './selectors';
 
 export async function centerOf(locator: Locator): Promise<{ x: number; y: number }> {
@@ -37,6 +37,63 @@ export async function touchTap(page: Page, locator: Locator): Promise<void> {
  */
 export async function realMouseMoveTo(page: Page, to: { x: number; y: number }, steps = 20): Promise<void> {
   await page.mouse.move(to.x, to.y, { steps });
+}
+
+/**
+ * Park the real mouse cursor clear of the board and wait for the hover preview
+ * it was holding open to clear.
+ *
+ * A desktop runner with `hasTouch` has *both* a mouse and a touchscreen. Any
+ * harness step that uses the mouse — `playCreature` drags a card from hand to
+ * board — leaves the cursor sitting on the card it just placed, with the
+ * desktop hover preview up for it. A real phone has neither a cursor nor hover.
+ * Call this before touch-tapping a board card so the tap begins from the state
+ * a touch device is actually in: without it, the first tap finds a preview
+ * already open for that very card and behaves like a *second* tap, opening the
+ * menu immediately and hiding whatever the first tap was supposed to do.
+ *
+ * The park point is the far-left edge at mid-height — clear of the board's
+ * nodes, of the toolbar along the top, and of the dock along the bottom.
+ */
+export async function parkMouseAwayFromBoard(page: Page): Promise<void> {
+  await realMouseMoveTo(page, { x: 5, y: 400 });
+  await expect(cardPreview(page)).toBeHidden();
+}
+
+/**
+ * Zoom the board out until a pile is actually within the viewport, and return it.
+ *
+ * A fresh room auto-fits the board to the **local** player's mat, so an
+ * opponent's mat sits above the visible area — their discard pile lands at a
+ * negative `y`, and a tap at its "centre" hits nothing at all (`boundingBox()`
+ * still reports a box, so this fails silently rather than erroring). A real
+ * player pans or zooms to see their opponent; the harness zooms, which is
+ * deterministic. Any spec that interacts with an opponent's board furniture
+ * needs this first.
+ */
+export async function revealPile(
+  page: Page,
+  kind: PileKind,
+  ownerId: string,
+  maxZoomOuts = 6,
+): Promise<Locator> {
+  const tile = pileTile(page, kind, ownerId);
+  const zoomOut = page.getByRole('button', { name: /zoom out/i });
+  for (let i = 0; i <= maxZoomOuts; i++) {
+    const box = await tile.boundingBox();
+    const vp = page.viewportSize();
+    if (
+      box && vp &&
+      box.x >= 0 && box.y >= 0 &&
+      box.x + box.width <= vp.width && box.y + box.height <= vp.height
+    ) {
+      return tile;
+    }
+    await zoomOut.click();
+  }
+  throw new Error(
+    `The ${kind} pile owned by ${ownerId} never came fully on screen after ${maxZoomOuts} zoom-outs.`,
+  );
 }
 
 /** A card's aspect ratio flips between portrait (untapped) and landscape
