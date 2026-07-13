@@ -264,6 +264,51 @@ describe('WebsocketProvider connection monitor', () => {
     );
   });
 
+  it('ignores a repeat connected signal, keeping one outcome per episode', () => {
+    // markConnected() early-returns when no episode is open. If that ever
+    // regressed, a transport that re-announces 'connected' would inflate the
+    // denominator and silently deflate every failure rate built on it.
+    new WebsocketProvider(new Y.Doc(), { roomName: 'room-1' });
+    const ws = latestSocket();
+    ws.connect();
+    ws.syncDoc(true);
+    h.posthogCapture.mockClear();
+
+    ws.connect();
+
+    expect(h.posthogCapture).not.toHaveBeenCalledWith(
+      'connection_outcome',
+      expect.anything(),
+    );
+  });
+
+  it('opens a fresh episode if an attempt starts while we still believe we are connected', () => {
+    // A transport announcing an attempt without having announced the drop first
+    // is, in fact, down. markConnecting() arms the episode so the reconnect is
+    // still counted rather than silently swallowed.
+    new WebsocketProvider(new Y.Doc(), { roomName: 'room-1' });
+    const ws = latestSocket();
+    ws.connect();
+    ws.syncDoc(true);
+    h.posthogCapture.mockClear();
+
+    ws.beginAttempt(); // no drop() first
+    vi.advanceTimersByTime(200);
+    ws.connect();
+
+    const connected = h.posthogCapture.mock.calls.find(
+      ([event, props]) =>
+        event === 'connection_outcome'
+        && (props as Record<string, unknown>).outcome === 'connected',
+    );
+    expect(connected?.[1]).toMatchObject({
+      episode_type: 'reconnect',
+      connect_ms: 200,
+      offline_for_ms: 200,
+    });
+    expect((connected?.[1] as Record<string, unknown>).episode_id).toEqual(expect.any(String));
+  });
+
   it('reports the failure only once while the connection stays stuck', () => {
     new WebsocketProvider(new Y.Doc(), { roomName: 'room-1' });
     const ws = latestSocket();
