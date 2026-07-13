@@ -13,6 +13,14 @@ import { CardLookupService, TokenService } from '@/infrastructure/cards';
 import { yjsNetworkFactory } from '@/infrastructure/networking';
 import { YjsNetworkProvider } from '@/infrastructure/networking/YjsNetworkFactory';
 import { getOrCreatePlayerId, getOrCreatePeerId } from '@/infrastructure/networking';
+import {
+  acquireTabLock,
+  onTabTakeoverRequest,
+  takeTabLock,
+  tabLockKey,
+} from '@/infrastructure/networking/tabLock';
+import { watchRoomOccupancy } from '@/infrastructure/networking/roomOccupancy';
+import { trackRoomOccupancyChanged } from '@/infrastructure/analytics/PosthogFunctions';
 import { DeckPersistenceService, DeckStorageService } from '@/infrastructure/persistence';
 import { useGameInstance } from '@/app/stores/gameInstanceStore';
 import { usePlayerStore } from '@/app/stores/playerStore';
@@ -34,41 +42,80 @@ export interface GameContext {
   tokenService: TokenService;
 }
 
-export async function bootstrapGame(): Promise<GameContext> {
-  // ── 1. Core identifiers ────────────────────────────────────────────────────
-  const yDoc = new Y.Doc();
+/**
+ * A boot either produces a game or discovers this room is already open in
+ * another tab of the same browser. The second case is not an error — it is a
+ * screen (see `DuplicateTabNotice`) — so it is a result, not a thrown exception.
+ */
+export type BootstrapResult =
+  | { status: 'ready'; context: GameContext }
+  | { status: 'duplicate-tab'; roomName: string };
 
+export interface BootstrapOptions {
+  /**
+   * Ask the tab that currently holds this room to stand down, and take it over,
+   * rather than declining to boot. Set when the player answers the duplicate-tab
+   * screen with "Play here instead".
+   */
+  takeOverOtherTab?: boolean;
+}
+
+export async function bootstrapGame(options: BootstrapOptions = {}): Promise<BootstrapResult> {
+  // ── 1. Core identifiers ────────────────────────────────────────────────────
   const playerId = getOrCreatePlayerId();
   console.log('Player ID:', playerId);
 
   const roomManager = new RoomManager();
+  const roomName = roomManager.getRoomName();
 
-  // ── 2. Networking ──────────────────────────────────────────────────────────
+  // ── 2. Claim the room for this tab ─────────────────────────────────────────
+  // Before anything else: a second tab must not get as far as constructing the
+  // Y.Doc, because that doc *is* the duplicate replica. Both tabs share one
+  // localStorage player id, so they would both author this player's hand and
+  // silently overwrite each other. See infrastructure/networking/tabLock.ts.
+  const lockKey = tabLockKey(roomName, playerId);
+  const tabLock = options.takeOverOtherTab
+    ? await takeTabLock(lockKey)
+    : await acquireTabLock(lockKey);
+
+  if (!tabLock) return { status: 'duplicate-tab', roomName };
+
+  // Stand down if a later tab claims the room. Releasing the lock is not enough
+  // to stop being a replica — the doc and its providers are still live — so we
+  // reload, which tears them down and lands this tab on the duplicate-tab screen.
+  onTabTakeoverRequest(lockKey, () => {
+    tabLock.release();
+    window.location.reload();
+  });
+
+  const yDoc = new Y.Doc();
+
+  // ── 3. Networking ──────────────────────────────────────────────────────────
   const peerId = getOrCreatePeerId();
   const transport = await getEffectiveNetworkTransport();
   const yjsNetworkProvider = await yjsNetworkFactory.create(yDoc, {
-    roomName: roomManager.getRoomName(),
+    roomName,
     peerId,
   }, transport);
 
-  // ── 3. Player ──────────────────────────────────────────────────────────────
+  // ── 4. Player ──────────────────────────────────────────────────────────────
   // Wait for the local IndexedDB copy to load before constructing Player, which
   // seeds default state if the doc looks empty. Seeding into a not-yet-synced
   // doc writes empty defaults (e.g. an empty hand) that win the CRDT merge
   // against the persisted state, wiping the hand on refresh.
   await yjsNetworkProvider.whenSynced();
 
-  const restoredDeck = DeckPersistenceService.restoreDeckForRoom(roomManager.getRoomName());
+  const restoredDeck = DeckPersistenceService.restoreDeckForRoom(roomName);
   const player = new Player(playerId, yDoc, restoredDeck, { initialHealth: 40 });
 
   // Populate playerStore immediately so any component reading yPlayerState gets it on mount
   usePlayerStore.getState().setYPlayerState(player.yPlayerState);
 
-  // ── 4. Services ────────────────────────────────────────────────────────────
+  // ── 5. Services ────────────────────────────────────────────────────────────
   const cardLookup = new CardLookupService();
   const tokenService = new TokenService(cardLookup);
 
-  // ── 5. Populate game-instance store (before React renders) ─────────────────
+  // ── 6. Populate game-instance store (before React renders) ─────────────────
   useGameInstance.getState().setYDoc(yDoc);
   useGameInstance.getState().setPlayer(player);
   useGameInstance.getState().setPlayerId(playerId);
@@ -78,15 +125,19 @@ export async function bootstrapGame(): Promise<GameContext> {
   useGameInstance.getState().setAwareness(awareness);
   // Broadcast playerId so peers can look up this player's Yjs name from the cursor overlay.
   awareness.setLocalStateField('playerId', playerId);
+  watchRoomOccupancy(awareness, trackRoomOccupancyChanged);
 
-  // ── 6. Deck seeding + auto-load ────────────────────────────────────────────
+  // ── 7. Deck seeding + auto-load ────────────────────────────────────────────
   const storage = new DeckStorageService();
   await seedDefaultDeckIfFirstLoad(storage);
   await autoLoadDeckOnStart(player, roomManager, storage);
 
-  // ── 7. Analytics ───────────────────────────────────────────────────────────
+  // ── 8. Analytics ───────────────────────────────────────────────────────────
   const visitCount = parseInt(localStorage.getItem(VISIT_COUNT_KEY) ?? '0', 10);
   localStorage.setItem(VISIT_COUNT_KEY, (visitCount + 1).toString());
 
-  return { yDoc, yjsNetworkProvider, player, roomManager, playerId, cardLookup, tokenService };
+  return {
+    status: 'ready',
+    context: { yDoc, yjsNetworkProvider, player, roomManager, playerId, cardLookup, tokenService },
+  };
 }

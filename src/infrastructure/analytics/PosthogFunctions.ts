@@ -1,5 +1,7 @@
 import posthog from 'posthog-js';
 import {YSTATE_HEALTH} from "@/constants";
+import type { DeckLineItem } from '@/features/deck-manager/DeckListParser';
+import type { LookupFailure, LookupFailureReason } from '@/infrastructure/cards/CardApiClient';
 
 // HEALTH
 
@@ -31,6 +33,20 @@ export function trackCustomCounterCreated(counterTitle: string, counterIcon: str
 export type TransportLabel = 'websocket' | 'webrtc';
 
 /**
+ * Emitted whenever the number of players actually in the room changes (see
+ * `watchRoomOccupancy` in `roomOccupancy.ts`) — not on every awareness update.
+ * Answers "how many players are in a room at a time": breaking down by
+ * `$session_id` and taking the max (or just plotting the distribution of
+ * `player_count` values) gives room-size distribution without needing
+ * duration-weighting.
+ */
+export function trackRoomOccupancyChanged(playerCount: number): void {
+  posthog.capture('room_occupancy_changed', {
+    player_count: playerCount,
+  });
+}
+
+/**
  * Emitted per disconnected episode, for BOTH outcomes, so the failure rate is a
  * real proportion (failed / (connected + failed)) with a denominator — broken
  * down by `transport` to compare WebSocket vs. WebRTC. A single episode can
@@ -56,6 +72,43 @@ export type TransportLabel = 'websocket' | 'webrtc';
  * signal before connects start failing outright. Sentry gets the failure too,
  * for alerting — but a proportion needs the denominator, and high-volume
  * success events belong in analytics, not the error tracker.
+ *
+ * `visible_for_ms` is how much of the outage the user could see. Read against
+ * `offline_for_ms`: near 0 means nobody was looking (backgrounded, or a slept
+ * laptop), near 1 means somebody sat and watched the board freeze. Don't try to
+ * reconstruct it from `visibilityState` — see VisibilityTracker for why that
+ * scores a slept laptop as rapt attention.
+ */
+/**
+ * Emitted per sync episode, mirroring `trackConnectionOutcome`'s episode_id /
+ * honest-rate reasoning above — but one level downstream: signaling can be
+ * `connected` while state never actually syncs, which only this event can
+ * detect. `peerCount` is only meaningful for the webrtc transport (a
+ * websocket episode syncs against the relay itself, peers or not).
+ */
+export function trackSyncOutcome(props: {
+  transport: TransportLabel;
+  outcome: 'synced' | 'timed_out';
+  episodeId?: string;
+  syncMs?: number;
+  unsyncedForMs?: number;
+  peerCount?: number;
+}): void {
+  posthog.capture('sync_outcome', {
+    transport: props.transport,
+    outcome: props.outcome,
+    ...(props.episodeId !== undefined ? { episode_id: props.episodeId } : {}),
+    ...(props.syncMs !== undefined ? { sync_ms: props.syncMs } : {}),
+    ...(props.unsyncedForMs !== undefined ? { unsynced_for_ms: props.unsyncedForMs } : {}),
+    ...(props.peerCount !== undefined ? { peer_count: props.peerCount } : {}),
+  });
+}
+
+/**
+ * `connectMs` times the successful connection attempt (handshake latency);
+ * `offlineForMs` times the outage it ended. They are not interchangeable — a
+ * client that slept through a three-day outage and then reconnected instantly
+ * has a tiny connectMs and a huge offlineForMs. Chart latency off the former.
  */
 export function trackConnectionOutcome(props: {
   transport: TransportLabel;
@@ -63,7 +116,9 @@ export function trackConnectionOutcome(props: {
   episodeId?: string;
   episodeType?: 'initial' | 'reconnect';
   connectMs?: number;
+  offlineForMs?: number;
   unreachableForMs?: number;
+  visibleForMs?: number;
 }): void {
   posthog.capture('connection_outcome', {
     transport: props.transport,
@@ -71,9 +126,11 @@ export function trackConnectionOutcome(props: {
     ...(props.episodeId !== undefined ? { episode_id: props.episodeId } : {}),
     ...(props.episodeType !== undefined ? { episode_type: props.episodeType } : {}),
     ...(props.connectMs !== undefined ? { connect_ms: props.connectMs } : {}),
+    ...(props.offlineForMs !== undefined ? { offline_for_ms: props.offlineForMs } : {}),
     ...(props.unreachableForMs !== undefined
       ? { unreachable_for_ms: props.unreachableForMs }
       : {}),
+    ...(props.visibleForMs !== undefined ? { visible_for_ms: props.visibleForMs } : {}),
   });
 }
 
@@ -83,15 +140,90 @@ export type ImportFailureReason =
   | 'invalid_format'
   | 'parse_error'
   | 'no_valid_entries'
-  | 'fetch_catastrophic_failure';
+  | 'fetch_catastrophic_failure'
+  /**
+   * Every card in a well-formed list failed lookup. Previously this landed in
+   * `deck_import_partial_failure` with `total_imported: 0` — a "partial" failure
+   * that imported nothing, which is a total failure by any reading. It gets its
+   * own reason so a backend outage stops hiding inside the partial bucket.
+   */
+  | 'all_cards_failed';
 
-export function trackImportStarted(text: string): void {
-  const lineCount = text.trim().split('\n').filter(line => line.trim().length > 0).length;
+/**
+ * A constructed MTG deck is 60 cards (standard/modern) or 100 (Commander).
+ * Any other size means the import produced a deck nobody can legally play, so
+ * it is worth flagging even when every card resolved.
+ */
+const STANDARD_DECK_SIZES = new Set([60, 100]);
 
-  posthog.capture('deck_import_started', {
-    text_length: text.length,
-    line_count: lineCount,
-  });
+export type DeckSizeBucket = '60' | '100' | 'other';
+
+export function bucketDeckSize(cardCount: number): DeckSizeBucket {
+  if (cardCount === 60) return '60';
+  if (cardCount === 100) return '100';
+  return 'other';
+}
+
+/**
+ * What the deck list asked for vs. what we actually built.
+ *
+ * These two numbers answer different questions and only mean something together
+ * — which is the entire reason this type exists instead of a bare `cardCount`:
+ *
+ *  - `requestedCardCount` — the deck size the user's list asks for (the sum of
+ *    the quantities we parsed). If this isn't 60 or 100, the *input* is off:
+ *    either they pasted a partial list, or our parser dropped lines. `raw_text`
+ *    is what tells those apart, so we capture it whenever this is non-standard.
+ *  - `importedCardCount` — the cards we actually built. If this falls short of
+ *    `requestedCardCount`, *our lookup* lost cards; the input was fine.
+ *
+ * A single `card_count` conflates "they sent bad data" with "our import broke".
+ * Splitting them is the only way to tell, from analytics alone, which one it was.
+ */
+export type ImportCounts = {
+  /** Card lines the parser accepted (unique entries, not physical cards). */
+  parsedEntryCount: number;
+  /** Sum of quantities across those entries — the deck size the list asks for. */
+  requestedCardCount: number;
+  /** Physical cards actually built into the deck. */
+  importedCardCount: number;
+  /** Distinct entries that resolved to real card data. */
+  uniqueImportedCount: number;
+  /** Cards the parser deliberately dropped (sideboard, maybeboard, …). */
+  excludedCardCount: number;
+  /** Which sections those dropped cards came from, e.g. `["sideboard"]`. */
+  excludedSections: string[];
+  /**
+   * Header labels the parser didn't recognize and imported as main deck anyway.
+   * When a deck comes out over-sized, this is the first place to look — a custom
+   * category we waved through that was really a sideboard.
+   */
+  unrecognizedSections: string[];
+};
+
+/**
+ * Flatten counts into event properties, deriving the two signals worth alerting
+ * on: `cards_missing` (our lookup lost cards) and `is_standard_deck_size` (the
+ * list itself was odd).
+ */
+function countProperties(counts: ImportCounts): Record<string, unknown> {
+  return {
+    parsed_entry_count: counts.parsedEntryCount,
+    requested_card_count: counts.requestedCardCount,
+    imported_card_count: counts.importedCardCount,
+    unique_imported_count: counts.uniqueImportedCount,
+    excluded_card_count: counts.excludedCardCount,
+    excluded_sections: counts.excludedSections,
+    unrecognized_sections: counts.unrecognizedSections,
+    // > 0 means the lookup dropped cards the list explicitly asked for.
+    cards_missing: counts.requestedCardCount - counts.importedCardCount,
+    // Describes the *input*: was the list itself a legal deck size?
+    requested_size_bucket: bucketDeckSize(counts.requestedCardCount),
+    is_standard_deck_size: STANDARD_DECK_SIZES.has(counts.requestedCardCount),
+    // Describes the *output*: is what we handed the player a legal deck?
+    imported_size_bucket: bucketDeckSize(counts.importedCardCount),
+    is_standard_imported_size: STANDARD_DECK_SIZES.has(counts.importedCardCount),
+  };
 }
 
 /**
@@ -102,59 +234,269 @@ export function trackImportStarted(text: string): void {
 const MAX_RAW_IMPORT_TEXT_CHARS = 20_000;
 
 /**
- * `rawText` is the exact text the user pasted. We capture it on every failure so
- * real-world failed imports can be pulled out of PostHog and replayed as parser
+ * `rawText` is the exact text the user pasted. We capture it on every anomalous
+ * import so real-world cases can be pulled out of PostHog and replayed as parser
  * test fixtures — there is otherwise no way to reconstruct what a user pasted
- * (the metadata-only events told us a failure happened, not what caused it). A
+ * (the metadata-only events told us something went wrong, not what caused it). A
  * decklist is card names, not PII, and the raw string already flows to Sentry on
- * parse / partial failures; this just makes the whole failed-import corpus
- * queryable from analytics. Required (not optional) so no future failure path can
- * silently drop it.
+ * parse / partial failures; this just makes the corpus queryable from analytics.
  */
-export function trackImportFailed(
-  reason: ImportFailureReason,
-  rawText: string,
-  extra: Record<string, unknown> = {}
-): void {
-  posthog.capture('deck_import_failed', {
-    reason,
+function rawTextProperties(rawText: string): Record<string, unknown> {
+  return {
     raw_text: rawText.slice(0, MAX_RAW_IMPORT_TEXT_CHARS),
     raw_text_truncated: rawText.length > MAX_RAW_IMPORT_TEXT_CHARS,
     text_length: rawText.length,
+  };
+}
+
+/**
+ * The import currently running, if any. A 100-card import takes tens of seconds
+ * (p50 ≈ 12s, p95 ≈ 54s), which is more than long enough for a user to close the
+ * tab mid-fetch. That used to emit `deck_import_started` with no terminal event,
+ * silently breaking the funnel's denominator.
+ */
+type InFlightImport = {
+  startedAt: number;
+  textLength: number;
+  lineCount: number;
+  cardsFetched: number;
+  totalCards: number;
+};
+
+let inFlightImport: InFlightImport | null = null;
+let abandonListenerInstalled = false;
+
+/**
+ * `pagehide` is the only unload event that fires reliably on mobile Safari, and
+ * `sendBeacon` is the only transport that survives the unload — a normal XHR is
+ * cancelled as the page tears down.
+ */
+function installAbandonListener(): void {
+  if (abandonListenerInstalled || typeof window === 'undefined') {
+    return;
+  }
+  abandonListenerInstalled = true;
+
+  window.addEventListener('pagehide', () => {
+    const pending = inFlightImport;
+    if (!pending) {
+      return;
+    }
+    inFlightImport = null;
+
+    posthog.capture(
+      'deck_import_abandoned',
+      {
+        elapsed_ms: Date.now() - pending.startedAt,
+        cards_fetched: pending.cardsFetched,
+        total_cards: pending.totalCards,
+        progress_ratio:
+          pending.totalCards > 0 ? pending.cardsFetched / pending.totalCards : 0,
+        text_length: pending.textLength,
+        line_count: pending.lineCount,
+      },
+      { transport: 'sendBeacon' },
+    );
+  });
+}
+
+export function trackImportStarted(text: string): void {
+  const lineCount = text.trim().split('\n').filter(line => line.trim().length > 0).length;
+
+  inFlightImport = {
+    startedAt: Date.now(),
+    textLength: text.length,
+    lineCount,
+    cardsFetched: 0,
+    totalCards: 0,
+  };
+  installAbandonListener();
+
+  posthog.capture('deck_import_started', {
+    text_length: text.length,
+    line_count: lineCount,
+  });
+}
+
+/**
+ * Feed lookup progress in so an abandoned import can report how far it got —
+ * "they bailed at 3 of 100" and "they bailed at 97 of 100" are different stories.
+ */
+export function trackImportProgress(current: number, total: number): void {
+  if (inFlightImport) {
+    inFlightImport.cardsFetched = current;
+    inFlightImport.totalCards = total;
+  }
+}
+
+/**
+ * Clear in-flight state so a later page unload isn't misread as an abandoned
+ * import. Every terminal tracker below calls this, so no outcome can forget to.
+ */
+function settleImport(): void {
+  inFlightImport = null;
+}
+
+export function trackImportFailed(
+  reason: ImportFailureReason,
+  rawText: string,
+  extra: Record<string, unknown> = {},
+  counts?: ImportCounts,
+): void {
+  settleImport();
+  posthog.capture('deck_import_failed', {
+    reason,
+    ...rawTextProperties(rawText),
+    ...(counts ? countProperties(counts) : {}),
     ...extra,
   });
 }
 
-export function trackFallbackTriggered(auraFailedCount: number, totalCount: number): void {
+/** Bounds event size. A deck is ~100 cards; a longer list adds no diagnostic value. */
+const MAX_REPORTED_CARD_NAMES = 30;
+
+/**
+ * Emitted once per import in which the primary (Aura) backend missed at least one
+ * card. Reports the full outcome, not just the trigger: how many the Scryfall
+ * fallback then recovered vs. how many no backend could resolve.
+ *
+ * The failure *reason* breakdown is the point. A 404 means Aura answered and the
+ * card genuinely isn't indexed; anything else means Aura never answered at all.
+ * Those are opposite problems with opposite fixes, and reporting them as one
+ * number ("aura_miss_rate") is how a Cloudflare edge block spent a month being
+ * read as a card-index coverage gap.
+ */
+export function trackFallbackOutcome(props: {
+  triggeredCount: number;
+  recoveredCount: number;
+  failedCount: number;
+  totalCount: number;
+  auraFailures: LookupFailure[];
+  deadItems: DeckLineItem[];
+}): void {
+  const byReason = (reason: LookupFailureReason) =>
+    props.auraFailures.filter((f) => f.reason === reason);
+
+  const notFound = byReason('not_found');
+  const infraFailed = props.auraFailures.filter((f) => f.reason !== 'not_found');
+
   posthog.capture('deck_import_fallback_triggered', {
-    aura_failed_count: auraFailedCount,
-    total_count: totalCount,
+    // Legacy property names, kept so existing insights keep resolving.
+    aura_failed_count: props.triggeredCount,
+    total_count: props.totalCount,
+    aura_miss_rate: props.totalCount > 0 ? props.triggeredCount / props.totalCount : 0,
+
+    fallback_recovered_count: props.recoveredCount,
+    fallback_failed_count: props.failedCount,
+    // Of the cards Aura missed, what share did Scryfall save? A falling recovery
+    // rate means cards are dying, not just being routed around.
+    fallback_recovery_rate:
+      props.triggeredCount > 0 ? props.recoveredCount / props.triggeredCount : 0,
+
+    // --- Why Aura failed. `aura_miss_rate` above conflates all of these. ---
+    aura_failed_not_found: notFound.length,
+    aura_failed_rate_limited: byReason('rate_limited').length,
+    aura_failed_blocked: byReason('blocked').length,
+    aura_failed_server_error: byReason('server_error').length,
+    aura_failed_network_or_blocked: byReason('network_or_blocked').length,
+    aura_failed_timeout: byReason('timeout').length,
+    aura_failed_unknown: byReason('unknown').length,
+    aura_dominant_failure_reason: mostCommonReason(props.auraFailures),
+
+    // The honest split of the old `aura_miss_rate`. Index misses are a data
+    // problem (reindex); infra failures are an availability problem (page someone).
+    aura_index_miss_rate: props.totalCount > 0 ? notFound.length / props.totalCount : 0,
+    aura_infra_failure_rate:
+      props.totalCount > 0 ? infraFailed.length / props.totalCount : 0,
+
+    // Names of cards Aura answered "not found" for — the actual index-coverage
+    // gap, and the list to go fix. Deliberately excludes infra failures: when the
+    // backend is unreachable, the "missing" cards are just whatever happened to be
+    // in the deck (Sol Ring, basic lands), which is noise, not signal.
+    aura_not_found_cards: notFound
+      .slice(0, MAX_REPORTED_CARD_NAMES)
+      .map((f) => f.item.name),
+    // Cards no backend could resolve. These are the ones the user actually loses.
+    dead_cards: props.deadItems
+      .slice(0, MAX_REPORTED_CARD_NAMES)
+      .map((item) => item.name),
   });
+}
+
+function mostCommonReason(failures: LookupFailure[]): LookupFailureReason | undefined {
+  const counts = new Map<LookupFailureReason, number>();
+  for (const f of failures) counts.set(f.reason, (counts.get(f.reason) ?? 0) + 1);
+
+  let best: LookupFailureReason | undefined;
+  let bestCount = 0;
+  for (const [reason, count] of counts) {
+    if (count > bestCount) {
+      best = reason;
+      bestCount = count;
+    }
+  }
+  return best;
 }
 
 export function trackImportSucceeded(props: {
-  cardCount: number;
-  uniqueCardCount: number;
+  counts: ImportCounts;
   durationMs: number;
+  rawText: string;
 }): void {
+  settleImport();
+
   posthog.capture('deck_import_succeeded', {
-    card_count: props.cardCount,
-    unique_card_count: props.uniqueCardCount,
+    ...countProperties(props.counts),
     duration_ms: props.durationMs,
+
+    // Captured on *every* success, not just the odd-sized ones. Anomalies alone
+    // would tell us what breaks but never what "working" looks like — and a
+    // clean 100-card Moxfield export is precisely the regression baseline any
+    // parser has to keep passing. It is also where the format diversity lives:
+    // ~83% of imports are ordinary decks, and skipping them would mean owning a
+    // corpus made entirely of weird lists.
+    //
+    // The cost argument for skipping them doesn't hold: PostHog bills per event,
+    // not per byte, and this rides on an event that already fires. A 100-card
+    // list is ~3KB, so a busy day is ~1MB.
+    ...rawTextProperties(props.rawText),
+
+    // Legacy property names, kept so existing insights keep resolving.
+    card_count: props.counts.importedCardCount,
+    unique_card_count: props.counts.uniqueImportedCount,
   });
 }
 
+/**
+ * Some — but not all — cards failed lookup. Note the UI blocks the whole import
+ * when any card fails, so from the player's seat this is a failed import, not a
+ * degraded one. The raw text is always captured: a partial failure is exactly the
+ * case we most want to replay.
+ */
 export function trackImportPartialFailure(props: {
-  totalRequested: number;
-  totalImported: number;
-  totalFailed: number;
+  counts: ImportCounts;
+  failedEntryCount: number;
   durationMs: number;
+  rawText: string;
 }): void {
+  settleImport();
+
+  const { requestedCardCount, importedCardCount } = props.counts;
+
   posthog.capture('deck_import_partial_failure', {
-    total_requested: props.totalRequested,
-    total_imported: props.totalImported,
-    total_failed: props.totalFailed,
-    failure_rate: props.totalRequested > 0 ? props.totalFailed / props.totalRequested : 0,
+    ...countProperties(props.counts),
+    ...rawTextProperties(props.rawText),
+    failed_entry_count: props.failedEntryCount,
+    // Share of the requested deck we failed to deliver.
+    failure_rate:
+      requestedCardCount > 0
+        ? (requestedCardCount - importedCardCount) / requestedCardCount
+        : 0,
     duration_ms: props.durationMs,
+
+    // Legacy property names, kept so existing insights keep resolving.
+    total_requested: props.counts.parsedEntryCount,
+    total_imported: importedCardCount,
+    total_failed: props.failedEntryCount,
   });
 }

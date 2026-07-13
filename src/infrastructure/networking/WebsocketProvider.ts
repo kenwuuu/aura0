@@ -28,10 +28,12 @@
 import * as Y from 'yjs';
 import { WebsocketProvider as WsProvider } from "y-websocket";
 import { IndexeddbPersistence } from 'y-indexeddb';
+import { registerTransactionOriginClass } from './transactionOrigin';
 import { WebsocketConfig } from './types';
 import { restoreAwarenessState, setupAwarenessStatePersistence, AwarenessState } from './persistence';
 import {NetworkStatusEvent, YjsNetworkProvider} from "@/infrastructure/networking/YjsNetworkFactory";
 import { ConnectionMonitor } from './ConnectionMonitor';
+import { SyncMonitor } from './SyncMonitor';
 
 /**
  * How long the relay can stay unreachable before we stop calling it
@@ -44,8 +46,21 @@ import { ConnectionMonitor } from './ConnectionMonitor';
 const CONNECTION_ERROR_GRACE_PERIOD_MS = 3000;
 const CONNECTION_ERROR_MESSAGE = "Can't reach the game server over WebSocket. Switch to WebRTC in Settings to keep playing.";
 
+/**
+ * How long after the relay connects before we expect the doc to have synced.
+ * A relay sync is one exchange, not a peer negotiation, so this stays tighter
+ * than the webrtc transport's sync grace period.
+ */
+const SYNC_ERROR_GRACE_PERIOD_MS = 5000;
+
 /** The relay every WebSocket-transport client connects to. */
 const WS_SERVER_URL = 'wss://digitalocean-ws-ipv4.aura0.app';
+
+// Both objects apply remote updates to the Y.Doc, and Yjs passes whichever one
+// did so as the transaction origin. Naming them here keeps that origin readable
+// in production telemetry, where the class names themselves are mangled.
+registerTransactionOriginClass(WsProvider, 'websocket');
+registerTransactionOriginClass(IndexeddbPersistence, 'indexeddb');
 
 /**
  * Main Websocket provider class that manages peer-to-peer connections
@@ -58,6 +73,7 @@ export class WebsocketProvider implements YjsNetworkProvider{
   private config: WebsocketConfig;
   private cleanupAwarenessPersistence?: () => void;
   private monitor: ConnectionMonitor;
+  private syncMonitor: SyncMonitor;
   private readonly statusListeners = new Map<(event: NetworkStatusEvent) => void, (wsEvent: { status: string }) => void>();
 
   status(): string {
@@ -127,6 +143,13 @@ export class WebsocketProvider implements YjsNetworkProvider{
       context: { url: WS_SERVER_URL, roomName: config.roomName },
     });
 
+    this.syncMonitor = new SyncMonitor({
+      transport: 'websocket',
+      graceMs: SYNC_ERROR_GRACE_PERIOD_MS,
+      sentryMessage: 'WebSocket relay sync timed out',
+      context: { url: WS_SERVER_URL, roomName: config.roomName },
+    });
+
     this.setupEventListeners();
     this.setupAwareness();
     this.monitorConnection();
@@ -134,14 +157,31 @@ export class WebsocketProvider implements YjsNetworkProvider{
 
   /**
    * y-websocket has one connection, so its 'status' event maps directly onto
-   * the monitor's connected/disconnected edges.
+   * the monitor's connected/disconnected edges. The SyncMonitor rides along:
+   * armed on connect, disarmed (silently) on disconnect so a fresh episode
+   * starts cleanly on the next reconnect rather than measuring across the gap.
+   *
+   * 'connecting' is its own edge, not a flavour of 'disconnected': y-websocket
+   * emits it from setupWS() for every socket it opens, i.e. once per retry. That
+   * is what lets connect_ms time the attempt that succeeded instead of the whole
+   * outage — see ConnectionMonitor.markConnecting().
    */
   private monitorConnection(): void {
     this.provider.on('status', ({ status }: { status: string }) => {
       if (status === 'connected') {
         this.monitor.markConnected();
+        this.syncMonitor.arm();
+      } else if (status === 'connecting') {
+        this.monitor.markConnecting();
+        this.syncMonitor.disarm();
       } else {
         this.monitor.markDisconnected();
+        this.syncMonitor.disarm();
+      }
+    });
+    this.provider.on('sync', (isSynced: boolean) => {
+      if (isSynced) {
+        this.syncMonitor.markSynced();
       }
     });
   }
@@ -184,6 +224,7 @@ export class WebsocketProvider implements YjsNetworkProvider{
 
     // Cancel any pending stuck-connection report so we don't fire after teardown
     this.monitor.destroy();
+    this.syncMonitor.destroy();
 
     this.persistence.destroy();
   }

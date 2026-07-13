@@ -1,12 +1,19 @@
 import { DeckImporter, DeckImportResult } from './DeckImporter';
-import { DeckLineItem, parseDecklist, validateFormat } from "@/features/deck-manager/DeckListParser";
+import {
+  DeckLineItem,
+  ParsedDecklist,
+  parseDecklistWithStats,
+  validateFormat,
+} from "@/features/deck-manager/DeckListParser";
 import { CardDataResult, CardLookupService, fromCardDataResult } from '@/infrastructure/cards';
 import { Card } from '@/features/player';
 import * as Sentry from "@sentry/browser";
 import {
+  ImportCounts,
   trackImportStarted,
+  trackImportProgress,
   trackImportFailed,
-  trackFallbackTriggered,
+  trackFallbackOutcome,
   trackImportSucceeded,
   trackImportPartialFailure,
 } from "@/infrastructure/analytics/PosthogFunctions";
@@ -37,17 +44,17 @@ export class MtgTextListDeckImporter extends DeckImporter {
     }
 
     if (!validateFormat(text)) {
-      deck.errors = ["Invalid deck format. Expected format: \"[count] [card name]\" per line"];
+      deck.errors = ["No cards found. Add one card per line, e.g. \"1 Sol Ring\" or just \"Sol Ring\"."];
       trackImportFailed('invalid_format', text);
       return deck;
     }
 
-    // Section headers are tolerated: parseDecklist imports the command zone and
+    // Section headers are tolerated: the parser imports the command zone and
     // main deck while dropping non-main sections (sideboard, maybeboard, …).
-    let entries: DeckLineItem[] = [];
+    let parsed: ParsedDecklist;
 
     try {
-      entries = parseDecklist(text);
+      parsed = parseDecklistWithStats(text);
     } catch (e) {
       const message = e instanceof Error ? e.message : String(e);
       deck.errors = [`Failed to parse decklist: ${message}`];
@@ -59,18 +66,36 @@ export class MtgTextListDeckImporter extends DeckImporter {
       return deck;
     }
 
+    const entries: DeckLineItem[] = parsed.items;
+
     if (entries.length === 0) {
-      deck.errors = ["No valid card entries found. Make sure each line starts with a quantity, e.g. \"4 Lightning Bolt\"."];
+      deck.errors = ["No valid card entries found. If your cards are all under a Sideboard or Maybeboard section, move them under a Deck or Commander section."];
       trackImportFailed('no_valid_entries', text);
       return deck;
     }
 
+    // The deck size the list asks for. Compared against what we actually build,
+    // this is what separates "they sent a short list" from "our lookup broke".
+    const requestedCardCount = entries.reduce((sum, entry) => sum + entry.count, 0);
+
     let results: CardDataResult[];
     try {
-      const lookup = await this.cardLookup.fetchImagesForList(entries, this.onProgress);
+      const lookup = await this.cardLookup.fetchImagesForList(entries, (current, total) => {
+        // Feed the analytics layer too, so an import abandoned mid-fetch can
+        // report how far it got. Wrapping here means every caller gets it.
+        trackImportProgress(current, total);
+        this.onProgress?.(current, total);
+      });
       results = lookup.results;
       if (lookup.fallbackTriggeredCount > 0) {
-        trackFallbackTriggered(lookup.fallbackTriggeredCount, entries.length);
+        trackFallbackOutcome({
+          triggeredCount: lookup.fallbackTriggeredCount,
+          recoveredCount: lookup.fallbackRecoveredCount,
+          failedCount: lookup.fallbackFailedCount,
+          totalCount: entries.length,
+          auraFailures: lookup.auraFailures,
+          deadItems: lookup.failedItems,
+        });
       }
     } catch (e) {
       // Unexpected throw from fetchImagesForList itself (not per-card errors,
@@ -96,39 +121,65 @@ export class MtgTextListDeckImporter extends DeckImporter {
     };
 
     const durationMs = Date.now() - startTime;
+    const failedCards = results
+      .filter(r => r.error)
+      .map(r => ({ name: r.name, error: r.error }));
 
-    // Report partial failures to Sentry with structured context
-    if (deck.errors && deck.errors.length > 0) {
-      const failedCards = results
-        .filter(r => r.error)
-        .map(r => ({ name: r.name, error: r.error }));
+    const counts: ImportCounts = {
+      parsedEntryCount: entries.length,
+      requestedCardCount,
+      importedCardCount: deck.cards.length,
+      uniqueImportedCount: results.length - failedCards.length,
+      excludedCardCount: parsed.excludedCardCount,
+      excludedSections: parsed.excludedSections,
+      unrecognizedSections: parsed.unrecognizedSections,
+    };
 
-      trackImportPartialFailure({
-        totalRequested: entries.length,
-        totalImported: deck.cards.length,
-        totalFailed: failedCards.length,
-        durationMs,
-      });
+    if (!deck.errors || deck.errors.length === 0) {
+      trackImportSucceeded({ counts, durationMs, rawText: text });
+      return deck;
+    }
 
-      Sentry.captureMessage("Partial deck import failure", {
-        level: "warning",
+    // Nothing resolved at all. That is a total failure, not a partial one —
+    // reporting it as "partial" (as we used to) let a backend outage hide inside
+    // the partial bucket with `imported: 0`.
+    if (deck.cards.length === 0) {
+      trackImportFailed(
+        'all_cards_failed',
+        text,
+        { duration_ms: durationMs, failed_entry_count: failedCards.length },
+        counts,
+      );
+      Sentry.captureMessage("Deck import failed: no cards resolved", {
+        level: "error",
         extra: {
           deckListRawString: text,
           stage: "parseResultsIntoDeck",
-          totalRequested: entries.length,
-          totalImported: deck.cards.length,
-          totalFailed: failedCards.length,
+          ...counts,
           deckError: deck.errors,
           failedCards,
         },
       });
-    } else {
-      trackImportSucceeded({
-        cardCount: deck.cards.length,
-        uniqueCardCount: results.length,
-        durationMs,
-      });
+      return deck;
     }
+
+    trackImportPartialFailure({
+      counts,
+      failedEntryCount: failedCards.length,
+      durationMs,
+      rawText: text,
+    });
+
+    Sentry.captureMessage("Partial deck import failure", {
+      level: "warning",
+      extra: {
+        deckListRawString: text,
+        stage: "parseResultsIntoDeck",
+        ...counts,
+        deckError: deck.errors,
+        failedCards,
+      },
+    });
 
     return deck;
   }

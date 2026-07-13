@@ -21,9 +21,16 @@ function card(id: string): Card {
 }
 
 /** A card surface whose `showPreview` actually drives the preview store, so the
- * two-tap machine can read a real "preview visible for this id" state. */
-function CardProbe({ target = CARD_TARGET, onClick }: { target?: MenuTarget; onClick?: () => void }) {
+ * two-tap machine can read a real "preview visible for this id" state.
+ * `menuFirst` picks the order: preview→menu (hand, pile-viewer) or menu→preview
+ * (battlefield). */
+function CardProbe({
+  target = CARD_TARGET,
+  onClick,
+  menuFirst = false,
+}: { target?: MenuTarget; onClick?: () => void; menuFirst?: boolean }) {
   const tap = useContextMenuTap(target, {
+    menuFirst,
     showPreview: (x, y) => {
       const id = 'id' in target ? target.id : 'card-1';
       useCardPreviewStore.getState().show(card(id));
@@ -177,6 +184,73 @@ describe('useContextMenuTap', () => {
       render(<CardProbe />);
       tap('probe-card-1', 'mouse');
       expect(useCardPreviewStore.getState().isVisible).toBe(false);
+      expect(useContextMenuStore.getState().isOpen).toBe(false);
+    });
+  });
+
+  describe('menu-first card surface (battlefield: menu → preview)', () => {
+    it('first tap opens the menu and shows no preview', () => {
+      render(<CardProbe menuFirst />);
+      tap('probe-card-1', 'touch');
+      const menu = useContextMenuStore.getState();
+      expect(menu.isOpen).toBe(true);
+      expect(menu.target).toEqual(CARD_TARGET);
+      expect(useCardPreviewStore.getState().isVisible).toBe(false);
+    });
+
+    it('second tap on the same card swaps the menu for its preview', () => {
+      render(<CardProbe menuFirst />);
+      tap('probe-card-1', 'touch'); // menu
+      tap('probe-card-1', 'touch'); // preview
+      expect(useContextMenuStore.getState().isOpen).toBe(false);
+      const preview = useCardPreviewStore.getState();
+      expect(preview.isVisible).toBe(true);
+      expect(preview.card?.id).toBe('card-1');
+    });
+
+    it('a third tap goes back to the menu (the two toggle)', () => {
+      render(<CardProbe menuFirst />);
+      tap('probe-card-1', 'touch'); // menu
+      tap('probe-card-1', 'touch'); // preview
+      tap('probe-card-1', 'touch'); // menu again
+      expect(useContextMenuStore.getState().isOpen).toBe(true);
+      expect(useCardPreviewStore.getState().isVisible).toBe(false);
+    });
+
+    it('tapping a different card opens THAT card\'s menu (a fresh first tap)', () => {
+      const otherTarget: MenuTarget = { kind: 'battlefieldCard', id: 'card-2' };
+      render(
+        <>
+          <CardProbe menuFirst />
+          <CardProbe menuFirst target={otherTarget} />
+        </>,
+      );
+      tap('probe-card-1', 'touch'); // card-1's menu
+      tap('probe-card-2', 'touch'); // card-2's menu, not card-1's preview
+      const menu = useContextMenuStore.getState();
+      expect(menu.isOpen).toBe(true);
+      expect(menu.target).toEqual(otherTarget);
+      expect(useCardPreviewStore.getState().isVisible).toBe(false);
+    });
+
+    it('the menu-open check is snapshotted at pointer-down, not read at pointer-up', () => {
+      // Radix dismisses the menu on an outside pointer-DOWN, so in the real app
+      // the store already reads isOpen:false by pointer-up. Simulate that here —
+      // happy-dom has no Radix layer, so without this the test would pass even
+      // if the hook (wrongly) read the store at pointer-up. If the snapshot
+      // regresses, the second tap re-opens the menu instead of previewing.
+      render(<CardProbe menuFirst />);
+      tap('probe-card-1', 'touch'); // menu opens
+      expect(useContextMenuStore.getState().isOpen).toBe(true);
+
+      const el = screen.getByTestId('probe-card-1');
+      fireEvent.pointerDown(el, { pointerType: 'touch', pointerId: 1, clientX: 100, clientY: 100 });
+      useContextMenuStore.setState({ isOpen: false }); // Radix's dismiss-on-outside
+      fireEvent.pointerUp(el, { pointerType: 'touch', pointerId: 1, clientX: 100, clientY: 100 });
+
+      const preview = useCardPreviewStore.getState();
+      expect(preview.isVisible).toBe(true);
+      expect(preview.card?.id).toBe('card-1');
       expect(useContextMenuStore.getState().isOpen).toBe(false);
     });
   });

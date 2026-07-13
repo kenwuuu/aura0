@@ -1,0 +1,29 @@
+[Unit]
+Description=MTG Card Search API (port %i)
+After=network.target
+
+[Service]
+Type=simple
+# Prefer a dedicated non-root user over root where possible.
+User=${SERVICE_USER}
+WorkingDirectory=${REPO_DIR}
+
+# %i is the systemd instance name (the port) — this is what enables blue-green:
+# run mtg-card-search@8000 and mtg-card-search@8001 side by side and flip Caddy
+# between them (see scripts/deploy.sh). Bind to 127.0.0.1 only — Caddy is the
+# sole public entry point (see "Rate limiting behind the proxy" in SETUP.md).
+ExecStart=${VENV_DIR}/bin/uvicorn api:app --host 127.0.0.1 --port %i
+
+Restart=always
+RestartSec=3
+
+# Cap memory so a leak or a one-time fallback-build spike restarts THIS instance
+# instead of OOM-killing the whole box (which the API shares with the WS relay).
+# The loaded marisa index keeps the API ~50 MB, so 256 MB is ample headroom.
+MemoryHigh=200M
+MemoryMax=256M
+
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=multi-user.target

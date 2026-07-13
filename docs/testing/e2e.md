@@ -144,16 +144,37 @@ it's the one piece that adds test-only surface to the product bundle and
 carries its own false-green risk if the snapshot drifts from the real schema,
 so it deserves its own pass rather than being squeezed into this round.
 
-## Known product bugs surfaced by this suite (not fixed here, see skip sites)
+## Product bugs surfaced by this suite (all fixed — now regression-guarded)
 
-Phase 3 of the harness rehab found six suspected real product bugs while
-rewriting the advisory suite — each is `test.skip`'d at its exact reproduction
-site in `tests/e2e/app/` rather than fixed (out of scope for a test rehab).
-Full detail is in the Phase 3 log entry of
-`claude_plans/e2e_harness_progress.md`: the toolbar's Token popover never
-opens, the "-1/-1 counter" menu action is an unimplemented no-op, clicking
-"To deck top" in the Scry viewer over-credits the deck by 10x, clicking "To
-deck top"/"To deck bottom" from a pile viewer closes it before a second
-sequential action can run, deck-viewer "To deck top/bottom" menu rows never
-render (a `hotkeys.ts` context-array omission), and toggling "Reveal Hand" off
-closes the Actions dropdown before the click lands.
+Phase 3 of the harness rehab found six real product bugs and `test.skip`'d each
+at its reproduction site rather than fixing them (out of scope for a test
+rehab). **All six are now fixed** — mostly incidentally, by the Manabase
+redesign rewriting the components underneath them — and the skip sites are
+gone. Each is now pinned by a test that has been verified to fail when the fix
+is reverted:
+
+| Bug | Fix | Guarded by |
+|---|---|---|
+| Toolbar's Token popover never opens | `PopoverAnchor`, not `PopoverTrigger` — a Trigger composed a second click handler onto the same item, double-toggling `open` to a net no-op | `GameActionsToolbar.test.tsx`, plus `game_actions.spec.ts` |
+| "-1/-1 counter" menu action is a no-op | `case 'removeCounter'` added to the executor | `battlefieldCardActions.test.ts` |
+| Scry "To deck top" over-credits the deck ~10x | Unified the click and hotkey paths behind `dispatchPileMove` | `ScryManager.test.tsx` |
+| "To deck top"/"bottom" closes the pile viewer | Same root cause as above — one shared handler that no longer closes | `ScryManager.test.tsx` |
+| Deck-viewer "To deck top/bottom" rows never render | `'deckcard'` added to the `T`/`Y` `context` arrays | `hotkeys.test.ts` |
+| "Reveal Hand" toggle-off closes the Actions dropdown | `keepTriggerInteractionsInside` on the menu's `onInteractOutside` | `game_actions.spec.ts` (**e2e only** — see below) |
+
+The scry over-credit and the pile-viewer close were **one bug, not two**:
+`ScryManager.handleClose` returns every *remaining* scried card to the deck, so
+a click path that closed the viewer mid-move dumped the whole scry pile back on
+the library. Moving one card therefore grew the deck by the size of the scry,
+not by one. The regression test asserts the **exact** deck count for this
+reason — "the viewer stayed open" alone would not have caught it.
+
+**The Reveal Hand bug cannot be guarded in happy-dom.** It was a Radix
+dismiss-layer race (the freshly-mounted layer treats the trigger's own
+pointerdown as an outside interaction), and a component test passes identically
+with and without the fix — a false guard. It belongs in e2e, per this repo's
+rule that anything needing real pointer physics is e2e. Its spec deliberately
+reopens the menu with **no sleep**: an earlier version of that test slept 250ms
+first ("if we click actions again too quickly, it fails"), which was the bug
+itself being papered over with a `waitForTimeout`. Removing the sleep is what
+makes it a regression test — with the fix reverted, the reopen click times out.

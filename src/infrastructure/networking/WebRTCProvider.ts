@@ -44,12 +44,21 @@
  */
 
 import * as Y from 'yjs';
-import { WebrtcProvider } from 'y-webrtc';
+import { WebrtcProvider, Room } from 'y-webrtc';
 import { IndexeddbPersistence } from 'y-indexeddb';
 import { WebRTCConfig } from './types';
 import { restoreAwarenessState, setupAwarenessStatePersistence, AwarenessState } from './persistence';
 import {NetworkStatusEvent, YjsNetworkProvider} from "@/infrastructure/networking/YjsNetworkFactory";
 import { ConnectionMonitor } from './ConnectionMonitor';
+import { SyncMonitor } from './SyncMonitor';
+import { registerTransactionOriginClass } from './transactionOrigin';
+
+// y-webrtc applies peer updates from its Room, not from the provider, so it is
+// the Room that shows up as the transaction origin. Naming both these classes
+// here keeps that origin readable in production telemetry, where the class names
+// themselves are mangled.
+registerTransactionOriginClass(Room, 'webrtc');
+registerTransactionOriginClass(IndexeddbPersistence, 'indexeddb');
 
 /**
  * How long every signaling socket can stay unreachable before we flag it.
@@ -57,6 +66,13 @@ import { ConnectionMonitor } from './ConnectionMonitor';
  * websocket handshake, and a healthy one resolves in well under a second.
  */
 const SIGNALING_ERROR_GRACE_PERIOD_MS = 3000;
+
+/**
+ * How long after a peer appears before we expect the doc to have synced with
+ * them. Longer than the signaling threshold — this is real WebRTC/TURN
+ * negotiation plus a CRDT exchange, not a single handshake.
+ */
+const SYNC_ERROR_GRACE_PERIOD_MS = 8000;
 
 /**
  * The bits of a y-webrtc signaling socket we rely on (a lib0 WebsocketClient).
@@ -80,7 +96,10 @@ export class WebRTCProvider implements YjsNetworkProvider{
   private config: WebRTCConfig;
   private cleanupAwarenessPersistence?: () => void;
   private monitor: ConnectionMonitor;
+  private syncMonitor: SyncMonitor;
+  private latestPeerCount = 0;
   private signalingCleanup?: () => void;
+  private syncPeersCleanup?: () => void;
   private readonly statusListeners = new Map<(event: NetworkStatusEvent) => void, (peersEvent: { webrtcPeers: string[] }) => void>();
 
   status(): string {
@@ -161,9 +180,17 @@ export class WebRTCProvider implements YjsNetworkProvider{
       },
     });
 
+    this.syncMonitor = new SyncMonitor({
+      transport: 'webrtc',
+      graceMs: SYNC_ERROR_GRACE_PERIOD_MS,
+      sentryMessage: 'WebRTC peer sync timed out',
+      context: { roomName: this.config.roomName },
+    });
+
     this.setupEventListeners();
     this.setupAwareness();
     this.monitorSignaling();
+    this.monitorSync();
   }
 
   /**
@@ -204,12 +231,34 @@ export class WebRTCProvider implements YjsNetworkProvider{
   private setupEventListeners(): void {
     this.provider.on('synced', (event: { synced: boolean }) => {
       console.log('Yjs synced:', event.synced);
+      if (event.synced) {
+        this.syncMonitor.markSynced(this.latestPeerCount);
+      }
     });
 
     // Log when IndexedDB persistence is ready
     this.persistence.whenSynced.then(() => {
       console.log('Document loaded from IndexedDB');
     });
+  }
+
+  /**
+   * Drives the SyncMonitor from peer presence: a solo player has nothing to
+   * sync with, so the monitor only arms once a peer actually shows up, and
+   * disarms (silently, no report) if that peer disappears before syncing —
+   * that outage is the ConnectionMonitor/UI status's to surface, not this one's.
+   */
+  private monitorSync(): void {
+    const onPeers = (peersEvent: { webrtcPeers: string[] }) => {
+      this.latestPeerCount = peersEvent.webrtcPeers.length;
+      if (this.latestPeerCount > 0) {
+        this.syncMonitor.arm();
+      } else {
+        this.syncMonitor.disarm();
+      }
+    };
+    this.provider.on('peers', onPeers);
+    this.syncPeersCleanup = () => this.provider.off('peers', onPeers);
   }
 
   /**
@@ -246,6 +295,9 @@ export class WebRTCProvider implements YjsNetworkProvider{
     // event would re-arm the monitor and could report after teardown.
     this.signalingCleanup?.();
     this.monitor.destroy();
+
+    this.syncPeersCleanup?.();
+    this.syncMonitor.destroy();
 
     this.provider.destroy();
     this.persistence.destroy();

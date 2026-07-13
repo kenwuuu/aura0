@@ -11,9 +11,10 @@ import { createRoot } from 'react-dom/client';
 import * as Sentry from '@sentry/react';
 import posthog from 'posthog-js';
 
-import { bootstrapGame } from './bootstrap';
+import { bootstrapGame, type BootstrapOptions } from './bootstrap';
 import { App } from './App';
 import { CrashFallback } from './CrashFallback';
+import { DuplicateTabNotice } from './DuplicateTabNotice';
 // Manabase type: Space Grotesk (display/UI) + Space Mono (numbers/labels),
 // self-hosted so the app has no runtime font dependency.
 import '@fontsource/space-grotesk/300.css';
@@ -94,23 +95,44 @@ Sentry.init({
 });
 
 // ── Bootstrap + React root ────────────────────────────────────────────────────
-bootstrapGame()
-  .then((ctx) => {
-    const rootEl = document.getElementById('app-react-root');
-    if (!rootEl) throw new Error('#app-react-root not found in index.html');
-    createRoot(rootEl).render(
-      React.createElement(
-        Sentry.ErrorBoundary,
-        {
-          showDialog: false,
-          fallback: ({ eventId }: { eventId?: string }) =>
-            React.createElement(CrashFallback, { eventId }),
-        },
-        React.createElement(App, ctx),
-      ),
+const rootEl = document.getElementById('app-react-root');
+if (!rootEl) throw new Error('#app-react-root not found in index.html');
+const root = createRoot(rootEl);
+
+/**
+ * Boot the game into the React root — or, if this room is already open in
+ * another tab, show the duplicate-tab screen instead. Answering that screen
+ * with "Play here instead" re-enters here with `takeOverOtherTab`, which claims
+ * the room from the other tab and boots the game in its place. Rejections
+ * propagate to the screen, which is what reports a failed takeover.
+ */
+async function boot(options: BootstrapOptions = {}): Promise<void> {
+  const result = await bootstrapGame(options);
+
+  if (result.status === 'duplicate-tab') {
+    root.render(
+      React.createElement(DuplicateTabNotice, {
+        roomName: result.roomName,
+        onTakeOver: () => boot({ takeOverOtherTab: true }),
+      }),
     );
-  })
-  .catch((error) => {
-    console.error('Failed to initialize app:', error);
-    Sentry.captureException(error);
-  });
+    return;
+  }
+
+  root.render(
+    React.createElement(
+      Sentry.ErrorBoundary,
+      {
+        showDialog: false,
+        fallback: ({ eventId }: { eventId?: string }) =>
+          React.createElement(CrashFallback, { eventId }),
+      },
+      React.createElement(App, result.context),
+    ),
+  );
+}
+
+boot().catch((error) => {
+  console.error('Failed to initialize app:', error);
+  Sentry.captureException(error);
+});

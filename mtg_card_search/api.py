@@ -2,10 +2,8 @@ from fastapi import FastAPI, HTTPException, Query, Request
 from pydantic import BaseModel, Field
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
-from functools import wraps
 from pathlib import Path
-from time import perf_counter
-from typing import Callable, Dict, Iterable, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 import json
 import logging
 import random
@@ -18,6 +16,7 @@ from slowapi.errors import RateLimitExceeded
 from fastapi.middleware.cors import CORSMiddleware
 
 from settings import settings
+from card_index import Dataset, load_dataset, normalize_key  # noqa: F401 (re-exported)
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -45,10 +44,8 @@ BULK_MAX_IDS  = 200
 RANDOM_MAX_N  = 100
 
 # A dataset's underlying .ndjson file is considered stale if it hasn't been
-# replaced (by data_updater.py) in longer than this. data_updater.py's own
-# docstring targets a 5-7 day refresh cadence, so 10 days gives it a couple
-# of missed runs' worth of slack before /v1/health flags it. Reported via
-# /v1/health so an external monitor can poll and alert on it.
+# replaced (by data_updater.py) in longer than this. Reported via /v1/health so
+# an external monitor can poll and alert on it.
 STALE_AFTER_SECONDS = 10 * 24 * 3600
 
 # CORS origins, sourced from the CORS_ORIGIN env var (see settings.py).
@@ -56,169 +53,70 @@ CORS_ORIGINS  = settings.cors_origins
 
 
 # ---------------------------------------------------------------------------
-# Build the file-path registry from DATASET_NAMES
+# Loaded datasets (mmap-backed) + thread-local file handles
 # ---------------------------------------------------------------------------
 
-def _make_data_files() -> Dict[str, Path]:
-    """Return {dataset_name: Path} for every name in DATASET_NAMES."""
-    return {name: CARD_JSON_DIR / f"{name}{NDJSON_EXT}" for name in DATASET_NAMES}
+# name -> Dataset (loaded trie + per-card offsets + generation). A reload swaps a
+# whole Dataset in; single-key dict assignment is atomic under the GIL, and every
+# reader snapshots the current Dataset, so a lookup's offset and file bytes always
+# come from the same NDJSON generation.
+datasets: Dict[str, Dataset] = {}
 
-DATA_FILES: Dict[str, Path] = _make_data_files()
-
-
-# ---------------------------------------------------------------------------
-# Per-dataset indices and thread-local file handles
-# ---------------------------------------------------------------------------
-
-# { dataset_name -> { normalized_key -> byte_offset } }
-indices: Dict[str, Dict[str, int]] = {name: {} for name in DATASET_NAMES}
-
-# { dataset_name -> [byte_offset, ...] } — one entry per (non-skipped) card,
-# built alongside `indices`. Unlike `indices`, which maps several keys (name,
-# set+number, ...) to the same card, this holds exactly one offset per card, so
-# it can be sampled directly by /v1/cards/random without biasing toward cards
-# that happen to have more aliases.
-card_offsets: Dict[str, List[int]] = {name: [] for name in DATASET_NAMES}
-
-# Thread-local open file handles: _local.handles = { dataset_name -> file }
+# Thread-local open file handles, keyed by dataset name -> (generation, file).
 _local = threading.local()
 
 
-def get_handle(dataset: str):
-    """Return (and lazily open) a thread-local read handle for *dataset*."""
+def get_handle(ds: Dataset):
+    """Return (and lazily open) a thread-local read handle for *ds*'s NDJSON.
+
+    The handle is tied to the dataset's generation: when a reload swaps in a newer
+    generation, the next call closes the stale handle and reopens — so a reader
+    never seeks a freshly-built offset into the old (already-replaced) file. This
+    is the fix for the pre-existing stale-handle bug in the in-RAM rebuild path.
+    """
     if not hasattr(_local, "handles"):
         _local.handles = {}
-    handle = _local.handles.get(dataset)
-    if handle is None or handle.closed:
-        _local.handles[dataset] = DATA_FILES[dataset].open("rb")
-    return _local.handles[dataset]
+    cached = _local.handles.get(ds.name)
+    if cached is None or cached[0] != ds.generation or cached[1].closed:
+        if cached is not None and not cached[1].closed:
+            cached[1].close()
+        fh = ds.ndjson_path.open("rb")
+        _local.handles[ds.name] = (ds.generation, fh)
+        return fh
+    return cached[1]
 
 
 # ---------------------------------------------------------------------------
-# Helpers
+# Index load + hot reload
 # ---------------------------------------------------------------------------
 
-def _time_it(title: str):
-    def decorator(func):
-        @wraps(func)
-        def wrapper(*args, **kwargs):
-            start = perf_counter()
-            result = func(*args, **kwargs)
-            logger.info(f"{title} took {perf_counter() - start:.6f}s")
-            return result
-        return wrapper
-    return decorator
-
-
-def normalize_key(raw: str) -> str:
-    return raw.strip().lower().replace(" ", "")
-
-
-# ---------------------------------------------------------------------------
-# Per-dataset key extraction (extensibility point)
-# ---------------------------------------------------------------------------
-
-def _default_should_skip(data: dict) -> bool:
-    # Skip art cards — they are not legal cards.
-    # e.g. ABLB 31 Mr. Foxglove // Mr. Foxglove
-    # As opposed to combined cards which are named differently.
-    # e.g. WOE 7 Cheeky House-Mouse // Squeak By
-    # /v1/cards/slD1512 should work though and return the cat/dog sol ring
-    return data.get("layout") == "art_series"
-
-
-def _default_key_extractor(data: dict) -> Iterable[str]:
-    """Scryfall-schema key extractor: name, flavor_name, printed_name, set+collector_number."""
-    name_key = normalize_key(data["name"].split(' // ')[0])
-    flavor_name_key = normalize_key(data.get("flavor_name", ''))
-    printed_name_key = normalize_key(data.get("printed_name", ''))
-    set_key = normalize_key(f'{data["set"]}{data["collector_number"]}')
-
-    yield name_key
-    if flavor_name_key:
-        yield flavor_name_key
-    if printed_name_key:
-        yield printed_name_key
-    yield set_key
-
-
-# DESIGN DECISION: per-dataset extensibility hooks. Every dataset defaults to
-# the Scryfall-schema extractor/predicate above. To support a dataset with a
-# different schema, override its entry before build_all_indices() runs, e.g.
-# KEY_EXTRACTORS["my_dataset"] = my_custom_extractor.
-SKIP_PREDICATES: Dict[str, Callable[[dict], bool]] = {
-    name: _default_should_skip for name in DATASET_NAMES
-}
-KEY_EXTRACTORS: Dict[str, Callable[[dict], Iterable[str]]] = {
-    name: _default_key_extractor for name in DATASET_NAMES
-}
-
-
-# ---------------------------------------------------------------------------
-# Index building (per-dataset)
-# ---------------------------------------------------------------------------
-
-@_time_it("Building index")
-def build_index(dataset: str) -> None:
-    """(Re)build the in-memory index for a single dataset file.
-
-    Keys are produced by SKIP_PREDICATES[dataset] / KEY_EXTRACTORS[dataset] —
-    see the registries above for how to support a different schema.
-    """
-    path = DATA_FILES[dataset]
-    new_index: Dict[str, int] = {}
-    new_offsets: List[int] = []
-    should_skip = SKIP_PREDICATES[dataset]
-    extract_keys = KEY_EXTRACTORS[dataset]
-
-    logger.info(f"Building index for [{dataset}]")
-
-    with path.open("rb") as f:
-        while True:
-            offset = f.tell()
-            line = f.readline()
-            if not line:
-                break
-
-            data = json.loads(line)
-
-            if should_skip(data):
-                continue
-
-            new_offsets.append(offset)
-            for key in extract_keys(data):
-                if key not in new_index:
-                    new_index[key] = offset
-
-    # Atomic rebind — readers always look up `indices[dataset]` /
-    # `card_offsets[dataset]` fresh, so these swaps never expose a
-    # partially-populated structure to a concurrent reader.
-    indices[dataset] = new_index
-    card_offsets[dataset] = new_offsets
-    logger.info(f"[{dataset}] Index built with {len(new_index)} entries.")
-
-
-def build_all_indices() -> None:
+def load_all_datasets() -> None:
     for name in DATASET_NAMES:
-        build_index(name)
+        datasets[name] = load_dataset(CARD_JSON_DIR, name)
 
-
-# ---------------------------------------------------------------------------
-# File watcher — rebuilds only the dataset whose file changed
-# ---------------------------------------------------------------------------
 
 async def watch_data_files() -> None:
-    paths_to_watch = [str(p) for p in DATA_FILES.values()]
-    # Reverse map: absolute path string -> dataset name
-    path_to_dataset = {str(p.resolve()): name for name, p in DATA_FILES.items()}
+    """Reload a dataset when data_updater finishes (re)building its artifacts.
 
-    logger.info(f"Watching: {paths_to_watch}")
-    async for changes in watchfiles.awatch(*paths_to_watch):
+    The meta file (`<name>.index.json`) is written LAST by build_artifacts, so
+    reacting to *its* change means we only reload once every artifact is in place.
+    """
+    meta_to_name = {
+        str((CARD_JSON_DIR / f"{name}.index.json").resolve()): name
+        for name in DATASET_NAMES
+    }
+    logger.info("Watching %s for index updates", CARD_JSON_DIR)
+    async for changes in watchfiles.awatch(str(CARD_JSON_DIR)):
+        reloaded: set[str] = set()
         for _change_type, changed_path in changes:
-            dataset = path_to_dataset.get(str(Path(changed_path).resolve()))
-            if dataset:
-                logger.info(f"{changed_path} changed — rebuilding [{dataset}]...")
-                build_index(dataset)
+            name = meta_to_name.get(str(Path(changed_path).resolve()))
+            if name and name not in reloaded:
+                logger.info("[%s] index artifacts changed — reloading", name)
+                try:
+                    datasets[name] = load_dataset(CARD_JSON_DIR, name)
+                    reloaded.add(name)
+                except Exception:
+                    logger.exception("[%s] reload failed; keeping previous index", name)
 
 
 # ---------------------------------------------------------------------------
@@ -227,11 +125,15 @@ async def watch_data_files() -> None:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    missing = [str(p) for p in DATA_FILES.values() if not p.exists()]
+    missing = [
+        str(CARD_JSON_DIR / f"{name}{NDJSON_EXT}")
+        for name in DATASET_NAMES
+        if not (CARD_JSON_DIR / f"{name}{NDJSON_EXT}").exists()
+    ]
     if missing:
         raise RuntimeError(f"Data file(s) not found: {missing}")
 
-    build_all_indices()
+    load_all_datasets()
     task = asyncio.create_task(watch_data_files())
     yield
     task.cancel()
@@ -245,7 +147,16 @@ async def lifespan(app: FastAPI):
 # App + middleware
 # ---------------------------------------------------------------------------
 
-app = FastAPI(title="Card Lookup API", lifespan=lifespan)
+# Interactive docs (/docs, /redoc) and the OpenAPI schema (/openapi.json) map
+# the entire API surface, so they're disabled unless EXPOSE_DOCS is set (see
+# settings.expose_docs). Passing None for these URLs removes the routes
+# entirely rather than just hiding them.
+_docs_kwargs = (
+    {}
+    if settings.expose_docs
+    else {"docs_url": None, "redoc_url": None, "openapi_url": None}
+)
+app = FastAPI(title="Card Lookup API", lifespan=lifespan, **_docs_kwargs)
 
 app.add_middleware(
     CORSMiddleware,
@@ -261,6 +172,17 @@ app.add_middleware(
 # this is only the real client IP if uvicorn trusts the proxy's X-Forwarded-For
 # (--forwarded-allow-ips); otherwise every request collapses to the proxy IP and
 # the limit becomes global. See "Rate limiting behind the proxy" in SETUP.md.
+#
+# CAVEAT (prod topology, verified 2026-07): the origin runs behind
+# Cloudflare -> Caddy -> uvicorn. uvicorn does trust Caddy (127.0.0.1), but the
+# stock Caddyfile forwards Cloudflare's *edge* IP, not the end user's — it has no
+# `trusted_proxies` block and doesn't promote Cloudflare's `CF-Connecting-IP`
+# header. So this limiter currently keys on a small pool of Cloudflare edge IPs:
+# it does NOT partition by real client, making it a weak per-user control. To
+# make it meaningful: (1) give Caddy `trusted_proxies` = Cloudflare's ranges and
+# have it forward CF-Connecting-IP, and (2) restrict 80/443 to Cloudflare so the
+# origin can't be reached directly (a direct hit bypasses both Cloudflare's edge
+# limits and this one). See "Rate limiting behind the proxy" in SETUP.md.
 limiter = Limiter(key_func=get_remote_address)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
@@ -270,31 +192,32 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 # Lookup helpers
 # ---------------------------------------------------------------------------
 
-def _dataset_for_request(dataset: Optional[str]) -> str:
+def _dataset_for_request(dataset: Optional[str]) -> Dataset:
     """
-    Resolve which dataset to query.
+    Resolve which dataset to query, returning the loaded Dataset.
 
     DESIGN DECISION: when no dataset is specified by the caller, fall back to
-    the first entry in DATASET_NAMES. If you want an explicit "default dataset"
-    constant, add one. If ambiguity should be an error instead, raise HTTPException here.
+    the first entry in DATASET_NAMES. If ambiguity should be an error instead,
+    raise HTTPException here.
     """
     if dataset is not None:
-        if dataset not in indices:
+        if dataset not in datasets:
             raise HTTPException(status_code=400, detail=f"Unknown dataset: {dataset!r}. "
-                                                        f"Valid options: {list(indices)}")
-        return dataset
-    return DATASET_NAMES[0]  # DESIGN DECISION: default dataset fallback
+                                                        f"Valid options: {list(datasets)}")
+        return datasets[dataset]
+    return datasets[DATASET_NAMES[0]]  # DESIGN DECISION: default dataset fallback
+
 
 def lookup(card_id: str, dataset: Optional[str] = None) -> Optional[dict]:
     ds = _dataset_for_request(dataset)
-    offset = indices[ds].get(normalize_key(card_id))
+    offset = ds.get_offset(normalize_key(card_id))
 
     if offset is None:
         # DESIGN DECISION: cross-dataset fallback chain, e.g. an Oracle-only
         # card ID falling back to a unique-artwork dataset. Configure via
         # DATASET_FALLBACKS (see settings.py).
-        fallback = settings.dataset_fallbacks.get(ds)
-        if fallback and fallback != ds and fallback in indices:
+        fallback = settings.dataset_fallbacks.get(ds.name)
+        if fallback and fallback != ds.name and fallback in datasets:
             return lookup(card_id.lower(), fallback)
         return None
 
@@ -303,7 +226,7 @@ def lookup(card_id: str, dataset: Optional[str] = None) -> Optional[dict]:
         f.seek(offset)
         return json.loads(f.readline())
     except (OSError, json.JSONDecodeError):
-        logger.exception(f"Failed to read card {card_id!r} from dataset [{ds}] at offset {offset}")
+        logger.exception(f"Failed to read card {card_id!r} from dataset [{ds.name}] at offset {offset}")
         return None
 
 
@@ -312,11 +235,10 @@ def bulk_lookup(
         dataset: Optional[str] = None,
 ) -> Tuple[List[dict], List[str]]:
     ds = _dataset_for_request(dataset)
-    index = indices[ds]
     f = get_handle(ds)
     found, not_found = [], []
     for card_id in card_ids:
-        offset = index.get(normalize_key(card_id))
+        offset = ds.get_offset(normalize_key(card_id))
         if offset is None:
             not_found.append(card_id)
         else:
@@ -333,7 +255,7 @@ def random_cards(n: int, dataset: Optional[str] = None) -> List[dict]:
     dataset holds fewer than *n* cards, every card is returned.
     """
     ds = _dataset_for_request(dataset)
-    offsets = card_offsets[ds]
+    offsets = ds.offsets
     f = get_handle(ds)
     cards = []
     for offset in random.sample(offsets, min(n, len(offsets))):
@@ -360,14 +282,13 @@ class BulkLookupRequest(BaseModel):
 # Routes
 # ---------------------------------------------------------------------------
 
-def _dataset_health(name: str, idx: Dict[str, int]) -> dict:
+def _dataset_health(name: str, ds: Dataset) -> dict:
     """Entry count plus freshness, derived from the .ndjson file's mtime so
     it reflects when data_updater.py last replaced it — not when this
-    process last rebuilt its in-memory index (which also happens on every
-    restart, and would otherwise look falsely fresh after one)."""
-    info = {"entries": len(idx), "last_updated": None, "age_seconds": None, "stale": None}
+    process last (re)loaded its index."""
+    info = {"entries": len(ds.trie), "last_updated": None, "age_seconds": None, "stale": None}
     try:
-        mtime = DATA_FILES[name].stat().st_mtime
+        mtime = ds.ndjson_path.stat().st_mtime
     except OSError:
         return info
     last_updated = datetime.fromtimestamp(mtime, tz=timezone.utc)
@@ -382,12 +303,12 @@ def _dataset_health(name: str, idx: Dict[str, int]) -> dict:
 
 @app.get("/v1/health")
 def health():
-    if not any(indices.values()):
+    if not datasets:
         raise HTTPException(status_code=503, detail="No indices loaded")
-    datasets = {name: _dataset_health(name, idx) for name, idx in indices.items()}
+    ds_health = {name: _dataset_health(name, ds) for name, ds in datasets.items()}
     return {
-        "status": "degraded" if any(d["stale"] for d in datasets.values()) else "ok",
-        "datasets": datasets,
+        "status": "degraded" if any(d["stale"] for d in ds_health.values()) else "ok",
+        "datasets": ds_health,
     }
 
 

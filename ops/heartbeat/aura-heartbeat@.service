@@ -1,0 +1,19 @@
+[Unit]
+# %i is the service being watched: relay | card-api. One instance per service, so an
+# alert names which one died — a single combined check would only say "something on
+# the box is broken".
+Description=Aura heartbeat for %i
+Documentation=https://github.com/kenwuuu/aura0/blob/master/ops/heartbeat/README.md
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+
+# 0600, holds the Healthchecks capability URL. Not in git.
+EnvironmentFile=/etc/aura/heartbeat-%i.env
+ExecStart=/usr/local/bin/aura-heartbeat.sh
+
+# A heartbeat must never be the thing that takes the box down: it shares 1GB with the
+# relay and the card API.
+MemoryMax=32M

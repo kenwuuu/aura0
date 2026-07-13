@@ -53,6 +53,29 @@ export async function reloadAndResync(page: Page): Promise<void> {
 }
 
 /**
+ * Open the same room in a second tab of the *same* browser context — sharing
+ * localStorage, and so resolving to the same player id. That is the duplicate
+ * replica the tab lock exists to prevent, and it is only reproducible in one
+ * context: `connectSecondPlayer` opens a separate context, which is a different
+ * player and perfectly legal.
+ *
+ * Returns the second tab *without* waiting for a game, because the whole point
+ * is that it should not get one — callers assert what it shows instead.
+ */
+export async function openDuplicateTab(page: Page): Promise<Page> {
+  // The fixture clears localStorage *after* the app booted, so the player id the
+  // first tab is running on is no longer on disk for a second tab to read. Reload
+  // to regenerate and persist it — a second tab is only a duplicate if it
+  // resolves to the same player.
+  await reloadAndResync(page);
+
+  const duplicate = await page.context().newPage();
+  await blockAnalytics(duplicate);
+  await duplicate.goto(page.url(), { waitUntil: 'networkidle' });
+  return duplicate;
+}
+
+/**
  * Open a second browser context in the same room (real WebRTC, not a mock
  * transport — that's what makes this tier catch sync-timing bugs). Waits for
  * both sides to see two seated players before returning.

@@ -82,4 +82,50 @@ describe('GameActionsToolbar', () => {
     expect(log.some((e) => e.type === 'pass_turn')).toBe(true);
     expect(player.getState().health).toBe(healthBefore);
   });
+
+  /**
+   * Regression: the "Token" create item hosts a popover (the drag-to-board
+   * keyword grid) rather than performing an action. It once used a
+   * `PopoverTrigger` wrapped around the `DropdownMenuItem` while *also*
+   * toggling `open` from `onSelect` — two handlers on one click, netting out to
+   * "never opens". It is now a `PopoverAnchor` (position only, no click
+   * behavior). Assert the grid is actually reachable.
+   */
+  it('Create dropdown: Token opens the keyword-token popover and keeps the menu open', async () => {
+    const user = userEvent.setup();
+    renderWithGame(<GameActionsToolbar />);
+
+    await user.click(screen.getByRole('button', { name: /Create/ }));
+    await user.click(await screen.findByRole('menuitem', { name: 'Token' }));
+
+    expect(await screen.findByText(/drag a token onto the board/i)).toBeInTheDocument();
+    // The item `preventDefault`s its own select so the dropdown survives —
+    // otherwise the popover would open and its anchor would vanish underneath it.
+    expect(screen.getByRole('menuitem', { name: 'Token Card' })).toBeInTheDocument();
+  });
+
+  /**
+   * Regression: these dropdowns are `modal={false}` (an item can open a Dialog,
+   * and two modal layers fight over `document.body`'s pointer-events). The cost
+   * is that Radix's freshly-mounted dismiss layer used to treat the click that
+   * *reopens* the trigger as an outside interaction and close the menu again —
+   * so after selecting any item, the next click on "Actions" did nothing.
+   * `keepTriggerInteractionsInside` fixes it. Reveal Hand is the sharpest case:
+   * it's the only stateful item, so a user genuinely reopens the menu to toggle
+   * it back off.
+   */
+  it('Actions dropdown: reopens after an item was selected, so Reveal Hand can be toggled back off', async () => {
+    const user = userEvent.setup();
+    const { player } = renderWithGame(<GameActionsToolbar />);
+
+    await user.click(screen.getByRole('button', { name: /Actions/ }));
+    await user.click(await screen.findByRole('menuitem', { name: 'Reveal Hand' }));
+    expect(player.getAllowViewHand()).toBe(true);
+
+    // The reopen is the regression: this click used to be swallowed.
+    await user.click(screen.getByRole('button', { name: /Actions/ }));
+    await user.click(await screen.findByRole('menuitem', { name: 'Reveal Hand' }));
+
+    expect(player.getAllowViewHand()).toBe(false);
+  });
 });

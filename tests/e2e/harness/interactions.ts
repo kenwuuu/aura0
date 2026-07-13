@@ -1,5 +1,5 @@
 import { Page, Locator, expect } from '@playwright/test';
-import { boardCard, pileTile, whiteboard, deckImportOpenButton, deckImportModal, boardTokens } from './pageObjects';
+import { boardCard, boardCardNode, cardPreview, pileTile, whiteboard, deckImportOpenButton, deckImportModal, boardTokens, transformPosition } from './pageObjects';
 import { TESTID, PileKind } from './selectors';
 
 export async function centerOf(locator: Locator): Promise<{ x: number; y: number }> {
@@ -39,6 +39,63 @@ export async function realMouseMoveTo(page: Page, to: { x: number; y: number }, 
   await page.mouse.move(to.x, to.y, { steps });
 }
 
+/**
+ * Park the real mouse cursor clear of the board and wait for the hover preview
+ * it was holding open to clear.
+ *
+ * A desktop runner with `hasTouch` has *both* a mouse and a touchscreen. Any
+ * harness step that uses the mouse — `playCreature` drags a card from hand to
+ * board — leaves the cursor sitting on the card it just placed, with the
+ * desktop hover preview up for it. A real phone has neither a cursor nor hover.
+ * Call this before touch-tapping a board card so the tap begins from the state
+ * a touch device is actually in: without it, the first tap finds a preview
+ * already open for that very card and behaves like a *second* tap, opening the
+ * menu immediately and hiding whatever the first tap was supposed to do.
+ *
+ * The park point is the far-left edge at mid-height — clear of the board's
+ * nodes, of the toolbar along the top, and of the dock along the bottom.
+ */
+export async function parkMouseAwayFromBoard(page: Page): Promise<void> {
+  await realMouseMoveTo(page, { x: 5, y: 400 });
+  await expect(cardPreview(page)).toBeHidden();
+}
+
+/**
+ * Zoom the board out until a pile is actually within the viewport, and return it.
+ *
+ * A fresh room auto-fits the board to the **local** player's mat, so an
+ * opponent's mat sits above the visible area — their discard pile lands at a
+ * negative `y`, and a tap at its "centre" hits nothing at all (`boundingBox()`
+ * still reports a box, so this fails silently rather than erroring). A real
+ * player pans or zooms to see their opponent; the harness zooms, which is
+ * deterministic. Any spec that interacts with an opponent's board furniture
+ * needs this first.
+ */
+export async function revealPile(
+  page: Page,
+  kind: PileKind,
+  ownerId: string,
+  maxZoomOuts = 6,
+): Promise<Locator> {
+  const tile = pileTile(page, kind, ownerId);
+  const zoomOut = page.getByRole('button', { name: /zoom out/i });
+  for (let i = 0; i <= maxZoomOuts; i++) {
+    const box = await tile.boundingBox();
+    const vp = page.viewportSize();
+    if (
+      box && vp &&
+      box.x >= 0 && box.y >= 0 &&
+      box.x + box.width <= vp.width && box.y + box.height <= vp.height
+    ) {
+      return tile;
+    }
+    await zoomOut.click();
+  }
+  throw new Error(
+    `The ${kind} pile owned by ${ownerId} never came fully on screen after ${maxZoomOuts} zoom-outs.`,
+  );
+}
+
 /** A card's aspect ratio flips between portrait (untapped) and landscape
  * (tapped) — used as a DOM-visible proxy for tap state, since there's no
  * dedicated `data-tapped` attribute. */
@@ -70,6 +127,41 @@ export async function mouseDrag(
   await page.waitForTimeout(120);
   await page.mouse.up();
   await page.waitForTimeout(350);
+}
+
+/**
+ * Drag a board card while sampling where an *observer* page is rendering it.
+ *
+ * Live drag is streamed over Yjs awareness, so the only way to prove a peer sees
+ * the card move — rather than just teleport on drop — is to look at the observer
+ * mid-gesture. Returns the observer's board-space samples, so a spec can assert
+ * on the motion itself rather than only on the final resting place.
+ */
+export async function dragBoardCardWatchedBy(
+  page: Page,
+  card: Locator,
+  to: { x: number; y: number },
+  observer: Page,
+  cardId: string,
+  samples = 10,
+): Promise<({ x: number; y: number } | null)[]> {
+  const from = await centerOf(card);
+  const observed: ({ x: number; y: number } | null)[] = [];
+
+  await page.mouse.move(from.x, from.y);
+  await page.mouse.down();
+  await page.mouse.move(from.x + 15, from.y + 15, { steps: 5 }); // exceed the drag threshold
+
+  for (let i = 1; i <= samples; i++) {
+    const t = i / samples;
+    await page.mouse.move(from.x + (to.x - from.x) * t, from.y + (to.y - from.y) * t, { steps: 3 });
+    // Let the position cross the wire and get painted before we look.
+    await observer.waitForTimeout(60);
+    observed.push(await transformPosition(boardCardNode(observer, cardId)));
+  }
+
+  await page.mouse.up();
+  return observed;
 }
 
 /**

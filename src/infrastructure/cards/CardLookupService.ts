@@ -1,5 +1,5 @@
 import { DeckLineItem } from '@/features/deck-manager/DeckListParser';
-import { CardApiClient, FetchListResult } from './CardApiClient';
+import { CardApiClient, FetchListResult, LookupFailure } from './CardApiClient';
 import { createAuraClient, createScryfallClient } from './clients';
 import { toCardDataResult } from './ScryfallCardAdapter';
 import { CardDataResult, ScryfallCard } from './types';
@@ -7,6 +7,27 @@ import { CardDataResult, ScryfallCard } from './types';
 export type LookupListResult = FetchListResult & {
   /** How many items the primary client couldn't resolve and got handed to the fallback. */
   fallbackTriggeredCount: number;
+  /**
+   * Of those, how many the fallback then resolved. `triggered - recovered - failed === 0`.
+   *
+   * Reporting the trigger alone can't distinguish "Aura missed it, Scryfall
+   * saved it" (a silent recovery — the user never notices) from "neither backend
+   * had it" (a card the user actually loses). Those are different problems: the
+   * first is an Aura index-coverage gap, the second is a dead card. Splitting the
+   * outcome is what makes the fallback's recovery rate a real proportion.
+   */
+  fallbackRecoveredCount: number;
+  /** Of those handed to the fallback, how many it also failed to resolve. */
+  fallbackFailedCount: number;
+  /**
+   * Every item the primary (Aura) client couldn't resolve, and why.
+   *
+   * The counts above say *how many* Aura missed; this says *which cards* and
+   * *for what reason*. Without it, a 404 (the card really isn't indexed) and a
+   * blocked request (the backend never answered) are the same number — which is
+   * exactly how a Cloudflare outage spent a month being read as an index gap.
+   */
+  auraFailures: LookupFailure[];
 };
 
 /**
@@ -35,7 +56,13 @@ export class CardLookupService {
     const primaryRun = await this.primary.fetchImagesForList(entries, onProgress);
 
     if (primaryRun.failedItems.length === 0) {
-      return { ...primaryRun, fallbackTriggeredCount: 0 };
+      return {
+        ...primaryRun,
+        fallbackTriggeredCount: 0,
+        fallbackRecoveredCount: 0,
+        fallbackFailedCount: 0,
+        auraFailures: [],
+      };
     }
 
     const fallbackTriggeredCount = primaryRun.failedItems.length;
@@ -49,10 +76,16 @@ export class CardLookupService {
     // the fallback found (success or final error).
     const primarySuccesses = primaryRun.results.filter((r) => !r.error);
 
+    const fallbackFailedCount = fallbackRun.failedItems.length;
+
     return {
       results: [...fallbackRun.results, ...primarySuccesses],
       failedItems: fallbackRun.failedItems,
+      failures: fallbackRun.failures,
       fallbackTriggeredCount,
+      fallbackRecoveredCount: fallbackTriggeredCount - fallbackFailedCount,
+      fallbackFailedCount,
+      auraFailures: primaryRun.failures,
     };
   }
 

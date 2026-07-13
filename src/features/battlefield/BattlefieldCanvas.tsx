@@ -23,7 +23,7 @@ import { HealthNode } from './nodes/HealthNode';
 import { PileNode } from './nodes/PileNode';
 import { useBattlefieldNodes, type DragNodeState } from './useBattlefieldNodes';
 import { usePeerCursors } from './usePeerCursors';
-import { PeerCursor } from './nodes/PeerCursor';
+import { PeerCursorLayer } from './nodes/PeerCursorLayer';
 import { AWARENESS_CURSOR } from './awareness';
 import { usePlaymatNodes } from './usePlaymatNodes';
 import { applyHealthHoverElevation } from './healthNodeHover';
@@ -144,18 +144,22 @@ function BattlefieldCanvasInner({ yDoc, localPlayerId }: BattlefieldCanvasProps)
     useGameInstance.getState().setScreenToFlowPosition(screenToFlowPosition);
   }, [screenToFlowPosition]);
 
-  const peers = usePeerCursors(awareness, yDoc);
+  const { peers, registerCursorEl } = usePeerCursors(awareness, yDoc);
   const rafRef = useRef<number | null>(null);
+  const pendingCursorRef = useRef<{ x: number; y: number } | null>(null);
   useEffect(() => () => { if (rafRef.current !== null) cancelAnimationFrame(rafRef.current); }, []);
 
+  // Broadcast at most one cursor position per frame, and make it the *newest*
+  // one. A leading-edge throttle (keep the first sample of the frame, drop the
+  // rest) would put a frame of staleness on the wire before the packet even left.
   const onPointerMove = useCallback((e: React.PointerEvent) => {
+    pendingCursorRef.current = { x: e.clientX, y: e.clientY };
     if (rafRef.current !== null) return;
-    const clientX = e.clientX;
-    const clientY = e.clientY;
     rafRef.current = requestAnimationFrame(() => {
       rafRef.current = null;
-      const pos = screenToFlowPosition({ x: clientX, y: clientY });
-      awareness?.setLocalStateField(AWARENESS_CURSOR, pos);
+      const latest = pendingCursorRef.current;
+      if (!latest) return;
+      awareness?.setLocalStateField(AWARENESS_CURSOR, screenToFlowPosition(latest));
     });
   }, [awareness, screenToFlowPosition]);
 
@@ -164,6 +168,7 @@ function BattlefieldCanvasInner({ yDoc, localPlayerId }: BattlefieldCanvasProps)
       cancelAnimationFrame(rafRef.current);
       rafRef.current = null;
     }
+    pendingCursorRef.current = null;
     awareness?.setLocalStateField(AWARENESS_CURSOR, null);
   }, [awareness]);
 
@@ -224,9 +229,19 @@ function BattlefieldCanvasInner({ yDoc, localPlayerId }: BattlefieldCanvasProps)
     if (!el) return;
     let start: { x: number; y: number; menuWasOpen: boolean; previewWasVisible: boolean } | null = null;
     const onDown = (e: PointerEvent) => {
-      const onPane = e.target instanceof Element && !!e.target.closest('.react-flow__pane');
-      if (onPane) panePointerTypeRef.current = e.pointerType;
-      start = onPane && e.pointerType !== 'mouse'
+      const el = e.target instanceof Element ? e.target : null;
+      const insidePane = !!el?.closest('.react-flow__pane');
+      if (insidePane) panePointerTypeRef.current = e.pointerType;
+      // `.react-flow__pane` is an *ancestor* of the viewport, so every node
+      // (card, token, pile, health) is "inside the pane" by `closest`. This
+      // handler summons the *empty-board* menu, so it must fire only where
+      // there is no node under the finger — otherwise it hijacks every node
+      // tap, and on a card that's fatal: the `previewWasVisible` branch below
+      // runs on the second tap, hiding the preview and returning before the
+      // card's own handler sees it, so the two-tap machine can never advance
+      // from preview to menu.
+      const onEmptyPane = insidePane && !el?.closest('.react-flow__node');
+      start = onEmptyPane && e.pointerType !== 'mouse'
         ? {
             x: e.clientX,
             y: e.clientY,
@@ -630,13 +645,7 @@ function BattlefieldCanvasInner({ yDoc, localPlayerId }: BattlefieldCanvasProps)
           <SettingsButton />
         </Panel>
         <ViewportPortal>
-          <div style={{ position: 'absolute', inset: 0, zIndex: 9999, pointerEvents: 'none' }}>
-            {peers.map(p => (
-              <div key={p.clientId} style={{ position: 'absolute', transform: `translate(${p.x}px, ${p.y}px)` }}>
-                <PeerCursor color={p.color} name={p.name} />
-              </div>
-            ))}
-          </div>
+          <PeerCursorLayer peers={peers} registerCursorEl={registerCursorEl} />
         </ViewportPortal>
       </ReactFlow>
     </div>

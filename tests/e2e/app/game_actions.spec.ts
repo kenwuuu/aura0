@@ -190,13 +190,22 @@ test('Actions > Reveal Hand logs reveal', async ({ page }) => {
   await expect(page.locator('text=revealed their hand')).toBeVisible({ timeout: 3000 });
 });
 
-test('Actions > Reveal Hand toggle off logs the stop-revealing message', async ({ page }) => {
+/**
+ * Reveal Hand is the only stateful item in the Actions menu, so it is the one
+ * users genuinely reopen the menu to toggle back off — which is what made it the
+ * sharpest case of the dismiss-layer bug: reopening a non-modal DropdownMenu
+ * right after selecting an item, Radix treated the trigger's own pointerdown as
+ * an outside interaction and closed the menu again, so the second click was
+ * swallowed. `keepTriggerInteractionsInside` (GameActionsToolbar.tsx) fixes it.
+ *
+ * This test used to sleep 250ms before reopening ("if we click actions again too
+ * quickly, it fails") — that sleep was the bug, not a timing quirk. It is
+ * deliberately absent: reopening immediately is the regression this guards.
+ */
+test('Actions > Reveal Hand toggles back off — the menu reopens immediately after a select', async ({ page }) => {
   await toolbar(page).getByText('Actions').click();
   await page.getByRole('menuitem', { name: 'Reveal Hand' }).click();
   await expect(page.locator('text=revealed their hand')).toBeVisible({ timeout: 3000 });
-
-  // sleep 250ms because if we click actions again too quickly, it fails
-  await page.waitForTimeout(250);
 
   await toolbar(page).getByText('Actions').click();
   await page.getByRole('menuitem', { name: 'Reveal Hand' }).click();

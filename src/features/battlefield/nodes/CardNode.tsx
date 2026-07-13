@@ -80,6 +80,14 @@ export const CardNode = memo(function CardNode({ data, id, selected }: NodeProps
   }, []);
 
   const handleMouseLeave = useCallback(() => {
+    // Inert on touch, for the same reason as mouseenter above: a tap's compat
+    // mouse sequence can hand the card a stray mouseleave, which would tear down
+    // the preview the tap just raised and strand the two-tap machine on its
+    // first step (it re-previews forever, never reaching the menu). Taps own the
+    // preview on touch; the tap machine and the board/drag handlers dismiss it.
+    // (`hovered` is only ever raised on desktop, so bailing here can't strand the
+    // hover glow on.)
+    if (wasLastInputTouch()) return;
     setHovered(false);
     useHotkeyStore.getState().setHoveredBattlefieldCard(null);
     useCardPreviewStore.getState().hide();
@@ -95,9 +103,11 @@ export const CardNode = memo(function CardNode({ data, id, selected }: NodeProps
     });
   }, [id]);
 
-  // On touch, a tap previews this card; a second tap on it opens the same
-  // context menu right-click does on desktop (two-tap machine).
-  const tapMenu = useContextMenuTap({ kind: 'battlefieldCard', id }, { showPreview });
+  // On touch, a tap opens the same context menu right-click does on desktop; a
+  // second tap on the card swaps that for its preview (menu-first two-tap). On
+  // the board the menu is what you're usually reaching for — tap, flip, add a
+  // counter — so it leads, unlike hand / pile-viewer cards where the preview does.
+  const tapMenu = useContextMenuTap({ kind: 'battlefieldCard', id }, { showPreview, menuFirst: true });
 
   // tap + rotation transform
   const rotation = resolveCardRotation(card);
