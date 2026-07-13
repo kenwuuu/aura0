@@ -23,6 +23,27 @@ silently, and pm2 restart-looped it forever with empty logs, while `node server.
 worked perfectly. Don't reintroduce a main-module guard here; keep `listen()` in a module
 nothing else imports.
 
+## `@y/websocket-server` is pinned exactly. Do not put a caret on it.
+
+`package.json` pins `"@y/websocket-server": "0.1.1"` — no `^`. This is not tidiness, it is the
+fix for the 2026-07-13 outage.
+
+`0.1.1` declares no `yjs` dependency at all, so it uses whatever Yjs the host tree provides —
+here, `yjs@13`, the same major the browser client ships. `0.1.5` — a **patch** bump, inside the
+`^0.1.1` range npm will happily take — moved to `yjs: ^14.0.0-7`. Because this directory has its
+own isolated `node_modules`, that pulled a Yjs 14 line in next to our Yjs 13. Worse, the 0.1.5
+tree pulls **two mutually incompatible Yjs 14 prereleases**: `@y/protocols@1.0.6-rc.1` resolves
+`@y/y@14.0.0-rc.7`, while `@y/websocket-server` uses a nested `yjs@14.0.0-16`. The sync protocol
+builds structs with one and hands them to a `Doc` from the other, and the relay throws
+`TypeError: store.getClock is not a function` on **every incoming update**.
+
+What that looks like in production is the nasty part: the WebSocket upgrade succeeds, rooms are
+created and evicted correctly, and `/health` is green — while every board stays empty. Telemetry
+showed `connection_outcome` at ~100% connected and `sync_outcome` at ~100% `timed_out`.
+
+`test/client-sync.test.js` and the deploy smoke test now both drive a real Yjs client and assert
+a write actually crosses the relay. Run them before believing any relay is healthy.
+
 ## Why this isn't the stock server
 
 `server.js` is `@y/websocket-server`'s stock entrypoint plus two changes. The wire protocol
@@ -102,10 +123,14 @@ Then:
 
 `stage` refuses to hand you a broken instance: it aborts if the process restarts even once (the
 never-listened crash-loop signature, see Layout) or if `scripts/smoke_test.mjs` fails. That smoke
-test drives a real WebSocket client against the staged port and asserts, via `/health`, that a
-room is held while a client is connected, **survives one client of several leaving**, and is
-evicted once empty. The middle assertion is the one that matters most — premature eviction would
-drop a room out from under a live game, which is worse than the leak.
+test asserts, via `/health`, that a room is held while a client is connected, **survives one
+client of several leaving**, and is evicted once empty — and then, crucially, that **a real Yjs
+client can write and have another client see it through the relay**.
+
+That last assertion is the one that matters. Every other check on this page passes against a
+relay that cannot apply a single update — that is exactly what shipped on 2026-07-13 and emptied
+every board in production. Room accounting and `/health` tell you the relay is *alive*, not that
+it is *relaying*. Never flip on them alone.
 
 ### Flip and drain are separate on purpose
 

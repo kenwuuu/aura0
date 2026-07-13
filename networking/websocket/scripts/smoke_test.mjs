@@ -12,6 +12,8 @@
  * It only needs `ws`, a production dependency, so it runs against a `--omit=dev` install.
  */
 import WebSocket from 'ws';
+import * as Y from 'yjs';
+import { WebsocketProvider } from 'y-websocket';
 
 const port = process.argv[2];
 if (!port) {
@@ -103,6 +105,59 @@ result = await waitFor(async () => {
   return { ok: n === baseline, n };
 }, 'the room to be evicted');
 check(result.ok, 'the room is evicted once its last client disconnects', `rooms=${result.n}, want ${baseline}`);
+
+// ---------------------------------------------------------------------------
+// Does the relay actually RELAY? Everything above passes against a relay that
+// cannot apply a single Yjs update — that is precisely what shipped on
+// 2026-07-13: /health was green, rooms came and went correctly, and every board
+// in production stayed empty because a broken dependency tree made the server
+// throw on every incoming update. Raw `ws` sockets cannot see that. Only a real
+// Yjs client can. Never flip on the checks above alone.
+// ---------------------------------------------------------------------------
+const syncRoom = `aura-smoke-sync-${process.pid}-${Date.now()}`;
+
+function connectClient(doc) {
+  return new WebsocketProvider(`ws://127.0.0.1:${port}`, syncRoom, doc, {
+    WebSocketPolyfill: WebSocket,
+    // Off, or the two clients below sync to each other over a local BroadcastChannel and
+    // the relay is never actually exercised. That false green is the whole reason this
+    // section exists.
+    disableBc: true,
+  });
+}
+
+const settle = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+const syncedWithin = (provider, ms = 8000) =>
+  Promise.race([
+    new Promise((resolve) => provider.on('sync', (isSynced) => isSynced && resolve(true))),
+    settle(ms).then(() => false),
+  ]);
+
+const docA = new Y.Doc();
+const providerA = connectClient(docA);
+const aSynced = await syncedWithin(providerA);
+check(aSynced, 'a real Yjs client reaches synced against the relay');
+
+const docB = new Y.Doc();
+const providerB = connectClient(docB);
+const bSynced = await syncedWithin(providerB);
+check(bSynced, 'a second real Yjs client reaches synced');
+
+docA.getMap('board').set('card', 'Black Lotus');
+
+const propagated = await Promise.race([
+  new Promise((resolve) => {
+    const seen = () => docB.getMap('board').get('card') === 'Black Lotus' && resolve(true);
+    docB.getMap('board').observe(seen);
+    seen();
+  }),
+  settle(8000).then(() => false),
+]);
+check(propagated, "a write on one client reaches another THROUGH the relay (it is actually relaying)");
+
+providerA.destroy();
+providerB.destroy();
+await settle(300);
 
 console.log(failed ? '== SMOKE TEST FAILED ==' : '== smoke test passed ==');
 process.exit(failed ? 1 : 0);

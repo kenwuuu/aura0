@@ -7,12 +7,13 @@
   "main": "server.js",
   "scripts": {
     "start": "node main.js",
-    "test": "node --test \"test/*.test.js\""
+    "test": "node --test-force-exit --test \"test/*.test.js\""
   },
   "dependencies": {
-    "@y/websocket-server": "^0.1.1",
+    "@y/websocket-server": "0.1.1",
     "lib0": "^0.2.102",
     "ws": "^8.18.0",
+    "y-websocket": "^3.0.0",
     "yjs": "^13.6.27"
   }
 }
