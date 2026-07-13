@@ -1,5 +1,5 @@
 import { DeckLineItem } from '@/features/deck-manager/DeckListParser';
-import { CardApiClient, FetchListResult } from './CardApiClient';
+import { CardApiClient, FetchListResult, LookupFailure } from './CardApiClient';
 import { createAuraClient, createScryfallClient } from './clients';
 import { toCardDataResult } from './ScryfallCardAdapter';
 import { CardDataResult, ScryfallCard } from './types';
@@ -19,6 +19,15 @@ export type LookupListResult = FetchListResult & {
   fallbackRecoveredCount: number;
   /** Of those handed to the fallback, how many it also failed to resolve. */
   fallbackFailedCount: number;
+  /**
+   * Every item the primary (Aura) client couldn't resolve, and why.
+   *
+   * The counts above say *how many* Aura missed; this says *which cards* and
+   * *for what reason*. Without it, a 404 (the card really isn't indexed) and a
+   * blocked request (the backend never answered) are the same number — which is
+   * exactly how a Cloudflare outage spent a month being read as an index gap.
+   */
+  auraFailures: LookupFailure[];
 };
 
 /**
@@ -52,6 +61,7 @@ export class CardLookupService {
         fallbackTriggeredCount: 0,
         fallbackRecoveredCount: 0,
         fallbackFailedCount: 0,
+        auraFailures: [],
       };
     }
 
@@ -71,9 +81,11 @@ export class CardLookupService {
     return {
       results: [...fallbackRun.results, ...primarySuccesses],
       failedItems: fallbackRun.failedItems,
+      failures: fallbackRun.failures,
       fallbackTriggeredCount,
       fallbackRecoveredCount: fallbackTriggeredCount - fallbackFailedCount,
       fallbackFailedCount,
+      auraFailures: primaryRun.failures,
     };
   }
 

@@ -1,5 +1,7 @@
 import posthog from 'posthog-js';
 import {YSTATE_HEALTH} from "@/constants";
+import type { DeckLineItem } from '@/features/deck-manager/DeckListParser';
+import type { LookupFailure, LookupFailureReason } from '@/infrastructure/cards/CardApiClient';
 
 // HEALTH
 
@@ -324,21 +326,39 @@ export function trackImportFailed(
   });
 }
 
+/** Bounds event size. A deck is ~100 cards; a longer list adds no diagnostic value. */
+const MAX_REPORTED_CARD_NAMES = 30;
+
 /**
  * Emitted once per import in which the primary (Aura) backend missed at least one
  * card. Reports the full outcome, not just the trigger: how many the Scryfall
  * fallback then recovered vs. how many no backend could resolve.
+ *
+ * The failure *reason* breakdown is the point. A 404 means Aura answered and the
+ * card genuinely isn't indexed; anything else means Aura never answered at all.
+ * Those are opposite problems with opposite fixes, and reporting them as one
+ * number ("aura_miss_rate") is how a Cloudflare edge block spent a month being
+ * read as a card-index coverage gap.
  */
 export function trackFallbackOutcome(props: {
   triggeredCount: number;
   recoveredCount: number;
   failedCount: number;
   totalCount: number;
+  auraFailures: LookupFailure[];
+  deadItems: DeckLineItem[];
 }): void {
+  const byReason = (reason: LookupFailureReason) =>
+    props.auraFailures.filter((f) => f.reason === reason);
+
+  const notFound = byReason('not_found');
+  const infraFailed = props.auraFailures.filter((f) => f.reason !== 'not_found');
+
   posthog.capture('deck_import_fallback_triggered', {
     // Legacy property names, kept so existing insights keep resolving.
     aura_failed_count: props.triggeredCount,
     total_count: props.totalCount,
+    aura_miss_rate: props.totalCount > 0 ? props.triggeredCount / props.totalCount : 0,
 
     fallback_recovered_count: props.recoveredCount,
     fallback_failed_count: props.failedCount,
@@ -346,9 +366,50 @@ export function trackFallbackOutcome(props: {
     // rate means cards are dying, not just being routed around.
     fallback_recovery_rate:
       props.triggeredCount > 0 ? props.recoveredCount / props.triggeredCount : 0,
-    // What share of this deck did Aura miss? This is the index-coverage signal.
-    aura_miss_rate: props.totalCount > 0 ? props.triggeredCount / props.totalCount : 0,
+
+    // --- Why Aura failed. `aura_miss_rate` above conflates all of these. ---
+    aura_failed_not_found: notFound.length,
+    aura_failed_rate_limited: byReason('rate_limited').length,
+    aura_failed_blocked: byReason('blocked').length,
+    aura_failed_server_error: byReason('server_error').length,
+    aura_failed_network_or_blocked: byReason('network_or_blocked').length,
+    aura_failed_timeout: byReason('timeout').length,
+    aura_failed_unknown: byReason('unknown').length,
+    aura_dominant_failure_reason: mostCommonReason(props.auraFailures),
+
+    // The honest split of the old `aura_miss_rate`. Index misses are a data
+    // problem (reindex); infra failures are an availability problem (page someone).
+    aura_index_miss_rate: props.totalCount > 0 ? notFound.length / props.totalCount : 0,
+    aura_infra_failure_rate:
+      props.totalCount > 0 ? infraFailed.length / props.totalCount : 0,
+
+    // Names of cards Aura answered "not found" for — the actual index-coverage
+    // gap, and the list to go fix. Deliberately excludes infra failures: when the
+    // backend is unreachable, the "missing" cards are just whatever happened to be
+    // in the deck (Sol Ring, basic lands), which is noise, not signal.
+    aura_not_found_cards: notFound
+      .slice(0, MAX_REPORTED_CARD_NAMES)
+      .map((f) => f.item.name),
+    // Cards no backend could resolve. These are the ones the user actually loses.
+    dead_cards: props.deadItems
+      .slice(0, MAX_REPORTED_CARD_NAMES)
+      .map((item) => item.name),
   });
+}
+
+function mostCommonReason(failures: LookupFailure[]): LookupFailureReason | undefined {
+  const counts = new Map<LookupFailureReason, number>();
+  for (const f of failures) counts.set(f.reason, (counts.get(f.reason) ?? 0) + 1);
+
+  let best: LookupFailureReason | undefined;
+  let bestCount = 0;
+  for (const [reason, count] of counts) {
+    if (count > bestCount) {
+      best = reason;
+      bestCount = count;
+    }
+  }
+  return best;
 }
 
 export function trackImportSucceeded(props: {
