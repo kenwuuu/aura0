@@ -10,6 +10,67 @@ export type CardApiEndpoints = {
   bySet: (setCode: string, collectorNumber: string) => string;
 };
 
+/**
+ * Why a lookup failed. The distinction that matters is `not_found` (the backend
+ * answered, and the card genuinely isn't in its index) versus everything else
+ * (the backend never got to answer). Collapsing the two is what let a month-long
+ * Cloudflare outage read as a card-index coverage gap.
+ */
+export type LookupFailureReason =
+  | 'not_found'
+  | 'rate_limited'
+  | 'blocked'
+  | 'server_error'
+  | 'network_or_blocked'
+  | 'timeout'
+  | 'unknown';
+
+export type LookupFailure = {
+  item: DeckLineItem;
+  reason: LookupFailureReason;
+  /** Absent when the response was never readable (see `network_or_blocked`). */
+  status?: number;
+};
+
+export class CardApiError extends Error {
+  readonly reason: LookupFailureReason;
+  readonly status?: number;
+
+  constructor(message: string, reason: LookupFailureReason, status?: number) {
+    super(message);
+    this.name = 'CardApiError';
+    this.reason = reason;
+    this.status = status;
+  }
+}
+
+function reasonForStatus(status: number): LookupFailureReason {
+  if (status === 404) return 'not_found';
+  if (status === 429) return 'rate_limited';
+  if (status === 401 || status === 403) return 'blocked';
+  if (status >= 500) return 'server_error';
+  return 'unknown';
+}
+
+/**
+ * `fetch` rejects with a TypeError for a network failure, a DNS failure, and —
+ * critically — a response the browser blocks for CORS. A CORS-blocked response is
+ * opaque: JS cannot read its status, so an edge block (a Cloudflare challenge, a
+ * WAF rule) is indistinguishable from being offline. Both land in
+ * `network_or_blocked`, which is why that bucket being non-zero is the signature
+ * worth alerting on — it means requests aren't reaching us at all.
+ */
+function classifyError(err: unknown): LookupFailure['reason'] {
+  if (err instanceof CardApiError) return err.reason;
+  if (err instanceof Error && err.name === 'TimeoutError') return 'timeout';
+  if (err instanceof TypeError) return 'network_or_blocked';
+  return 'unknown';
+}
+
+function statusOf(err: unknown): number | undefined {
+  return err instanceof CardApiError ? err.status : undefined;
+}
+
 export type CardApiClientConfig = {
   name: string;
   baseUrl: string;
@@ -24,6 +85,8 @@ export type CardApiClientConfig = {
 export type FetchListResult = {
   results: CardDataResult[];
   failedItems: DeckLineItem[];
+  /** Parallel to `failedItems`, but carries why each one failed. */
+  failures: LookupFailure[];
 };
 
 /**
@@ -95,15 +158,17 @@ export class CardApiClient {
   ): Promise<FetchListResult> {
     const results: CardDataResult[] = [];
     const failedItems: DeckLineItem[] = [];
+    const failures: LookupFailure[] = [];
     let completed = 0;
 
     for (const entry of entries) {
-      const card = await this.lookupEntry(entry, retries);
+      const outcome = await this.lookupEntry(entry, retries);
 
-      if (card) {
-        results.push(toCardDataResult(card, entry.count, entry.commander));
+      if (outcome.card) {
+        results.push(toCardDataResult(outcome.card, entry.count, entry.commander));
       } else {
         failedItems.push(entry);
+        failures.push({ item: entry, reason: outcome.reason, status: outcome.status });
         results.push({
           count: entry.count,
           name: entry.name,
@@ -111,7 +176,7 @@ export class CardApiClient {
           scryfallId: '',
           imageUris: { front: null, back: null },
           commander: entry.commander,
-          error: `[${this.config.name}] lookup failed for "${entry.name}"`,
+          error: `[${this.config.name}] lookup failed for "${entry.name}" (${outcome.reason})`,
         });
       }
 
@@ -119,7 +184,7 @@ export class CardApiClient {
       onProgress?.(completed, entries.length);
     }
 
-    return { results, failedItems };
+    return { results, failedItems, failures };
   }
 
   getQueueSize(): number {
@@ -130,40 +195,51 @@ export class CardApiClient {
     return this.queue.pending;
   }
 
+  /**
+   * Resolves one entry, reporting *why* it failed rather than just that it did.
+   * When both the set and name lookups are tried, the name lookup's reason wins —
+   * it's the attempt that actually decided the outcome.
+   */
   private async lookupEntry(
     entry: DeckLineItem,
     retries: number,
-  ): Promise<ScryfallCard | undefined> {
+  ): Promise<{ card?: ScryfallCard; reason: LookupFailureReason; status?: number }> {
     if (entry.setCode && entry.collectorNumber) {
       try {
-        return await this.fetchBySet(
+        const card = await this.fetchBySet(
           entry.setCode,
           entry.collectorNumber,
           retries,
           entry.name,
         );
+        return { card, reason: 'unknown' };
       } catch (err) {
         // bySet failed — try name within this same client before giving up
         try {
-          return await this.fetchByName(entry.name, retries);
+          const card = await this.fetchByName(entry.name, retries);
+          return { card, reason: 'unknown' };
         } catch (fallbackErr) {
           console.error(
             `[${this.config.name}] both set and name lookups failed for "${entry.name}"`,
             { primary: err, fallback: fallbackErr },
           );
-          return undefined;
+          return {
+            reason: classifyError(fallbackErr),
+            status: statusOf(fallbackErr),
+          };
         }
       }
     }
 
     try {
-      return await this.fetchByName(entry.name, retries);
+      const card = await this.fetchByName(entry.name, retries);
+      return { card, reason: 'unknown' };
     } catch (err) {
       console.error(
         `[${this.config.name}] name lookup failed for "${entry.name}"`,
         err,
       );
-      return undefined;
+      return { reason: classifyError(err), status: statusOf(err) };
     }
   }
 
@@ -185,13 +261,26 @@ export class CardApiClient {
   }
 
   private async requestJson(url: string, label: string): Promise<ScryfallCard> {
-    const response = await fetch(url);
+    let response: Response;
+    try {
+      response = await fetch(url);
+    } catch (err) {
+      // No status to read here — see `classifyError`. This is the bucket an edge
+      // block lands in, so it must stay distinct from a 404.
+      throw new CardApiError(
+        `[${this.config.name}] ${label}: request never completed (${String(err)})`,
+        classifyError(err),
+      );
+    }
+
     if (!response.ok) {
-      if (response.status === 404) {
-        throw new Error(`${label} not found`);
-      }
-      throw new Error(
-        `[${this.config.name}] ${response.status} ${response.statusText} for ${url}`,
+      const reason = reasonForStatus(response.status);
+      throw new CardApiError(
+        reason === 'not_found'
+          ? `${label} not found`
+          : `[${this.config.name}] ${response.status} ${response.statusText} for ${url}`,
+        reason,
+        response.status,
       );
     }
     return (await response.json()) as ScryfallCard;

@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import { MtgTextListDeckImporter } from './MtgTextListDeckImporter';
 import { CardLookupService } from '@/infrastructure/cards';
+import type { LookupFailureReason } from '@/infrastructure/cards/CardApiClient';
 import posthog from 'posthog-js';
 
 // We mock posthog-js — not our own PosthogFunctions wrapper — so the analytics
@@ -29,8 +30,17 @@ const captureCount = (event: string): number =>
 type LookupOptions = {
   /** Card names whose lookup fails in both backends. */
   failNames?: string[];
-  /** Simulated Aura→Scryfall fallback outcome for this run. */
-  fallback?: { triggered: number; recovered: number; failed: number };
+  /**
+   * Simulated Aura→Scryfall fallback outcome for this run. `reasons` models *why*
+   * Aura missed each card (parallel to the first `triggered` entries); it defaults
+   * to `not_found`, i.e. a genuine index gap.
+   */
+  fallback?: {
+    triggered: number;
+    recovered: number;
+    failed: number;
+    reasons?: LookupFailureReason[];
+  };
   /** When set, the lookup never settles — used to model an abandoned import. */
   hang?: boolean;
 };
@@ -74,12 +84,25 @@ function makeMockLookup(options: LookupOptions = {}): CardLookupService {
 
     entries.forEach((_, index) => onProgress?.(index + 1, entries.length));
 
+    const failedItems = entries.filter((entry) => failNames.has(entry.name));
+    const triggered = options.fallback?.triggered ?? 0;
+    // The cards Aura missed are modelled as the first `triggered` entries.
+    const auraFailures = entries.slice(0, triggered).map((item, index) => ({
+      item,
+      reason: options.fallback?.reasons?.[index] ?? ('not_found' as LookupFailureReason),
+    }));
+
     return {
       results,
-      failedItems: entries.filter((entry) => failNames.has(entry.name)),
-      fallbackTriggeredCount: options.fallback?.triggered ?? 0,
+      failedItems,
+      failures: failedItems.map((item) => ({
+        item,
+        reason: 'not_found' as LookupFailureReason,
+      })),
+      fallbackTriggeredCount: triggered,
       fallbackRecoveredCount: options.fallback?.recovered ?? 0,
       fallbackFailedCount: options.fallback?.failed ?? 0,
+      auraFailures,
     };
   });
 
@@ -402,6 +425,88 @@ DECK:
       await importWith(STANDARD_60);
 
       expect(captureCount('deck_import_fallback_triggered')).toBe(0);
+    });
+
+    // The distinction these two tests draw is the whole reason the reason-breakdown
+    // exists: both imports below miss the same number of cards, so the legacy
+    // `aura_miss_rate` is identical (0.5) for both. Only the split tells you that
+    // one is a card-index gap to reindex and the other is a backend outage to page
+    // someone about.
+    it('attributes a genuine index gap to not_found, and names the cards', async () => {
+      await importWith(
+        `1 Brazen Borrower // Petty Theft
+1 Fable of the Mirror-Breaker // Reflection of Kiki-Jiki
+1 Island
+1 Mountain`,
+        {
+          fallback: {
+            triggered: 2,
+            recovered: 2,
+            failed: 0,
+            reasons: ['not_found', 'not_found'],
+          },
+        },
+      );
+
+      expect(capturedProps('deck_import_fallback_triggered')).toMatchObject({
+        aura_failed_not_found: 2,
+        aura_failed_network_or_blocked: 0,
+        aura_dominant_failure_reason: 'not_found',
+        aura_index_miss_rate: 0.5,
+        aura_infra_failure_rate: 0,
+        // Front faces: the parser reduces "Front // Back" before lookup, because
+        // the card API indexes the front face.
+        aura_not_found_cards: ['Brazen Borrower', 'Fable of the Mirror-Breaker'],
+      });
+    });
+
+    it('attributes a blocked backend to infra, and does not blame the card index', async () => {
+      await importWith(
+        `1 Sol Ring
+1 Counterspell
+1 Island
+1 Mountain`,
+        {
+          fallback: {
+            triggered: 2,
+            recovered: 2,
+            failed: 0,
+            reasons: ['network_or_blocked', 'network_or_blocked'],
+          },
+        },
+      );
+
+      const props = capturedProps('deck_import_fallback_triggered');
+      expect(props).toMatchObject({
+        aura_failed_network_or_blocked: 2,
+        aura_failed_not_found: 0,
+        aura_dominant_failure_reason: 'network_or_blocked',
+        aura_index_miss_rate: 0,
+        aura_infra_failure_rate: 0.5,
+      });
+      // Cards lost to an unreachable backend are whatever happened to be in the
+      // deck — reporting them as index misses is what sent us hunting for a
+      // culprit card that never existed.
+      expect(props!.aura_not_found_cards).toEqual([]);
+      // ...while the legacy metric cannot tell the two cases apart at all.
+      expect(props!.aura_miss_rate).toBe(0.5);
+    });
+
+    it('reports cards no backend could resolve — the ones the player actually loses', async () => {
+      await importWith(
+        `1 Sol Ring
+1 Totally Fake Card`,
+        {
+          failNames: ['Totally Fake Card'],
+          fallback: { triggered: 1, recovered: 0, failed: 1, reasons: ['not_found'] },
+        },
+      );
+
+      expect(capturedProps('deck_import_fallback_triggered')).toMatchObject({
+        dead_cards: ['Totally Fake Card'],
+        fallback_failed_count: 1,
+        fallback_recovery_rate: 0,
+      });
     });
   });
 

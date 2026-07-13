@@ -28,6 +28,7 @@
 import * as Y from 'yjs';
 import { WebsocketProvider as WsProvider } from "y-websocket";
 import { IndexeddbPersistence } from 'y-indexeddb';
+import { registerTransactionOriginClass } from './transactionOrigin';
 import { WebsocketConfig } from './types';
 import { restoreAwarenessState, setupAwarenessStatePersistence, AwarenessState } from './persistence';
 import {NetworkStatusEvent, YjsNetworkProvider} from "@/infrastructure/networking/YjsNetworkFactory";
@@ -54,6 +55,12 @@ const SYNC_ERROR_GRACE_PERIOD_MS = 5000;
 
 /** The relay every WebSocket-transport client connects to. */
 const WS_SERVER_URL = 'wss://digitalocean-ws-ipv4.aura0.app';
+
+// Both objects apply remote updates to the Y.Doc, and Yjs passes whichever one
+// did so as the transaction origin. Naming them here keeps that origin readable
+// in production telemetry, where the class names themselves are mangled.
+registerTransactionOriginClass(WsProvider, 'websocket');
+registerTransactionOriginClass(IndexeddbPersistence, 'indexeddb');
 
 /**
  * Main Websocket provider class that manages peer-to-peer connections
@@ -153,12 +160,20 @@ export class WebsocketProvider implements YjsNetworkProvider{
    * the monitor's connected/disconnected edges. The SyncMonitor rides along:
    * armed on connect, disarmed (silently) on disconnect so a fresh episode
    * starts cleanly on the next reconnect rather than measuring across the gap.
+   *
+   * 'connecting' is its own edge, not a flavour of 'disconnected': y-websocket
+   * emits it from setupWS() for every socket it opens, i.e. once per retry. That
+   * is what lets connect_ms time the attempt that succeeded instead of the whole
+   * outage — see ConnectionMonitor.markConnecting().
    */
   private monitorConnection(): void {
     this.provider.on('status', ({ status }: { status: string }) => {
       if (status === 'connected') {
         this.monitor.markConnected();
         this.syncMonitor.arm();
+      } else if (status === 'connecting') {
+        this.monitor.markConnecting();
+        this.syncMonitor.disarm();
       } else {
         this.monitor.markDisconnected();
         this.syncMonitor.disarm();

@@ -226,24 +226,37 @@ function extractSetInfo(line: string): { setCode: string; collectorNumber: strin
   return { setCode, collectorNumber };
 }
 
-function extractCardName(line: string, parts: string[]): string {
-  // if name has a slash, remove the slash and anything after
-  let slashIndex: number = parts.indexOf('/');
-  const doubleSlashIndex: number = parts.indexOf('//');
-  slashIndex = Math.min(slashIndex, doubleSlashIndex)
-  if (slashIndex !== -1) parts = parts.slice(0, slashIndex);
+/**
+ * Reduce a two-faced card's name to its front face: "Brazen Borrower // Petty
+ * Theft" -> "Brazen Borrower".
+ *
+ * Exporters disagree — Moxfield writes the full "A // B" for double-faced, split,
+ * and Adventure cards while others write only the front face — but the card API
+ * indexes the front face, so the full name 404s and the lookup silently falls
+ * through to Scryfall. Splitting on whitespace-delimited tokens (rather than a
+ * bare substring) keeps a slash *inside* a name from being mistaken for a
+ * separator.
+ */
+function stripBackFace(name: string): string {
+  const words = name.split(/\s+/);
+  const separator = words.findIndex((word) => word === '/' || word === '//');
+  return separator === -1 ? name : words.slice(0, separator).join(' ');
+}
 
+function extractCardName(line: string, parts: string[]): string {
   const setInfo = extractSetInfo(line);
 
   if (setInfo) {
-    // If there's set info, extract name between count and opening paren
+    // With set info, the name sits between the count and the opening paren. This
+    // reads the raw line, so it has to strip the back face itself — slicing
+    // `parts` would not reach it.
     const startIndex = line.indexOf('(');
     const countLength = parts[0].length;
-    return line.substring(countLength, startIndex).trim();
+    return stripBackFace(line.substring(countLength, startIndex).trim());
   }
 
   // No set info - just join all parts after the count
-  return parts.slice(1).join(' ');
+  return stripBackFace(parts.slice(1).join(' '));
 }
 
 function parseLine(line: string): DeckLineItem {

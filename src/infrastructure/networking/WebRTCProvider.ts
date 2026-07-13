@@ -44,13 +44,21 @@
  */
 
 import * as Y from 'yjs';
-import { WebrtcProvider } from 'y-webrtc';
+import { WebrtcProvider, Room } from 'y-webrtc';
 import { IndexeddbPersistence } from 'y-indexeddb';
 import { WebRTCConfig } from './types';
 import { restoreAwarenessState, setupAwarenessStatePersistence, AwarenessState } from './persistence';
 import {NetworkStatusEvent, YjsNetworkProvider} from "@/infrastructure/networking/YjsNetworkFactory";
 import { ConnectionMonitor } from './ConnectionMonitor';
 import { SyncMonitor } from './SyncMonitor';
+import { registerTransactionOriginClass } from './transactionOrigin';
+
+// y-webrtc applies peer updates from its Room, not from the provider, so it is
+// the Room that shows up as the transaction origin. Naming both these classes
+// here keeps that origin readable in production telemetry, where the class names
+// themselves are mangled.
+registerTransactionOriginClass(Room, 'webrtc');
+registerTransactionOriginClass(IndexeddbPersistence, 'indexeddb');
 
 /**
  * How long every signaling socket can stay unreachable before we flag it.
