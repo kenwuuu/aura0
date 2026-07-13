@@ -40,6 +40,34 @@ const MAIN_HEADERS = new Set([
   'counter', 'counters', 'nonbasic', 'basics', 'basic lands',
 ]);
 
+/**
+ * How many cards a command zone can hold: two, for partners or a commander and
+ * its background.
+ *
+ * A list earns the second one by *saying where the command zone ends* — with a
+ * blank line or a "Deck" header. That is the only evidence we have that a second
+ * legendary is a partner rather than the first card of the deck, because a text
+ * list carries no card types. So the bound is really two-tier:
+ *
+ *   Commander            Commander
+ *   1 Thrasios           1 Sauron, Lord of the Rings
+ *   1 Tymna              1 Anger                       <- no blank line, no
+ *                        1 Arcane Denial                  "Deck" header, ever
+ *   1 Sol Ring           ...
+ *   ...
+ *   ^ terminated:        ^ never terminated: the section would otherwise run to
+ *     partners, both       the end and tag all 100 cards. `Player` draws every
+ *     tagged.              commander-tagged card, so that hands the player their
+ *                          entire deck. Overrunning the bound is the proof that
+ *                          this list marks no boundary at all, so we keep the
+ *                          first card and read the rest as deck.
+ *
+ * The conservative reading costs a partners player one drag from the deck. The
+ * generous one puts a card they never chose into their opening hand, on a list
+ * that gave us nothing to justify it.
+ */
+const MAX_COMMANDERS = 2;
+
 // How each line reads once section context is set aside.
 type LineKind =
   | { kind: 'blank' }
@@ -80,6 +108,13 @@ export function parseDecklistWithStats(text: string): ParsedDecklist {
   const items: DeckLineItem[] = [];
   let excludedCardCount = 0;
   let section: SectionType = 'default';
+  // Whether the active section has taken a card yet. A blank line only means
+  // "section over" once the section has content — see the `blank` case below.
+  let sectionHasCards = false;
+  let commanderCount = 0;
+  // Cards tagged by the command zone currently open, so an overrun can take the
+  // tag back — see the overflow branch below.
+  let openCommanders: DeckLineItem[] = [];
 
   for (const rawLine of text.trim().split('\n')) {
     const parsed = classifyLine(rawLine);
@@ -88,26 +123,63 @@ export function parseDecklistWithStats(text: string): ParsedDecklist {
       case 'header':
         // Switch context for the card lines that follow.
         section = parsed.section;
+        sectionHasCards = false;
+        openCommanders = [];
         break;
       case 'card':
+        sectionHasCards = true;
         if (section === 'excluded') {
           excludedCardCount += parsed.item.count;
           break;
         }
         if (section === 'commander') {
-          parsed.item.commander = true;
+          if (commanderCount + parsed.item.count <= MAX_COMMANDERS) {
+            parsed.item.commander = true;
+            commanderCount += parsed.item.count;
+            openCommanders.push(parsed.item);
+          } else {
+            // The zone overran its limit, which means this list never marked
+            // where the command zone ended — no blank line, no "Deck" header.
+            // With no structure to read, the generous reading (partners) is a
+            // guess, and guessing wrong puts a card the player never chose into
+            // their opening hand. So take the conservative one: the first card
+            // is the commander, everything after it is the deck. A player who
+            // wants partners can say so by formatting the list.
+            for (const overreach of openCommanders.slice(1)) {
+              delete overreach.commander;
+            }
+            openCommanders = [];
+            section = 'default';
+          }
         }
         items.push(parsed.item);
         break;
       case 'blank':
-        // A blank line closes a sideboard/maybeboard section so that cards
-        // listed after it import again — MTGO/Arena exports can place a card
-        // (e.g. a companion) below the "SIDEBOARD:" block. Only `excluded`
-        // resets: a blank inside the command zone must keep tagging its cards,
-        // and comments never reset (a comment inside a sideboard shouldn't leak
-        // its cards into the deck).
-        if (section === 'excluded') {
+        // A blank line ends a section — but only once that section has taken a
+        // card. Exporters disagree about what a blank means, and that one
+        // qualifier is what reconciles them:
+        //
+        //   Commander:     <- a list that never re-opens with a "Deck" header.
+        //   1 Atraxa          The blank is the only thing marking the command
+        //                     zone as over; without it every remaining card is
+        //   1 Sol Ring        tagged commander and Player draws the whole deck
+        //   ...               into the opening hand.
+        //
+        //   Sideboard      <- the blank is padding under the header, not a
+        //                     terminator. Ending the section here would import
+        //   1 Duress          all 15 sideboard cards into the deck.
+        //   ...
+        //
+        //   Sideboard      <- MTGO/Arena park a companion below the block. The
+        //   1 Duress          section has cards, so the blank ends it and the
+        //                     companion imports.
+        //   1 Lurrus
+        //
+        // Comments never end a section: a comment inside a sideboard must not
+        // leak the cards under it into the deck.
+        if (sectionHasCards) {
           section = 'default';
+          sectionHasCards = false;
         }
         break;
       default:
@@ -186,6 +258,7 @@ function matchHeader(text: string): SectionType | null {
   const normalized = trimmed
     .replace(/^\[|\]$/g, '')        // wrapping [ ] (Archidekt category)
     .replace(/\s*\(\d+\)\s*$/, '')  // trailing "(count)"
+    .replace(/^["'“”‘’]+|["'“”‘’]+$/g, '')  // wrapping quotes, straight or curly
     .replace(/:\s*$/, '')           // trailing colon
     .trim()
     .toLowerCase();
