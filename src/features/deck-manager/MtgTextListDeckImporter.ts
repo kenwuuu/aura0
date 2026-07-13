@@ -131,6 +131,8 @@ export class MtgTextListDeckImporter extends DeckImporter {
       importedCardCount: deck.cards.length,
       uniqueImportedCount: results.length - failedCards.length,
       excludedCardCount: parsed.excludedCardCount,
+      excludedSections: parsed.excludedSections,
+      unrecognizedSections: parsed.unrecognizedSections,
     };
 
     if (!deck.errors || deck.errors.length === 0) {

@@ -344,6 +344,49 @@ DECK:
       expect(props!.raw_text).toBe(deckText);
     });
 
+    it('imports a legal 100 from a list whose sideboard contains a blank line', async () => {
+      // The regression that made ~10% of "successful" imports come out over-sized:
+      // a blank line inside the sideboard used to reopen the main deck, so the
+      // three cards below it were imported and a 100-card deck arrived as 103.
+      await importWith(`COMMANDER:
+1 Flubs, the Fool
+
+DECK:
+99 Mountain
+
+SIDEBOARD:
+1 Ancient Grudge
+
+1 Counterspell
+2 Pyroblast`);
+
+      expect(capturedProps('deck_import_succeeded')).toMatchObject({
+        requested_card_count: 100,
+        imported_card_count: 100,
+        excluded_card_count: 4, // 1 Grudge + 1 Counterspell + 2 Pyroblast
+        excluded_sections: ['sideboard'],
+        is_standard_deck_size: true,
+        is_standard_imported_size: true,
+      });
+    });
+
+    it('names the unrecognized header when one waves cards into the main deck', async () => {
+      // A custom category we don't know is imported as main — the likeliest cause
+      // of an over-sized deck, and the only signal that can name the culprit.
+      await importWith(`Deck
+60 Mountain
+
+Pet Cards (2)
+1 Sol Ring
+1 Arcane Signet`);
+
+      expect(capturedProps('deck_import_succeeded')).toMatchObject({
+        requested_card_count: 62,
+        is_standard_deck_size: false,
+        unrecognized_sections: ['pet cards'],
+      });
+    });
+
     it('counts the sideboard cards it deliberately dropped', async () => {
       await importWith(`${STANDARD_60}
 

@@ -191,6 +191,14 @@ export type ImportCounts = {
   uniqueImportedCount: number;
   /** Cards the parser deliberately dropped (sideboard, maybeboard, …). */
   excludedCardCount: number;
+  /** Which sections those dropped cards came from, e.g. `["sideboard"]`. */
+  excludedSections: string[];
+  /**
+   * Header labels the parser didn't recognize and imported as main deck anyway.
+   * When a deck comes out over-sized, this is the first place to look — a custom
+   * category we waved through that was really a sideboard.
+   */
+  unrecognizedSections: string[];
 };
 
 /**
@@ -205,6 +213,8 @@ function countProperties(counts: ImportCounts): Record<string, unknown> {
     imported_card_count: counts.importedCardCount,
     unique_imported_count: counts.uniqueImportedCount,
     excluded_card_count: counts.excludedCardCount,
+    excluded_sections: counts.excludedSections,
+    unrecognized_sections: counts.unrecognizedSections,
     // > 0 means the lookup dropped cards the list explicitly asked for.
     cards_missing: counts.requestedCardCount - counts.importedCardCount,
     // Describes the *input*: was the list itself a legal deck size?
