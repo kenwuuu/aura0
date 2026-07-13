@@ -70,6 +70,12 @@ export function trackRoomOccupancyChanged(playerCount: number): void {
  * signal before connects start failing outright. Sentry gets the failure too,
  * for alerting — but a proportion needs the denominator, and high-volume
  * success events belong in analytics, not the error tracker.
+ *
+ * `visible_for_ms` is how much of the outage the user could see. Read against
+ * `offline_for_ms`: near 0 means nobody was looking (backgrounded, or a slept
+ * laptop), near 1 means somebody sat and watched the board freeze. Don't try to
+ * reconstruct it from `visibilityState` — see VisibilityTracker for why that
+ * scores a slept laptop as rapt attention.
  */
 /**
  * Emitted per sync episode, mirroring `trackConnectionOutcome`'s episode_id /
@@ -110,6 +116,7 @@ export function trackConnectionOutcome(props: {
   connectMs?: number;
   offlineForMs?: number;
   unreachableForMs?: number;
+  visibleForMs?: number;
 }): void {
   posthog.capture('connection_outcome', {
     transport: props.transport,
@@ -121,6 +128,7 @@ export function trackConnectionOutcome(props: {
     ...(props.unreachableForMs !== undefined
       ? { unreachable_for_ms: props.unreachableForMs }
       : {}),
+    ...(props.visibleForMs !== undefined ? { visible_for_ms: props.visibleForMs } : {}),
   });
 }
 
