@@ -14,18 +14,26 @@
  * sockets), so they own the wiring and call markConnected()/markDisconnected();
  * this class owns the timing, dedup, and reporting.
  *
- * Two different durations come out of a disconnected episode, and conflating
- * them makes both useless:
+ * Three different durations come out of a disconnected episode, and conflating
+ * them makes all of them useless:
  *   - connect_ms      how long the *successful attempt* took (handshake latency)
  *   - offline_for_ms  how long the user was without a connection (the outage)
+ *   - visible_for_ms  how much of the outage the user could actually SEE
  * A transport that reports each attempt via markConnecting() gets a true
  * connect_ms; one that can't (see WebRTCProvider) falls back to timing the whole
  * episode, which is the old, outage-inflated behaviour.
+ *
+ * `visible_for_ms` is what separates a real incident from a non-event of equal
+ * length: a two-minute outage in a backgrounded tab is invisible, while two
+ * minutes on a foreground board is a player watching the game die. Both were
+ * reported identically until VisibilityTracker (which see — the suspended-laptop
+ * case is subtler than it looks) supplied the missing half.
  */
 
 import * as Sentry from '@sentry/browser';
 import { v4 as uuidv4 } from 'uuid';
 import { trackConnectionOutcome, type TransportLabel } from '@/infrastructure/analytics/PosthogFunctions';
+import { VisibilityTracker } from '@/infrastructure/networking/VisibilityTracker';
 
 export interface ConnectionMonitorConfig {
   /** Which transport this watches — tags Sentry + PostHog for breakdown. */
@@ -56,6 +64,9 @@ export class ConnectionMonitor {
   // retry, so it always refers to the most recent attempt — the one that will
   // succeed, if any. Null until a transport reports an attempt.
   private attemptStartedAt: number | null = null;
+  // How much of the current episode the user was actually looking at. Owned here
+  // rather than by each transport so every transport reports it for free.
+  private readonly visibility = new VisibilityTracker();
 
   constructor(private readonly config: ConnectionMonitorConfig) {
     // Not connected yet at construction — arm the clock immediately so an
@@ -94,6 +105,7 @@ export class ConnectionMonitor {
     // Transports with no attempt signal fall back to the episode clock.
     const connectMs = now - (this.attemptStartedAt ?? this.disconnectedSince);
     const offlineForMs = now - this.disconnectedSince;
+    const visibleForMs = this.visibility.stop();
     const episodeId = this.episodeId;
     // Read the type before flipping the flag: a slow initial connect is still
     // an 'initial' outcome even though this call is what makes future connects
@@ -112,6 +124,7 @@ export class ConnectionMonitor {
       episodeType,
       connectMs,
       offlineForMs,
+      visibleForMs,
     });
   }
 
@@ -122,6 +135,7 @@ export class ConnectionMonitor {
     // than let a stale stamp inflate the next connect_ms.
     this.attemptStartedAt = null;
     this.episodeId = uuidv4();
+    this.visibility.start();
     this.stuckTimer = setTimeout(() => {
       this.stuckTimer = null;
       this.reportStuck();
@@ -139,6 +153,7 @@ export class ConnectionMonitor {
 
   destroy(): void {
     this.clearTimer();
+    this.visibility.destroy();
   }
 
   private clearTimer(): void {
@@ -171,6 +186,10 @@ export class ConnectionMonitor {
       episodeId: this.episodeId ?? undefined,
       episodeType: this.hasEverConnected ? 'reconnect' : 'initial',
       unreachableForMs,
+      // read(), not stop(): the episode is still live and may yet recover, so
+      // this is a snapshot at the grace mark rather than a final total. The
+      // 'connected' event that ends the episode carries the full figure.
+      visibleForMs: this.visibility.read(),
     });
   }
 }
