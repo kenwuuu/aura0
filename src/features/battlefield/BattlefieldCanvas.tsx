@@ -23,7 +23,7 @@ import { HealthNode } from './nodes/HealthNode';
 import { PileNode } from './nodes/PileNode';
 import { useBattlefieldNodes, type DragNodeState } from './useBattlefieldNodes';
 import { usePeerCursors } from './usePeerCursors';
-import { PeerCursor } from './nodes/PeerCursor';
+import { PeerCursorLayer } from './nodes/PeerCursorLayer';
 import { AWARENESS_CURSOR } from './awareness';
 import { usePlaymatNodes } from './usePlaymatNodes';
 import { applyHealthHoverElevation } from './healthNodeHover';
@@ -144,18 +144,22 @@ function BattlefieldCanvasInner({ yDoc, localPlayerId }: BattlefieldCanvasProps)
     useGameInstance.getState().setScreenToFlowPosition(screenToFlowPosition);
   }, [screenToFlowPosition]);
 
-  const peers = usePeerCursors(awareness, yDoc);
+  const { peers, registerCursorEl } = usePeerCursors(awareness, yDoc);
   const rafRef = useRef<number | null>(null);
+  const pendingCursorRef = useRef<{ x: number; y: number } | null>(null);
   useEffect(() => () => { if (rafRef.current !== null) cancelAnimationFrame(rafRef.current); }, []);
 
+  // Broadcast at most one cursor position per frame, and make it the *newest*
+  // one. A leading-edge throttle (keep the first sample of the frame, drop the
+  // rest) would put a frame of staleness on the wire before the packet even left.
   const onPointerMove = useCallback((e: React.PointerEvent) => {
+    pendingCursorRef.current = { x: e.clientX, y: e.clientY };
     if (rafRef.current !== null) return;
-    const clientX = e.clientX;
-    const clientY = e.clientY;
     rafRef.current = requestAnimationFrame(() => {
       rafRef.current = null;
-      const pos = screenToFlowPosition({ x: clientX, y: clientY });
-      awareness?.setLocalStateField(AWARENESS_CURSOR, pos);
+      const latest = pendingCursorRef.current;
+      if (!latest) return;
+      awareness?.setLocalStateField(AWARENESS_CURSOR, screenToFlowPosition(latest));
     });
   }, [awareness, screenToFlowPosition]);
 
@@ -164,6 +168,7 @@ function BattlefieldCanvasInner({ yDoc, localPlayerId }: BattlefieldCanvasProps)
       cancelAnimationFrame(rafRef.current);
       rafRef.current = null;
     }
+    pendingCursorRef.current = null;
     awareness?.setLocalStateField(AWARENESS_CURSOR, null);
   }, [awareness]);
 
@@ -640,13 +645,7 @@ function BattlefieldCanvasInner({ yDoc, localPlayerId }: BattlefieldCanvasProps)
           <SettingsButton />
         </Panel>
         <ViewportPortal>
-          <div style={{ position: 'absolute', inset: 0, zIndex: 9999, pointerEvents: 'none' }}>
-            {peers.map(p => (
-              <div key={p.clientId} style={{ position: 'absolute', transform: `translate(${p.x}px, ${p.y}px)` }}>
-                <PeerCursor color={p.color} name={p.name} />
-              </div>
-            ))}
-          </div>
+          <PeerCursorLayer peers={peers} registerCursorEl={registerCursorEl} />
         </ViewportPortal>
       </ReactFlow>
     </div>
