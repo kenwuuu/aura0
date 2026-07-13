@@ -6,12 +6,31 @@ const MANUAL_TRANSPORT_OVERRIDE_FLAG = 'network-transport-manual-override';
 const FLAG_RESOLUTION_TIMEOUT_MS = 1500;
 
 /**
- * Resolves once PostHog flags have loaded, or after a timeout — whichever
- * comes first. Memoized so every caller in a session races the same clock
- * instead of each starting (and needing) its own timeout.
+ * Where we land when PostHog never answers — blocked by an ad-blocker, offline,
+ * or just slower than the timeout. WebSocket is the transport that connects
+ * without peer negotiation, so an unreachable PostHog degrades to "it still
+ * connects" rather than blocking room join.
+ */
+const TRANSPORT_WITHOUT_FLAGS: NetworkTransport = 'websocket';
+
+/**
+ * Whether PostHog actually delivered a flag payload. This is *not* the same
+ * question as "is the flag in the payload": a flag that is off — disabled, or
+ * rolled out to 0%, or deleted — is simply absent from the response, and
+ * `isFeatureEnabled` reports an absent flag as `undefined`, the very same value
+ * it returns when nothing loaded at all. Callers below need to tell those apart,
+ * because one means "the flag said no" and the other means "we never heard".
+ */
+let flagsLoaded = false;
+
+/**
+ * Resolves — once PostHog's flags have loaded, or the timeout fires, whichever
+ * comes first — to whether a payload actually arrived. Memoized so every caller
+ * in a session races the same clock instead of each starting (and needing) its
+ * own timeout.
  */
 let flagsReady: Promise<void> | null = null;
-function whenFlagsReady(): Promise<void> {
+function whenFlagsReady(): Promise<boolean> {
   if (!flagsReady) {
     flagsReady = new Promise((resolve) => {
       let settled = false;
@@ -21,21 +40,30 @@ function whenFlagsReady(): Promise<void> {
         resolve();
       };
       setTimeout(settle, FLAG_RESOLUTION_TIMEOUT_MS);
-      posthog.onFeatureFlags(settle);
+      posthog.onFeatureFlags((_flags, _variants, context) => {
+        // Also fires on failure, and fires synchronously with errorsLoading set
+        // if posthog.init() hasn't run yet. Neither case is a payload.
+        if (!context?.errorsLoading) flagsLoaded = true;
+        settle();
+      });
     });
   }
-  return flagsReady;
+  // Read after the wait, never before — a payload that lands late still counts.
+  return flagsReady.then(() => flagsLoaded);
 }
 
 /**
  * Resolves which Yjs network transport to use *by default* (i.e. absent a
  * manual override — see isManualTransportOverrideEnabled below), via the
- * `network-transport-websocket` PostHog flag. A slow or unreachable PostHog
- * falls back to `websocket` rather than blocking room join.
+ * `network-transport-websocket` PostHog flag.
+ *
+ * The flag being off means WebRTC, however it was turned off: disabled outright
+ * or dropped to a 0% rollout. Only a flag that is on — or a PostHog we never
+ * heard back from — means WebSocket.
  */
 export async function resolveNetworkTransport(): Promise<NetworkTransport> {
-  await whenFlagsReady();
-  return posthog.isFeatureEnabled(NETWORK_TRANSPORT_FLAG) === false ? 'webrtc' : 'websocket';
+  if (!(await whenFlagsReady())) return TRANSPORT_WITHOUT_FLAGS;
+  return posthog.isFeatureEnabled(NETWORK_TRANSPORT_FLAG) ? 'websocket' : 'webrtc';
 }
 
 /**
@@ -47,6 +75,12 @@ export async function resolveNetworkTransport(): Promise<NetworkTransport> {
  * change it back.
  */
 export async function isManualTransportOverrideEnabled(): Promise<boolean> {
-  await whenFlagsReady();
+  if (!(await whenFlagsReady())) return false;
   return posthog.isFeatureEnabled(MANUAL_TRANSPORT_OVERRIDE_FLAG) ?? false;
+}
+
+/** Test seam: drops the memoized flag-resolution race between test cases. */
+export function resetFlagResolutionForTests(): void {
+  flagsReady = null;
+  flagsLoaded = false;
 }
