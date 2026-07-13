@@ -230,29 +230,119 @@ describe('DeckImportModal — import flow', () => {
     expect(screen.getByText('Fetching card 2 of 2...')).toBeInTheDocument();
   });
 
+  /** A deck of `size` distinct cards — the modal only ever counts them. */
+  const deckOf = (size: number) =>
+    Array.from({ length: size }, (_, i) => ({ id: `c${i}`, name: `Card ${i}` })) as any[];
+
   it('saves the deck, shows a success message, and hands off the imported deck after the delay', async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     const user = userEvent.setup();
     renderModal();
     await startImport(user);
 
-    const card = { id: 'c1', name: 'Sol Ring' } as any;
+    // A legal 60-card deck: the import should go straight through without
+    // stopping to ask about its size.
+    const cards = deckOf(60);
     await act(async () => {
-      resolveImport({ cards: [card], metadata: { name: 'My Deck' } });
+      resolveImport({ cards, metadata: { name: 'My Deck' } });
       // Flush the microtasks queued by the awaited importFromText/saveDeck calls.
       await Promise.resolve();
       await Promise.resolve();
     });
 
-    expect(screen.getByText('Successfully imported 1 cards!')).toBeInTheDocument();
+    expect(screen.getByText('Successfully imported 60 cards!')).toBeInTheDocument();
+    expect(screen.queryByText(/unusual deck size/i)).not.toBeInTheDocument();
     expect(saveDeckMock).toHaveBeenCalledWith(
-      expect.objectContaining({ cards: [card], metadata: expect.objectContaining({ name: 'My Deck' }) }),
+      expect.objectContaining({ cards, metadata: expect.objectContaining({ name: 'My Deck' }) }),
     );
     expect(onDeckImported).not.toHaveBeenCalled();
 
     act(() => vi.advanceTimersByTime(1000));
 
-    expect(onDeckImported).toHaveBeenCalledWith(expect.objectContaining({ cards: [card] }));
+    expect(onDeckImported).toHaveBeenCalledWith(expect.objectContaining({ cards }));
+    expect(onClose).toHaveBeenCalled();
+  });
+
+  it('imports a 100-card Commander deck without questioning its size', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const user = userEvent.setup();
+    renderModal();
+    await startImport(user);
+
+    await act(async () => {
+      resolveImport({ cards: deckOf(100), metadata: {} });
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(screen.queryByText(/unusual deck size/i)).not.toBeInTheDocument();
+    expect(saveDeckMock).toHaveBeenCalled();
+  });
+
+  it('holds back an unusual deck size and does not save it until the player says so', async () => {
+    // A 101-card deck is what a stray line — a section header we read as a card —
+    // silently produced for months. The player is the only one who can say
+    // whether they meant it, so ask before saving anything.
+    const user = userEvent.setup();
+    renderModal();
+    await startImport(user);
+
+    await act(async () => {
+      resolveImport({ cards: deckOf(101), metadata: {} });
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(screen.getByText(/this list came to 101 cards/i)).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /unusual deck size/i })).toBeInTheDocument();
+
+    // Nothing is persisted and nothing is handed off while we wait.
+    expect(saveDeckMock).not.toHaveBeenCalled();
+    expect(onDeckImported).not.toHaveBeenCalled();
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it('imports the unusual deck once the player confirms', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const user = userEvent.setup();
+    renderModal();
+    await startImport(user);
+
+    const cards = deckOf(99);
+    await act(async () => {
+      resolveImport({ cards, metadata: {} });
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    await act(async () => {
+      await user.click(screen.getByRole('button', { name: 'Import Anyway' }));
+      await Promise.resolve();
+    });
+
+    expect(saveDeckMock).toHaveBeenCalledWith(expect.objectContaining({ cards }));
+
+    act(() => vi.advanceTimersByTime(1000));
+    expect(onDeckImported).toHaveBeenCalledWith(expect.objectContaining({ cards }));
+  });
+
+  it('discards the unconfirmed deck when the player closes instead', async () => {
+    const user = userEvent.setup();
+    renderModal();
+    await startImport(user);
+
+    await act(async () => {
+      resolveImport({ cards: deckOf(101), metadata: {} });
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    await user.click(screen.getByRole('button', { name: 'Cancel' }));
+
+    // Backing out of the warning must not leave a deck the player rejected
+    // sitting in storage.
+    expect(saveDeckMock).not.toHaveBeenCalled();
+    expect(onDeckImported).not.toHaveBeenCalled();
     expect(onClose).toHaveBeenCalled();
   });
 

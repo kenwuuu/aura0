@@ -83,6 +83,37 @@ const styles: { [key: string]: React.CSSProperties } = {
   },
 };
 
+/** Deck sizes a format actually calls for. Anything else is worth a second look. */
+const STANDARD_DECK_SIZES = new Map([
+  [60, 'Constructed'],
+  [100, 'Commander'],
+]);
+
+/**
+ * Describe an unusual deck size, or `null` if the size is one a format calls for.
+ *
+ * A deck list is the one input we can neither validate nor correct: we cannot
+ * know whether 99 cards means the player forgot one, pasted a list that omits
+ * the commander, or is deliberately playing something odd. What we *can* do is
+ * stop importing 101 cards in silence. The player is the only one who knows
+ * which it is, so tell them the number and let them decide.
+ */
+export function describeUnusualDeckSize(cardCount: number): string | null {
+  if (STANDARD_DECK_SIZES.has(cardCount)) {
+    return null;
+  }
+
+  const formats = [...STANDARD_DECK_SIZES]
+    .map(([size, format]) => `${size} (${format})`)
+    .join(' or ');
+
+  return (
+    `This list came to ${cardCount} cards. Decks are usually ${formats}.\n\n` +
+    `If that isn't what you expected, check for a card you meant to include, ` +
+    `or a section header we read as a card. You can import it anyway.`
+  );
+}
+
 export function DeckImportModal({ isOpen, onClose, onDeckImported }: DeckImportModalProps) {
   const [deckText, setDeckText] = useState('');
   const [deckName, setDeckName] = useState('');
@@ -91,8 +122,31 @@ export function DeckImportModal({ isOpen, onClose, onDeckImported }: DeckImportM
   const [errors, setErrors] = useState<string[]>([]);
   const [successMessage, setSuccessMessage] = useState('');
   const [isHelpOpen, setIsHelpOpen] = useState(false);
+  // A deck of an unusual size, held back for the player to confirm. It is not
+  // saved until they do — a warning the player cannot act on is just noise, and
+  // the success path closes this modal a second after it appears.
+  const [unusualSizeWarning, setUnusualSizeWarning] = useState<string | null>(null);
+  const [deckAwaitingConfirmation, setDeckAwaitingConfirmation] = useState<SavedDeck | null>(null);
+
+  const commitImport = async (deck: SavedDeck) => {
+    const storage = new DeckStorageService();
+    await storage.saveDeck(deck);
+
+    setSuccessMessage(`Successfully imported ${deck.cards.length} cards!`);
+
+    // Wait a moment to show success message, then call the callback
+    setTimeout(() => {
+      onDeckImported(deck);
+      handleClose();
+    }, 1000);
+  };
 
   const handleImport = async () => {
+    // A fresh attempt retires the previous verdict — otherwise an edited list
+    // would be judged against the old one.
+    setUnusualSizeWarning(null);
+    setDeckAwaitingConfirmation(null);
+
     if (!deckText.trim() || !deckName.trim()) {
       setErrors(['Please provide both a deck name and deck list']);
       return;
@@ -135,16 +189,17 @@ export function DeckImportModal({ isOpen, onClose, onDeckImported }: DeckImportM
         cards: result.cards,
       };
 
-      const storage = new DeckStorageService();
-      await storage.saveDeck(savedDeck);
+      const warning = describeUnusualDeckSize(result.cards.length);
+      if (warning) {
+        // Hold the deck back rather than saving it behind a message that
+        // vanishes in a second. The player decides.
+        setDeckAwaitingConfirmation(savedDeck);
+        setUnusualSizeWarning(warning);
+        setIsImporting(false);
+        return;
+      }
 
-      setSuccessMessage(`Successfully imported ${result.cards.length} cards!`);
-
-      // Wait a moment to show success message, then call the callback
-      setTimeout(() => {
-        onDeckImported(savedDeck);
-        handleClose();
-      }, 1000);
+      await commitImport(savedDeck);
     } catch (error) {
       console.error('Import error:', error);
       setErrors([error instanceof Error ? error.message : 'An unknown error occurred']);
@@ -159,6 +214,9 @@ export function DeckImportModal({ isOpen, onClose, onDeckImported }: DeckImportM
     setErrors([]);
     setSuccessMessage('');
     setProgress({ current: 0, total: 0 });
+    setUnusualSizeWarning(null);
+    // Closing on an unconfirmed deck discards it — it was never saved.
+    setDeckAwaitingConfirmation(null);
     onClose();
   };
 
@@ -232,6 +290,13 @@ export function DeckImportModal({ isOpen, onClose, onDeckImported }: DeckImportM
             </div>
           )}
 
+          {unusualSizeWarning && (
+            <div className="warning-container" style={{ whiteSpace: 'pre-line' }}>
+              <h4>Unusual deck size</h4>
+              <p>{unusualSizeWarning}</p>
+            </div>
+          )}
+
           {successMessage && (
             <div className="success-container">
               <p>{successMessage}</p>
@@ -252,12 +317,20 @@ export function DeckImportModal({ isOpen, onClose, onDeckImported }: DeckImportM
                 onClick: handleClose,
                 disabled: isImporting,
               },
-              {
-                label: isImporting ? 'Importing...' : 'Import Deck',
-                onClick: handleImport,
-                disabled: isImporting || !deckText.trim() || !deckName.trim(),
-                variant: 'primary',
-              },
+              deckAwaitingConfirmation
+                ? {
+                    // The deck is built and waiting; the player has read the size
+                    // and is telling us they meant it.
+                    label: 'Import Anyway',
+                    onClick: () => commitImport(deckAwaitingConfirmation),
+                    variant: 'primary' as const,
+                  }
+                : {
+                    label: isImporting ? 'Importing...' : 'Import Deck',
+                    onClick: handleImport,
+                    disabled: isImporting || !deckText.trim() || !deckName.trim(),
+                    variant: 'primary' as const,
+                  },
             ]}
           />
         </Dialog.Content>

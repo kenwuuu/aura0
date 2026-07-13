@@ -713,6 +713,28 @@ body {
   margin: 4px 0;
 }
 
+/* Amber, not red: the import worked. The deck is just an unusual size, which is
+   a question for the player, not a failure on our side. */
+.warning-container {
+  background-color: rgba(245, 158, 11, 0.1);
+  border: 1px solid #f59e0b;
+  border-radius: 8px;
+  padding: 12px;
+  margin-top: 16px;
+}
+
+.warning-container h4 {
+  color: #f59e0b;
+  font-size: 14px;
+  margin: 0 0 8px 0;
+}
+
+.warning-container p {
+  color: #fcd34d;
+  font-size: 13px;
+  margin: 0;
+}
+
 .success-container {
   background-color: rgba(16, 185, 129, 0.1);
   border: 1px solid #10b981;
