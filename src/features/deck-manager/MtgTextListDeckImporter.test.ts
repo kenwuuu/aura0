@@ -454,10 +454,9 @@ DECK:
         aura_dominant_failure_reason: 'not_found',
         aura_index_miss_rate: 0.5,
         aura_infra_failure_rate: 0,
-        aura_not_found_cards: [
-          'Brazen Borrower // Petty Theft',
-          'Fable of the Mirror-Breaker // Reflection of Kiki-Jiki',
-        ],
+        // Front faces: the parser reduces "Front // Back" before lookup, because
+        // the card API indexes the front face.
+        aura_not_found_cards: ['Brazen Borrower', 'Fable of the Mirror-Breaker'],
       });
     });
 
