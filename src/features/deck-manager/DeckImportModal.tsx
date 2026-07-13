@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
 import { MtgTextListDeckImporter } from '@/features/deck-manager';
 import { DeckStorageService } from '@/infrastructure/persistence';
 import { SavedDeck } from '@/features/player/types';
 import { DeckImportHelpDialog } from './DeckImportHelpDialog';
+import { parseDecklistWithStats } from './DeckListParser';
 import { ModalFooter } from '@/shared/components/ModalFooter';
 import {InfoIcon} from "lucide-react"
 import {
@@ -89,26 +90,66 @@ const STANDARD_DECK_SIZES = new Map([
   [100, 'Commander'],
 ]);
 
+/** How long the list must sit still before we read it back to the player. */
+const PREVIEW_DEBOUNCE_MS = 2000;
+
 /**
- * Describe an unusual deck size, or `null` if the size is one a format calls for.
+ * What we made of the list, section by section — the parser's reading of the
+ * text, before a single card has been looked up.
+ */
+export type DeckPreview = {
+  /** Cards that would be imported: the deck plus the command zone. */
+  total: number;
+  /** Cards bound for the library. */
+  main: number;
+  /** Cards bound for the command zone — every one of these is drawn on turn one. */
+  commander: number;
+  /** Cards under a sideboard-style header, which are NOT imported. */
+  excluded: number;
+};
+
+/**
+ * Read a deck list the way the importer will, with no network involved.
+ *
+ * Parsing is pure and instant while the lookup takes 12-54 seconds, so the
+ * player can be told what we made of their list *as they type it* rather than
+ * after a minute of waiting. That distinction is the whole point: a warning
+ * arriving after the import is a postmortem, one arriving during it is a chance
+ * to fix the list.
+ */
+export function previewDeck(text: string): DeckPreview {
+  const { items, excludedCardCount } = parseDecklistWithStats(text);
+
+  const total = items.reduce((sum, item) => sum + item.count, 0);
+  const commander = items
+    .filter((item) => item.commander)
+    .reduce((sum, item) => sum + item.count, 0);
+
+  return { total, main: total - commander, commander, excluded: excludedCardCount };
+}
+
+/** Is this a deck size no format asks for? An empty list is not yet a deck. */
+export function isUnusualDeckSize(total: number): boolean {
+  return total > 0 && !STANDARD_DECK_SIZES.has(total);
+}
+
+/**
+ * Say what the list came to, and where it went.
  *
  * A deck list is the one input we can neither validate nor correct: we cannot
  * know whether 99 cards means the player forgot one, pasted a list that omits
  * the commander, or is deliberately playing something odd. What we *can* do is
- * stop importing 101 cards in silence. The player is the only one who knows
- * which it is, so tell them the number and let them decide.
+ * stop importing 101 cards in silence. So show the number, show the section
+ * counts that produced it — the breakdown is what turns "101?" into "ah, the
+ * command zone took two" — and let the player decide.
  */
-export function describeUnusualDeckSize(cardCount: number): string | null {
-  if (STANDARD_DECK_SIZES.has(cardCount)) {
-    return null;
-  }
-
+export function describeUnusualDeckSize(preview: DeckPreview): string {
   const formats = [...STANDARD_DECK_SIZES]
     .map(([size, format]) => `${size} (${format})`)
     .join(' or ');
 
   return (
-    `This list came to ${cardCount} cards. Decks are usually ${formats}.\n\n` +
+    `This list comes to ${preview.total} cards. Decks are usually ${formats}.\n\n` +
     `If that isn't what you expected, check for a card you meant to include, ` +
     `or a section header we read as a card. You can import it anyway.`
   );
@@ -122,11 +163,22 @@ export function DeckImportModal({ isOpen, onClose, onDeckImported }: DeckImportM
   const [errors, setErrors] = useState<string[]>([]);
   const [successMessage, setSuccessMessage] = useState('');
   const [isHelpOpen, setIsHelpOpen] = useState(false);
-  // A deck of an unusual size, held back for the player to confirm. It is not
-  // saved until they do — a warning the player cannot act on is just noise, and
-  // the success path closes this modal a second after it appears.
-  const [unusualSizeWarning, setUnusualSizeWarning] = useState<string | null>(null);
-  const [deckAwaitingConfirmation, setDeckAwaitingConfirmation] = useState<SavedDeck | null>(null);
+  // What we make of the list as it stands, refreshed once the player stops
+  // typing. `null` means we have not read this text yet.
+  const [deckPreview, setDeckPreview] = useState<DeckPreview | null>(null);
+
+  // Re-read the list whenever it settles. Parsing is pure and cheap — no lookup,
+  // no network — so this costs nothing but tells the player what we made of
+  // their text while they can still do something about it.
+  useEffect(() => {
+    if (!deckText.trim()) {
+      setDeckPreview(null);
+      return;
+    }
+
+    const timer = setTimeout(() => setDeckPreview(previewDeck(deckText)), PREVIEW_DEBOUNCE_MS);
+    return () => clearTimeout(timer);
+  }, [deckText]);
 
   const commitImport = async (deck: SavedDeck) => {
     const storage = new DeckStorageService();
@@ -142,13 +194,20 @@ export function DeckImportModal({ isOpen, onClose, onDeckImported }: DeckImportM
   };
 
   const handleImport = async () => {
-    // A fresh attempt retires the previous verdict — otherwise an edited list
-    // would be judged against the old one.
-    setUnusualSizeWarning(null);
-    setDeckAwaitingConfirmation(null);
-
     if (!deckText.trim() || !deckName.trim()) {
       setErrors(['Please provide both a deck name and deck list']);
+      return;
+    }
+
+    // Read the list right now rather than waiting on the debounce: a player who
+    // pastes and immediately clicks Import must not slip past the warning in the
+    // two seconds before it would have appeared.
+    const preview = previewDeck(deckText);
+    const alreadyWarned =
+      deckPreview !== null && deckPreview.total === preview.total && isUnusualDeckSize(preview.total);
+
+    if (isUnusualDeckSize(preview.total) && !alreadyWarned) {
+      setDeckPreview(preview);
       return;
     }
 
@@ -189,16 +248,6 @@ export function DeckImportModal({ isOpen, onClose, onDeckImported }: DeckImportM
         cards: result.cards,
       };
 
-      const warning = describeUnusualDeckSize(result.cards.length);
-      if (warning) {
-        // Hold the deck back rather than saving it behind a message that
-        // vanishes in a second. The player decides.
-        setDeckAwaitingConfirmation(savedDeck);
-        setUnusualSizeWarning(warning);
-        setIsImporting(false);
-        return;
-      }
-
       await commitImport(savedDeck);
     } catch (error) {
       console.error('Import error:', error);
@@ -214,9 +263,7 @@ export function DeckImportModal({ isOpen, onClose, onDeckImported }: DeckImportM
     setErrors([]);
     setSuccessMessage('');
     setProgress({ current: 0, total: 0 });
-    setUnusualSizeWarning(null);
-    // Closing on an unconfirmed deck discards it — it was never saved.
-    setDeckAwaitingConfirmation(null);
+    setDeckPreview(null);
     onClose();
   };
 
@@ -290,10 +337,16 @@ export function DeckImportModal({ isOpen, onClose, onDeckImported }: DeckImportM
             </div>
           )}
 
-          {unusualSizeWarning && (
+          {deckPreview && isUnusualDeckSize(deckPreview.total) && (
             <div className="warning-container" style={{ whiteSpace: 'pre-line' }}>
               <h4>Unusual deck size</h4>
-              <p>{unusualSizeWarning}</p>
+              <p>{describeUnusualDeckSize(deckPreview)}</p>
+              {/* Where the cards went. A bare "101?" is a riddle; "the command
+                  zone took two" is an answer. */}
+              <p className="warning-breakdown">
+                Deck {deckPreview.main} · Command zone {deckPreview.commander} · Sideboard{' '}
+                {deckPreview.excluded} (not imported)
+              </p>
             </div>
           )}
 
@@ -317,20 +370,18 @@ export function DeckImportModal({ isOpen, onClose, onDeckImported }: DeckImportM
                 onClick: handleClose,
                 disabled: isImporting,
               },
-              deckAwaitingConfirmation
-                ? {
-                    // The deck is built and waiting; the player has read the size
-                    // and is telling us they meant it.
-                    label: 'Import Anyway',
-                    onClick: () => commitImport(deckAwaitingConfirmation),
-                    variant: 'primary' as const,
-                  }
-                : {
-                    label: isImporting ? 'Importing...' : 'Import Deck',
-                    onClick: handleImport,
-                    disabled: isImporting || !deckText.trim() || !deckName.trim(),
-                    variant: 'primary' as const,
-                  },
+              {
+                // Once the player has been shown the size, the button says so —
+                // clicking it is the acknowledgement, and no second gate follows.
+                label: isImporting
+                  ? 'Importing...'
+                  : deckPreview && isUnusualDeckSize(deckPreview.total)
+                    ? 'Import Anyway'
+                    : 'Import Deck',
+                onClick: handleImport,
+                disabled: isImporting || !deckText.trim() || !deckName.trim(),
+                variant: 'primary' as const,
+              },
             ]}
           />
         </Dialog.Content>
