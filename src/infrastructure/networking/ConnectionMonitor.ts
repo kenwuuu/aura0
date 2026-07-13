@@ -13,6 +13,14 @@
  * comes from (a single y-websocket socket vs. any of y-webrtc's signaling
  * sockets), so they own the wiring and call markConnected()/markDisconnected();
  * this class owns the timing, dedup, and reporting.
+ *
+ * Two different durations come out of a disconnected episode, and conflating
+ * them makes both useless:
+ *   - connect_ms      how long the *successful attempt* took (handshake latency)
+ *   - offline_for_ms  how long the user was without a connection (the outage)
+ * A transport that reports each attempt via markConnecting() gets a true
+ * connect_ms; one that can't (see WebRTCProvider) falls back to timing the whole
+ * episode, which is the old, outage-inflated behaviour.
  */
 
 import * as Sentry from '@sentry/browser';
@@ -44,6 +52,10 @@ export class ConnectionMonitor {
   // reconnect after it, so initial-connect health and mid-session resilience
   // can be read separately rather than blended into one rate.
   private hasEverConnected = false;
+  // When the attempt that is currently in flight began. Restamped on every
+  // retry, so it always refers to the most recent attempt — the one that will
+  // succeed, if any. Null until a transport reports an attempt.
+  private attemptStartedAt: number | null = null;
 
   constructor(private readonly config: ConnectionMonitorConfig) {
     // Not connected yet at construction — arm the clock immediately so an
@@ -51,39 +63,64 @@ export class ConnectionMonitor {
     this.markDisconnected();
   }
 
+  /**
+   * A fresh connection attempt is starting (a new socket is being opened).
+   * Optional: transports that can't distinguish "attempting" from "down" simply
+   * never call this, and connect_ms degrades to timing the whole episode.
+   */
+  markConnecting(): void {
+    // An attempt only exists inside a disconnected episode. Arming here as well
+    // keeps the state machine honest if a transport ever announces an attempt
+    // without having announced the drop first — markDisconnected() is a no-op
+    // when an episode is already running.
+    this.markDisconnected();
+    this.attemptStartedAt = Date.now();
+  }
+
   markConnected(): void {
     // Only the disconnected→connected edge counts as one successful connection;
     // repeat "connected" signals (disconnectedSince already null) are ignored so
     // the analytics denominator stays one-per-episode, symmetric with failures.
-    // connectMs measures that edge: construction→connect on first load, or
-    // drop→reconnect thereafter — i.e. how long the user waited to be online.
-    const connectMs = this.disconnectedSince === null
-      ? undefined
-      : Date.now() - this.disconnectedSince;
+    if (this.disconnectedSince === null) {
+      this.attemptStartedAt = null;
+      return;
+    }
+    const now = Date.now();
+    // Time the attempt that actually succeeded, not the outage that preceded it.
+    // This is the whole point: a laptop that slept for three days with the socket
+    // down wakes, retries, and connects in ~300ms. Timing from the disconnected
+    // edge would call that a three-day "connect latency" — it was three days of
+    // absence plus a fast handshake, and only offlineForMs should say so.
+    // Transports with no attempt signal fall back to the episode clock.
+    const connectMs = now - (this.attemptStartedAt ?? this.disconnectedSince);
+    const offlineForMs = now - this.disconnectedSince;
     const episodeId = this.episodeId;
     // Read the type before flipping the flag: a slow initial connect is still
     // an 'initial' outcome even though this call is what makes future connects
     // count as reconnects.
     const episodeType = this.hasEverConnected ? 'reconnect' : 'initial';
     this.disconnectedSince = null;
+    this.attemptStartedAt = null;
     this.episodeId = null;
     this.errorReported = false;
     this.hasEverConnected = true;
     this.clearTimer();
-    if (connectMs !== undefined) {
-      trackConnectionOutcome({
-        transport: this.config.transport,
-        outcome: 'connected',
-        episodeId: episodeId ?? undefined,
-        episodeType,
-        connectMs,
-      });
-    }
+    trackConnectionOutcome({
+      transport: this.config.transport,
+      outcome: 'connected',
+      episodeId: episodeId ?? undefined,
+      episodeType,
+      connectMs,
+      offlineForMs,
+    });
   }
 
   markDisconnected(): void {
     if (this.disconnectedSince !== null) return; // already counting down
     this.disconnectedSince = Date.now();
+    // Any attempt from the previous episode is void; wait for a fresh one rather
+    // than let a stale stamp inflate the next connect_ms.
+    this.attemptStartedAt = null;
     this.episodeId = uuidv4();
     this.stuckTimer = setTimeout(() => {
       this.stuckTimer = null;

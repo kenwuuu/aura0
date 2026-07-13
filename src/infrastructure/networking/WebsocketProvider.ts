@@ -153,12 +153,20 @@ export class WebsocketProvider implements YjsNetworkProvider{
    * the monitor's connected/disconnected edges. The SyncMonitor rides along:
    * armed on connect, disarmed (silently) on disconnect so a fresh episode
    * starts cleanly on the next reconnect rather than measuring across the gap.
+   *
+   * 'connecting' is its own edge, not a flavour of 'disconnected': y-websocket
+   * emits it from setupWS() for every socket it opens, i.e. once per retry. That
+   * is what lets connect_ms time the attempt that succeeded instead of the whole
+   * outage — see ConnectionMonitor.markConnecting().
    */
   private monitorConnection(): void {
     this.provider.on('status', ({ status }: { status: string }) => {
       if (status === 'connected') {
         this.monitor.markConnected();
         this.syncMonitor.arm();
+      } else if (status === 'connecting') {
+        this.monitor.markConnecting();
+        this.syncMonitor.disarm();
       } else {
         this.monitor.markDisconnected();
         this.syncMonitor.disarm();

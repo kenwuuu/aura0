@@ -51,6 +51,15 @@ const h = vi.hoisted(() => {
       this.wsconnected = false;
       this.emit('status', { status: 'disconnected' });
     }
+    /**
+     * Simulate y-websocket opening a fresh socket: setupWS() emits 'connecting'
+     * once per attempt. Note the real client emits its *first* one from inside
+     * its own constructor, before we can subscribe — so, as in production, only
+     * retries surface here.
+     */
+    beginAttempt(): void {
+      this.emit('status', { status: 'connecting' });
+    }
     /** Simulate the relay's own 'sync' event (y-websocket emits a raw boolean). */
     syncDoc(state: boolean): void {
       this.emit('sync', state);
@@ -177,6 +186,82 @@ describe('WebsocketProvider connection monitor', () => {
     const reconnectFailedProps = h.posthogCapture.mock.calls[2][1] as Record<string, unknown>;
     expect(reconnectFailedProps).toMatchObject({ transport: 'websocket', outcome: 'failed', episode_type: 'reconnect' });
     expect(reconnectFailedProps.episode_id).not.toBe(failedProps.episode_id);
+  });
+
+  it('times the attempt that succeeded, not the outage before it', () => {
+    // The laptop-sleep case, which is what made connect_ms useless: the socket
+    // drops as the machine suspends, JS is frozen for three days, then the tab
+    // wakes, retries, and the handshake completes in 300ms. That is a 300ms
+    // connect after a three-day absence — not a three-day connect.
+    const THREE_DAYS = 3 * 24 * 60 * 60 * 1000;
+    new WebsocketProvider(new Y.Doc(), { roomName: 'room-1' });
+    const ws = latestSocket();
+    ws.connect();
+    ws.syncDoc(true);
+    h.posthogCapture.mockClear();
+
+    ws.drop();
+    vi.advanceTimersByTime(THREE_DAYS); // suspended: no attempts happen in here
+    ws.beginAttempt();                  // wakes and opens a fresh socket
+    vi.advanceTimersByTime(300);
+    ws.connect();
+
+    const connected = h.posthogCapture.mock.calls.find(
+      ([event, props]) =>
+        event === 'connection_outcome'
+        && (props as Record<string, unknown>).outcome === 'connected',
+    );
+    expect(connected?.[1]).toMatchObject({
+      episode_type: 'reconnect',
+      connect_ms: 300,
+      offline_for_ms: THREE_DAYS + 300,
+    });
+  });
+
+  it('restamps the clock on each retry, so only the winning attempt is timed', () => {
+    new WebsocketProvider(new Y.Doc(), { roomName: 'room-1' });
+    const ws = latestSocket();
+    ws.connect();
+    ws.syncDoc(true);
+    h.posthogCapture.mockClear();
+
+    ws.drop();
+    ws.beginAttempt();          // first attempt…
+    vi.advanceTimersByTime(5000);
+    ws.drop();                  // …which fails after 5s
+    ws.beginAttempt();          // second attempt, the one that lands
+    vi.advanceTimersByTime(120);
+    ws.connect();
+
+    const connected = h.posthogCapture.mock.calls.find(
+      ([event, props]) =>
+        event === 'connection_outcome'
+        && (props as Record<string, unknown>).outcome === 'connected',
+    );
+    expect(connected?.[1]).toMatchObject({
+      connect_ms: 120,
+      offline_for_ms: 5120,
+    });
+  });
+
+  it('falls back to timing the whole episode when no attempt is reported', () => {
+    // y-webrtc has no 'connecting' edge, and y-websocket emits its first one from
+    // inside its own constructor, before we subscribe. Both land here, and both
+    // are safe: an initial connect happens on an awake tab, so the episode clock
+    // is not inflated by absence.
+    new WebsocketProvider(new Y.Doc(), { roomName: 'room-1' });
+    const ws = latestSocket();
+    vi.advanceTimersByTime(750);
+    ws.connect();
+
+    expect(h.posthogCapture).toHaveBeenLastCalledWith(
+      'connection_outcome',
+      expect.objectContaining({
+        episode_type: 'initial',
+        connect_ms: 750,
+        offline_for_ms: 750,
+      }),
+    );
   });
 
   it('reports the failure only once while the connection stays stuck', () => {
