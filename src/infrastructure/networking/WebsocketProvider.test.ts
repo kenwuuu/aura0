@@ -219,11 +219,8 @@ describe('WebsocketProvider connection monitor', () => {
   });
 
   it('reports how much of the outage the user actually watched', () => {
-    // The signal that separates a real incident from a non-event of identical
-    // length. Here the board is on screen the whole way down, so the outage and
-    // the witnessed time are the same 45s — a player watching the game freeze.
-    // (VisibilityTracker.test.ts covers the backgrounded and slept-laptop cases,
-    // where these two numbers come apart.)
+    // Board on screen the whole way down, so outage and witnessed time match.
+    // VisibilityTracker.test.ts covers the cases where they come apart.
     new WebsocketProvider(new Y.Doc(), { roomName: 'room-1' });
     const ws = latestSocket();
     ws.connect();
