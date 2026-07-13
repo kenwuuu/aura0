@@ -18,16 +18,10 @@
  * them makes all of them useless:
  *   - connect_ms      how long the *successful attempt* took (handshake latency)
  *   - offline_for_ms  how long the user was without a connection (the outage)
- *   - visible_for_ms  how much of the outage the user could actually SEE
+ *   - visible_for_ms  how much of the outage the user could see (VisibilityTracker)
  * A transport that reports each attempt via markConnecting() gets a true
  * connect_ms; one that can't (see WebRTCProvider) falls back to timing the whole
  * episode, which is the old, outage-inflated behaviour.
- *
- * `visible_for_ms` is what separates a real incident from a non-event of equal
- * length: a two-minute outage in a backgrounded tab is invisible, while two
- * minutes on a foreground board is a player watching the game die. Both were
- * reported identically until VisibilityTracker (which see — the suspended-laptop
- * case is subtler than it looks) supplied the missing half.
  */
 
 import * as Sentry from '@sentry/browser';
@@ -64,8 +58,7 @@ export class ConnectionMonitor {
   // retry, so it always refers to the most recent attempt — the one that will
   // succeed, if any. Null until a transport reports an attempt.
   private attemptStartedAt: number | null = null;
-  // How much of the current episode the user was actually looking at. Owned here
-  // rather than by each transport so every transport reports it for free.
+  // Owned here rather than per-transport so every transport reports it for free.
   private readonly visibility = new VisibilityTracker();
 
   constructor(private readonly config: ConnectionMonitorConfig) {
@@ -186,9 +179,7 @@ export class ConnectionMonitor {
       episodeId: this.episodeId ?? undefined,
       episodeType: this.hasEverConnected ? 'reconnect' : 'initial',
       unreachableForMs,
-      // read(), not stop(): the episode is still live and may yet recover, so
-      // this is a snapshot at the grace mark rather than a final total. The
-      // 'connected' event that ends the episode carries the full figure.
+      // read(), not stop(): the episode is still live and may yet recover.
       visibleForMs: this.visibility.read(),
     });
   }
