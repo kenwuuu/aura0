@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { CardLookupService } from './CardLookupService';
-import { CardApiClient, FetchListResult } from './CardApiClient';
+import { CardApiClient, FetchListResult, LookupFailureReason } from './CardApiClient';
 import { DeckLineItem } from '@/features/deck-manager/DeckListParser';
 import { CardDataResult, ScryfallCard } from './types';
 
@@ -15,6 +15,19 @@ function makeClient(overrides: Partial<CardApiClient> = {}): CardApiClient {
 
 function makeEntry(name: string): DeckLineItem {
   return { count: 1, name };
+}
+
+/** A client's run, with `failures` kept consistent with `failedItems` by construction. */
+function makeRun(
+  results: CardDataResult[],
+  failedItems: DeckLineItem[] = [],
+  reason: LookupFailureReason = 'not_found',
+): FetchListResult {
+  return {
+    results,
+    failedItems,
+    failures: failedItems.map((item) => ({ item, reason })),
+  };
 }
 
 function makeResult(name: string, error?: string): CardDataResult {
@@ -34,10 +47,7 @@ function makeCard(name: string, allParts: ScryfallCard['all_parts'] = []): Scryf
 describe('CardLookupService — Aura -> Scryfall fallback policy', () => {
   describe('fetchImagesForList', () => {
     it('returns the primary run untouched when nothing failed, and never calls the fallback', async () => {
-      const primaryRun: FetchListResult = {
-        results: [makeResult('Sol Ring')],
-        failedItems: [],
-      };
+      const primaryRun = makeRun([makeResult('Sol Ring')]);
       const primary = makeClient({ fetchImagesForList: vi.fn().mockResolvedValue(primaryRun) });
       const fallback = makeClient();
       const service = new CardLookupService(primary, fallback);
@@ -49,19 +59,17 @@ describe('CardLookupService — Aura -> Scryfall fallback policy', () => {
         fallbackTriggeredCount: 0,
         fallbackRecoveredCount: 0,
         fallbackFailedCount: 0,
+        auraFailures: [],
       });
       expect(fallback.fetchImagesForList).not.toHaveBeenCalled();
     });
 
     it('hands only the failed items to the fallback and merges successes from both', async () => {
-      const primaryRun: FetchListResult = {
-        results: [makeResult('Sol Ring'), makeResult('Obscure Card', 'not found')],
-        failedItems: [makeEntry('Obscure Card')],
-      };
-      const fallbackRun: FetchListResult = {
-        results: [makeResult('Obscure Card')],
-        failedItems: [],
-      };
+      const primaryRun = makeRun(
+        [makeResult('Sol Ring'), makeResult('Obscure Card', 'not found')],
+        [makeEntry('Obscure Card')],
+      );
+      const fallbackRun = makeRun([makeResult('Obscure Card')]);
       const primary = makeClient({ fetchImagesForList: vi.fn().mockResolvedValue(primaryRun) });
       const fallback = makeClient({ fetchImagesForList: vi.fn().mockResolvedValue(fallbackRun) });
       const service = new CardLookupService(primary, fallback);
@@ -81,14 +89,14 @@ describe('CardLookupService — Aura -> Scryfall fallback policy', () => {
     });
 
     it('reports items the fallback also could not resolve as failedItems', async () => {
-      const primaryRun: FetchListResult = {
-        results: [makeResult('Obscure Card', 'not found')],
-        failedItems: [makeEntry('Obscure Card')],
-      };
-      const fallbackRun: FetchListResult = {
-        results: [makeResult('Obscure Card', 'still not found')],
-        failedItems: [makeEntry('Obscure Card')],
-      };
+      const primaryRun = makeRun(
+        [makeResult('Obscure Card', 'not found')],
+        [makeEntry('Obscure Card')],
+      );
+      const fallbackRun = makeRun(
+        [makeResult('Obscure Card', 'still not found')],
+        [makeEntry('Obscure Card')],
+      );
       const primary = makeClient({ fetchImagesForList: vi.fn().mockResolvedValue(primaryRun) });
       const fallback = makeClient({ fetchImagesForList: vi.fn().mockResolvedValue(fallbackRun) });
       const service = new CardLookupService(primary, fallback);
@@ -103,18 +111,18 @@ describe('CardLookupService — Aura -> Scryfall fallback policy', () => {
       // Aura misses two cards; Scryfall saves one and loses the other. Without the
       // split, both look identical from analytics — but one is a coverage gap in
       // our index and the other is a card the player actually never gets.
-      const primaryRun: FetchListResult = {
-        results: [
+      const primaryRun = makeRun(
+        [
           makeResult('Sol Ring'),
           makeResult('Recovered Card', 'not found'),
           makeResult('Doomed Card', 'not found'),
         ],
-        failedItems: [makeEntry('Recovered Card'), makeEntry('Doomed Card')],
-      };
-      const fallbackRun: FetchListResult = {
-        results: [makeResult('Recovered Card'), makeResult('Doomed Card', 'still not found')],
-        failedItems: [makeEntry('Doomed Card')],
-      };
+        [makeEntry('Recovered Card'), makeEntry('Doomed Card')],
+      );
+      const fallbackRun = makeRun(
+        [makeResult('Recovered Card'), makeResult('Doomed Card', 'still not found')],
+        [makeEntry('Doomed Card')],
+      );
       const primary = makeClient({ fetchImagesForList: vi.fn().mockResolvedValue(primaryRun) });
       const fallback = makeClient({ fetchImagesForList: vi.fn().mockResolvedValue(fallbackRun) });
       const service = new CardLookupService(primary, fallback);

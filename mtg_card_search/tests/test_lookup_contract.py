@@ -87,6 +87,37 @@ def test_art_series_is_skipped(client, card):
     assert get_card(client, set_key(card)).status_code == 404
 
 
+def test_two_faced_cards_resolve_by_front_face(client):
+    # Deck exporters disagree about how they spell a two-faced card: Moxfield emits
+    # the full "Front // Back", others only the front face. The client normalizes to
+    # the front face, and this is the route it uses — so the front face must resolve.
+    two_faced = [c for c in INDEXED if " // " in c["name"]]
+    assert two_faced, "fixture must include two-faced cards"
+
+    for card in two_faced:
+        r = get_card(client, name_key(card))
+        assert r.status_code == 200, f'front face missed: {card["name"]!r}'
+        assert name_key(r.json()) == name_key(card)
+
+
+def test_two_faced_cards_are_also_indexed_under_their_full_name(client):
+    # The full "Front // Back" spelling is indexed too, so a caller that sends it
+    # verbatim still resolves. It has to be asserted through the *bulk* endpoint:
+    # a normalized full name contains "//", and an encoded %2F is normalized back
+    # into a path separator before routing, so GET /v1/cards/{card_id} can never
+    # match it. (Same reason "SP//dr, Piloted by Peni" — a real card whose name
+    # contains a literal "//" — is indexed but unreachable over the path route.)
+    two_faced = [c for c in INDEXED if " // " in c["name"]]
+    assert two_faced, "fixture must include two-faced cards"
+
+    keys = [normalize_key(c["name"]) for c in two_faced]
+    r = client.post("/v1/cards/bulk/lookup", json={"card_ids": keys})
+
+    assert r.status_code == 200
+    assert r.json()["not_found"] == [], "full two-faced names must be indexed"
+    assert len(r.json()["results"]) == len(keys)
+
+
 def test_flavor_and_printed_names_resolve(client):
     checked_flavor = checked_printed = 0
     for card in INDEXED:

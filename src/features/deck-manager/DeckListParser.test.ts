@@ -576,12 +576,16 @@ Krenko, Mob Boss
       });
 
       it('should handle cards with slashes and incorrect collectorNumber', () => {
+        // Birgi is a modal double-faced card. This previously asserted the back
+        // face was kept on the name — codifying the bug it was meant to catch.
+        // "Birgi, God of Storytelling / Harnfel, Horn of Bounty" is a 404 against
+        // the card API; only the front face resolves.
         const deckText = `1 Birgi, God of Storytelling / Harnfel, Horn of Bounty (J21) 416 *F*
           1 Faithless Looting (STA) 101e *F*`;
         const result = parseDecklist(deckText);
 
         expect(result).toHaveLength(2);
-        expect(result[0]).toEqual({ count: 1, name: 'Birgi, God of Storytelling / Harnfel, Horn of Bounty', setCode: 'J21', collectorNumber: '416' });
+        expect(result[0]).toEqual({ count: 1, name: 'Birgi, God of Storytelling', setCode: 'J21', collectorNumber: '416' });
         expect(result[1]).toEqual({ count: 1, name: 'Faithless Looting', setCode: 'STA', collectorNumber: '101e' });
       });
 
@@ -716,6 +720,55 @@ SIDEBOARD:
         expect(result[0]).toEqual({ count: 1, name: 'Taiga', setCode: 'OLGC', collectorNumber: '2017EU' });
         expect(result[1]).toEqual({ count: 1, name: 'Windswept Heath', setCode: 'WC04', collectorNumber: 'jn328' });
         expect(result[2]).toEqual({ count: 1, name: 'Zuran Orb', setCode: 'PTC', collectorNumber: 'et350' });
+      });
+    });
+
+    describe('two-faced cards', () => {
+      // Moxfield and friends write the full "Front // Back" name for double-faced,
+      // split, and Adventure cards. The card API indexes the front face, so leaving
+      // the back face on the name 404s it and silently falls through to Scryfall —
+      // which our telemetry then blamed on the card index.
+      it('reduces a double-faced name to its front face', () => {
+        expect(parseDecklist('1 Brazen Borrower // Petty Theft')).toEqual([
+          { count: 1, name: 'Brazen Borrower' },
+        ]);
+      });
+
+      it('reduces a split-card name to its front face', () => {
+        expect(parseDecklist('1 Fire // Ice')).toEqual([{ count: 1, name: 'Fire' }]);
+      });
+
+      it('strips the back face on the set-annotated path too', () => {
+        // This path reads the raw line rather than the tokenised parts, so it has
+        // to strip the back face itself — it was the branch the original fix missed.
+        expect(parseDecklist('1x Brazen Borrower // Petty Theft (sld) 234')).toEqual([
+          { count: 1, name: 'Brazen Borrower', setCode: 'sld', collectorNumber: '234' },
+        ]);
+      });
+
+      it('handles the single-slash separator some exporters use', () => {
+        expect(parseDecklist('1 Fire / Ice')).toEqual([{ count: 1, name: 'Fire' }]);
+      });
+
+      it('leaves a slash inside a name alone when it is not a separator', () => {
+        expect(parseDecklist('1 Borrowing 100,000 Arrows')).toEqual([
+          { count: 1, name: 'Borrowing 100,000 Arrows' },
+        ]);
+      });
+
+      // "SP//dr, Piloted by Peni" is a real card containing a literal "//" that is
+      // NOT a face separator. This is why the separator has to be a whitespace-
+      // delimited token — a bare split on "//" would truncate the name to "SP".
+      it('does not treat a // inside a word as a face separator', () => {
+        expect(parseDecklist('1 SP//dr, Piloted by Peni')).toEqual([
+          { count: 1, name: 'SP//dr, Piloted by Peni' },
+        ]);
+      });
+
+      it('keeps a // inside a word intact on the set-annotated path too', () => {
+        expect(parseDecklist('1x SP//dr, Piloted by Peni (spm) 42')).toEqual([
+          { count: 1, name: 'SP//dr, Piloted by Peni', setCode: 'spm', collectorNumber: '42' },
+        ]);
       });
     });
   });
