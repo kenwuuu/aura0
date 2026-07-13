@@ -5,9 +5,10 @@ connects to `wss://digitalocean-ws-ipv4.aura0.app`). WebRTC is the alternative �
 `src/infrastructure/networking/README.md`. WebSocket is the default because peer discovery
 over `wss:443` works on restrictive networks where peer-to-peer UDP does not.
 
-Deployed to the DigitalOcean droplet (`aura-websocket-server`) under pm2 as `y-websocket`,
-on port 47964. The droplet also runs the card-search API on port 8000, so **this process
-shares 1GB of RAM with another service** — its memory behavior matters.
+Deployed to the DigitalOcean droplet (`aura-websocket-server`) under pm2 as
+`y-websocket-<port>`, on 47964 or 47965 — whichever the last blue-green deploy landed on; ask
+`./scripts/deploy.sh status`. The droplet also runs the card-search API on port 8000, so **this
+process shares 1GB of RAM with another service** — its memory behavior matters.
 
 ## Layout
 
@@ -71,42 +72,63 @@ inferred from RSS. Aggregate only; it exposes no room names.
 
 ## Deploy
 
-⚠️ **This directory has its own `node_modules`.** pm2 previously ran
-`./node_modules/.bin/y-websocket-server` resolved from the repo root; `ecosystem.config.cjs` now
-sets `cwd: __dirname` and runs `./main.js`, so dependencies must be installed **here**. A
-`git pull && pm2 reload` alone is not enough the first time.
+The relay runs on **one of two ports, 47964 and 47965**, under pm2 as `y-websocket-<port>`.
+Caddy reverse-proxies exactly one of them; the other is idle. `scripts/deploy.sh` brings the
+new code up on the idle port, proves it there, and only then moves Caddy — the same blue-green
+shape the card-search API gets from its `mtg-card-search@.service` systemd template.
 
-⚠️ **`pm2 reload` will not switch to the new entrypoint.** For a fork-mode app, `reload`
-re-runs the process definition pm2 already has registered — it does not re-read
-`ecosystem.config.cjs`. Coming from the stock binary you must `delete` + `start`, or pm2 will
-keep running `y-websocket-server` and every check below will still pass against the *old* code.
-
-The droplet has **no git credentials for this (private) repo** — `git pull` there fails. Ship
-code the same way `mtg_card_search/scripts/deploy.sh` does: `git archive` locally, `scp`, extract.
-
-On the droplet:
+⚠️ **This directory has its own `node_modules`**, and the droplet has **no git credentials for
+this (private) repo** — `git pull` there fails. Ship code in from a local `git archive`, the way
+`mtg_card_search/scripts/deploy.sh` expects:
 
 ```bash
-cd /root/aura/networking/websocket
-npm ci                             # required — this directory has its own deps
-pm2 delete y-websocket             # NOT `reload` — see above
-pm2 start ecosystem.config.cjs
-pm2 save                           # persist across reboot
+# locally
+git archive --format=tar.gz -o relay.tgz HEAD networking/websocket
+scp relay.tgz root@138.197.78.138:/root/
+# on the droplet
+cd /root/aura && tar xzf /root/relay.tgz && cd networking/websocket
 ```
 
-Verify — **all three, in order.** The first is the one that actually distinguishes new from old:
+Then:
 
 ```bash
-curl -s localhost:47964/health     # {"status":"ok","rooms":N}  ← JSON = new code.
-                                   # plain `okay` = still the stock binary; the deploy did NOT take.
-pm2 describe y-websocket           # restarts must be 0 and stable. A climbing count with EMPTY
-                                   # logs is the never-listened failure — roll back, don't retry.
-pm2 logs y-websocket --lines 5     # expect "y-websocket relay running at '0.0.0.0' on port 47964"
+./scripts/deploy.sh stage     # npm ci, start the idle port, smoke-test it.
+                              # Touches nothing that serves users — safe any time.
+./scripts/deploy.sh flip      # point Caddy at it. The old instance keeps RUNNING.
+./scripts/deploy.sh rollback  # ...if it misbehaves. Instant — but only before `drain`.
+./scripts/deploy.sh drain     # stop the old instance. Do this promptly (see below).
+./scripts/deploy.sh status    # what's live, what's idle, health of both.
 ```
 
-Then open a room in the app, close every tab, and confirm `rooms` returns to its prior value
-rather than ratcheting up. RSS should come back down after a play session instead of climbing
-monotonically.
+`stage` refuses to hand you a broken instance: it aborts if the process restarts even once (the
+never-listened crash-loop signature, see Layout) or if `scripts/smoke_test.mjs` fails. That smoke
+test drives a real WebSocket client against the staged port and asserts, via `/health`, that a
+room is held while a client is connected, **survives one client of several leaving**, and is
+evicted once empty. The middle assertion is the one that matters most — premature eviction would
+drop a room out from under a live game, which is worse than the leak.
+
+### Flip and drain are separate on purpose
+
+A Caddy graceful reload does **not** migrate established connections. After `flip`, players
+already connected stay pinned to the old instance while new connections land on the new one.
+Relay instances share no state (`docs` is per-process), so during that window two players in one
+room can sit on different instances and not see each other. Yjs is a CRDT, so this converges the
+moment they're back on one instance — it's a transient split, not corruption, and it's the same
+divergence the app already absorbs when someone's wifi drops. `drain` ends the window by kicking
+the old instance's clients onto the new one.
+
+So the gap between `flip` and `drain` is exactly your rollback window: keep it short, but *have*
+it. Rolling back after `drain` is no longer a re-flip — there's nothing warm to flip back to.
+
+### `pm2 reload` is a trap
+
+For a fork-mode app, `reload` re-runs the process definition pm2 already has registered — it does
+**not** re-read `ecosystem.config.cjs`. Coming from the stock binary, `pm2 reload` will happily
+keep running `y-websocket-server` while every check appears to pass against the *old* code. Use
+the script; it does `delete` + `start`.
+
+**Plain-text `okay` from `/health` means the deploy did NOT take** — that's the stock binary,
+which has no `/health` and answers every path with `okay`. JSON means it's ours.
 
 ## Tests
 
@@ -118,3 +140,11 @@ npm test
 clients are connected, survive one client of several leaving, and are evicted once the room
 empties. Comment out `installRoomEviction()` and the eviction test fails — that's the regression
 this guards.
+
+`test/entrypoint.test.js` launches the entrypoint with `argv[1]` pointed at a foreign path,
+reproducing pm2's shape, and asserts `/health` still answers. It fails against the old
+`server.js`; a "does `node main.js` start?" test would not have caught that.
+
+`scripts/smoke_test.mjs` is the same eviction contract asserted against a *running* instance over
+the network (it can't reach `docs`, so it reads `/health`). `deploy.sh stage` runs it. It needs
+only `ws`, a production dependency, so it works against a `--omit=dev` install on the droplet.
