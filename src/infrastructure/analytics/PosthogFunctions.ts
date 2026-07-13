@@ -199,12 +199,25 @@ export type ImportCounts = {
    * category we waved through that was really a sideboard.
    */
   unrecognizedSections: string[];
+  /**
+   * Cards tagged for the command zone. `Player` draws every one of them into the
+   * opening hand, so this is the size of that hand — and the only number that
+   * can see a command zone that swallowed the deck.
+   */
+  commanderCardCount: number;
 };
 
 /**
- * Flatten counts into event properties, deriving the two signals worth alerting
- * on: `cards_missing` (our lookup lost cards) and `is_standard_deck_size` (the
- * list itself was odd).
+ * The most cards a command zone can legally hold: partners, or a commander and
+ * its background. Anything above this is not a deck-building choice, it is a
+ * parser fault.
+ */
+const MAX_LEGAL_COMMANDERS = 2;
+
+/**
+ * Flatten counts into event properties, deriving the signals worth alerting on:
+ * `cards_missing` (our lookup lost cards), `is_standard_deck_size` (the list
+ * itself was odd), and `command_zone_overflowed` (see below).
  */
 function countProperties(counts: ImportCounts): Record<string, unknown> {
   return {
@@ -223,6 +236,20 @@ function countProperties(counts: ImportCounts): Record<string, unknown> {
     // Describes the *output*: is what we handed the player a legal deck?
     imported_size_bucket: bucketDeckSize(counts.importedCardCount),
     is_standard_imported_size: STANDARD_DECK_SIZES.has(counts.importedCardCount),
+
+    // Every commander-tagged card is drawn into the opening hand, so this is
+    // that hand's size. It is reported on *every* import, not just the broken
+    // ones, because the failure it exists to catch is invisible to all the
+    // numbers above: a parser that tags the whole deck as commanders still
+    // yields a perfectly standard 100-card import. That is exactly what
+    // happened — 8.9% of imports dealt the player their entire library, and
+    // 44 of every 45 sailed past the deck-size checks with a legal size.
+    commander_card_count: counts.commanderCardCount,
+
+    // A deck cannot have three commanders. If this is ever true, the command
+    // zone has stopped meaning anything and the player is about to be handed
+    // their deck — alert on it rather than waiting for someone to notice.
+    command_zone_overflowed: counts.commanderCardCount > MAX_LEGAL_COMMANDERS,
   };
 }
 

@@ -344,6 +344,12 @@ export async function drawCard(page: Page): Promise<void> {
  * dock's deck-import modal, fills the name + decklist, submits, and waits for
  * the modal to close (it self-closes ~1s after a successful import) as the
  * signal that the deck actually landed rather than racing the next action.
+ *
+ * A list that isn't 60 or 100 cards — which most test fixtures are not — stops
+ * on the "Unusual deck size" warning first, and the submit button becomes
+ * "Import Anyway". That gate is the feature working, so the harness clicks
+ * through it rather than routing around it: a deck of an odd size takes two
+ * clicks, and a legal one takes a single click and never sees the warning.
  */
 export async function importDeck(page: Page, name: string, decklist: string): Promise<void> {
   await deckImportOpenButton(page).click();
@@ -351,5 +357,13 @@ export async function importDeck(page: Page, name: string, decklist: string): Pr
   await page.getByRole('textbox', { name: 'Deck Name' }).fill(name);
   await page.getByRole('textbox', { name: 'Deck List' }).fill(decklist);
   await page.getByRole('button', { name: 'Import Deck' }).click();
+
+  // Either the import is under way, or the size warning is now up. Both leave
+  // the modal open, so wait on the button itself rather than a timer.
+  const importAnyway = page.getByRole('button', { name: 'Import Anyway' });
+  if (await importAnyway.isVisible()) {
+    await importAnyway.click();
+  }
+
   await deckImportModal(page).waitFor({ state: 'hidden', timeout: 15000 });
 }

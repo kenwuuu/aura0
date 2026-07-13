@@ -325,6 +325,42 @@ DECK:
       });
     });
 
+    it('reports how many cards the command zone claimed', async () => {
+      // The size of the opening hand this import is about to produce, since
+      // Player draws every commander-tagged card. Reported on every import —
+      // a command zone that swallowed the deck still yields a textbook 100-card
+      // deck size, so no other property in the event can see it.
+      await importWith(`COMMANDER:
+1 Krenko, Mob Boss
+
+1 Lightning Bolt
+1 Mountain`);
+
+      expect(capturedProps('deck_import_succeeded')).toMatchObject({
+        commander_card_count: 1,
+        command_zone_overflowed: false,
+      });
+    });
+
+    it('reports a command zone that has stopped meaning anything', async () => {
+      // Three commanders is not a deck-building choice, it is a parser fault —
+      // and the shape that produces it (a commander header, no terminator) used
+      // to tag the entire deck. This is the alerting signal.
+      await importWith(`COMMANDER:
+1 Krenko, Mob Boss
+1 Sol Ring
+1 Lightning Bolt`);
+
+      const props = capturedProps('deck_import_succeeded');
+      // The parser now bounds the zone, so the overflow flag must stay false —
+      // if this ever flips, the bound has regressed and players are being dealt
+      // their decks again.
+      expect(props).toMatchObject({
+        commander_card_count: 1,
+        command_zone_overflowed: false,
+      });
+    });
+
     it('keeps the raw text when a fully-successful import lands on an illegal deck size', async () => {
       // Every card resolved, so a 24-card deck can only mean the *list* was short
       // (or we dropped lines parsing it) — exactly the case the raw text diagnoses.

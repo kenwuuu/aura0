@@ -176,7 +176,13 @@ SIDEBOARD:
         expect(excludedSections).toEqual(['sideboard']);
       });
 
-      it('should keep tagging command-zone cards across a blank line', () => {
+      it('should end the command zone at a blank line when no main header follows', () => {
+        // The common Archidekt/plain-text shape: a COMMANDER: block, a blank
+        // line, then the deck — with no "Deck" header to switch back on. The
+        // blank is the only thing marking the command zone as over. Tagging the
+        // cards after it is not a cosmetic slip: Player.moveCommandersToHand
+        // draws every commander-tagged card, so a deck parsed this way lands in
+        // the player's opening hand in its entirety.
         const deckText = `COMMANDER:
 1 Krenko, Mob Boss
 
@@ -186,7 +192,124 @@ SIDEBOARD:
 
         expect(result).toEqual([
           { count: 1, name: 'Krenko, Mob Boss', commander: true, tags: ['commander'], section: 'commander' },
-          { count: 1, name: 'Sol Ring', commander: true, tags: ['commander'], section: 'commander' },
+          { count: 1, name: 'Sol Ring' },
+        ]);
+      });
+
+      it('should tag both partners when the list says where the command zone ends', () => {
+        const deckText = `COMMANDER:
+1 Thrasios, Triton Hero
+1 Tymna the Weaver
+
+1 Sol Ring`;
+
+        const result = parseDecklist(deckText);
+
+        expect(result).toEqual([
+          { count: 1, name: 'Thrasios, Triton Hero', commander: true, tags: ['commander'], section: 'commander' },
+          { count: 1, name: 'Tymna the Weaver', commander: true, tags: ['commander'], section: 'commander' },
+          { count: 1, name: 'Sol Ring' },
+        ]);
+      });
+
+      it('should tag only the first card when the command zone is never closed', () => {
+        // No blank line, no "Deck" header — nothing says where the command zone
+        // ends. A second legendary could be a partner or just the first card of
+        // the deck, and the list gives us no way to tell. Guessing "partner"
+        // would put a card the player never chose into their opening hand, so
+        // the first card is the commander and the rest is deck.
+        //
+        // The cards demoted by the overrun keep no provenance: the command zone
+        // is being read as having only ever held the first card, so they were
+        // never in it — they read exactly like the cards below them.
+        const deckText = `COMMANDER:
+1 Sauron, Lord of the Rings
+1 Anger
+1 Arcane Denial
+1 Arcane Signet`;
+
+        const result = parseDecklist(deckText);
+
+        expect(result).toEqual([
+          { count: 1, name: 'Sauron, Lord of the Rings', commander: true, tags: ['commander'], section: 'commander' },
+          { count: 1, name: 'Anger' },
+          { count: 1, name: 'Arcane Denial' },
+          { count: 1, name: 'Arcane Signet' },
+        ]);
+      });
+
+      it('should keep the command zone open across a blank line that sits under the header', () => {
+        // A blank directly under a header is padding, not a terminator — the
+        // section has taken no cards yet, so it stays open and the commander is
+        // still tagged.
+        const deckText = `COMMANDER:
+
+1 Krenko, Mob Boss
+
+1 Sol Ring`;
+
+        const result = parseDecklist(deckText);
+
+        expect(result).toEqual([
+          { count: 1, name: 'Krenko, Mob Boss', commander: true, tags: ['commander'], section: 'commander' },
+          { count: 1, name: 'Sol Ring' },
+        ]);
+      });
+
+      it('should not import a sideboard whose header is followed by a blank line', () => {
+        // The same padding rule, on the section where getting it wrong is
+        // expensive: if the blank under "Sideboard" ended the section, all 15
+        // sideboard cards would import and a 60-card deck would arrive as 75.
+        const deckText = `1 Whiskervale Forerunner
+
+Sideboard
+
+1 Festival of Embers
+1 Warleader's Call`;
+
+        const { items, excludedCardCount } = parseDecklistWithStats(deckText);
+
+        expect(items).toEqual([{ count: 1, name: 'Whiskervale Forerunner' }]);
+        expect(excludedCardCount).toBe(2);
+      });
+
+      it('should leave a companion parked below the sideboard block excluded', () => {
+        // MTGO/Arena write the companion under the sideboard, separated by a
+        // blank. A blank does not end an excluded section, so the companion stays
+        // in the sideboard — which is where it belongs: `companion` is itself an
+        // excluded header, and a companion is a sideboard card by the rules of
+        // the game. Importing it would make a 60-card deck arrive as 61.
+        const deckText = `1 Whiskervale Forerunner
+
+Sideboard
+1 Festival of Embers
+
+1 Lurrus of the Dream-Den`;
+
+        const { items, excludedCardCount } = parseDecklistWithStats(deckText);
+
+        expect(items).toEqual([{ count: 1, name: 'Whiskervale Forerunner' }]);
+        expect(excludedCardCount).toBe(2);
+      });
+
+      it.each([
+        ['straight double quotes', '"COMMANDER"'],
+        ['curly quotes', '“Commander”'],
+        ['quotes around a colon form', '"Commander:"'],
+      ])('should recognize a commander header wrapped in %s', (_label, header) => {
+        // Quoted headers are not recognized as headers unless the quotes are
+        // stripped, in which case they fall through to the quantity-less-card
+        // rule and import as a *card* — inflating a 100-card deck to 101.
+        const deckText = `${header}
+1 Krenko, Mob Boss
+
+1 Sol Ring`;
+
+        const result = parseDecklist(deckText);
+
+        expect(result).toEqual([
+          { count: 1, name: 'Krenko, Mob Boss', commander: true, tags: ['commander'], section: 'commander' },
+          { count: 1, name: 'Sol Ring' },
         ]);
       });
 

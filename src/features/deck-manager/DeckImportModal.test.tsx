@@ -212,9 +212,18 @@ describe('DeckImportModal — import flow', () => {
   const renderModal = () =>
     render(<DeckImportModal isOpen onClose={onClose} onDeckImported={onDeckImported} />);
 
-  async function startImport(user: ReturnType<typeof userEvent.setup>) {
+  // The size warning now reads the *text*, not the import result — it fires
+  // before a single card is looked up. So what a test types is what it means.
+  const LEGAL_60 = '60 Mountain';
+  const UNUSUAL_101 = '101 Mountain';
+
+  async function fillForm(user: ReturnType<typeof userEvent.setup>, list = LEGAL_60) {
     await user.type(screen.getByLabelText('Deck Name'), 'My Deck');
-    await user.type(screen.getByLabelText('Deck List'), '1 Sol Ring');
+    await user.type(screen.getByLabelText('Deck List'), list);
+  }
+
+  async function startImport(user: ReturnType<typeof userEvent.setup>, list = LEGAL_60) {
+    await fillForm(user, list);
     await user.click(screen.getByRole('button', { name: 'Import Deck' }));
   }
 
@@ -230,30 +239,131 @@ describe('DeckImportModal — import flow', () => {
     expect(screen.getByText('Fetching card 2 of 2...')).toBeInTheDocument();
   });
 
+  /** A deck of `size` distinct cards — the modal only ever counts them. */
+  const deckOf = (size: number) =>
+    Array.from({ length: size }, (_, i) => ({ id: `c${i}`, name: `Card ${i}` })) as any[];
+
   it('saves the deck, shows a success message, and hands off the imported deck after the delay', async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     const user = userEvent.setup();
     renderModal();
     await startImport(user);
 
-    const card = { id: 'c1', name: 'Sol Ring' } as any;
+    // A legal 60-card deck: the import should go straight through without
+    // stopping to ask about its size.
+    const cards = deckOf(60);
     await act(async () => {
-      resolveImport({ cards: [card], metadata: { name: 'My Deck' } });
+      resolveImport({ cards, metadata: { name: 'My Deck' } });
       // Flush the microtasks queued by the awaited importFromText/saveDeck calls.
       await Promise.resolve();
       await Promise.resolve();
     });
 
-    expect(screen.getByText('Successfully imported 1 cards!')).toBeInTheDocument();
+    expect(screen.getByText('Successfully imported 60 cards!')).toBeInTheDocument();
+    expect(screen.queryByText(/unusual deck size/i)).not.toBeInTheDocument();
     expect(saveDeckMock).toHaveBeenCalledWith(
-      expect.objectContaining({ cards: [card], metadata: expect.objectContaining({ name: 'My Deck' }) }),
+      expect.objectContaining({ cards, metadata: expect.objectContaining({ name: 'My Deck' }) }),
     );
     expect(onDeckImported).not.toHaveBeenCalled();
 
     act(() => vi.advanceTimersByTime(1000));
 
-    expect(onDeckImported).toHaveBeenCalledWith(expect.objectContaining({ cards: [card] }));
+    expect(onDeckImported).toHaveBeenCalledWith(expect.objectContaining({ cards }));
     expect(onClose).toHaveBeenCalled();
+  });
+
+  it('imports a 100-card Commander deck without questioning its size', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const user = userEvent.setup();
+    renderModal();
+    await startImport(user, '100 Mountain');
+
+    await act(async () => {
+      resolveImport({ cards: deckOf(100), metadata: {} });
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(screen.queryByRole('heading', { name: /unusual deck size/i })).not.toBeInTheDocument();
+    expect(saveDeckMock).toHaveBeenCalled();
+  });
+
+  it('warns about an unusual size once the list settles, without being asked to import', async () => {
+    // The point of the debounce: the player learns their list is 101 cards while
+    // they are still looking at it, not after a 12-54 second lookup.
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const user = userEvent.setup();
+    renderModal();
+    await fillForm(user, UNUSUAL_101);
+
+    expect(screen.queryByRole('heading', { name: /unusual deck size/i })).not.toBeInTheDocument();
+
+    await act(async () => {
+      vi.advanceTimersByTime(2000);
+    });
+
+    expect(screen.getByRole('heading', { name: /unusual deck size/i })).toBeInTheDocument();
+    expect(screen.getByText(/this list comes to 101 cards/i)).toBeInTheDocument();
+
+    // Purely a read of the text — nothing was imported to produce it.
+    expect(importFromTextMock).not.toHaveBeenCalled();
+    expect(saveDeckMock).not.toHaveBeenCalled();
+  });
+
+  it('shows where the cards went, section by section', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const user = userEvent.setup();
+    renderModal();
+
+    // 100 in the deck + 1 commander = 101, with a 15-card sideboard dropped.
+    await fillForm(
+      user,
+      ['COMMANDER:', '1 Krenko, Mob Boss', '', '100 Mountain', '', 'Sideboard', '15 Duress'].join('\n'),
+    );
+
+    await act(async () => {
+      vi.advanceTimersByTime(2000);
+    });
+
+    expect(
+      screen.getByText(/Deck 100 · Command zone 1 · Sideboard 15 \(not imported\)/),
+    ).toBeInTheDocument();
+  });
+
+  it('does not let a fast paste-and-click slip past the warning', async () => {
+    // Clicking Import before the debounce has fired must not import in silence:
+    // the list is re-read on the spot and the warning shown instead.
+    const user = userEvent.setup();
+    renderModal();
+    await startImport(user, UNUSUAL_101);
+
+    expect(screen.getByRole('heading', { name: /unusual deck size/i })).toBeInTheDocument();
+    expect(importFromTextMock).not.toHaveBeenCalled();
+    expect(saveDeckMock).not.toHaveBeenCalled();
+  });
+
+  it('imports the unusual deck when the player clicks through the warning', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const user = userEvent.setup();
+    renderModal();
+    await startImport(user, UNUSUAL_101);
+
+    // The warning is up and the button now says what it will do.
+    await act(async () => {
+      await user.click(screen.getByRole('button', { name: 'Import Anyway' }));
+    });
+
+    const cards = deckOf(101);
+    await act(async () => {
+      resolveImport({ cards, metadata: {} });
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(saveDeckMock).toHaveBeenCalledWith(expect.objectContaining({ cards }));
+
+    act(() => vi.advanceTimersByTime(1000));
+    expect(onDeckImported).toHaveBeenCalledWith(expect.objectContaining({ cards }));
   });
 
   it("shows the importer's reported errors and never hands off a deck", async () => {

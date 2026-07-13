@@ -53,6 +53,34 @@ const MAIN_HEADERS = new Set([
   'counter', 'counters', 'nonbasic', 'basics', 'basic lands',
 ]);
 
+/**
+ * How many cards a command zone can hold: two, for partners or a commander and
+ * its background.
+ *
+ * A list earns the second one by *saying where the command zone ends* — with a
+ * blank line or a "Deck" header. That is the only evidence we have that a second
+ * legendary is a partner rather than the first card of the deck, because a text
+ * list carries no card types. So the bound is really two-tier:
+ *
+ *   Commander            Commander
+ *   1 Thrasios           1 Sauron, Lord of the Rings
+ *   1 Tymna              1 Anger                       <- no blank line, no
+ *                        1 Arcane Denial                  "Deck" header, ever
+ *   1 Sol Ring           ...
+ *   ...
+ *   ^ terminated:        ^ never terminated: the section would otherwise run to
+ *     partners, both       the end and tag all 100 cards. `Player` draws every
+ *     tagged.              commander-tagged card, so that hands the player their
+ *                          entire deck. Overrunning the bound is the proof that
+ *                          this list marks no boundary at all, so we keep the
+ *                          first card and read the rest as deck.
+ *
+ * The conservative reading costs a partners player one drag from the deck. The
+ * generous one puts a card they never chose into their opening hand, on a list
+ * that gave us nothing to justify it.
+ */
+const MAX_COMMANDERS = 2;
+
 /** A matched section header: its normalized label and what it means. */
 type HeaderMatch = {
   label: string;
@@ -99,13 +127,14 @@ export type ParsedDecklist = {
 /**
  * Parse a text decklist into card entries tagged with where they came from.
  *
- * A section header runs until the **next header** — blank lines and comments do
- * not end it. Cards carry their section as provenance (`tags` / `section`); the
- * parser never decides a card's fate, it only records one, and the caller
- * applies policy. That split is deliberate: the previous design tracked "which
- * section am I in?" as mutable state and reset it on a blank line, so a blank
- * inside `SIDEBOARD:` silently reopened the main deck and every card below it
- * was imported. There is no such flag to corrupt now.
+ * Cards carry their section as provenance (`tags` / `section`); the parser
+ * records where a card came from and applies only the bounds it can justify from
+ * the list's own structure, and the caller applies policy.
+ *
+ * A section header runs until the **next header** — with one exception: a blank
+ * line ends the command zone, once that zone has taken a card. Nothing else ends
+ * a section, and comments never do. See the `blank` case below for why the
+ * exception is exactly that narrow.
  *
  * Card lines may omit the leading quantity ("Sol Ring" == "1 Sol Ring"), which
  * is how singleton (Commander) exports list singletons and repeat basics one
@@ -118,6 +147,13 @@ export function parseDecklistWithStats(text: string): ParsedDecklist {
   const unrecognizedSections = new Set<string>();
 
   let active: HeaderMatch | null = null;
+  // Whether the active section has taken a card yet. A blank line only means
+  // "section over" once the section has content — see the `blank` case below.
+  let activeHasCards = false;
+  let commanderCount = 0;
+  // Cards tagged by the command zone currently open, so an overrun can take the
+  // tag back — see the overflow branch below.
+  let openCommanders: DeckLineItem[] = [];
 
   for (const rawLine of text.trim().split('\n')) {
     const parsed = classifyLine(rawLine);
@@ -125,6 +161,8 @@ export function parseDecklistWithStats(text: string): ParsedDecklist {
     switch (parsed.kind) {
       case 'header':
         active = parsed.header;
+        activeHasCards = false;
+        openCommanders = [];
         if (!active.recognized) {
           unrecognizedSections.add(active.label);
         }
@@ -132,12 +170,38 @@ export function parseDecklistWithStats(text: string): ParsedDecklist {
 
       case 'card': {
         const item = parsed.item;
+        activeHasCards = true;
+
+        if (active?.kind === 'commander' && commanderCount + item.count > MAX_COMMANDERS) {
+          // The zone overran its limit, which means this list never marked where
+          // the command zone ended — no blank line, no "Deck" header. With no
+          // structure to read, the generous reading (partners) is a guess, and
+          // guessing wrong puts a card the player never chose into their opening
+          // hand. So take the conservative one: the first card is the commander,
+          // everything after it is the deck. A player who wants partners can say
+          // so by formatting the list.
+          //
+          // The overreach cards lose their provenance outright rather than being
+          // re-tagged `main`: the conclusion here is that the command zone only
+          // ever extended to the first card, so these were never in it — which
+          // makes them indistinguishable from every card that follows, and they
+          // should read that way.
+          for (const overreach of openCommanders.slice(1)) {
+            delete overreach.commander;
+            delete overreach.tags;
+            delete overreach.section;
+          }
+          openCommanders = [];
+          active = null;
+        }
 
         if (active) {
           item.tags = [active.label];
           item.section = active.kind;
           if (active.kind === 'commander') {
             item.commander = true;
+            commanderCount += item.count;
+            openCommanders.push(item);
           }
         }
 
@@ -150,9 +214,47 @@ export function parseDecklistWithStats(text: string): ParsedDecklist {
         break;
       }
 
+      case 'blank':
+        // A blank line ends the **command zone**, and only once that zone has
+        // taken a card. It ends nothing else.
+        //
+        // That narrow rule is the one reading that satisfies every real export
+        // we've seen, because a blank line means different things depending on
+        // the section it follows, and the two sections fail in opposite
+        // directions:
+        //
+        //   Commander:     <- a list that never re-opens with a "Deck" header.
+        //   1 Atraxa          The blank is the only thing marking the command
+        //                     zone as over; without it every remaining card is
+        //   1 Sol Ring        tagged commander and `Player` draws the whole deck
+        //   ...               into the opening hand. So the blank must end it.
+        //
+        //   Sideboard      <- exports put blanks *inside* the sideboard block.
+        //   1 Duress          The sideboard has no size bound to overrun, so a
+        //                     blank is no evidence it ended — and ending it here
+        //   1 Mabel           imports every card below into the deck. That is how
+        //                     a 100-card deck came out at 103. So the blank must
+        //                     NOT end it; only the next header does.
+        //
+        // The qualifier ("once it has taken a card") handles the third shape — a
+        // blank sitting directly *under* a header is padding, not a terminator,
+        // so `Commander:` followed by a blank still tags the commander below it.
+        //
+        // A companion parked under the sideboard therefore stays excluded, which
+        // is what we want: `companion` is itself an excluded header, and a
+        // companion is a sideboard card by the rules of the game.
+        //
+        // Comments never end a section either — a comment inside a sideboard must
+        // not leak the cards under it into the deck.
+        if (active?.kind === 'commander' && activeHasCards) {
+          active = null;
+          activeHasCards = false;
+          openCommanders = [];
+        }
+        break;
+
       default:
-        // Blank lines and comments carry no section meaning — crucially, they do
-        // not end the active one.
+        // Comments carry no section meaning — they do not end the active one.
         break;
     }
   }
@@ -234,6 +336,7 @@ function matchHeader(text: string): HeaderMatch | null {
   const label = trimmed
     .replace(/^\[|\]$/g, '')        // wrapping [ ] (Archidekt category)
     .replace(/\s*\(\d+\)\s*$/, '')  // trailing "(count)"
+    .replace(/^["'“”‘’]+|["'“”‘’]+$/g, '')  // wrapping quotes, straight or curly
     .replace(/:\s*$/, '')           // trailing colon
     .trim()
     .toLowerCase();
