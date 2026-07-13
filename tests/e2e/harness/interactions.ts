@@ -1,5 +1,5 @@
 import { Page, Locator, expect } from '@playwright/test';
-import { boardCard, cardPreview, pileTile, whiteboard, deckImportOpenButton, deckImportModal, boardTokens } from './pageObjects';
+import { boardCard, boardCardNode, cardPreview, pileTile, whiteboard, deckImportOpenButton, deckImportModal, boardTokens, transformPosition } from './pageObjects';
 import { TESTID, PileKind } from './selectors';
 
 export async function centerOf(locator: Locator): Promise<{ x: number; y: number }> {
@@ -127,6 +127,41 @@ export async function mouseDrag(
   await page.waitForTimeout(120);
   await page.mouse.up();
   await page.waitForTimeout(350);
+}
+
+/**
+ * Drag a board card while sampling where an *observer* page is rendering it.
+ *
+ * Live drag is streamed over Yjs awareness, so the only way to prove a peer sees
+ * the card move — rather than just teleport on drop — is to look at the observer
+ * mid-gesture. Returns the observer's board-space samples, so a spec can assert
+ * on the motion itself rather than only on the final resting place.
+ */
+export async function dragBoardCardWatchedBy(
+  page: Page,
+  card: Locator,
+  to: { x: number; y: number },
+  observer: Page,
+  cardId: string,
+  samples = 10,
+): Promise<({ x: number; y: number } | null)[]> {
+  const from = await centerOf(card);
+  const observed: ({ x: number; y: number } | null)[] = [];
+
+  await page.mouse.move(from.x, from.y);
+  await page.mouse.down();
+  await page.mouse.move(from.x + 15, from.y + 15, { steps: 5 }); // exceed the drag threshold
+
+  for (let i = 1; i <= samples; i++) {
+    const t = i / samples;
+    await page.mouse.move(from.x + (to.x - from.x) * t, from.y + (to.y - from.y) * t, { steps: 3 });
+    // Let the position cross the wire and get painted before we look.
+    await observer.waitForTimeout(60);
+    observed.push(await transformPosition(boardCardNode(observer, cardId)));
+  }
+
+  await page.mouse.up();
+  return observed;
 }
 
 /**
