@@ -96,12 +96,19 @@ export function trackSyncOutcome(props: {
   });
 }
 
+/**
+ * `connectMs` times the successful connection attempt (handshake latency);
+ * `offlineForMs` times the outage it ended. They are not interchangeable — a
+ * client that slept through a three-day outage and then reconnected instantly
+ * has a tiny connectMs and a huge offlineForMs. Chart latency off the former.
+ */
 export function trackConnectionOutcome(props: {
   transport: TransportLabel;
   outcome: 'connected' | 'failed';
   episodeId?: string;
   episodeType?: 'initial' | 'reconnect';
   connectMs?: number;
+  offlineForMs?: number;
   unreachableForMs?: number;
 }): void {
   posthog.capture('connection_outcome', {
@@ -110,6 +117,7 @@ export function trackConnectionOutcome(props: {
     ...(props.episodeId !== undefined ? { episode_id: props.episodeId } : {}),
     ...(props.episodeType !== undefined ? { episode_type: props.episodeType } : {}),
     ...(props.connectMs !== undefined ? { connect_ms: props.connectMs } : {}),
+    ...(props.offlineForMs !== undefined ? { offline_for_ms: props.offlineForMs } : {}),
     ...(props.unreachableForMs !== undefined
       ? { unreachable_for_ms: props.unreachableForMs }
       : {}),
