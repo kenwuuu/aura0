@@ -129,6 +129,11 @@ export class MtgTextListDeckImporter extends DeckImporter {
       importedCardCount: deck.cards.length,
       uniqueImportedCount: results.length - failedCards.length,
       excludedCardCount: parsed.excludedCardCount,
+      // Taken from the parse rather than the built deck: this is precisely the
+      // set `Player` will draw into the opening hand.
+      commanderCardCount: entries
+        .filter((entry) => entry.commander)
+        .reduce((sum, entry) => sum + entry.count, 0),
     };
 
     if (!deck.errors || deck.errors.length === 0) {
