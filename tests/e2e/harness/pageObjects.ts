@@ -187,3 +187,13 @@ export function roomLinkButton(page: Page): Locator {
 export function newGameButton(page: Page): Locator {
   return page.getByTestId(TESTID.newGameButton);
 }
+
+/** The screen shown instead of the game when this room is already open in another tab. */
+export function duplicateTabNotice(page: Page): Locator {
+  return page.getByRole('heading', { name: /open in another tab/i });
+}
+
+/** The duplicate-tab screen's escape hatch: claim the room from the tab holding it. */
+export function playHereButton(page: Page): Locator {
+  return page.getByRole('button', { name: /play here instead/i });
+}
