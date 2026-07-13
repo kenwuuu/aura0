@@ -23,6 +23,7 @@ export const TESTID = {
   roomLink: 'room-link',
   newGameButton: 'new-game-button',
   connectionStatus: 'connection-status',
+  peerCursor: 'peer-cursor',
 } as const;
 
 export type PileKind = 'deck' | 'discard' | 'exile' | 'hand';

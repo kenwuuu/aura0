@@ -137,10 +137,11 @@ SIDEBOARD:
         expect(result[1]).toEqual({ count: 20, name: 'Mountain' });
       });
 
-      it('should resume importing after a blank line closes the sideboard (MTGO card below SIDEBOARD:)', () => {
-        // MTGO/Arena can list a card (e.g. a companion) below the sideboard.
-        // A blank line closes the sideboard so that card is imported again,
-        // while the sideboard cards between the header and the blank are dropped.
+      it('should keep a blank line inside the sideboard from leaking cards into the deck', () => {
+        // A section runs until the NEXT header — a blank line does not end it.
+        // The parser used to reset to the main deck on a blank, so every card
+        // below the blank was silently imported. That is how a 100-card deck
+        // came out at 103.
         const deckText = `1 Whiskervale Forerunner
 
 SIDEBOARD:
@@ -151,10 +152,28 @@ SIDEBOARD:
 
         const result = parseDecklist(deckText);
 
-        expect(result).toEqual([
-          { count: 1, name: 'Whiskervale Forerunner' },
-          { count: 1, name: 'Mabel, Heir to Cragflame' },
+        expect(result).toEqual([{ count: 1, name: 'Whiskervale Forerunner' }]);
+      });
+
+      it('should hand back the sideboard cards it withheld rather than dropping them silently', () => {
+        const deckText = `1 Whiskervale Forerunner
+
+SIDEBOARD:
+1 Festival of Embers
+
+1 Mabel, Heir to Cragflame`;
+
+        const { excluded, excludedCardCount, excludedSections } = parseDecklistWithStats(deckText);
+
+        // Both sideboard cards — including the one below the blank line — come
+        // back with their provenance intact, so the importer can explain the
+        // deck-size delta instead of leaving it to be guessed at.
+        expect(excluded).toEqual([
+          { count: 1, name: 'Festival of Embers', tags: ['sideboard'], section: 'excluded' },
+          { count: 1, name: 'Mabel, Heir to Cragflame', tags: ['sideboard'], section: 'excluded' },
         ]);
+        expect(excludedCardCount).toBe(2);
+        expect(excludedSections).toEqual(['sideboard']);
       });
 
       it('should end the command zone at a blank line when no main header follows', () => {
@@ -172,7 +191,7 @@ SIDEBOARD:
         const result = parseDecklist(deckText);
 
         expect(result).toEqual([
-          { count: 1, name: 'Krenko, Mob Boss', commander: true },
+          { count: 1, name: 'Krenko, Mob Boss', commander: true, tags: ['commander'], section: 'commander' },
           { count: 1, name: 'Sol Ring' },
         ]);
       });
@@ -187,8 +206,8 @@ SIDEBOARD:
         const result = parseDecklist(deckText);
 
         expect(result).toEqual([
-          { count: 1, name: 'Thrasios, Triton Hero', commander: true },
-          { count: 1, name: 'Tymna the Weaver', commander: true },
+          { count: 1, name: 'Thrasios, Triton Hero', commander: true, tags: ['commander'], section: 'commander' },
+          { count: 1, name: 'Tymna the Weaver', commander: true, tags: ['commander'], section: 'commander' },
           { count: 1, name: 'Sol Ring' },
         ]);
       });
@@ -199,6 +218,10 @@ SIDEBOARD:
         // the deck, and the list gives us no way to tell. Guessing "partner"
         // would put a card the player never chose into their opening hand, so
         // the first card is the commander and the rest is deck.
+        //
+        // The cards demoted by the overrun keep no provenance: the command zone
+        // is being read as having only ever held the first card, so they were
+        // never in it — they read exactly like the cards below them.
         const deckText = `COMMANDER:
 1 Sauron, Lord of the Rings
 1 Anger
@@ -208,7 +231,7 @@ SIDEBOARD:
         const result = parseDecklist(deckText);
 
         expect(result).toEqual([
-          { count: 1, name: 'Sauron, Lord of the Rings', commander: true },
+          { count: 1, name: 'Sauron, Lord of the Rings', commander: true, tags: ['commander'], section: 'commander' },
           { count: 1, name: 'Anger' },
           { count: 1, name: 'Arcane Denial' },
           { count: 1, name: 'Arcane Signet' },
@@ -228,7 +251,7 @@ SIDEBOARD:
         const result = parseDecklist(deckText);
 
         expect(result).toEqual([
-          { count: 1, name: 'Krenko, Mob Boss', commander: true },
+          { count: 1, name: 'Krenko, Mob Boss', commander: true, tags: ['commander'], section: 'commander' },
           { count: 1, name: 'Sol Ring' },
         ]);
       });
@@ -243,6 +266,25 @@ Sideboard
 
 1 Festival of Embers
 1 Warleader's Call`;
+
+        const { items, excludedCardCount } = parseDecklistWithStats(deckText);
+
+        expect(items).toEqual([{ count: 1, name: 'Whiskervale Forerunner' }]);
+        expect(excludedCardCount).toBe(2);
+      });
+
+      it('should leave a companion parked below the sideboard block excluded', () => {
+        // MTGO/Arena write the companion under the sideboard, separated by a
+        // blank. A blank does not end an excluded section, so the companion stays
+        // in the sideboard — which is where it belongs: `companion` is itself an
+        // excluded header, and a companion is a sideboard card by the rules of
+        // the game. Importing it would make a 60-card deck arrive as 61.
+        const deckText = `1 Whiskervale Forerunner
+
+Sideboard
+1 Festival of Embers
+
+1 Lurrus of the Dream-Den`;
 
         const { items, excludedCardCount } = parseDecklistWithStats(deckText);
 
@@ -266,7 +308,7 @@ Sideboard
         const result = parseDecklist(deckText);
 
         expect(result).toEqual([
-          { count: 1, name: 'Krenko, Mob Boss', commander: true },
+          { count: 1, name: 'Krenko, Mob Boss', commander: true, tags: ['commander'], section: 'commander' },
           { count: 1, name: 'Sol Ring' },
         ]);
       });
@@ -279,9 +321,10 @@ DECK:
 
         const result = parseDecklist(deckText);
 
-        expect(result).toHaveLength(2);
-        expect(result[0]).toEqual({ count: 1, name: 'Flubs, the Fool', commander: true });
-        expect(result[1]).toEqual({ count: 4, name: 'Lightning Bolt' });
+        expect(result).toEqual([
+          { count: 1, name: 'Flubs, the Fool', commander: true, tags: ['commander'], section: 'commander' },
+          { count: 4, name: 'Lightning Bolt', tags: ['deck'], section: 'main' },
+        ]);
       });
 
       it('should tag cards under a "Command Zone" header', () => {
@@ -290,8 +333,15 @@ DECK:
 
         const result = parseDecklist(deckText);
 
-        expect(result).toHaveLength(1);
-        expect(result[0]).toEqual({ count: 1, name: "Atraxa, Praetors' Voice", commander: true });
+        expect(result).toEqual([
+          {
+            count: 1,
+            name: "Atraxa, Praetors' Voice",
+            commander: true,
+            tags: ['command zone'],
+            section: 'commander',
+          },
+        ]);
       });
 
       it('should tag every card under a commander header (partners)', () => {
@@ -304,15 +354,16 @@ DECK:
 
         const result = parseDecklist(deckText);
 
-        expect(result).toHaveLength(3);
-        // Both partners are flagged — not just the first line under the header.
-        expect(result[0]).toEqual({ count: 1, name: 'Thrasios, Triton Hero', commander: true });
-        expect(result[1]).toEqual({ count: 1, name: 'Tymna the Weaver', commander: true });
-        // The section resets at the next header; main-deck cards are not flagged.
-        expect(result[2]).toEqual({ count: 4, name: 'Lightning Bolt' });
+        expect(result).toEqual([
+          // Both partners are flagged — not just the first line under the header.
+          { count: 1, name: 'Thrasios, Triton Hero', commander: true, tags: ['commander'], section: 'commander' },
+          { count: 1, name: 'Tymna the Weaver', commander: true, tags: ['commander'], section: 'commander' },
+          // The section ends at the next header; main-deck cards are not flagged.
+          { count: 4, name: 'Lightning Bolt', tags: ['deck'], section: 'main' },
+        ]);
       });
 
-      it('should not flag any card when the list has no headers', () => {
+      it('should not flag or tag any card when the list has no headers', () => {
         const deckText = `1 Sol Ring
 20 Mountain
 1 Krenko, Mob Boss`;
@@ -320,6 +371,8 @@ DECK:
         const result = parseDecklist(deckText);
 
         expect(result.every((item) => item.commander === undefined)).toBe(true);
+        // No header means no provenance to record.
+        expect(result.every((item) => item.tags === undefined)).toBe(true);
       });
 
       it('should keep commander + main and drop sideboard and maybeboard', () => {
@@ -330,23 +383,42 @@ SIDEBOARD:
 MAYBEBOARD:
 2 Counterspell`;
 
-        const result = parseDecklist(deckText);
+        const { items, excludedSections } = parseDecklistWithStats(deckText);
 
-        expect(result).toHaveLength(1);
-        expect(result[0]).toEqual({ count: 4, name: 'Lightning Bolt' });
+        expect(items).toEqual([
+          { count: 4, name: 'Lightning Bolt', tags: ['main deck'], section: 'main' },
+        ]);
+        expect(excludedSections).toEqual(['sideboard', 'maybeboard']);
       });
 
-      it('should import unrecognized headers as part of the deck (Archidekt categories)', () => {
+      it('should import recognized category headers as main deck (Archidekt)', () => {
         const deckText = `Creatures
 4 Monastery Swiftspear
 Lands
 20 Mountain`;
 
-        const result = parseDecklist(deckText);
+        const { items, unrecognizedSections } = parseDecklistWithStats(deckText);
 
-        expect(result).toHaveLength(2);
-        expect(result[0]).toEqual({ count: 4, name: 'Monastery Swiftspear' });
-        expect(result[1]).toEqual({ count: 20, name: 'Mountain' });
+        expect(items).toEqual([
+          { count: 4, name: 'Monastery Swiftspear', tags: ['creatures'], section: 'main' },
+          { count: 20, name: 'Mountain', tags: ['lands'], section: 'main' },
+        ]);
+        // "Creatures"/"Lands" are known labels, so nothing was waved through blind.
+        expect(unrecognizedSections).toEqual([]);
+      });
+
+      it('should flag a custom category header it did not recognize', () => {
+        // We still import it as main — but we say so. Waving through a header
+        // that was really a sideboard is how a deck ends up over-sized, and this
+        // is the only signal that names the culprit.
+        const deckText = `Ramp (2)
+1 Sol Ring
+1 Arcane Signet`;
+
+        const { items, unrecognizedSections } = parseDecklistWithStats(deckText);
+
+        expect(items).toHaveLength(2);
+        expect(unrecognizedSections).toEqual(['ramp']);
       });
 
       it('should match excluded headers case-insensitively and with a trailing count', () => {
@@ -458,8 +530,8 @@ Wasteland`;
         const result = parseDecklist(deckText);
 
         expect(result).toEqual([
-          { count: 1, name: 'Island' },
-          { count: 1, name: 'Wasteland' },
+          { count: 1, name: 'Island', tags: ['lands'], section: 'main' },
+          { count: 1, name: 'Wasteland', tags: ['lands'], section: 'main' },
         ]);
       });
 
@@ -489,10 +561,10 @@ Command Tower`;
         const result = parseDecklist(deckText);
 
         expect(result).toEqual([
-          { count: 1, name: "Kraum, Ludevic's Opus", commander: true },
-          { count: 1, name: 'Tymna the Weaver', commander: true },
-          { count: 1, name: 'Sol Ring' },
-          { count: 1, name: 'Command Tower' },
+          { count: 1, name: "Kraum, Ludevic's Opus", commander: true, tags: ['commander'], section: 'commander' },
+          { count: 1, name: 'Tymna the Weaver', commander: true, tags: ['commander'], section: 'commander' },
+          { count: 1, name: 'Sol Ring', tags: ['deck'], section: 'main' },
+          { count: 1, name: 'Command Tower', tags: ['deck'], section: 'main' },
         ]);
       });
 
@@ -508,10 +580,10 @@ Island`;
         const result = parseDecklist(deckText);
 
         expect(result).toEqual([
-          { count: 1, name: 'Krenko, Mob Boss', commander: true },
-          { count: 1, name: 'Sol Ring' },
-          { count: 1, name: 'Island' },
-          { count: 1, name: 'Island' },
+          { count: 1, name: 'Krenko, Mob Boss', commander: true, tags: ['commander'], section: 'commander' },
+          { count: 1, name: 'Sol Ring', tags: ['deck'], section: 'main' },
+          { count: 1, name: 'Island', tags: ['deck'], section: 'main' },
+          { count: 1, name: 'Island', tags: ['deck'], section: 'main' },
         ]);
       });
 
@@ -534,7 +606,9 @@ Swords to Plowshares`;
 
         const result = parseDecklist(deckText);
 
-        expect(result).toEqual([{ count: 1, name: 'Sol Ring' }]);
+        expect(result).toEqual([
+          { count: 1, name: 'Sol Ring', tags: ['deck'], section: 'main' },
+        ]);
       });
 
       it('should treat an Archidekt category header with a trailing count as a header', () => {
@@ -547,9 +621,9 @@ Removal (1)
         const result = parseDecklist(deckText);
 
         expect(result).toEqual([
-          { count: 1, name: 'Sol Ring' },
-          { count: 1, name: 'Arcane Signet' },
-          { count: 1, name: 'Swords to Plowshares' },
+          { count: 1, name: 'Sol Ring', tags: ['ramp'], section: 'main' },
+          { count: 1, name: 'Arcane Signet', tags: ['ramp'], section: 'main' },
+          { count: 1, name: 'Swords to Plowshares', tags: ['removal'], section: 'main' },
         ]);
       });
     });
@@ -566,8 +640,8 @@ Krenko, Mob Boss
         const result = parseDecklist(deckText);
 
         expect(result).toEqual([
-          { count: 1, name: 'Krenko, Mob Boss', commander: true },
-          { count: 1, name: 'Sol Ring' },
+          { count: 1, name: 'Krenko, Mob Boss', commander: true, tags: ['commander'], section: 'commander' },
+          { count: 1, name: 'Sol Ring', tags: ['deck'], section: 'main' },
         ]);
       });
 
@@ -673,12 +747,16 @@ Krenko, Mob Boss
       });
 
       it('should handle cards with slashes and incorrect collectorNumber', () => {
+        // Birgi is a modal double-faced card. This previously asserted the back
+        // face was kept on the name — codifying the bug it was meant to catch.
+        // "Birgi, God of Storytelling / Harnfel, Horn of Bounty" is a 404 against
+        // the card API; only the front face resolves.
         const deckText = `1 Birgi, God of Storytelling / Harnfel, Horn of Bounty (J21) 416 *F*
           1 Faithless Looting (STA) 101e *F*`;
         const result = parseDecklist(deckText);
 
         expect(result).toHaveLength(2);
-        expect(result[0]).toEqual({ count: 1, name: 'Birgi, God of Storytelling / Harnfel, Horn of Bounty', setCode: 'J21', collectorNumber: '416' });
+        expect(result[0]).toEqual({ count: 1, name: 'Birgi, God of Storytelling', setCode: 'J21', collectorNumber: '416' });
         expect(result[1]).toEqual({ count: 1, name: 'Faithless Looting', setCode: 'STA', collectorNumber: '101e' });
       });
 
@@ -692,8 +770,23 @@ Artifact
         const result = parseDecklist(deckText);
 
         expect(result).toHaveLength(2);
-        expect(result[0]).toEqual({ count: 1, name: 'Ms. Bumbleflower', setCode: 'blc', collectorNumber: '3', commander: true });
-        expect(result[1]).toEqual({ count: 1, name: 'Arcane Signet', setCode: 'blc', collectorNumber: '127' });
+        expect(result[0]).toEqual({
+          count: 1,
+          name: 'Ms. Bumbleflower',
+          setCode: 'blc',
+          collectorNumber: '3',
+          commander: true,
+          tags: ['commander'],
+          section: 'commander',
+        });
+        expect(result[1]).toEqual({
+          count: 1,
+          name: 'Arcane Signet',
+          setCode: 'blc',
+          collectorNumber: '127',
+          tags: ['artifact'],
+          section: 'main',
+        });
       });
 
     });
@@ -767,11 +860,12 @@ SIDEBOARD:
 
         const result = parseDecklist(deckText);
 
-        expect(result).toHaveLength(4);
-        expect(result[0]).toEqual({ count: 1, name: 'Flubs, the Fool', commander: true });
-        expect(result[1]).toEqual({ count: 4, name: 'Lightning Bolt' });
-        expect(result[2]).toEqual({ count: 20, name: 'Mountain' });
-        expect(result[3]).toEqual({ count: 1, name: 'Sol Ring' });
+        expect(result).toEqual([
+          { count: 1, name: 'Flubs, the Fool', commander: true, tags: ['commander'], section: 'commander' },
+          { count: 4, name: 'Lightning Bolt', tags: ['main deck'], section: 'main' },
+          { count: 20, name: 'Mountain', tags: ['main deck'], section: 'main' },
+          { count: 1, name: 'Sol Ring', tags: ['main deck'], section: 'main' },
+        ]);
       });
 
       it('should drop set-annotated cards that live under the sideboard', () => {
@@ -793,12 +887,20 @@ SIDEBOARD:
 
         const result = parseDecklist(deckText);
 
-        expect(result).toHaveLength(5);
-        expect(result[0]).toEqual({ count: 1, name: 'Flubs, the Fool', commander: true });
-        expect(result[1]).toEqual({ count: 4, name: 'Lightning Bolt' });
-        expect(result[2]).toEqual({ count: 20, name: 'Mountain' });
-        expect(result[3]).toEqual({ count: 1, name: 'Sol Ring' });
-        expect(result[4]).toEqual({ count: 1, name: 'Mabel, Heir to Cragflame', setCode: 'BLB', collectorNumber: '336' });
+        expect(result).toEqual([
+          { count: 1, name: 'Flubs, the Fool', commander: true, tags: ['commander'], section: 'commander' },
+          { count: 4, name: 'Lightning Bolt', tags: ['main deck'], section: 'main' },
+          { count: 20, name: 'Mountain', tags: ['main deck'], section: 'main' },
+          { count: 1, name: 'Sol Ring', tags: ['main deck'], section: 'main' },
+          {
+            count: 1,
+            name: 'Mabel, Heir to Cragflame',
+            setCode: 'BLB',
+            collectorNumber: '336',
+            tags: ['main deck'],
+            section: 'main',
+          },
+        ]);
       });
 
       it('should handle letters in collector number', () => {
@@ -813,6 +915,55 @@ SIDEBOARD:
         expect(result[0]).toEqual({ count: 1, name: 'Taiga', setCode: 'OLGC', collectorNumber: '2017EU' });
         expect(result[1]).toEqual({ count: 1, name: 'Windswept Heath', setCode: 'WC04', collectorNumber: 'jn328' });
         expect(result[2]).toEqual({ count: 1, name: 'Zuran Orb', setCode: 'PTC', collectorNumber: 'et350' });
+      });
+    });
+
+    describe('two-faced cards', () => {
+      // Moxfield and friends write the full "Front // Back" name for double-faced,
+      // split, and Adventure cards. The card API indexes the front face, so leaving
+      // the back face on the name 404s it and silently falls through to Scryfall —
+      // which our telemetry then blamed on the card index.
+      it('reduces a double-faced name to its front face', () => {
+        expect(parseDecklist('1 Brazen Borrower // Petty Theft')).toEqual([
+          { count: 1, name: 'Brazen Borrower' },
+        ]);
+      });
+
+      it('reduces a split-card name to its front face', () => {
+        expect(parseDecklist('1 Fire // Ice')).toEqual([{ count: 1, name: 'Fire' }]);
+      });
+
+      it('strips the back face on the set-annotated path too', () => {
+        // This path reads the raw line rather than the tokenised parts, so it has
+        // to strip the back face itself — it was the branch the original fix missed.
+        expect(parseDecklist('1x Brazen Borrower // Petty Theft (sld) 234')).toEqual([
+          { count: 1, name: 'Brazen Borrower', setCode: 'sld', collectorNumber: '234' },
+        ]);
+      });
+
+      it('handles the single-slash separator some exporters use', () => {
+        expect(parseDecklist('1 Fire / Ice')).toEqual([{ count: 1, name: 'Fire' }]);
+      });
+
+      it('leaves a slash inside a name alone when it is not a separator', () => {
+        expect(parseDecklist('1 Borrowing 100,000 Arrows')).toEqual([
+          { count: 1, name: 'Borrowing 100,000 Arrows' },
+        ]);
+      });
+
+      // "SP//dr, Piloted by Peni" is a real card containing a literal "//" that is
+      // NOT a face separator. This is why the separator has to be a whitespace-
+      // delimited token — a bare split on "//" would truncate the name to "SP".
+      it('does not treat a // inside a word as a face separator', () => {
+        expect(parseDecklist('1 SP//dr, Piloted by Peni')).toEqual([
+          { count: 1, name: 'SP//dr, Piloted by Peni' },
+        ]);
+      });
+
+      it('keeps a // inside a word intact on the set-annotated path too', () => {
+        expect(parseDecklist('1x SP//dr, Piloted by Peni (spm) 42')).toEqual([
+          { count: 1, name: 'SP//dr, Piloted by Peni', setCode: 'spm', collectorNumber: '42' },
+        ]);
       });
     });
   });

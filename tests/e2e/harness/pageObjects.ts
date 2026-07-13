@@ -12,6 +12,31 @@ export function boardCard(page: Page, id?: string): Locator {
   return boardCards(page).first();
 }
 
+/**
+ * The react-flow wrapper around a board card. Distinct from `boardCard`: the
+ * wrapper is what carries the node's *board-space* transform, which is the only
+ * position two players can be compared on — each player's camera is centred on
+ * their own mat, so screen coordinates differ between them for the same card.
+ */
+export function boardCardNode(page: Page, cardId: string): Locator {
+  return page.locator(`.react-flow__node[data-id="${cardId}"]`);
+}
+
+/** Every peer's live cursor. */
+export function peerCursors(page: Page): Locator {
+  return page.locator(`[data-testid="${TESTID.peerCursor}"]`);
+}
+
+/**
+ * Where an element sits in board space, read off its `transform`. Returns null
+ * while the element has no transform yet (not mounted, or not yet positioned).
+ */
+export async function transformPosition(locator: Locator): Promise<{ x: number; y: number } | null> {
+  const style = (await locator.getAttribute('style')) ?? '';
+  const match = style.match(/translate\(\s*([-\d.]+)px\s*,\s*([-\d.]+)px\s*\)/);
+  return match ? { x: Number(match[1]), y: Number(match[2]) } : null;
+}
+
 /** All battlefield token nodes. */
 export function boardTokens(page: Page): Locator {
   return page.locator(`[data-testid="${TESTID.battlefieldToken}"]`);

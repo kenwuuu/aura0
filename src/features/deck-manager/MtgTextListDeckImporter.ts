@@ -93,6 +93,8 @@ export class MtgTextListDeckImporter extends DeckImporter {
           recoveredCount: lookup.fallbackRecoveredCount,
           failedCount: lookup.fallbackFailedCount,
           totalCount: entries.length,
+          auraFailures: lookup.auraFailures,
+          deadItems: lookup.failedItems,
         });
       }
     } catch (e) {
@@ -129,6 +131,8 @@ export class MtgTextListDeckImporter extends DeckImporter {
       importedCardCount: deck.cards.length,
       uniqueImportedCount: results.length - failedCards.length,
       excludedCardCount: parsed.excludedCardCount,
+      excludedSections: parsed.excludedSections,
+      unrecognizedSections: parsed.unrecognizedSections,
       // Taken from the parse rather than the built deck: this is precisely the
       // set `Player` will draw into the opening hand.
       commanderCardCount: entries

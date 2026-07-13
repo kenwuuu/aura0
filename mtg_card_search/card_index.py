@@ -44,6 +44,17 @@ TRIE_FMT = "<Q"
 OFFSETS_TYPECODE = "Q"
 
 
+# Bump this whenever `default_key_extractor` changes which keys it yields.
+#
+# A prebuilt index is otherwise only invalidated by the NDJSON's mtime/size, so a
+# key-schema change would ship against a stale trie and the new keys would simply
+# never exist — the change appearing to do nothing. Versioning the schema makes
+# the artifacts self-invalidating.
+#
+# v2: also index the full "Front // Back" name of two-faced cards.
+KEY_SCHEMA_VERSION = 2
+
+
 def normalize_key(raw: str) -> str:
     return raw.strip().lower().replace(" ", "")
 
@@ -54,8 +65,19 @@ def default_should_skip(data: dict) -> bool:
 
 
 def default_key_extractor(data: dict) -> Iterable[str]:
-    """Scryfall-schema keys: name, flavor_name, printed_name, set+collector."""
-    yield normalize_key(data["name"].split(" // ")[0])
+    """Scryfall-schema keys: name (both faces), flavor_name, printed_name, set+collector."""
+    name = data["name"]
+    yield normalize_key(name.split(" // ")[0])
+
+    # Two-faced cards (transform, modal, split, Adventure) carry a "Front // Back"
+    # name, and deck exporters disagree about which form they write — Moxfield
+    # emits the full name, others only the front face. Indexing the front face
+    # alone means a list that spells out "Brazen Borrower // Petty Theft" 404s
+    # here and silently falls through to Scryfall, which reads as an index-coverage
+    # gap in our telemetry. Accept both spellings.
+    if " // " in name:
+        yield normalize_key(name)
+
     flavor = normalize_key(data.get("flavor_name", ""))
     if flavor:
         yield flavor
@@ -133,6 +155,7 @@ def build_artifacts(
         "cards": len(offsets),
         "source_mtime_ns": st.st_mtime_ns,
         "source_size": st.st_size,
+        "key_schema_version": KEY_SCHEMA_VERSION,
         # `generation` ties a loaded index to the exact NDJSON it was built from;
         # readers key their file handle on it (see api.get_handle).
         "generation": st.st_mtime_ns,
@@ -172,12 +195,18 @@ class Dataset:
 
 
 def _is_fresh(meta_path: Path, ndjson_path: Path) -> bool:
+    """Fresh means: built from *this* NDJSON, and by *this* key schema.
+
+    Checking the source alone would let a `default_key_extractor` change load a
+    trie that predates it — the new keys would silently 404.
+    """
     try:
         meta = json.loads(meta_path.read_text())
         st = ndjson_path.stat()
         return (
             meta.get("source_mtime_ns") == st.st_mtime_ns
             and meta.get("source_size") == st.st_size
+            and meta.get("key_schema_version") == KEY_SCHEMA_VERSION
         )
     except (OSError, json.JSONDecodeError):
         return False

@@ -1,3 +1,11 @@
+/**
+ * How the importer should treat a card, based on the header it sat under.
+ *  - `main`      : an ordinary deck/mainboard section, or an unrecognized header
+ *  - `commander` : the command zone — its cards also carry `commander: true`
+ *  - `excluded`  : a non-main section (sideboard, maybeboard, …)
+ */
+export type SectionKind = 'main' | 'commander' | 'excluded';
+
 // Example: 1 Mabel, Heir to Cragflame (BLB) 336
 export type DeckLineItem = {
   // Quantity of card
@@ -10,16 +18,21 @@ export type DeckLineItem = {
   collectorNumber?: string;
   // Whether this card was under a commander header
   commander?: boolean;
+  /**
+   * The section header labels this card sat under, normalized and lowercased —
+   * the card's provenance. Absent when the card sat under no header at all.
+   */
+  tags?: string[];
+  /**
+   * What that provenance means for the import. Absent is equivalent to `main`.
+   *
+   * The parser records where a card came from; it does not decide the card's
+   * fate. That call belongs to the importer, and keeping the two apart is what
+   * makes this correct by construction: there is no mutable "am I currently in
+   * the sideboard?" flag left to get out of sync.
+   */
+  section?: SectionKind;
 }
-
-/**
- * Which part of a deck list the parser is currently reading.
- *  - `default`   : cards before any header (or a list with no headers at all)
- *  - `main`      : an ordinary deck/mainboard section, or an unrecognized header
- *  - `commander` : the command zone — its cards are tagged `commander: true`
- *  - `excluded`  : a non-main section (sideboard, maybeboard, …) — cards skipped
- */
-type SectionType = 'default' | 'main' | 'commander' | 'excluded';
 
 // A line that isn't a card and isn't a recognized header is treated as a
 // quantity-less card. To keep that from swallowing section headers, headers are
@@ -68,37 +81,60 @@ const MAIN_HEADERS = new Set([
  */
 const MAX_COMMANDERS = 2;
 
+/** A matched section header: its normalized label and what it means. */
+type HeaderMatch = {
+  label: string;
+  kind: SectionKind;
+  /** False when we imported it as main only because we didn't know the label. */
+  recognized: boolean;
+};
+
 // How each line reads once section context is set aside.
 type LineKind =
   | { kind: 'blank' }
   | { kind: 'comment' }
-  | { kind: 'header'; section: SectionType }
+  | { kind: 'header'; header: HeaderMatch }
   | { kind: 'card'; item: DeckLineItem };
 
 export type ParsedDecklist = {
-  /** Card entries the importer should look up. */
+  /** Cards to import — everything not under an excluded header. */
   items: DeckLineItem[];
   /**
-   * How many physical cards we deliberately dropped because they sat under a
-   * non-main header (sideboard, maybeboard, …).
+   * Cards withheld because they sat under a sideboard/maybeboard-style header.
    *
-   * This exists to keep analytics honest. A deck that imports as 60 cards when
-   * the raw text held 75 card lines is either a correct sideboard drop or a
-   * parser bug, and the imported count alone cannot tell those apart. Reporting
-   * what we *intentionally* discarded turns "the numbers don't add up" into a
-   * checkable equation.
+   * Returned rather than silently discarded. A deck that imports as 60 cards
+   * from a 75-line list is either a correct sideboard drop or a parser bug, and
+   * the imported count alone cannot tell those apart. Handing back what we
+   * deliberately withheld turns "the numbers don't add up" into an equation the
+   * caller can actually check.
    */
+  excluded: DeckLineItem[];
+  /** Physical cards (summed quantities) in `excluded`. */
   excludedCardCount: number;
+  /** Distinct excluded header labels, e.g. `["sideboard", "maybeboard"]`. */
+  excludedSections: string[];
+  /**
+   * Header labels we did not recognize and therefore imported as main deck
+   * (custom Archidekt categories and the like).
+   *
+   * Worth reporting on its own: an unrecognized header we wrongly wave through
+   * as "main" is the likeliest way an import ends up with MORE cards than a
+   * legal deck, and it is invisible in the card counts alone.
+   */
+  unrecognizedSections: string[];
 };
 
 /**
- * Parse a text decklist into card entries, plus the stats analytics needs to
- * explain the resulting deck size.
+ * Parse a text decklist into card entries tagged with where they came from.
  *
- * Section headers are tolerated. If a list has headers, cards under a
- * non-main section (sideboard, maybeboard, …) are dropped while every other
- * section — the command zone, the main deck, and any unrecognized header — is
- * imported. A list with no headers imports every card line.
+ * Cards carry their section as provenance (`tags` / `section`); the parser
+ * records where a card came from and applies only the bounds it can justify from
+ * the list's own structure, and the caller applies policy.
+ *
+ * A section header runs until the **next header** — with one exception: a blank
+ * line ends the command zone, once that zone has taken a card. Nothing else ends
+ * a section, and comments never do. See the `blank` case below for why the
+ * exception is exactly that narrow.
  *
  * Card lines may omit the leading quantity ("Sol Ring" == "1 Sol Ring"), which
  * is how singleton (Commander) exports list singletons and repeat basics one
@@ -106,11 +142,14 @@ export type ParsedDecklist = {
  */
 export function parseDecklistWithStats(text: string): ParsedDecklist {
   const items: DeckLineItem[] = [];
-  let excludedCardCount = 0;
-  let section: SectionType = 'default';
+  const excluded: DeckLineItem[] = [];
+  const excludedSections = new Set<string>();
+  const unrecognizedSections = new Set<string>();
+
+  let active: HeaderMatch | null = null;
   // Whether the active section has taken a card yet. A blank line only means
   // "section over" once the section has content — see the `blank` case below.
-  let sectionHasCards = false;
+  let activeHasCards = false;
   let commanderCount = 0;
   // Cards tagged by the command zone currently open, so an overrun can take the
   // tag back — see the overflow branch below.
@@ -121,73 +160,112 @@ export function parseDecklistWithStats(text: string): ParsedDecklist {
 
     switch (parsed.kind) {
       case 'header':
-        // Switch context for the card lines that follow.
-        section = parsed.section;
-        sectionHasCards = false;
+        active = parsed.header;
+        activeHasCards = false;
         openCommanders = [];
-        break;
-      case 'card':
-        sectionHasCards = true;
-        if (section === 'excluded') {
-          excludedCardCount += parsed.item.count;
-          break;
+        if (!active.recognized) {
+          unrecognizedSections.add(active.label);
         }
-        if (section === 'commander') {
-          if (commanderCount + parsed.item.count <= MAX_COMMANDERS) {
-            parsed.item.commander = true;
-            commanderCount += parsed.item.count;
-            openCommanders.push(parsed.item);
-          } else {
-            // The zone overran its limit, which means this list never marked
-            // where the command zone ended — no blank line, no "Deck" header.
-            // With no structure to read, the generous reading (partners) is a
-            // guess, and guessing wrong puts a card the player never chose into
-            // their opening hand. So take the conservative one: the first card
-            // is the commander, everything after it is the deck. A player who
-            // wants partners can say so by formatting the list.
-            for (const overreach of openCommanders.slice(1)) {
-              delete overreach.commander;
-            }
-            openCommanders = [];
-            section = 'default';
+        break;
+
+      case 'card': {
+        const item = parsed.item;
+        activeHasCards = true;
+
+        if (active?.kind === 'commander' && commanderCount + item.count > MAX_COMMANDERS) {
+          // The zone overran its limit, which means this list never marked where
+          // the command zone ended — no blank line, no "Deck" header. With no
+          // structure to read, the generous reading (partners) is a guess, and
+          // guessing wrong puts a card the player never chose into their opening
+          // hand. So take the conservative one: the first card is the commander,
+          // everything after it is the deck. A player who wants partners can say
+          // so by formatting the list.
+          //
+          // The overreach cards lose their provenance outright rather than being
+          // re-tagged `main`: the conclusion here is that the command zone only
+          // ever extended to the first card, so these were never in it — which
+          // makes them indistinguishable from every card that follows, and they
+          // should read that way.
+          for (const overreach of openCommanders.slice(1)) {
+            delete overreach.commander;
+            delete overreach.tags;
+            delete overreach.section;
+          }
+          openCommanders = [];
+          active = null;
+        }
+
+        if (active) {
+          item.tags = [active.label];
+          item.section = active.kind;
+          if (active.kind === 'commander') {
+            item.commander = true;
+            commanderCount += item.count;
+            openCommanders.push(item);
           }
         }
-        items.push(parsed.item);
+
+        if (active?.kind === 'excluded') {
+          excludedSections.add(active.label);
+          excluded.push(item);
+        } else {
+          items.push(item);
+        }
         break;
+      }
+
       case 'blank':
-        // A blank line ends a section — but only once that section has taken a
-        // card. Exporters disagree about what a blank means, and that one
-        // qualifier is what reconciles them:
+        // A blank line ends the **command zone**, and only once that zone has
+        // taken a card. It ends nothing else.
+        //
+        // That narrow rule is the one reading that satisfies every real export
+        // we've seen, because a blank line means different things depending on
+        // the section it follows, and the two sections fail in opposite
+        // directions:
         //
         //   Commander:     <- a list that never re-opens with a "Deck" header.
         //   1 Atraxa          The blank is the only thing marking the command
         //                     zone as over; without it every remaining card is
-        //   1 Sol Ring        tagged commander and Player draws the whole deck
-        //   ...               into the opening hand.
+        //   1 Sol Ring        tagged commander and `Player` draws the whole deck
+        //   ...               into the opening hand. So the blank must end it.
         //
-        //   Sideboard      <- the blank is padding under the header, not a
-        //                     terminator. Ending the section here would import
-        //   1 Duress          all 15 sideboard cards into the deck.
-        //   ...
+        //   Sideboard      <- exports put blanks *inside* the sideboard block.
+        //   1 Duress          The sideboard has no size bound to overrun, so a
+        //                     blank is no evidence it ended — and ending it here
+        //   1 Mabel           imports every card below into the deck. That is how
+        //                     a 100-card deck came out at 103. So the blank must
+        //                     NOT end it; only the next header does.
         //
-        //   Sideboard      <- MTGO/Arena park a companion below the block. The
-        //   1 Duress          section has cards, so the blank ends it and the
-        //                     companion imports.
-        //   1 Lurrus
+        // The qualifier ("once it has taken a card") handles the third shape — a
+        // blank sitting directly *under* a header is padding, not a terminator,
+        // so `Commander:` followed by a blank still tags the commander below it.
         //
-        // Comments never end a section: a comment inside a sideboard must not
-        // leak the cards under it into the deck.
-        if (sectionHasCards) {
-          section = 'default';
-          sectionHasCards = false;
+        // A companion parked under the sideboard therefore stays excluded, which
+        // is what we want: `companion` is itself an excluded header, and a
+        // companion is a sideboard card by the rules of the game.
+        //
+        // Comments never end a section either — a comment inside a sideboard must
+        // not leak the cards under it into the deck.
+        if (active?.kind === 'commander' && activeHasCards) {
+          active = null;
+          activeHasCards = false;
+          openCommanders = [];
         }
         break;
+
       default:
+        // Comments carry no section meaning — they do not end the active one.
         break;
     }
   }
 
-  return { items, excludedCardCount };
+  return {
+    items,
+    excluded,
+    excludedCardCount: excluded.reduce((sum, card) => sum + card.count, 0),
+    excludedSections: [...excludedSections],
+    unrecognizedSections: [...unrecognizedSections],
+  };
 }
 
 /** Parse a text decklist into card entries. See {@link parseDecklistWithStats}. */
@@ -223,9 +301,9 @@ function classifyLine(rawLine: string): LineKind {
   const marker = line.match(/^(?:\/\/|#)+\s*/);
   const body = marker ? line.slice(marker[0].length) : line;
 
-  const section = matchHeader(body);
-  if (section !== null) {
-    return { kind: 'header', section };
+  const header = matchHeader(body);
+  if (header !== null) {
+    return { kind: 'header', header };
   }
   if (marker) {
     // A // or # line that names no known section is just a comment.
@@ -246,7 +324,7 @@ function asCard(item: DeckLineItem): LineKind {
 // Recognize a section header by its exact normalized label, or by the
 // Archidekt/MTGGoldfish category shape ("Ramp (10)", "[Ramp]"). Returns null
 // when the line is not a header (so it will be read as a card).
-function matchHeader(text: string): SectionType | null {
+function matchHeader(text: string): HeaderMatch | null {
   const trimmed = text.trim();
   if (trimmed.length === 0) {
     return null;
@@ -255,7 +333,7 @@ function matchHeader(text: string): SectionType | null {
   const bracketed = /^\[.*\]$/.test(trimmed);
   const hasCountSuffix = /\(\d+\)\s*$/.test(trimmed);
 
-  const normalized = trimmed
+  const label = trimmed
     .replace(/^\[|\]$/g, '')        // wrapping [ ] (Archidekt category)
     .replace(/\s*\(\d+\)\s*$/, '')  // trailing "(count)"
     .replace(/^["'“”‘’]+|["'“”‘’]+$/g, '')  // wrapping quotes, straight or curly
@@ -263,13 +341,17 @@ function matchHeader(text: string): SectionType | null {
     .trim()
     .toLowerCase();
 
-  if (COMMANDER_HEADERS.has(normalized)) return 'commander';
-  if (EXCLUDED_HEADERS.has(normalized)) return 'excluded';
-  if (MAIN_HEADERS.has(normalized)) return 'main';
+  if (COMMANDER_HEADERS.has(label)) return { label, kind: 'commander', recognized: true };
+  if (EXCLUDED_HEADERS.has(label)) return { label, kind: 'excluded', recognized: true };
+  if (MAIN_HEADERS.has(label)) return { label, kind: 'main', recognized: true };
 
   // Unrecognized label, but the "(count)" or [bracket] wrapper marks it as a
   // category header rather than a card (covers custom Archidekt categories).
-  if ((hasCountSuffix || bracketed) && normalized.length > 0) return 'main';
+  // We wave it through as main — and say so, because doing that to a header
+  // that was really a sideboard is how a deck ends up over-sized.
+  if ((hasCountSuffix || bracketed) && label.length > 0) {
+    return { label, kind: 'main', recognized: false };
+  }
 
   return null;
 }
@@ -299,24 +381,37 @@ function extractSetInfo(line: string): { setCode: string; collectorNumber: strin
   return { setCode, collectorNumber };
 }
 
-function extractCardName(line: string, parts: string[]): string {
-  // if name has a slash, remove the slash and anything after
-  let slashIndex: number = parts.indexOf('/');
-  const doubleSlashIndex: number = parts.indexOf('//');
-  slashIndex = Math.min(slashIndex, doubleSlashIndex)
-  if (slashIndex !== -1) parts = parts.slice(0, slashIndex);
+/**
+ * Reduce a two-faced card's name to its front face: "Brazen Borrower // Petty
+ * Theft" -> "Brazen Borrower".
+ *
+ * Exporters disagree — Moxfield writes the full "A // B" for double-faced, split,
+ * and Adventure cards while others write only the front face — but the card API
+ * indexes the front face, so the full name 404s and the lookup silently falls
+ * through to Scryfall. Splitting on whitespace-delimited tokens (rather than a
+ * bare substring) keeps a slash *inside* a name from being mistaken for a
+ * separator.
+ */
+function stripBackFace(name: string): string {
+  const words = name.split(/\s+/);
+  const separator = words.findIndex((word) => word === '/' || word === '//');
+  return separator === -1 ? name : words.slice(0, separator).join(' ');
+}
 
+function extractCardName(line: string, parts: string[]): string {
   const setInfo = extractSetInfo(line);
 
   if (setInfo) {
-    // If there's set info, extract name between count and opening paren
+    // With set info, the name sits between the count and the opening paren. This
+    // reads the raw line, so it has to strip the back face itself — slicing
+    // `parts` would not reach it.
     const startIndex = line.indexOf('(');
     const countLength = parts[0].length;
-    return line.substring(countLength, startIndex).trim();
+    return stripBackFace(line.substring(countLength, startIndex).trim());
   }
 
   // No set info - just join all parts after the count
-  return parts.slice(1).join(' ');
+  return stripBackFace(parts.slice(1).join(' '));
 }
 
 function parseLine(line: string): DeckLineItem {
