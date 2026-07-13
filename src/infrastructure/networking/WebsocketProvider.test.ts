@@ -218,6 +218,35 @@ describe('WebsocketProvider connection monitor', () => {
     });
   });
 
+  it('reports how much of the outage the user actually watched', () => {
+    // The signal that separates a real incident from a non-event of identical
+    // length. Here the board is on screen the whole way down, so the outage and
+    // the witnessed time are the same 45s — a player watching the game freeze.
+    // (VisibilityTracker.test.ts covers the backgrounded and slept-laptop cases,
+    // where these two numbers come apart.)
+    new WebsocketProvider(new Y.Doc(), { roomName: 'room-1' });
+    const ws = latestSocket();
+    ws.connect();
+    ws.syncDoc(true);
+    h.posthogCapture.mockClear();
+
+    ws.drop();
+    vi.advanceTimersByTime(45_000);
+    ws.beginAttempt();
+    vi.advanceTimersByTime(200);
+    ws.connect();
+
+    const connected = h.posthogCapture.mock.calls.find(
+      ([event, props]) =>
+        event === 'connection_outcome'
+        && (props as Record<string, unknown>).outcome === 'connected',
+    );
+    expect(connected?.[1]).toMatchObject({
+      offline_for_ms: 45_200,
+      visible_for_ms: 45_200,
+    });
+  });
+
   it('restamps the clock on each retry, so only the winning attempt is timed', () => {
     new WebsocketProvider(new Y.Doc(), { roomName: 'room-1' });
     const ws = latestSocket();
