@@ -8,6 +8,7 @@
  */
 
 export type ActionLogType =
+  | 'join'
   | 'play_card'
   | 'draw'
   | 'move_to_pile'

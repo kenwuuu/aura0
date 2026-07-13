@@ -72,7 +72,7 @@ export class Player {
     this.yTokens = yDoc.getMap(YDOC_KEYWORD_TOKENS); // Store reference to keyword tokens
 
     // Initialize state first so yPlayerState has the arrays
-    this.initializeState(initialDeckCards ?? []);
+    const isFirstJoin = this.initializeState(initialDeckCards ?? []);
 
     // Seed this player's display name into their own Yjs state so peers see it.
     // The local player owns this state, so localStorage (the name that follows the
@@ -99,6 +99,19 @@ export class Player {
 
     this.lastHandLen = this.hand.getCards().length;
     this.watchForHandClobber();
+
+    // Announce the player's arrival to the room. Gated on the same once-per-room
+    // condition as joinedAt, so a refresh or a reconnect — which restores the
+    // existing player state rather than creating it — never re-announces them.
+    if (isFirstJoin) {
+      logAction(this.yDoc, {
+        actorId: playerId,
+        type: 'join',
+        text: 'joined the game',
+        // Soft green: an arrival is worth spotting in a wall of card moves.
+        tone: 'rgba(130,220,170,0.95)',
+      });
+    }
   }
 
   /**
@@ -139,7 +152,11 @@ export class Player {
     });
   }
 
-  private initializeState(initialDeckCards: Card[]): void {
+  /**
+   * @returns true when this player is entering the room for the first time
+   *          (no prior state in the doc), false on a refresh/reconnect.
+   */
+  private initializeState(initialDeckCards: Card[]): boolean {
     if (!this.yPlayerState.has(YSTATE_HEALTH)) {
       this.yPlayerState.set(YSTATE_HEALTH, this.config.initialHealth);
       this.yPlayerState.set(YSTATE_DECK, initialDeckCards);
@@ -152,9 +169,11 @@ export class Player {
     }
     // Write joinedAt once — determines stable seat order across all peers.
     // Written separately so reconnecting players keep their original seat.
-    if (!this.yPlayerState.has(YSTATE_JOINED_AT)) {
+    const isFirstJoin = !this.yPlayerState.has(YSTATE_JOINED_AT);
+    if (isFirstJoin) {
       this.yPlayerState.set(YSTATE_JOINED_AT, Date.now());
     }
+    return isFirstJoin;
   }
 
   private getDefaultName(): string {

@@ -1189,3 +1189,37 @@ describe('Player.addCustomCounter() / modifyCustomCounter() / removeCustomCounte
     expect(log.filter((e) => e.type === 'counter')).toHaveLength(0);
   });
 });
+describe('Player join logging', () => {
+  let yDoc: Y.Doc;
+
+  beforeEach(() => {
+    yDoc = new Y.Doc();
+  });
+
+  it('logs an entrance when a player first joins the room', () => {
+    new Player('player-a', yDoc, makeCards(5));
+
+    const joins = getActionLog(yDoc).toArray().filter((e) => e.type === 'join');
+    expect(joins).toHaveLength(1);
+    expect(joins[0].actorId).toBe('player-a');
+    expect(joins[0].text).toBe('joined the game');
+  });
+
+  it('logs one entrance per player', () => {
+    new Player('player-a', yDoc, makeCards(5));
+    new Player('player-b', yDoc, makeCards(5));
+
+    const joins = getActionLog(yDoc).toArray().filter((e) => e.type === 'join');
+    expect(joins.map((e) => e.actorId)).toEqual(['player-a', 'player-b']);
+  });
+
+  it('does not re-announce a player whose state already exists (refresh/reconnect)', () => {
+    new Player('player-a', yDoc, makeCards(5));
+
+    // A refresh reconstructs Player over the same synced doc.
+    new Player('player-a', yDoc, makeCards(5));
+
+    const joins = getActionLog(yDoc).toArray().filter((e) => e.type === 'join');
+    expect(joins).toHaveLength(1);
+  });
+});

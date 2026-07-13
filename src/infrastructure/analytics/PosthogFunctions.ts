@@ -31,6 +31,20 @@ export function trackCustomCounterCreated(counterTitle: string, counterIcon: str
 export type TransportLabel = 'websocket' | 'webrtc';
 
 /**
+ * Emitted whenever the number of players actually in the room changes (see
+ * `watchRoomOccupancy` in `roomOccupancy.ts`) — not on every awareness update.
+ * Answers "how many players are in a room at a time": breaking down by
+ * `$session_id` and taking the max (or just plotting the distribution of
+ * `player_count` values) gives room-size distribution without needing
+ * duration-weighting.
+ */
+export function trackRoomOccupancyChanged(playerCount: number): void {
+  posthog.capture('room_occupancy_changed', {
+    player_count: playerCount,
+  });
+}
+
+/**
  * Emitted per disconnected episode, for BOTH outcomes, so the failure rate is a
  * real proportion (failed / (connected + failed)) with a denominator — broken
  * down by `transport` to compare WebSocket vs. WebRTC. A single episode can

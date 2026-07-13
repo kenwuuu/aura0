@@ -22,6 +22,11 @@ function setPlayerName(doc: Y.Doc, playerId: string, name: string): void {
   doc.getMap(YDOC_PLAYER(playerId)).set(YSTATE_PLAYER_NAME, name);
 }
 
+/** Constructing the local Player also logs their join, so scope to health entries. */
+function healthEntries(doc: Y.Doc) {
+  return getActionLog(doc).toArray().filter((e) => e.type === 'health');
+}
+
 describe('Player opponent targeting', () => {
   let yDoc: Y.Doc;
   let player: Player;
@@ -44,7 +49,7 @@ describe('Player opponent targeting', () => {
 
       vi.advanceTimersByTime(500);
 
-      const entries = getActionLog(yDoc).toArray();
+      const entries = healthEntries(yDoc);
       expect(entries).toHaveLength(1);
       expect(entries[0].text).toContain('37');
     });
@@ -61,7 +66,7 @@ describe('Player opponent targeting', () => {
 
       vi.advanceTimersByTime(500);
 
-      const entries = getActionLog(yDoc).toArray();
+      const entries = healthEntries(yDoc);
 
       // Each opponent must get its own logged entry — a shared timer/key would
       // have let opponent-b's presses clear opponent-a's pending timeout (and
@@ -80,10 +85,10 @@ describe('Player opponent targeting', () => {
       player.modifyHealth(-1, 'opponent-a'); // 38, resets the timer
       vi.advanceTimersByTime(250);
       // Original 500ms timer would have fired by now if not reset by the second call.
-      expect(getActionLog(yDoc).toArray()).toHaveLength(0);
+      expect(healthEntries(yDoc)).toHaveLength(0);
 
       vi.advanceTimersByTime(250);
-      const entries = getActionLog(yDoc).toArray();
+      const entries = healthEntries(yDoc);
       expect(entries).toHaveLength(1);
       expect(entries[0].text).toContain('38');
     });
@@ -93,7 +98,7 @@ describe('Player opponent targeting', () => {
       player.modifyHealth(-1, 'opponent-a');
       vi.advanceTimersByTime(500);
 
-      expect(getActionLog(yDoc).toArray()).toHaveLength(2);
+      expect(healthEntries(yDoc)).toHaveLength(2);
     });
   });
 
