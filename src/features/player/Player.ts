@@ -20,6 +20,7 @@ import {
   YSTATE_DECK_REVEAL_COUNT,
 } from "@/constants";
 import { getStoredPlayerName, setStoredPlayerName } from "@/infrastructure/networking/persistence";
+import { describeTransactionOrigin } from "@/infrastructure/networking/transactionOrigin";
 import { colorFromPlayerId } from './playerColor';
 import { CardPile } from './CardPile';
 import {SavedDeck} from "@/features/player/types";
@@ -130,7 +131,7 @@ export class Player {
       this.lastHandLen = newLen;
 
       if (!transaction.local && newLen < prevLen) {
-        const origin = (transaction.origin as any)?.constructor?.name ?? String(transaction.origin);
+        const origin = describeTransactionOrigin(transaction.origin);
         console.error(
           `[Aura] Hand clobbered by remote merge: ${prevLen} -> ${newLen} cards (origin: ${origin})`,
         );

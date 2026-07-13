@@ -83,7 +83,9 @@ const h = vi.hoisted(() => {
   return { captureMessage, posthogCapture, rtcInstances, FakeWebrtc };
 });
 
-vi.mock('y-webrtc', () => ({ WebrtcProvider: h.FakeWebrtc }));
+// `Room` is the class y-webrtc applies peer updates from, so WebRTCProvider
+// registers it as a transaction origin at import time — the mock has to carry it.
+vi.mock('y-webrtc', () => ({ WebrtcProvider: h.FakeWebrtc, Room: class {} }));
 vi.mock('y-indexeddb', () => ({
   IndexeddbPersistence: class {
     whenSynced = Promise.resolve();
