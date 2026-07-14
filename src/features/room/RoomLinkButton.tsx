@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import posthog from 'posthog-js';
 import { useGameInstance } from '@/app/stores/gameInstanceStore';
 import { useTourStore } from '@/features/onboarding';
+import { noteRoomLinkCopied } from './inviteConversion';
 
 const CopyIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" style={{ verticalAlign: 'middle' }}>
@@ -62,6 +63,9 @@ export const RoomLinkButton: React.FC = () => {
     void copyText(window.location.href).then((ok) => {
       if (!ok) return;
       if (roomManager) posthog.capture('room_link_copied', { room: roomManager.getRoomName() });
+      // Arms `invite_converted`: if somebody now turns up in this room, the invite
+      // landed. That — not the copy — is the outcome worth optimising.
+      noteRoomLinkCopied();
       // The tour's `invite` step is the one whose completion leaves no trace in
       // Yjs, so it has to be told. No-ops when no tour is running.
       useTourStore.getState().noteRoomLinkCopied();

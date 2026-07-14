@@ -31,6 +31,7 @@ import {
   seedDefaultDeckIfFirstLoad,
 } from '@/features/deck-manager/deckLoading';
 import { recordVisit } from '@/shared/services/visitCount';
+import { watchInviteConversion } from '@/features/room/inviteConversion';
 
 /**
  * Delete room docs nobody has opened in a month, and report what that cost/freed.
@@ -150,6 +151,7 @@ export async function bootstrapGame(options: BootstrapOptions = {}): Promise<Boo
   // Broadcast playerId so peers can look up this player's Yjs name from the cursor overlay.
   awareness.setLocalStateField('playerId', playerId);
   watchRoomOccupancy(awareness, trackRoomOccupancyChanged);
+  watchInviteConversion(awareness, () => roomManager.getRoomName());
 
   // ── 8. Deck seeding + auto-load ────────────────────────────────────────────
   const storage = new DeckStorageService();
