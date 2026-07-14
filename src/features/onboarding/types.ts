@@ -12,6 +12,18 @@ export type TourStepId =
   // Defined but currently in no STEP_ORDER — see the note there.
   | 'history';
 
+/**
+ * Which tour. There is only one today, but every analytics event carries it:
+ * an event property cannot be backfilled, so a second tour shipping without this
+ * would silently blend its funnel into the intro tour's — and into the
+ * `onboarding-tour-step-order` experiment — with no way to separate them after
+ * the fact.
+ */
+export type TourId = 'intro';
+
+/** How a tour ended. `null` (absent) means the player hasn't finished one. */
+export type TourOutcome = 'completed' | 'skipped';
+
 /** A/B variant, resolved from the `onboarding-tour-step-order` PostHog flag. */
 export type TourVariant = 'control' | 'draw_first';
 

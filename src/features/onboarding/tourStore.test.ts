@@ -1,6 +1,13 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { useTourStore } from './tourStore';
 import { useSettingsStore } from '@/app/stores/settingsStore';
+import {
+  registerTourOutcome,
+  trackTourStarted,
+  trackTourStepCompleted,
+  trackTourStepViewed,
+  trackTourSkipped,
+} from '@/infrastructure/analytics/PosthogFunctions';
 import type { StepBaseline } from './types';
 
 vi.mock('@/infrastructure/analytics/PosthogFunctions', () => ({
@@ -9,6 +16,7 @@ vi.mock('@/infrastructure/analytics/PosthogFunctions', () => ({
   trackTourStepCompleted: vi.fn(),
   trackTourCompleted: vi.fn(),
   trackTourSkipped: vi.fn(),
+  registerTourOutcome: vi.fn(),
 }));
 
 /** Stands in for the live game: the store re-reads this on each step transition. */
@@ -21,13 +29,13 @@ function fakeGame(initial: StepBaseline) {
 }
 
 function startTour(readCounts: () => StepBaseline) {
-  useTourStore.getState().start({ variant: 'control', layout: 'desktop', readCounts });
+  useTourStore.getState().start({ tourId: 'intro', variant: 'control', layout: 'desktop', readCounts });
 }
 
 describe('tourStore', () => {
   beforeEach(() => {
     useTourStore.setState({ active: false, stepIndex: 0, furthestIndex: 0 });
-    useSettingsStore.setState({ tourCompleted: false });
+    useSettingsStore.setState({ tourOutcome: null });
   });
 
   it('re-reads the baseline on every step transition, not just at the start', () => {
@@ -104,16 +112,20 @@ describe('tourStore', () => {
     });
   });
 
-  it('skip ends the tour and marks it completed', () => {
+  // The outcome is not a boolean: "finished it" and "bailed out of it" are the
+  // two groups the whole feature exists to compare, and it rides on every
+  // subsequent event as a super property.
+  it('records a SKIP distinctly from a completion', () => {
     const game = fakeGame({ handSize: 8, boardCardCount: 0, tappedCardCount: 0 });
     startTour(game.readCounts);
 
     useTourStore.getState().skip();
     expect(useTourStore.getState().active).toBe(false);
-    expect(useSettingsStore.getState().tourCompleted).toBe(true);
+    expect(useSettingsStore.getState().tourOutcome).toBe('skipped');
+    expect(registerTourOutcome).toHaveBeenCalledWith('skipped');
   });
 
-  it('running off the end completes the tour', () => {
+  it('records a COMPLETION when the player runs off the end', () => {
     const game = fakeGame({ handSize: 8, boardCardCount: 0, tappedCardCount: 0 });
     startTour(game.readCounts);
 
@@ -121,6 +133,34 @@ describe('tourStore', () => {
     for (let i = 0; i < stepCount; i++) useTourStore.getState().advance();
 
     expect(useTourStore.getState().active).toBe(false);
-    expect(useSettingsStore.getState().tourCompleted).toBe(true);
+    expect(useSettingsStore.getState().tourOutcome).toBe('completed');
+    expect(registerTourOutcome).toHaveBeenCalledWith('completed');
+  });
+
+  it('tags every event with the tour it came from', () => {
+    // tour_id cannot be backfilled: a second tour shipping without it would blend
+    // its funnel into this one's with no way to separate them afterwards.
+    const game = fakeGame({ handSize: 8, boardCardCount: 0, tappedCardCount: 0 });
+    startTour(game.readCounts);
+
+    expect(trackTourStarted).toHaveBeenCalledWith(expect.objectContaining({ tourId: 'intro' }));
+    expect(trackTourStepViewed).toHaveBeenCalledWith(expect.objectContaining({ tourId: 'intro' }));
+
+    useTourStore.getState().advance();
+    expect(trackTourStepCompleted).toHaveBeenCalledWith(expect.objectContaining({ tourId: 'intro' }));
+
+    useTourStore.getState().skip();
+    expect(trackTourSkipped).toHaveBeenCalledWith(expect.objectContaining({ tourId: 'intro' }));
+  });
+
+  it('a replay clears the recorded outcome, so an abandoned replay is not "onboarded"', () => {
+    const game = fakeGame({ handSize: 8, boardCardCount: 0, tappedCardCount: 0 });
+    startTour(game.readCounts);
+    useTourStore.getState().skip();
+    expect(useSettingsStore.getState().tourOutcome).toBe('skipped');
+
+    useTourStore.getState().requestReplay();
+    expect(useSettingsStore.getState().tourOutcome).toBeNull();
+    expect(registerTourOutcome).toHaveBeenCalledWith(null);
   });
 });

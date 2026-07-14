@@ -11,13 +11,16 @@ import {
   trackTourStepCompleted,
   trackTourStepViewed,
 } from '@/infrastructure/analytics/PosthogFunctions';
+import { registerTourOutcome } from '@/infrastructure/analytics/PosthogFunctions';
 import { stepsForVariant } from './tourSteps';
-import type { StepBaseline, TourLayout, TourStep, TourVariant } from './types';
+import type { StepBaseline, TourId, TourLayout, TourOutcome, TourStep, TourVariant } from './types';
 
 const EMPTY_BASELINE: StepBaseline = { handSize: 0, boardCardCount: 0, tappedCardCount: 0 };
 
 interface TourStore {
   active: boolean;
+  /** Which tour is running. Rides on every analytics event — see TourId. */
+  tourId: TourId;
   variant: TourVariant;
   steps: TourStep[];
   stepIndex: number;
@@ -43,7 +46,12 @@ interface TourStore {
   /** Reads the live game counts. Supplied by useTourProgress, which has the Y.Doc. */
   readCounts: (() => StepBaseline) | null;
 
-  start: (opts: { variant: TourVariant; layout: TourLayout; readCounts: () => StepBaseline }) => void;
+  start: (opts: {
+    tourId: TourId;
+    variant: TourVariant;
+    layout: TourLayout;
+    readCounts: () => StepBaseline;
+  }) => void;
   /** The current step is done (action observed, or button pressed) — move on. */
   advance: () => void;
   /** Step backwards to re-read a step already passed. */
@@ -55,12 +63,19 @@ interface TourStore {
   noteRoomLinkCopied: () => void;
 }
 
-function finish(): void {
-  useSettingsStore.getState().setTourCompleted(true);
+/**
+ * Records how the tour ended: persisted so it doesn't reappear, and stamped onto
+ * every subsequent event so any insight can split "finished the tour" from "bailed
+ * out of it" — the two groups the whole feature exists to compare.
+ */
+function finish(outcome: TourOutcome): void {
+  useSettingsStore.getState().setTourOutcome(outcome);
+  registerTourOutcome(outcome);
 }
 
 export const useTourStore = create<TourStore>((set, get) => ({
   active: false,
+  tourId: 'intro',
   variant: 'control',
   steps: [],
   stepIndex: 0,
@@ -72,12 +87,13 @@ export const useTourStore = create<TourStore>((set, get) => ({
   replayRequested: false,
   readCounts: null,
 
-  start: ({ variant, layout, readCounts }) => {
+  start: ({ tourId, variant, layout, readCounts }) => {
     const steps = stepsForVariant(variant);
     if (steps.length === 0) return;
 
     set({
       active: true,
+      tourId,
       variant,
       steps,
       stepIndex: 0,
@@ -91,7 +107,7 @@ export const useTourStore = create<TourStore>((set, get) => ({
       replayRequested: false,
     });
 
-    const ctx = { variant, layout, stepId: steps[0].id, stepIndex: 0 };
+    const ctx = { tourId, variant, layout, stepId: steps[0].id, stepIndex: 0 };
     trackTourStarted(ctx);
     trackTourStepViewed(ctx);
   },
@@ -99,7 +115,7 @@ export const useTourStore = create<TourStore>((set, get) => ({
   isReviewing: () => get().stepIndex < get().furthestIndex,
 
   advance: () => {
-    const { active, steps, stepIndex, furthestIndex, variant, layout, stepStartedAt, readCounts } = get();
+    const { active, tourId, steps, stepIndex, furthestIndex, variant, layout, stepStartedAt, readCounts } = get();
     if (!active) return;
 
     const nextIndex = stepIndex + 1;
@@ -117,6 +133,7 @@ export const useTourStore = create<TourStore>((set, get) => ({
     }
 
     trackTourStepCompleted({
+      tourId,
       variant,
       layout,
       stepId: steps[stepIndex].id,
@@ -126,8 +143,8 @@ export const useTourStore = create<TourStore>((set, get) => ({
 
     if (nextIndex >= steps.length) {
       set({ active: false });
-      trackTourCompleted({ variant, layout, stepCount: steps.length });
-      finish();
+      trackTourCompleted({ tourId, variant, layout, stepCount: steps.length });
+      finish('completed');
       return;
     }
 
@@ -137,7 +154,7 @@ export const useTourStore = create<TourStore>((set, get) => ({
       baseline: readCounts ? readCounts() : EMPTY_BASELINE,
       stepStartedAt: Date.now(),
     });
-    trackTourStepViewed({ variant, layout, stepId: steps[nextIndex].id, stepIndex: nextIndex });
+    trackTourStepViewed({ tourId, variant, layout, stepId: steps[nextIndex].id, stepIndex: nextIndex });
   },
 
   back: () => {
@@ -147,18 +164,19 @@ export const useTourStore = create<TourStore>((set, get) => ({
   },
 
   skip: () => {
-    const { active, steps, stepIndex, variant, layout } = get();
+    const { active, tourId, steps, stepIndex, variant, layout } = get();
     if (!active) return;
 
     set({ active: false });
-    trackTourSkipped({ variant, layout, stepId: steps[stepIndex].id, stepIndex });
-    finish();
+    trackTourSkipped({ tourId, variant, layout, stepId: steps[stepIndex].id, stepIndex });
+    finish('skipped');
   },
 
   requestReplay: () => {
-    // Also clears the persisted flag, so a replay the player abandons doesn't
+    // Also clears the persisted outcome, so a replay the player abandons doesn't
     // leave them marked as "onboarded" on a tour they never finished.
-    useSettingsStore.getState().setTourCompleted(false);
+    useSettingsStore.getState().setTourOutcome(null);
+    registerTourOutcome(null);
     set({ replayRequested: true });
   },
 

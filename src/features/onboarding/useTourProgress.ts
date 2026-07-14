@@ -10,6 +10,7 @@ import { useGameInstance } from '@/app/stores/gameInstanceStore';
 import { useSettingsStore } from '@/app/stores/settingsStore';
 import { YDOC_CARDS_ON_BOARD, YDOC_PLAYER } from '@/constants';
 import { resolveTourStepOrder } from '@/infrastructure/analytics/FeatureFlags';
+import { registerTourOutcome } from '@/infrastructure/analytics/PosthogFunctions';
 import { countPlayersInRoom } from '@/infrastructure/networking/roomOccupancy';
 import { usePhoneLayout } from '@/shared/hooks';
 import { isOnboardingAudience } from '@/shared/services/visitCount';
@@ -23,17 +24,26 @@ export function useTourProgress(): void {
   const playerId = useGameInstance((s) => s.playerId);
   const awareness = useGameInstance((s) => s.awareness);
 
-  // ── Start ────────────────────────────────────────────────────────────────
-  const tourCompleted = useSettingsStore((s) => s.tourCompleted);
+  const tourOutcome = useSettingsStore((s) => s.tourOutcome);
   const replayRequested = useTourStore((s) => s.replayRequested);
 
+  // ── Stamp the outcome onto every event ───────────────────────────────────
+  // Not just the tour's own events: a returning player who finished (or bailed
+  // out of) the tour months ago should still carry it, so any insight —
+  // retention, sessions, deck imports — can be split by how they onboarded.
+  // That comparison is the entire justification for the feature.
+  useEffect(() => {
+    registerTourOutcome(tourOutcome);
+  }, [tourOutcome]);
+
+  // ── Start ────────────────────────────────────────────────────────────────
   useEffect(() => {
     if (!yDoc || !playerId) return;
     if (useTourStore.getState().active) return;
 
     // New players get it automatically; anyone can ask for it from Settings, and
     // asking makes you the audience regardless of how long you've been here.
-    const shouldStart = replayRequested || (!tourCompleted && isOnboardingAudience());
+    const shouldStart = replayRequested || (!tourOutcome && isOnboardingAudience());
     if (!shouldStart) return;
 
     let cancelled = false;
@@ -43,6 +53,7 @@ export function useTourProgress(): void {
       if (cancelled || useTourStore.getState().active) return;
 
       useTourStore.getState().start({
+        tourId: 'intro',
         variant,
         layout: isPhone ? 'phone' : 'desktop',
         // The store re-reads this on every step transition, so each step is
@@ -57,7 +68,7 @@ export function useTourProgress(): void {
     // `isPhone` is the analytics label only — re-running on a device rotation
     // would restart the tour, so it is deliberately not a dependency.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [yDoc, playerId, tourCompleted, replayRequested]);
+  }, [yDoc, playerId, tourOutcome, replayRequested]);
 
   // ── Advance ──────────────────────────────────────────────────────────────
   useEffect(() => {

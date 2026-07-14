@@ -13,10 +13,10 @@ export const TOUR_STEPS: Record<TourStepId, TourStep> = {
     id: 'play',
     placement: 'aboveHand',
     copy: {
-      desktop: '**Play a card.** Drag one up onto the board.',
+      desktop: '**Play a card.** Drag one onto the board.',
       // dnd-kit's TouchSensor needs a 300ms hold before the drag starts
       // (App.tsx), so "drag" on its own would be a lie on touch.
-      phone: '**Play a card.** Long press, then drag it up onto the board.',
+      phone: '**Play a card.** Long press, then drag onto the board.',
     },
     advance: 'action',
   },
@@ -30,8 +30,8 @@ export const TOUR_STEPS: Record<TourStepId, TourStep> = {
     // hoverTarget) or the card's context menu. A board card is `menuFirst`, so on
     // touch a single tap opens that menu straight away — no preview first.
     copy: {
-      desktop: '**Tap it.** Hover card and press Space, or right-click it and pick Tap.',
-      phone: '**Tap it.** Tap the card you just played, then pick Tap.',
+      desktop: '**Tap it.** Hover and press Space, or right-click and pick Tap.',
+      phone: '**Tap it.** Zoom in, press it, then pick Tap.',
     },
     advance: 'action',
   },
@@ -56,8 +56,8 @@ export const TOUR_STEPS: Record<TourStepId, TourStep> = {
     anchor: ROOM_LINK,
     halo: true,
     copy: {
-      desktop: '**Invite a friend.** Copy the room link and send it over.',
-      phone: '**Invite a friend.** Copy the room link and send it over.',
+      desktop: '**Invite a friend.** Go ahead, even if they\'re at work, you know it works on mobile.',
+      phone: '**Invite a friend.** Go ahead, even if they\'re at work, you know it works on mobile.',
     },
     advance: 'action',
   },

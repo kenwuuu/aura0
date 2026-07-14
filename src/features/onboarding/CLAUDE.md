@@ -109,6 +109,38 @@ tour points at lives in there, which is why an earlier rAF loop was paying for n
 Anchor the hand steps to the hand *cards*, not their container — the container carries ~20px
 of padding above them, and anchoring to it left the tail pointing at empty space.
 
+## Analytics
+
+Every tour event carries **`tour_id`**. There is only one tour today, but an event property
+cannot be backfilled: a second tour shipping without this would blend its funnel into the
+intro tour's — and into the `onboarding-tour-step-order` experiment — with no way to separate
+them afterwards.
+
+The player's **`onboarding_tour_outcome`** (`completed` / `skipped` / `null`) is registered as
+a PostHog *super property*, so it rides on every event they ever send, not just the tour's. That
+is what lets retention, session counts, and deck imports be split by how someone onboarded —
+the comparison the whole feature exists to justify.
+
+Deliberately a super property, **not** a person property. Person properties need a person
+profile, which needs `identify()`, which makes every event an *identified* event — roughly 5x
+the price ($0.000248 vs $0.00005). Aura has no login, so the only id available is the
+device-scoped one `distinct_id` already is: you'd pay 5x for a profile keyed to the same device
+you already track. If a future tour needs server-side flag targeting on this, the route is
+`posthog.setPersonPropertiesForFlags()`, which targets flags without creating a profile.
+
+## Scaling to a second tour
+
+Not yet built, and deliberately so — but the two things that get *harder* later are already
+done (`tour_id` on events; an outcome rather than a boolean). What's left when tour 2 is real:
+
+- Turn `settingsStore.tourOutcome` into `completedTours: Record<TourId, ...>`. A single value
+  cannot express "did the intro, hasn't done the deck-import tour". `settingsStore` has a
+  `migrate` hook, so this is cheap whenever it happens.
+- Replace the hardcoded `isOnboardingAudience()` gate with a per-tour `audience(ctx)` predicate
+  reading those records — that is where "only show this to people who finished the intro" lives.
+- Give each tour its own flag key and variant union; `TourVariant` currently conflates "which
+  A/B arm" with "which tour".
+
 ## Tests
 
 `onboarding_tour.spec.ts` opts in with `test.use({ onboardingTour: true })`. Every *other*

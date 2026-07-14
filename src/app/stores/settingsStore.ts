@@ -23,6 +23,7 @@ import { persist } from 'zustand/middleware';
 import type { Card } from '@/features/player/types';
 import type { NetworkTransport } from '@/infrastructure/networking/YjsNetworkFactory';
 import { isManualTransportOverrideEnabled, resolveNetworkTransport } from '@/infrastructure/analytics/FeatureFlags';
+import type { TourOutcome } from '@/features/onboarding/types';
 
 // --- Zoom bounds (duplicated from their original homes so the store is self-contained) ---
 export const HAND_ZOOM_MIN = 0.5;
@@ -75,11 +76,15 @@ interface SettingsStore {
   // for "try WebRTC just for this session" without changing the saved default.
   sessionNetworkTransportOverride: NetworkTransport | null;
   setSessionNetworkTransportOverride: (transport: NetworkTransport | null) => void;
-  // Whether the player has finished (or skipped) the first-run tour. Persisted,
-  // so the tour doesn't reappear on every visit. Settings > Display offers a
-  // "Replay tour" that flips this back to false.
-  tourCompleted: boolean;
-  setTourCompleted: (completed: boolean) => void;
+  // How the player's first-run tour ended, or null if they haven't finished one.
+  // Persisted, so the tour doesn't reappear on every visit; Settings > Display
+  // offers a "Replay tour" that clears it.
+  //
+  // An outcome rather than a boolean because "finished the tour" and "bailed out
+  // of it" are the two groups the whole feature exists to compare — it's stamped
+  // onto every event as a super property (see registerTourOutcome).
+  tourOutcome: TourOutcome | null;
+  setTourOutcome: (outcome: TourOutcome | null) => void;
 }
 
 export const useSettingsStore = create<SettingsStore>()(
@@ -101,8 +106,8 @@ export const useSettingsStore = create<SettingsStore>()(
       setNetworkTransport: (transport) => set({ networkTransport: transport }),
       sessionNetworkTransportOverride: null,
       setSessionNetworkTransportOverride: (transport) => set({ sessionNetworkTransportOverride: transport }),
-      tourCompleted: false,
-      setTourCompleted: (completed) => set({ tourCompleted: completed }),
+      tourOutcome: null,
+      setTourOutcome: (outcome) => set({ tourOutcome: outcome }),
     }),
     {
       name: 'aura:settings',
@@ -125,7 +130,7 @@ export const useSettingsStore = create<SettingsStore>()(
         snapToGridEnabled: state.snapToGridEnabled,
         networkTransport: state.networkTransport,
         panelPositions: state.panelPositions,
-        tourCompleted: state.tourCompleted,
+        tourOutcome: state.tourOutcome,
       }),
     },
   ),

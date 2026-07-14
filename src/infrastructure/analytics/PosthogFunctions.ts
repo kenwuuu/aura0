@@ -537,6 +537,8 @@ export function trackImportPartialFailure(props: {
  * can't answer the question the tour was built to ask.
  */
 type TourEventContext = {
+  /** Which tour. See the note on TourId — this cannot be added retroactively. */
+  tourId: string;
   variant: string;
   layout: 'phone' | 'desktop';
   stepId: string;
@@ -545,11 +547,45 @@ type TourEventContext = {
 
 function tourProperties(ctx: TourEventContext): Record<string, unknown> {
   return {
+    tour_id: ctx.tourId,
     variant: ctx.variant,
     layout: ctx.layout,
     step_id: ctx.stepId,
     step_index: ctx.stepIndex,
   };
+}
+
+/**
+ * Stamp the player's onboarding outcome onto *every* event from here on, as a
+ * PostHog super property.
+ *
+ * This is what answers the question the tour exists to justify — do onboarded
+ * players stick around? — because it lets any insight (retention, session count,
+ * deck imports) break down by whether the player finished the tour, skipped it,
+ * or never saw it (`null`).
+ *
+ * Deliberately a super property and not a *person* property: person properties
+ * require a person profile, which requires `identify()`, which makes every event
+ * an identified event — about 5x the price ($0.000248 vs $0.00005) for a profile
+ * keyed to the same device-scoped id we already have, since Aura has no login.
+ * Super properties are free, work for anonymous users, and are all we need.
+ */
+const TOUR_OUTCOME_PROPERTY = 'onboarding_tour_outcome';
+
+export function registerTourOutcome(outcome: string | null): void {
+  // `register({ x: null })` is a no-op — it does NOT clear a previously
+  // registered value. So a player who finished the tour and then replayed it
+  // would keep carrying `completed` on every event, describing a tour they are
+  // in the middle of redoing. Clearing needs `unregister`.
+  //
+  // Absence is meaningful, and is the right shape: a player who never saw the
+  // tour has no value here, which reads as "is not set" in PostHog.
+  if (outcome === null) {
+    posthog.unregister(TOUR_OUTCOME_PROPERTY);
+    return;
+  }
+
+  posthog.register({ [TOUR_OUTCOME_PROPERTY]: outcome });
 }
 
 /**
@@ -562,6 +598,7 @@ function tourProperties(ctx: TourEventContext): Record<string, unknown> {
  */
 type InFlightTour = {
   startedAt: number;
+  tourId: string;
   variant: string;
   layout: 'phone' | 'desktop';
   stepId: string;
@@ -603,6 +640,7 @@ function installTourAbandonListener(): void {
 export function trackTourStarted(ctx: TourEventContext): void {
   inFlightTour = {
     startedAt: Date.now(),
+    tourId: ctx.tourId,
     variant: ctx.variant,
     layout: ctx.layout,
     stepId: ctx.stepId,
@@ -645,6 +683,7 @@ export function trackTourCompleted(ctx: Omit<TourEventContext, 'stepId' | 'stepI
   inFlightTour = null;
 
   posthog.capture('tour_completed', {
+    tour_id: ctx.tourId,
     variant: ctx.variant,
     layout: ctx.layout,
     step_count: ctx.stepCount,

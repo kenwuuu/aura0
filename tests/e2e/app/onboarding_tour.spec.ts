@@ -83,7 +83,7 @@ test.describe('onboarding tour', () => {
 
     await page.setViewportSize({ width: 1280, height: 800 });
     await expect(tourBubble(page)).not.toContainText(/long press/i);
-    await expect(tourBubble(page)).toContainText(/drag one up onto the board/i);
+    await expect(tourBubble(page)).toContainText(/drag one onto the board/i);
   });
 
   test('the bubble stays parked above the hand across play, tap and draw', async ({ page }) => {

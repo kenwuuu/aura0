@@ -53,8 +53,18 @@ if (appVersion) {
   posthog.register({ app_version: appVersion });
 }
 
-// Opt out of PostHog if running locally
-if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+/**
+ * Hosts that are somebody's dev machine, not the product.
+ *
+ * `localhost` isn't enough: testing on a real phone means `vite --host` and hitting
+ * the machine's LAN address, which sails straight past a localhost check — so every
+ * dev walkthrough was capturing into the production project. That is not just noise:
+ * a developer replaying the onboarding tour ten times pollutes the very experiment
+ * the tour exists to run.
+ */
+const DEV_HOSTNAME = /^(localhost|127\.0\.0\.1|\[::1\]|.*\.local|10\..*|192\.168\..*|172\.(1[6-9]|2\d|3[01])\..*)$/;
+
+if (DEV_HOSTNAME.test(window.location.hostname)) {
   posthog.opt_out_capturing();
 }
 
