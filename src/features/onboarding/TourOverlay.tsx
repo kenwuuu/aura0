@@ -77,13 +77,17 @@ export function TourOverlay() {
     <div
       data-testid="tour-overlay"
       data-tour-step={step.id}
-      // The invariant. Do not change this to `auto`.
+      // The invariant. Do not change this to `auto` — onboarding_tour.spec.ts
+      // ("does not block the hand-to-board drag") fails immediately if you do.
       style={{ position: 'fixed', inset: 0, zIndex: TOUR_Z_INDEX, pointerEvents: 'none' }}
     >
       {rect && <Spotlight rect={rect} />}
 
       <div
-        role="dialog"
+        // A status message, not a dialog: it is non-modal, traps no focus, and
+        // makes nothing else inert. Calling it a dialog would also make it a
+        // second match for every `getByRole('dialog')` in the app and its tests.
+        role="status"
         aria-live="polite"
         aria-label="Onboarding tip"
         className="
@@ -125,7 +129,9 @@ export function TourOverlay() {
                 style={{ pointerEvents: 'auto' }}
                 className="rounded-md bg-white px-3 py-1 text-xs font-medium text-neutral-900 hover:bg-neutral-200"
               >
-                {stepIndex === steps.length - 1 ? 'Done' : 'Got it'}
+                {/* Not "Got it" — that string already belongs to
+                    DeckImportHelpDialog, and the e2e fixture clicks it blind. */}
+                {stepIndex === steps.length - 1 ? 'Done' : 'Next'}
               </button>
             )}
           </div>

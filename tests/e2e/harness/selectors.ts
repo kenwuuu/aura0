@@ -24,6 +24,10 @@ export const TESTID = {
   newGameButton: 'new-game-button',
   connectionStatus: 'connection-status',
   peerCursor: 'peer-cursor',
+  tourOverlay: 'tour-overlay',
+  tourSkip: 'tour-skip',
+  tourNext: 'tour-next',
+  replayTour: 'replay-tour',
 } as const;
 
 export type PileKind = 'deck' | 'discard' | 'exile' | 'hand' | 'sideboard';

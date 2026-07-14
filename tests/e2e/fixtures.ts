@@ -20,8 +20,26 @@ function generateRandomString(length: number): string {
   return result;
 }
 
-export const test = base.extend({
-  page: async ({ page }, use) => {
+/** Enough prior visits that `isOnboardingAudience()` says no. */
+const RETURNING_PLAYER_VISIT_COUNT = '99';
+
+export const test = base.extend<{ onboardingTour: boolean }>({
+  /**
+   * Whether this spec wants the first-run tour. Off by default: a fresh context
+   * has empty localStorage, which makes every test a brand-new player, and the
+   * tour would otherwise appear in all of them. Opt in with
+   * `test.use({ onboardingTour: true })` — see app/onboarding_tour.spec.ts.
+   */
+  onboardingTour: [false, { option: true }],
+
+  page: async ({ page, onboardingTour }, use) => {
+    if (!onboardingTour) {
+      // Must be an init script, not a post-goto write: bootstrap reads the visit
+      // count before React mounts, and re-reads it on every reload.
+      await page.addInitScript((count) => {
+        localStorage.setItem('aura-visit-count', count);
+      }, RETURNING_PLAYER_VISIT_COUNT);
+    }
 
     await blockAnalytics(page);
     await page.goto(`/?room=${generateRandomString(30)}`, { waitUntil: 'networkidle' });

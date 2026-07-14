@@ -222,3 +222,31 @@ export function duplicateTabNotice(page: Page): Locator {
 export function playHereButton(page: Page): Locator {
   return page.getByRole('button', { name: /play here instead/i });
 }
+
+// ── Onboarding tour ──────────────────────────────────────────────────────────
+
+/** The tour's root. Carries `data-tour-step` so a spec can assert *which* step is up. */
+export function tourOverlay(page: Page): Locator {
+  return page.getByTestId(TESTID.tourOverlay);
+}
+
+/** The id of the step currently being shown, or null when no tour is running. */
+export async function currentTourStep(page: Page): Promise<string | null> {
+  const overlay = tourOverlay(page);
+  if ((await overlay.count()) === 0) return null;
+  return overlay.getAttribute('data-tour-step');
+}
+
+export function tourSkipButton(page: Page): Locator {
+  return page.getByTestId(TESTID.tourSkip);
+}
+
+/** Only rendered on informational steps — the ones with no game action to wait for. */
+export function tourNextButton(page: Page): Locator {
+  return page.getByTestId(TESTID.tourNext);
+}
+
+/** Settings > Display > Replay tour. */
+export function replayTourButton(page: Page): Locator {
+  return page.getByTestId(TESTID.replayTour);
+}
