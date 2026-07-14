@@ -43,6 +43,7 @@ function Spotlight({ rect }: { rect: DOMRect }) {
   return (
     <div
       aria-hidden
+      data-testid="tour-spotlight"
       className="tour-spotlight"
       style={{
         position: 'fixed',

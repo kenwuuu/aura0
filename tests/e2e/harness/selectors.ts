@@ -25,6 +25,7 @@ export const TESTID = {
   connectionStatus: 'connection-status',
   peerCursor: 'peer-cursor',
   tourOverlay: 'tour-overlay',
+  tourSpotlight: 'tour-spotlight',
   tourSkip: 'tour-skip',
   tourNext: 'tour-next',
   replayTour: 'replay-tour',

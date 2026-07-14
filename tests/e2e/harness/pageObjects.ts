@@ -237,6 +237,11 @@ export async function currentTourStep(page: Page): Promise<string | null> {
   return overlay.getAttribute('data-tour-step');
 }
 
+/** The ring drawn around the element the current step points at. */
+export function tourSpotlight(page: Page): Locator {
+  return page.getByTestId(TESTID.tourSpotlight);
+}
+
 export function tourSkipButton(page: Page): Locator {
   return page.getByTestId(TESTID.tourSkip);
 }

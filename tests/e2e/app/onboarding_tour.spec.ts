@@ -20,6 +20,7 @@ import {
   playHandCardToBoard,
   tourOverlay,
   tourSkipButton,
+  tourSpotlight,
   PHONE_VIEWPORT,
 } from '../harness';
 
@@ -46,6 +47,27 @@ test.describe('onboarding tour', () => {
     await page.setViewportSize({ width: 1280, height: 800 });
     await expect(tourOverlay(page)).not.toContainText(/long press/i);
     await expect(tourOverlay(page)).toContainText(/drag it to the board/i);
+  });
+
+  test('the spotlight points at a card the player can actually see', async ({ page }) => {
+    await page.setViewportSize(PHONE_VIEWPORT);
+    await waitForTour(page);
+
+    // On a phone the hand is scrolled, so the first hand card in DOM order sits
+    // several hundred pixels off the left edge. Anchoring to it drew the ring at
+    // x=-553 — a coach mark pointing at nothing. The anchor must pick a *visible*
+    // match, not the first one.
+    // The ring is centered on its target, so the target's centre is what has to
+    // be on screen. (The ring itself may bleed a few px past the bottom edge: a
+    // hand card sits flush against it, and the ring adds 8px of padding.)
+    const ring = await tourSpotlight(page).boundingBox();
+    expect(ring).not.toBeNull();
+
+    const center = { x: ring!.x + ring!.width / 2, y: ring!.y + ring!.height / 2 };
+    expect(center.x).toBeGreaterThan(0);
+    expect(center.x).toBeLessThan(PHONE_VIEWPORT.width);
+    expect(center.y).toBeGreaterThan(0);
+    expect(center.y).toBeLessThan(PHONE_VIEWPORT.height);
   });
 
   test('the overlay does not block the hand-to-board drag, and the drag advances the step', async ({ page }) => {
