@@ -237,18 +237,29 @@ export async function currentTourStep(page: Page): Promise<string | null> {
   return overlay.getAttribute('data-tour-step');
 }
 
-/** The ring drawn around the element the current step points at. */
-export function tourSpotlight(page: Page): Locator {
-  return page.getByTestId(TESTID.tourSpotlight);
+/** The speech bubble carrying the current step's copy. */
+export function tourBubble(page: Page): Locator {
+  return page.getByTestId(TESTID.tourBubble);
+}
+
+/** Where the bubble sits: `aboveHand` (with a tail) or `top`. */
+export async function tourPlacement(page: Page): Promise<string | null> {
+  const overlay = tourOverlay(page);
+  if ((await overlay.count()) === 0) return null;
+  return overlay.getAttribute('data-tour-placement');
 }
 
 export function tourSkipButton(page: Page): Locator {
   return page.getByTestId(TESTID.tourSkip);
 }
 
-/** Only rendered on informational steps — the ones with no game action to wait for. */
+/** Rendered on informational steps, and while paging back through finished ones. */
 export function tourNextButton(page: Page): Locator {
   return page.getByTestId(TESTID.tourNext);
+}
+
+export function tourBackButton(page: Page): Locator {
+  return page.getByTestId(TESTID.tourBack);
 }
 
 /** Settings > Display > Replay tour. */

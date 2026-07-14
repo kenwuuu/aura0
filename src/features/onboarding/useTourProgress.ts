@@ -7,16 +7,14 @@
  */
 import { useEffect } from 'react';
 import { useGameInstance } from '@/app/stores/gameInstanceStore';
-import { usePlayerStore } from '@/app/stores/playerStore';
 import { useSettingsStore } from '@/app/stores/settingsStore';
-import { YDOC_CARDS_ON_BOARD, YDOC_PLAYER, YSTATE_HAND } from '@/constants';
+import { YDOC_CARDS_ON_BOARD, YDOC_PLAYER } from '@/constants';
 import { resolveTourStepOrder } from '@/infrastructure/analytics/FeatureFlags';
 import { countPlayersInRoom } from '@/infrastructure/networking/roomOccupancy';
 import { usePhoneLayout } from '@/shared/hooks';
 import { isOnboardingAudience } from '@/shared/services/visitCount';
-import type { Card } from '@/features/player';
 import type { WhiteboardCard } from '@/features/battlefield/types';
-import { buildTourSnapshot, isStepComplete } from './tourProgress';
+import { buildTourSnapshot, isStepComplete, readCounts } from './tourProgress';
 import { useTourStore } from './tourStore';
 
 export function useTourProgress(): void {
@@ -44,11 +42,12 @@ export function useTourProgress(): void {
       // have skipped, or for this effect to have been torn down.
       if (cancelled || useTourStore.getState().active) return;
 
-      const hand = (yDoc.getMap(YDOC_PLAYER(playerId)).get(YSTATE_HAND) ?? []) as Card[];
       useTourStore.getState().start({
         variant,
-        baselineHandSize: hand.length,
         layout: isPhone ? 'phone' : 'desktop',
+        // The store re-reads this on every step transition, so each step is
+        // measured against the game as it stood when *that step* appeared.
+        readCounts: () => readCounts(yDoc, playerId),
       });
     });
 
@@ -71,6 +70,11 @@ export function useTourProgress(): void {
       const tour = useTourStore.getState();
       if (!tour.active) return;
 
+      // Re-reading a step they've already done — leave them there until they
+      // page forward themselves, or Back would bounce straight off the step it
+      // was meant to reveal.
+      if (tour.isReviewing()) return;
+
       const step = tour.steps[tour.stepIndex];
       // Informational steps wait on their button, not on the game.
       if (step.advance !== 'action') return;
@@ -78,7 +82,7 @@ export function useTourProgress(): void {
       const snapshot = buildTourSnapshot({
         yDoc,
         playerId,
-        baselineHandSize: tour.baselineHandSize,
+        baseline: tour.baseline,
         roomLinkCopied: tour.roomLinkCopied,
         playerCount: awareness ? countPlayersInRoom(awareness) : 1,
       });
@@ -93,8 +97,6 @@ export function useTourProgress(): void {
     yPlayerState.observe(check);
     awareness?.on('change', check);
 
-    // A step may already be satisfied on arrival — e.g. `draw_first` puts `draw`
-    // first, and a player who reloads mid-game lands with cards already played.
     check();
 
     return () => {

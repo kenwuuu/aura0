@@ -1339,24 +1339,46 @@ body {
 }
 
 /* ── Onboarding tour ──────────────────────────────────────────────────────────
-   The spotlight is a ring, not a mask with a hole: the tour's first step is a
-   drag from the hand to the board, so nothing may sit between the player and
-   either region. It draws attention without taking input — see TourOverlay.tsx. */
-.tour-spotlight {
-  box-shadow:
-    0 0 0 2px rgb(255 255 255 / 0.9),
-    0 0 0 6px rgb(255 255 255 / 0.25),
-    0 0 24px 4px rgb(255 255 255 / 0.2);
-  animation: tour-spotlight-pulse 1.8s ease-in-out infinite;
+   A speech bubble, not a spotlight-with-a-cutout: the tour's first step is a drag
+   from the hand to the board, so nothing may sit between the player and either
+   region. The bubble points with a tail and takes no input at all.
+
+   The tail is two stacked triangles — the back one is the border, the front one
+   the fill — which is how you get a bordered CSS arrow without a mask. */
+.tour-bubble--above-hand::before,
+.tour-bubble--above-hand::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  translate: -50% 0;
+  border: 9px solid transparent;
+  border-bottom: 0;
 }
 
-@keyframes tour-spotlight-pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.55; }
+.tour-bubble--above-hand::before {
+  border-top-color: rgb(255 255 255 / 0.15); /* matches the bubble's border */
+  border-width: 10px;
+}
+
+.tour-bubble--above-hand::after {
+  border-top-color: rgb(23 23 23 / 0.95); /* matches bg-neutral-900/95 */
+}
+
+/* Opacity only — the bubble is centered with Tailwind's `-translate-x-1/2`, which
+   in v4 writes the `translate` property, so animating `translate` here would
+   fight it and shove the bubble off-centre. */
+.tour-bubble {
+  animation: tour-bubble-in 200ms ease-out;
+}
+
+@keyframes tour-bubble-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .tour-spotlight {
+  .tour-bubble {
     animation: none;
   }
 }
