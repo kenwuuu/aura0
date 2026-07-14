@@ -1,5 +1,5 @@
 import { expect, test } from '../../fixtures';
-import {boardCards, boardTokens, expectPileCount, getElementOrientation, playCreature} from '../../harness';
+import {adjustTokenCount, boardCards, boardTokens, expectOrientation, expectPileCount, playCreature} from '../../harness';
 
 test('testExileTooltip', async ({ page }) => {
   const card = await playCreature(page);
@@ -51,15 +51,15 @@ test('testInteractiveTooltip', async ({ page }) => {
   const secondBoardCard = boardCards(page).nth(1);
   const thirdBoardCard = boardCards(page).nth(2);
 
-  expect(await getElementOrientation(firstBoardCard)).toBe('portrait');
+  await expectOrientation(firstBoardCard, 'portrait');
 
   await firstBoardCard.click({ button: 'right' });
   await page.getByText('TapSpace').click();
-  expect(await getElementOrientation(firstBoardCard)).toBe('landscape');
+  await expectOrientation(firstBoardCard, 'landscape');
 
   await firstBoardCard.click({ button: 'right' });
   await page.getByText('Untap allX').click();
-  expect(await getElementOrientation(firstBoardCard)).toBe('portrait');
+  await expectOrientation(firstBoardCard, 'portrait');
 
   await firstBoardCard.click({ button: 'right' });
   await page.getByText('FlipF').click();
@@ -96,7 +96,7 @@ test('testInteractiveTooltip', async ({ page }) => {
   await expect(boardTokens(page)).toHaveCount(tokensBefore + 1);
   const counterToken = boardTokens(page).last();
   await expect(counterToken).toHaveText('1');
-  await counterToken.click();
+  await adjustTokenCount(counterToken, 1);
   await expect(counterToken).toHaveText('2');
 });
 

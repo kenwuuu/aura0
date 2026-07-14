@@ -1,5 +1,5 @@
 import { expect, test } from '../../fixtures';
-import { expectHandCount, expectPileCount, getElementOrientation, playCreature, whiteboard } from '../../harness';
+import { expectHandCount, expectOrientation, expectPileCount, playCreature, whiteboard } from '../../harness';
 
 /** A point inside the whiteboard with no card/pile/token/mat under it —
  * player mats and piles sit low/center (a typical tabletop layout), so the
@@ -34,15 +34,15 @@ test('Draw from the board pane menu draws a card', async ({ page }) => {
 
 test('Untap all from the board pane menu untaps every owned card', async ({ page }) => {
   const card = await playCreature(page);
-  expect(await getElementOrientation(card)).toBe('portrait');
+  await expectOrientation(card, 'portrait');
 
   await card.click({ button: 'right' });
   await page.getByRole('menuitem', { name: /^Tap\b/ }).click();
-  expect(await getElementOrientation(card)).toBe('landscape');
+  await expectOrientation(card, 'landscape');
 
   const { x, y } = await emptyBoardPoint(page);
   await page.mouse.click(x, y, { button: 'right' });
   await page.getByRole('menuitem', { name: /^Untap all\b/ }).click();
 
-  expect(await getElementOrientation(card)).toBe('portrait');
+  await expectOrientation(card, 'portrait');
 });
