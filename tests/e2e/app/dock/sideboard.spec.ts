@@ -2,13 +2,15 @@ import { expect, test } from '../../fixtures';
 import {
   expectHandCount,
   expectPileCount,
-  handCards,
   importDeck,
   openPileViewer,
   pileTile,
   pileViewerCards,
   waitForPileViewerReady,
 } from '../../harness';
+
+/** Cards dealt to the opening hand on import. */
+const OPENING_HAND = 7;
 
 /**
  * A deck list with a sideboard, of the shape real exports use: the deck, a blank
@@ -35,7 +37,7 @@ test('testSideboardImportsIntoItsOwnPile', async ({ page }) => {
   // cards go to the deck (less the opening hand) and the 2 sideboard cards sit in
   // their own pile rather than inflating the deck to 22.
   await expectPileCount(page, 'sideboard', 2);
-  await expectPileCount(page, 'deck', 13); // 20 - 7 opening hand
+  await expectPileCount(page, 'deck', 20 - OPENING_HAND);
 });
 
 test('testSideboardViewerOpensAndShowsItsCards', async ({ page }) => {
@@ -50,7 +52,13 @@ test('testSideboardViewerOpensAndShowsItsCards', async ({ page }) => {
 test('testSideboardCardMovesToHand', async ({ page }) => {
   // The wish / companion path: a card comes off the sideboard into hand.
   await importDeck(page, 'Sideboard Deck', DECK_WITH_SIDEBOARD);
-  const handBefore = await handCards(page).count();
+
+  // Wait for the opening hand to finish dealing before acting on the sideboard.
+  // `handCards(page).count()` is a one-shot query that does not retry, so using it
+  // to snapshot a baseline races the deal and can capture a half-dealt hand — the
+  // card then moves correctly but is measured against a baseline short by however
+  // many cards were still in flight.
+  await expectHandCount(page, OPENING_HAND);
 
   await openPileViewer(page, 'sideboard');
   await waitForPileViewerReady(page);
@@ -58,7 +66,7 @@ test('testSideboardCardMovesToHand', async ({ page }) => {
   await page.keyboard.press('h');
 
   await expectPileCount(page, 'sideboard', 1);
-  await expectHandCount(page, handBefore + 1);
+  await expectHandCount(page, OPENING_HAND + 1);
 });
 
 test('testDeckCardMovesToSideboard', async ({ page }) => {
