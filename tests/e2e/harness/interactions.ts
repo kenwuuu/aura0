@@ -1,5 +1,5 @@
 import { Page, Locator, expect } from '@playwright/test';
-import { boardCard, cardPreview, pileTile, whiteboard, deckImportOpenButton, deckImportModal, boardTokens } from './pageObjects';
+import { boardCard, boardCardNode, cardPreview, pileTile, whiteboard, deckImportOpenButton, deckImportModal, boardTokens, transformPosition } from './pageObjects';
 import { TESTID, PileKind } from './selectors';
 
 export async function centerOf(locator: Locator): Promise<{ x: number; y: number }> {
@@ -127,6 +127,41 @@ export async function mouseDrag(
   await page.waitForTimeout(120);
   await page.mouse.up();
   await page.waitForTimeout(350);
+}
+
+/**
+ * Drag a board card while sampling where an *observer* page is rendering it.
+ *
+ * Live drag is streamed over Yjs awareness, so the only way to prove a peer sees
+ * the card move — rather than just teleport on drop — is to look at the observer
+ * mid-gesture. Returns the observer's board-space samples, so a spec can assert
+ * on the motion itself rather than only on the final resting place.
+ */
+export async function dragBoardCardWatchedBy(
+  page: Page,
+  card: Locator,
+  to: { x: number; y: number },
+  observer: Page,
+  cardId: string,
+  samples = 10,
+): Promise<({ x: number; y: number } | null)[]> {
+  const from = await centerOf(card);
+  const observed: ({ x: number; y: number } | null)[] = [];
+
+  await page.mouse.move(from.x, from.y);
+  await page.mouse.down();
+  await page.mouse.move(from.x + 15, from.y + 15, { steps: 5 }); // exceed the drag threshold
+
+  for (let i = 1; i <= samples; i++) {
+    const t = i / samples;
+    await page.mouse.move(from.x + (to.x - from.x) * t, from.y + (to.y - from.y) * t, { steps: 3 });
+    // Let the position cross the wire and get painted before we look.
+    await observer.waitForTimeout(60);
+    observed.push(await transformPosition(boardCardNode(observer, cardId)));
+  }
+
+  await page.mouse.up();
+  return observed;
 }
 
 /**
@@ -309,6 +344,12 @@ export async function drawCard(page: Page): Promise<void> {
  * dock's deck-import modal, fills the name + decklist, submits, and waits for
  * the modal to close (it self-closes ~1s after a successful import) as the
  * signal that the deck actually landed rather than racing the next action.
+ *
+ * A list that isn't 60 or 100 cards — which most test fixtures are not — stops
+ * on the "Unusual deck size" warning first, and the submit button becomes
+ * "Import Anyway". That gate is the feature working, so the harness clicks
+ * through it rather than routing around it: a deck of an odd size takes two
+ * clicks, and a legal one takes a single click and never sees the warning.
  */
 export async function importDeck(page: Page, name: string, decklist: string): Promise<void> {
   await deckImportOpenButton(page).click();
@@ -316,5 +357,13 @@ export async function importDeck(page: Page, name: string, decklist: string): Pr
   await page.getByRole('textbox', { name: 'Deck Name' }).fill(name);
   await page.getByRole('textbox', { name: 'Deck List' }).fill(decklist);
   await page.getByRole('button', { name: 'Import Deck' }).click();
+
+  // Either the import is under way, or the size warning is now up. Both leave
+  // the modal open, so wait on the button itself rather than a timer.
+  const importAnyway = page.getByRole('button', { name: 'Import Anyway' });
+  if (await importAnyway.isVisible()) {
+    await importAnyway.click();
+  }
+
   await deckImportModal(page).waitFor({ state: 'hidden', timeout: 15000 });
 }

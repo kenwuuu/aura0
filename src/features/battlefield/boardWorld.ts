@@ -52,17 +52,24 @@ const PILE_COL_X   = MAT_WIDTH - CARD_WIDTH - 12;
 const PILE_START_Y = 12;
 const PILE_GAP     = 10;
 
+// The sideboard sits immediately left of the deck — a fifth pile does not fit in
+// the main column (five cards plus gaps need 480px against a 440px mat). It is
+// the only pile in this second column: the space beside discard and exile stays
+// open battlefield rather than being fenced off for piles that don't exist.
+const SIDEBOARD_COL_X = PILE_COL_X - CARD_WIDTH - PILE_GAP;
+
 /** Absolute flow positions for all per-player board widgets at a given seat. */
 export function playmatNodePositions(seatIndex: number) {
   const o = seatOrigin(seatIndex);
   const pileY = (i: number) => o.y + PILE_START_Y + i * (CARD_HEIGHT + PILE_GAP);
   return {
-    mat:     { x: o.x,              y: o.y },
-    health:  { x: o.x + HEALTH_OFFSET.x, y: o.y + HEALTH_OFFSET.y },
-    deck:    { x: o.x + PILE_COL_X, y: pileY(0) },
-    discard: { x: o.x + PILE_COL_X, y: pileY(1) },
-    exile:   { x: o.x + PILE_COL_X, y: pileY(2) },
-    hand:    { x: o.x + PILE_COL_X, y: pileY(3) },
+    mat:       { x: o.x,                   y: o.y },
+    health:    { x: o.x + HEALTH_OFFSET.x, y: o.y + HEALTH_OFFSET.y },
+    deck:      { x: o.x + PILE_COL_X,      y: pileY(0) },
+    discard:   { x: o.x + PILE_COL_X,      y: pileY(1) },
+    exile:     { x: o.x + PILE_COL_X,      y: pileY(2) },
+    hand:      { x: o.x + PILE_COL_X,      y: pileY(3) },
+    sideboard: { x: o.x + SIDEBOARD_COL_X, y: pileY(0) },
   };
 }
 

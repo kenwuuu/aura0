@@ -1,4 +1,5 @@
 import { CardImages, CardImageUris } from '@/features/player/types';
+import type { SectionKind } from '@/features/deck-manager/DeckListParser';
 
 export type ScryfallCard = {
   id: string;
@@ -26,5 +27,14 @@ export type CardDataResult = {
   scryfallId: string;
   imageUris: CardImages;
   commander?: boolean;
+  /**
+   * The section of the deck list this entry came from, carried through the
+   * lookup so the importer can route `excluded` cards to the sideboard.
+   *
+   * It has to ride along on the result rather than being recovered by position:
+   * the Scryfall fallback re-fetches failed items and prepends them, so results
+   * do not come back in the order the entries went in.
+   */
+  section?: SectionKind;
   error?: string;
 };

@@ -13,6 +13,7 @@ function getLocalPileCards(player: Player, pile: LocalPileType): Card[] {
     case 'deck': return player.getDeckCards();
     case 'exile': return player.getState().exilePile;
     case 'discard': return player.getState().discardPile;
+    case 'sideboard': return player.getSideboardCards();
   }
 }
 
@@ -32,6 +33,8 @@ export function LocalPileTiles() {
   const [exileCards, setExileCards] = useState<Card[]>([]);
   const [discardOpen, setDiscardOpen] = useState(false);
   const [discardCards, setDiscardCards] = useState<Card[]>([]);
+  const [sideboardOpen, setSideboardOpen] = useState(false);
+  const [sideboardCards, setSideboardCards] = useState<Card[]>([]);
 
   const viewPile = useCallback((pile: LocalPileType) => {
     if (!player) return;
@@ -47,6 +50,10 @@ export function LocalPileTiles() {
       case 'discard':
         setDiscardCards(getLocalPileCards(player, 'discard'));
         setDiscardOpen(true);
+        break;
+      case 'sideboard':
+        setSideboardCards(getLocalPileCards(player, 'sideboard'));
+        setSideboardOpen(true);
         break;
     }
   }, [player]);
@@ -87,6 +94,7 @@ export function LocalPileTiles() {
     };
     if (pile !== 'discard') callbacks.onMoveToDiscard = (card) => move(card, 'discard');
     if (pile !== 'exile') callbacks.onMoveToExile = (card) => move(card, 'exile');
+    if (pile !== 'sideboard') callbacks.onMoveToSideboard = (card) => move(card, 'sideboard');
 
     if (pile === 'deck') {
       callbacks.onShuffleDeck = () => {
@@ -126,6 +134,13 @@ export function LocalPileTiles() {
         cards={discardCards}
         pileType="discard"
         callbacks={buildCallbacks('discard', setDiscardCards)}
+      />
+      <PileViewerReact
+        isOpen={sideboardOpen}
+        onClose={() => setSideboardOpen(false)}
+        cards={sideboardCards}
+        pileType="sideboard"
+        callbacks={buildCallbacks('sideboard', setSideboardCards)}
       />
     </>
   );

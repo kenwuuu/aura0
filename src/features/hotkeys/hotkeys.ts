@@ -14,6 +14,7 @@ export const HotkeyContext = {
   Exile: 'exile',
   Scry: 'scry',
   Discard: 'discard',
+  Sideboard: 'sideboard',
   Health: 'health',
   KeywordToken: 'kwToken',
   KeywordTokenStack: 'kwTokenStack',
@@ -98,7 +99,7 @@ export const HOTKEYS: Hotkey[] = [
   {
     key: '',
     keys: [],
-    context: ['deck', 'exile', 'discard'],
+    context: ['deck', 'exile', 'discard', 'sideboard'],
     shortDescription: 'View',
     longDescription: 'View pile contents',
     action: 'viewPile',
@@ -181,7 +182,7 @@ export const HOTKEYS: Hotkey[] = [
   {
     key: 'H',
     keys: ['h'],
-    context: ['battlefield', 'deck', 'exile', 'discard', 'deckcard'],
+    context: ['battlefield', 'deck', 'exile', 'discard', 'deckcard', 'sideboard'],
     shortDescription: 'Hand',
     longDescription: 'Move card to hand',
     action: 'moveToHand',
@@ -218,7 +219,7 @@ export const HOTKEYS: Hotkey[] = [
   {
     key: 'D',
     keys: ['d'],
-    context: ['battlefield', 'hand', 'exile', 'deck', 'deckcard', 'scry'],
+    context: ['battlefield', 'hand', 'exile', 'deck', 'deckcard', 'scry', 'sideboard'],
     shortDescription: 'Discard',
     longDescription: 'Move card to discard',
     action: 'moveToDiscard',
@@ -226,7 +227,7 @@ export const HOTKEYS: Hotkey[] = [
   {
     key: 'S',
     keys: ['s'],
-    context: ['battlefield', 'hand', 'deck', 'discard', 'deckcard'],
+    context: ['battlefield', 'hand', 'deck', 'discard', 'deckcard', 'sideboard'],
     shortDescription: 'Exile',
     longDescription: 'Move card from hand/deck to exile',
     action: 'moveToExile',
@@ -234,7 +235,7 @@ export const HOTKEYS: Hotkey[] = [
   {
     key: 'T',
     keys: ['t'],
-    context: ['battlefield', 'hand', 'exile', 'discard', 'deckcard', 'scry'],
+    context: ['battlefield', 'hand', 'exile', 'discard', 'deckcard', 'scry', 'sideboard'],
     shortDescription: 'To deck top',
     longDescription: 'Move card from hand/deck to top of deck',
     action: 'moveToDeckTop',
@@ -242,10 +243,21 @@ export const HOTKEYS: Hotkey[] = [
   {
     key: 'Y',
     keys: ['y'],
-    context: ['battlefield', 'hand', 'exile', 'discard', 'deckcard', 'scry'],
+    context: ['battlefield', 'hand', 'exile', 'discard', 'deckcard', 'scry', 'sideboard'],
     shortDescription: 'To deck bottom',
     longDescription: 'Move card from hand/deck to bottom of deck',
     action: 'moveToDeckBottom',
+  },
+  {
+    // Sideboarding runs both ways: deck → sideboard between games, sideboard →
+    // deck (or hand, for a wish or a companion) once play starts. So this is
+    // offered from every zone a card can be sitting in, not just the deck.
+    key: 'B',
+    keys: ['b'],
+    context: ['battlefield', 'hand', 'deck', 'exile', 'discard', 'deckcard'],
+    shortDescription: 'Sideboard',
+    longDescription: 'Move card to sideboard',
+    action: 'moveToSideboard',
   },
 ];
 

@@ -45,6 +45,7 @@ export interface PileViewerCallbacks {
   onMoveToDiscard?: (card: Card) => void;
   onMoveToDeckTop?: (card: Card) => void;
   onMoveToDeckBottom?: (card: Card) => void;
+  onMoveToSideboard?: (card: Card) => void;
   /** Deck viewer: close the viewer and shuffle the deck. */
   onShuffleDeck?: () => void;
   /** Discard viewer: move all discard cards to exile. */
@@ -62,11 +63,17 @@ export interface PileViewerReactProps {
 type SortOrder = 'top-to-bottom' | 'bottom-to-top' | 'alphabetical';
 
 /**
- * The 5 pile-viewer card moves, and the callback each dispatches to. Both the
+ * The 6 pile-viewer card moves, and the callback each dispatches to. Both the
  * right-click menu and the pile-viewer hotkey layer route through this one
  * table (see `dispatchPileMove`) instead of two mappings that can drift apart.
  */
-type PileMoveAction = 'moveToHand' | 'moveToDiscard' | 'moveToExile' | 'moveToDeckTop' | 'moveToDeckBottom';
+type PileMoveAction =
+  | 'moveToHand'
+  | 'moveToDiscard'
+  | 'moveToExile'
+  | 'moveToDeckTop'
+  | 'moveToDeckBottom'
+  | 'moveToSideboard';
 
 const PILE_MOVE_CALLBACKS: Record<PileMoveAction, keyof PileViewerCallbacks> = {
   moveToHand: 'onMoveToHand',
@@ -74,6 +81,7 @@ const PILE_MOVE_CALLBACKS: Record<PileMoveAction, keyof PileViewerCallbacks> = {
   moveToExile: 'onMoveToExile',
   moveToDeckTop: 'onMoveToDeckTop',
   moveToDeckBottom: 'onMoveToDeckBottom',
+  moveToSideboard: 'onMoveToSideboard',
 };
 
 function pileTypeToHotkeyContext(pileType: PileType): HotkeyContext {
@@ -82,6 +90,7 @@ function pileTypeToHotkeyContext(pileType: PileType): HotkeyContext {
     case 'discard': return HotkeyContext.Discard;
     case 'exile': return HotkeyContext.Exile;
     case 'scry': return HotkeyContext.Scry;
+    case 'sideboard': return HotkeyContext.Sideboard;
     default: return HotkeyContext.DeckCard;
   }
 }

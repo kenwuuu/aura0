@@ -53,6 +53,7 @@ function resolveMoveDestination(action: string): { dest: PileType; position?: nu
     case 'moveToExile': return { dest: 'exile' };
     case 'moveToDeckTop': return { dest: 'deck' };
     case 'moveToDeckBottom': return { dest: 'deck', position: 0 };
+    case 'moveToSideboard': return { dest: 'sideboard' };
     default: return null;
   }
 }

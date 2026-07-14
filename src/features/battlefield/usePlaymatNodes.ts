@@ -19,6 +19,7 @@ import {
   YSTATE_PLAYER_NAME,
   YSTATE_CUSTOM_COUNTERS,
   YSTATE_DECK,
+  YSTATE_SIDEBOARD,
   YSTATE_HAND,
   YSTATE_EXILE_PILE,
   YSTATE_DISCARD_PILE,
@@ -57,6 +58,8 @@ export function buildPlaymatNodes(yDoc: Y.Doc, localPlayerId: string): Node[] {
     const exilePile = (map.get(YSTATE_EXILE_PILE) as Card[] | undefined) ?? [];
     const discardPile = (map.get(YSTATE_DISCARD_PILE) as Card[] | undefined) ?? [];
     const hand = (map.get(YSTATE_HAND) as Card[] | undefined) ?? [];
+    // Absent for players whose state predates the sideboard — an empty pile, not a missing one.
+    const sideboard = (map.get(YSTATE_SIDEBOARD) as Card[] | undefined) ?? [];
     const allowViewHand = (map.get(YSTATE_CAN_VIEW_HAND) as boolean | undefined) ?? false;
 
     // Playmat background.
@@ -129,6 +132,21 @@ export function buildPlaymatNodes(yDoc: Y.Doc, localPlayerId: string): Node[] {
       type: 'pile',
       position: positions.exile,
       data: { ownerId: playerId, isLocal, pileKind: 'exile', count: exilePile.length, allowViewHand: false, yDoc },
+      zIndex: 10,
+      draggable: false,
+      width: CARD_WIDTH,
+      height: CARD_HEIGHT,
+    });
+
+    // Sideboard pile — emitted for everyone, but only its owner can open it.
+    // An opponent sees the count and nothing else, which is what a sideboard is
+    // in paper Magic: you may know it holds 15 cards, never which 15. The
+    // contents gate lives in PileNode, alongside the hand's.
+    nodes.push({
+      id: `pile-sideboard-${playerId}`,
+      type: 'pile',
+      position: positions.sideboard,
+      data: { ownerId: playerId, isLocal, pileKind: 'sideboard', count: sideboard.length, allowViewHand: false, yDoc },
       zIndex: 10,
       draggable: false,
       width: CARD_WIDTH,

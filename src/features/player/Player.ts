@@ -1,7 +1,7 @@
 import * as Y from 'yjs';
 import * as Sentry from '@sentry/browser';
 import posthog from 'posthog-js';
-import { Card, PileType } from './types';
+import { Card, PileType, PUBLIC_PILES } from './types';
 import { PlayerState, PlayerConfig, CustomCounter } from './types';
 import {
   YDOC_CARDS_ON_BOARD,
@@ -17,6 +17,7 @@ import {
   YSTATE_JOINED_AT,
   YSTATE_CAN_VIEW_HAND,
   YSTATE_SCRY,
+  YSTATE_SIDEBOARD,
   YSTATE_DECK_REVEAL_COUNT,
 } from "@/constants";
 import { getStoredPlayerName, setStoredPlayerName } from "@/infrastructure/networking/persistence";
@@ -42,6 +43,7 @@ export class Player {
   private exile: CardPile;
   private discard: CardPile;
   private scry: CardPile;
+  private sideboard: CardPile;
   private piles: Record<PileType, CardPile>;
 
   // Tracks own-hand size to detect remote merges that clobber local hand state.
@@ -89,6 +91,7 @@ export class Player {
     this.exile = new CardPile(this.yPlayerState, YSTATE_EXILE_PILE);
     this.discard = new CardPile(this.yPlayerState, YSTATE_DISCARD_PILE);
     this.scry = new CardPile(this.yPlayerState, YSTATE_SCRY);
+    this.sideboard = new CardPile(this.yPlayerState, YSTATE_SIDEBOARD);
 
     this.piles = {
       hand: this.hand,
@@ -96,6 +99,7 @@ export class Player {
       discard: this.discard,
       exile: this.exile,
       scry: this.scry,
+      sideboard: this.sideboard,
     };
 
     this.lastHandLen = this.hand.getCards().length;
@@ -165,6 +169,7 @@ export class Player {
       this.yPlayerState.set(YSTATE_EXILE_PILE, []);
       this.yPlayerState.set(YSTATE_DISCARD_PILE, []);
       this.yPlayerState.set(YSTATE_SCRY, []);
+      this.yPlayerState.set(YSTATE_SIDEBOARD, []);
       this.yPlayerState.set(YSTATE_CUSTOM_COUNTERS, []);
       this.yPlayerState.set(YSTATE_DECK_REVEAL_COUNT, 0);
     }
@@ -215,13 +220,22 @@ export class Player {
       exilePile: this.yPlayerState.get(YSTATE_EXILE_PILE) ?? [],
       discardPile: this.yPlayerState.get(YSTATE_DISCARD_PILE) ?? [],
       deck: this.yPlayerState.get(YSTATE_DECK) ?? [],
+      sideboard: this.yPlayerState.get(YSTATE_SIDEBOARD) ?? [],
       customCounters: this.yPlayerState.get(YSTATE_CUSTOM_COUNTERS) ?? [],
     };
+  }
+
+  public getSideboardCards(): Card[] {
+    return this.sideboard.getCards();
   }
 
   public async loadNewDeck(newDeck: SavedDeck): Promise<void> {
     // Replace deck cards with new deck
     this.deck.setCards(newDeck.cards);
+    // A deck saved before sideboards existed has no `sideboard` — that's an
+    // empty sideboard, not a missing one. Set it either way, so loading a deck
+    // without one clears whatever the previous deck left behind.
+    this.sideboard.setCards(newDeck.sideboard ?? []);
 
     // get cards
     const deckCards: Card[] = this.deck.getCards();
@@ -293,7 +307,10 @@ export class Player {
       }
     });
 
-    // Step 2: Move all cards from hand, discard, and exile back to deck
+    // Step 2: Move all cards from hand, discard, and exile back to deck.
+    // The sideboard is deliberately absent: it is not part of the deck, so
+    // sweeping it in here would turn a 60-card deck into a 75-card one on every
+    // reset. It survives a reset untouched, the way it survives a game.
     [...battlefieldCards, ...this.hand.getCards(), ...this.discard.getCards(), ...this.exile.getCards()].forEach(card => {
       this.deck.addCardToBottom(card);
     });
@@ -345,10 +362,34 @@ export class Player {
     this.piles[from].removeCardById(card.id);
     this.piles[to].placeCardAtPosition(card, position);
 
+    const name = this.logNameForMove(card, from, to);
     const text = to === 'deck'
-      ? `put ${cardLogName(card)} on ${position === 0 ? 'bottom' : 'top'} of deck`
-      : `moved ${cardLogName(card)} to ${to}`;
+      ? `put ${name} on ${position === 0 ? 'bottom' : 'top'} of deck`
+      : `moved ${name} to ${to}`;
     logAction(this.yDoc, { actorId: this.playerId, type: 'move_to_pile', text });
+  }
+
+  /**
+   * What to call a card in the shared log when it moves between two piles.
+   *
+   * A sideboard is private: opponents may know how many cards are in it, but
+   * never which. The action log is broadcast to every peer, so naming a card on
+   * its way into or out of the sideboard would leak exactly what the zone is
+   * meant to hide — and unlike a face-down card, there's no in-game moment that
+   * ever reveals it.
+   *
+   * The exception is a move whose other end is a zone opponents can already see
+   * (exile, discard) or the battlefield: the move itself puts the card in plain
+   * sight, so withholding the name buys no privacy and only makes the log lie
+   * about a card everyone is looking at.
+   */
+  private logNameForMove(card: Card, from: PileType, to: PileType): string {
+    const touchesSideboard = from === 'sideboard' || to === 'sideboard';
+    const revealedByMove = PUBLIC_PILES.has(from) || PUBLIC_PILES.has(to);
+    if (touchesSideboard && !revealedByMove) {
+      return 'a card';
+    }
+    return cardLogName(card);
   }
 
   public setHealth(health: number): void {

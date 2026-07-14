@@ -1,5 +1,5 @@
 import {describe, it, expect, beforeEach} from 'vitest';
-import {parseDecklist, validateFormat} from './DeckListParser';
+import {parseDecklist, parseDecklistWithStats, validateFormat} from './DeckListParser';
 
 describe('DeckListParser', () => {
   describe('parseDecklist', () => {
@@ -137,10 +137,11 @@ SIDEBOARD:
         expect(result[1]).toEqual({ count: 20, name: 'Mountain' });
       });
 
-      it('should resume importing after a blank line closes the sideboard (MTGO card below SIDEBOARD:)', () => {
-        // MTGO/Arena can list a card (e.g. a companion) below the sideboard.
-        // A blank line closes the sideboard so that card is imported again,
-        // while the sideboard cards between the header and the blank are dropped.
+      it('should keep a blank line inside the sideboard from leaking cards into the deck', () => {
+        // A section runs until the NEXT header — a blank line does not end it.
+        // The parser used to reset to the main deck on a blank, so every card
+        // below the blank was silently imported. That is how a 100-card deck
+        // came out at 103.
         const deckText = `1 Whiskervale Forerunner
 
 SIDEBOARD:
@@ -151,16 +152,37 @@ SIDEBOARD:
 
         const result = parseDecklist(deckText);
 
-        expect(result).toEqual([
-          { count: 1, name: 'Whiskervale Forerunner' },
-          { count: 1, name: 'Mabel, Heir to Cragflame' },
-        ]);
+        expect(result).toEqual([{ count: 1, name: 'Whiskervale Forerunner' }]);
       });
 
-      it('should not let a blank line reset the command zone (only `excluded` resets)', () => {
-        // The blank-line reset is scoped to `excluded` sections. A blank inside
-        // the command zone must not turn it off, so cards after it keep the
-        // commander tag (the section still only truly ends at the next header).
+      it('should hand back the sideboard cards it withheld rather than dropping them silently', () => {
+        const deckText = `1 Whiskervale Forerunner
+
+SIDEBOARD:
+1 Festival of Embers
+
+1 Mabel, Heir to Cragflame`;
+
+        const { excluded, excludedCardCount, excludedSections } = parseDecklistWithStats(deckText);
+
+        // Both sideboard cards — including the one below the blank line — come
+        // back with their provenance intact, so the importer can explain the
+        // deck-size delta instead of leaving it to be guessed at.
+        expect(excluded).toEqual([
+          { count: 1, name: 'Festival of Embers', tags: ['sideboard'], section: 'excluded' },
+          { count: 1, name: 'Mabel, Heir to Cragflame', tags: ['sideboard'], section: 'excluded' },
+        ]);
+        expect(excludedCardCount).toBe(2);
+        expect(excludedSections).toEqual(['sideboard']);
+      });
+
+      it('should end the command zone at a blank line when no main header follows', () => {
+        // The common Archidekt/plain-text shape: a COMMANDER: block, a blank
+        // line, then the deck — with no "Deck" header to switch back on. The
+        // blank is the only thing marking the command zone as over. Tagging the
+        // cards after it is not a cosmetic slip: Player.moveCommandersToHand
+        // draws every commander-tagged card, so a deck parsed this way lands in
+        // the player's opening hand in its entirety.
         const deckText = `COMMANDER:
 1 Krenko, Mob Boss
 
@@ -169,8 +191,125 @@ SIDEBOARD:
         const result = parseDecklist(deckText);
 
         expect(result).toEqual([
-          { count: 1, name: 'Krenko, Mob Boss', commander: true },
-          { count: 1, name: 'Sol Ring', commander: true },
+          { count: 1, name: 'Krenko, Mob Boss', commander: true, tags: ['commander'], section: 'commander' },
+          { count: 1, name: 'Sol Ring' },
+        ]);
+      });
+
+      it('should tag both partners when the list says where the command zone ends', () => {
+        const deckText = `COMMANDER:
+1 Thrasios, Triton Hero
+1 Tymna the Weaver
+
+1 Sol Ring`;
+
+        const result = parseDecklist(deckText);
+
+        expect(result).toEqual([
+          { count: 1, name: 'Thrasios, Triton Hero', commander: true, tags: ['commander'], section: 'commander' },
+          { count: 1, name: 'Tymna the Weaver', commander: true, tags: ['commander'], section: 'commander' },
+          { count: 1, name: 'Sol Ring' },
+        ]);
+      });
+
+      it('should tag only the first card when the command zone is never closed', () => {
+        // No blank line, no "Deck" header — nothing says where the command zone
+        // ends. A second legendary could be a partner or just the first card of
+        // the deck, and the list gives us no way to tell. Guessing "partner"
+        // would put a card the player never chose into their opening hand, so
+        // the first card is the commander and the rest is deck.
+        //
+        // The cards demoted by the overrun keep no provenance: the command zone
+        // is being read as having only ever held the first card, so they were
+        // never in it — they read exactly like the cards below them.
+        const deckText = `COMMANDER:
+1 Sauron, Lord of the Rings
+1 Anger
+1 Arcane Denial
+1 Arcane Signet`;
+
+        const result = parseDecklist(deckText);
+
+        expect(result).toEqual([
+          { count: 1, name: 'Sauron, Lord of the Rings', commander: true, tags: ['commander'], section: 'commander' },
+          { count: 1, name: 'Anger' },
+          { count: 1, name: 'Arcane Denial' },
+          { count: 1, name: 'Arcane Signet' },
+        ]);
+      });
+
+      it('should keep the command zone open across a blank line that sits under the header', () => {
+        // A blank directly under a header is padding, not a terminator — the
+        // section has taken no cards yet, so it stays open and the commander is
+        // still tagged.
+        const deckText = `COMMANDER:
+
+1 Krenko, Mob Boss
+
+1 Sol Ring`;
+
+        const result = parseDecklist(deckText);
+
+        expect(result).toEqual([
+          { count: 1, name: 'Krenko, Mob Boss', commander: true, tags: ['commander'], section: 'commander' },
+          { count: 1, name: 'Sol Ring' },
+        ]);
+      });
+
+      it('should not import a sideboard whose header is followed by a blank line', () => {
+        // The same padding rule, on the section where getting it wrong is
+        // expensive: if the blank under "Sideboard" ended the section, all 15
+        // sideboard cards would import and a 60-card deck would arrive as 75.
+        const deckText = `1 Whiskervale Forerunner
+
+Sideboard
+
+1 Festival of Embers
+1 Warleader's Call`;
+
+        const { items, excludedCardCount } = parseDecklistWithStats(deckText);
+
+        expect(items).toEqual([{ count: 1, name: 'Whiskervale Forerunner' }]);
+        expect(excludedCardCount).toBe(2);
+      });
+
+      it('should leave a companion parked below the sideboard block excluded', () => {
+        // MTGO/Arena write the companion under the sideboard, separated by a
+        // blank. A blank does not end an excluded section, so the companion stays
+        // in the sideboard — which is where it belongs: `companion` is itself an
+        // excluded header, and a companion is a sideboard card by the rules of
+        // the game. Importing it would make a 60-card deck arrive as 61.
+        const deckText = `1 Whiskervale Forerunner
+
+Sideboard
+1 Festival of Embers
+
+1 Lurrus of the Dream-Den`;
+
+        const { items, excludedCardCount } = parseDecklistWithStats(deckText);
+
+        expect(items).toEqual([{ count: 1, name: 'Whiskervale Forerunner' }]);
+        expect(excludedCardCount).toBe(2);
+      });
+
+      it.each([
+        ['straight double quotes', '"COMMANDER"'],
+        ['curly quotes', '“Commander”'],
+        ['quotes around a colon form', '"Commander:"'],
+      ])('should recognize a commander header wrapped in %s', (_label, header) => {
+        // Quoted headers are not recognized as headers unless the quotes are
+        // stripped, in which case they fall through to the quantity-less-card
+        // rule and import as a *card* — inflating a 100-card deck to 101.
+        const deckText = `${header}
+1 Krenko, Mob Boss
+
+1 Sol Ring`;
+
+        const result = parseDecklist(deckText);
+
+        expect(result).toEqual([
+          { count: 1, name: 'Krenko, Mob Boss', commander: true, tags: ['commander'], section: 'commander' },
+          { count: 1, name: 'Sol Ring' },
         ]);
       });
 
@@ -182,9 +321,10 @@ DECK:
 
         const result = parseDecklist(deckText);
 
-        expect(result).toHaveLength(2);
-        expect(result[0]).toEqual({ count: 1, name: 'Flubs, the Fool', commander: true });
-        expect(result[1]).toEqual({ count: 4, name: 'Lightning Bolt' });
+        expect(result).toEqual([
+          { count: 1, name: 'Flubs, the Fool', commander: true, tags: ['commander'], section: 'commander' },
+          { count: 4, name: 'Lightning Bolt', tags: ['deck'], section: 'main' },
+        ]);
       });
 
       it('should tag cards under a "Command Zone" header', () => {
@@ -193,8 +333,15 @@ DECK:
 
         const result = parseDecklist(deckText);
 
-        expect(result).toHaveLength(1);
-        expect(result[0]).toEqual({ count: 1, name: "Atraxa, Praetors' Voice", commander: true });
+        expect(result).toEqual([
+          {
+            count: 1,
+            name: "Atraxa, Praetors' Voice",
+            commander: true,
+            tags: ['command zone'],
+            section: 'commander',
+          },
+        ]);
       });
 
       it('should tag every card under a commander header (partners)', () => {
@@ -207,15 +354,16 @@ DECK:
 
         const result = parseDecklist(deckText);
 
-        expect(result).toHaveLength(3);
-        // Both partners are flagged — not just the first line under the header.
-        expect(result[0]).toEqual({ count: 1, name: 'Thrasios, Triton Hero', commander: true });
-        expect(result[1]).toEqual({ count: 1, name: 'Tymna the Weaver', commander: true });
-        // The section resets at the next header; main-deck cards are not flagged.
-        expect(result[2]).toEqual({ count: 4, name: 'Lightning Bolt' });
+        expect(result).toEqual([
+          // Both partners are flagged — not just the first line under the header.
+          { count: 1, name: 'Thrasios, Triton Hero', commander: true, tags: ['commander'], section: 'commander' },
+          { count: 1, name: 'Tymna the Weaver', commander: true, tags: ['commander'], section: 'commander' },
+          // The section ends at the next header; main-deck cards are not flagged.
+          { count: 4, name: 'Lightning Bolt', tags: ['deck'], section: 'main' },
+        ]);
       });
 
-      it('should not flag any card when the list has no headers', () => {
+      it('should not flag or tag any card when the list has no headers', () => {
         const deckText = `1 Sol Ring
 20 Mountain
 1 Krenko, Mob Boss`;
@@ -223,6 +371,8 @@ DECK:
         const result = parseDecklist(deckText);
 
         expect(result.every((item) => item.commander === undefined)).toBe(true);
+        // No header means no provenance to record.
+        expect(result.every((item) => item.tags === undefined)).toBe(true);
       });
 
       it('should keep commander + main and drop sideboard and maybeboard', () => {
@@ -233,23 +383,42 @@ SIDEBOARD:
 MAYBEBOARD:
 2 Counterspell`;
 
-        const result = parseDecklist(deckText);
+        const { items, excludedSections } = parseDecklistWithStats(deckText);
 
-        expect(result).toHaveLength(1);
-        expect(result[0]).toEqual({ count: 4, name: 'Lightning Bolt' });
+        expect(items).toEqual([
+          { count: 4, name: 'Lightning Bolt', tags: ['main deck'], section: 'main' },
+        ]);
+        expect(excludedSections).toEqual(['sideboard', 'maybeboard']);
       });
 
-      it('should import unrecognized headers as part of the deck (Archidekt categories)', () => {
+      it('should import recognized category headers as main deck (Archidekt)', () => {
         const deckText = `Creatures
 4 Monastery Swiftspear
 Lands
 20 Mountain`;
 
-        const result = parseDecklist(deckText);
+        const { items, unrecognizedSections } = parseDecklistWithStats(deckText);
 
-        expect(result).toHaveLength(2);
-        expect(result[0]).toEqual({ count: 4, name: 'Monastery Swiftspear' });
-        expect(result[1]).toEqual({ count: 20, name: 'Mountain' });
+        expect(items).toEqual([
+          { count: 4, name: 'Monastery Swiftspear', tags: ['creatures'], section: 'main' },
+          { count: 20, name: 'Mountain', tags: ['lands'], section: 'main' },
+        ]);
+        // "Creatures"/"Lands" are known labels, so nothing was waved through blind.
+        expect(unrecognizedSections).toEqual([]);
+      });
+
+      it('should flag a custom category header it did not recognize', () => {
+        // We still import it as main — but we say so. Waving through a header
+        // that was really a sideboard is how a deck ends up over-sized, and this
+        // is the only signal that names the culprit.
+        const deckText = `Ramp (2)
+1 Sol Ring
+1 Arcane Signet`;
+
+        const { items, unrecognizedSections } = parseDecklistWithStats(deckText);
+
+        expect(items).toHaveLength(2);
+        expect(unrecognizedSections).toEqual(['ramp']);
       });
 
       it('should match excluded headers case-insensitively and with a trailing count', () => {
@@ -361,8 +530,8 @@ Wasteland`;
         const result = parseDecklist(deckText);
 
         expect(result).toEqual([
-          { count: 1, name: 'Island' },
-          { count: 1, name: 'Wasteland' },
+          { count: 1, name: 'Island', tags: ['lands'], section: 'main' },
+          { count: 1, name: 'Wasteland', tags: ['lands'], section: 'main' },
         ]);
       });
 
@@ -392,10 +561,10 @@ Command Tower`;
         const result = parseDecklist(deckText);
 
         expect(result).toEqual([
-          { count: 1, name: "Kraum, Ludevic's Opus", commander: true },
-          { count: 1, name: 'Tymna the Weaver', commander: true },
-          { count: 1, name: 'Sol Ring' },
-          { count: 1, name: 'Command Tower' },
+          { count: 1, name: "Kraum, Ludevic's Opus", commander: true, tags: ['commander'], section: 'commander' },
+          { count: 1, name: 'Tymna the Weaver', commander: true, tags: ['commander'], section: 'commander' },
+          { count: 1, name: 'Sol Ring', tags: ['deck'], section: 'main' },
+          { count: 1, name: 'Command Tower', tags: ['deck'], section: 'main' },
         ]);
       });
 
@@ -411,10 +580,10 @@ Island`;
         const result = parseDecklist(deckText);
 
         expect(result).toEqual([
-          { count: 1, name: 'Krenko, Mob Boss', commander: true },
-          { count: 1, name: 'Sol Ring' },
-          { count: 1, name: 'Island' },
-          { count: 1, name: 'Island' },
+          { count: 1, name: 'Krenko, Mob Boss', commander: true, tags: ['commander'], section: 'commander' },
+          { count: 1, name: 'Sol Ring', tags: ['deck'], section: 'main' },
+          { count: 1, name: 'Island', tags: ['deck'], section: 'main' },
+          { count: 1, name: 'Island', tags: ['deck'], section: 'main' },
         ]);
       });
 
@@ -437,7 +606,9 @@ Swords to Plowshares`;
 
         const result = parseDecklist(deckText);
 
-        expect(result).toEqual([{ count: 1, name: 'Sol Ring' }]);
+        expect(result).toEqual([
+          { count: 1, name: 'Sol Ring', tags: ['deck'], section: 'main' },
+        ]);
       });
 
       it('should treat an Archidekt category header with a trailing count as a header', () => {
@@ -450,9 +621,9 @@ Removal (1)
         const result = parseDecklist(deckText);
 
         expect(result).toEqual([
-          { count: 1, name: 'Sol Ring' },
-          { count: 1, name: 'Arcane Signet' },
-          { count: 1, name: 'Swords to Plowshares' },
+          { count: 1, name: 'Sol Ring', tags: ['ramp'], section: 'main' },
+          { count: 1, name: 'Arcane Signet', tags: ['ramp'], section: 'main' },
+          { count: 1, name: 'Swords to Plowshares', tags: ['removal'], section: 'main' },
         ]);
       });
     });
@@ -469,8 +640,8 @@ Krenko, Mob Boss
         const result = parseDecklist(deckText);
 
         expect(result).toEqual([
-          { count: 1, name: 'Krenko, Mob Boss', commander: true },
-          { count: 1, name: 'Sol Ring' },
+          { count: 1, name: 'Krenko, Mob Boss', commander: true, tags: ['commander'], section: 'commander' },
+          { count: 1, name: 'Sol Ring', tags: ['deck'], section: 'main' },
         ]);
       });
 
@@ -599,8 +770,23 @@ Artifact
         const result = parseDecklist(deckText);
 
         expect(result).toHaveLength(2);
-        expect(result[0]).toEqual({ count: 1, name: 'Ms. Bumbleflower', setCode: 'blc', collectorNumber: '3', commander: true });
-        expect(result[1]).toEqual({ count: 1, name: 'Arcane Signet', setCode: 'blc', collectorNumber: '127' });
+        expect(result[0]).toEqual({
+          count: 1,
+          name: 'Ms. Bumbleflower',
+          setCode: 'blc',
+          collectorNumber: '3',
+          commander: true,
+          tags: ['commander'],
+          section: 'commander',
+        });
+        expect(result[1]).toEqual({
+          count: 1,
+          name: 'Arcane Signet',
+          setCode: 'blc',
+          collectorNumber: '127',
+          tags: ['artifact'],
+          section: 'main',
+        });
       });
 
     });
@@ -674,11 +860,12 @@ SIDEBOARD:
 
         const result = parseDecklist(deckText);
 
-        expect(result).toHaveLength(4);
-        expect(result[0]).toEqual({ count: 1, name: 'Flubs, the Fool', commander: true });
-        expect(result[1]).toEqual({ count: 4, name: 'Lightning Bolt' });
-        expect(result[2]).toEqual({ count: 20, name: 'Mountain' });
-        expect(result[3]).toEqual({ count: 1, name: 'Sol Ring' });
+        expect(result).toEqual([
+          { count: 1, name: 'Flubs, the Fool', commander: true, tags: ['commander'], section: 'commander' },
+          { count: 4, name: 'Lightning Bolt', tags: ['main deck'], section: 'main' },
+          { count: 20, name: 'Mountain', tags: ['main deck'], section: 'main' },
+          { count: 1, name: 'Sol Ring', tags: ['main deck'], section: 'main' },
+        ]);
       });
 
       it('should drop set-annotated cards that live under the sideboard', () => {
@@ -700,12 +887,20 @@ SIDEBOARD:
 
         const result = parseDecklist(deckText);
 
-        expect(result).toHaveLength(5);
-        expect(result[0]).toEqual({ count: 1, name: 'Flubs, the Fool', commander: true });
-        expect(result[1]).toEqual({ count: 4, name: 'Lightning Bolt' });
-        expect(result[2]).toEqual({ count: 20, name: 'Mountain' });
-        expect(result[3]).toEqual({ count: 1, name: 'Sol Ring' });
-        expect(result[4]).toEqual({ count: 1, name: 'Mabel, Heir to Cragflame', setCode: 'BLB', collectorNumber: '336' });
+        expect(result).toEqual([
+          { count: 1, name: 'Flubs, the Fool', commander: true, tags: ['commander'], section: 'commander' },
+          { count: 4, name: 'Lightning Bolt', tags: ['main deck'], section: 'main' },
+          { count: 20, name: 'Mountain', tags: ['main deck'], section: 'main' },
+          { count: 1, name: 'Sol Ring', tags: ['main deck'], section: 'main' },
+          {
+            count: 1,
+            name: 'Mabel, Heir to Cragflame',
+            setCode: 'BLB',
+            collectorNumber: '336',
+            tags: ['main deck'],
+            section: 'main',
+          },
+        ]);
       });
 
       it('should handle letters in collector number', () => {
