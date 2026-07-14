@@ -26,4 +26,4 @@ export const TESTID = {
   peerCursor: 'peer-cursor',
 } as const;
 
-export type PileKind = 'deck' | 'discard' | 'exile' | 'hand';
+export type PileKind = 'deck' | 'discard' | 'exile' | 'hand' | 'sideboard';

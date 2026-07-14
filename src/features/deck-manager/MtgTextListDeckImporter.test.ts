@@ -57,12 +57,17 @@ function makeMockLookup(options: LookupOptions = {}): CardLookupService {
       return new Promise(() => {});
     }
 
+    // `commander` and `section` are carried from the entry onto the result, as
+    // the real client does — the importer reads a card's provenance off the
+    // result, because the Scryfall fallback reorders them and position can no
+    // longer be trusted to say where a card came from.
     const results = entries.map((entry) => {
       if (failNames.has(entry.name)) {
         return {
           name: entry.name,
           count: entry.count,
           commander: entry.commander,
+          section: entry.section,
           scryfallId: '',
           type_line: undefined,
           imageUris: { front: null, back: null },
@@ -73,6 +78,7 @@ function makeMockLookup(options: LookupOptions = {}): CardLookupService {
         name: entry.name,
         count: entry.count,
         commander: entry.commander,
+        section: entry.section,
         scryfallId: `${entry.name.toLowerCase().replace(/\s+/g, '-')}-id`,
         type_line: entry.name.includes('Mountain') ? 'Basic Land' : 'Instant',
         imageUris: {
@@ -122,7 +128,7 @@ describe('MtgTextListDeckImporter - Section Headers', () => {
     [...new Set(result.cards.map((c) => c.name).filter((n): n is string => !!n))];
 
   describe('Section header tolerance', () => {
-    it('should import the main deck and skip a SIDEBOARD', async () => {
+    it('should keep a SIDEBOARD out of the deck and load it into the sideboard', async () => {
       const deckText = `4 Lightning Bolt
 20 Mountain
 
@@ -133,9 +139,15 @@ SIDEBOARD:
       const result = await importer.importFromText(deckText);
 
       expect(result.errors).toBeUndefined();
-      // 4 Lightning Bolt + 20 Mountain = 24 cards, no sideboard cards.
+      // 4 Lightning Bolt + 20 Mountain = 24 cards. The sideboard is imported, but
+      // it is not part of the deck — putting those 5 cards in `cards` would turn
+      // a legal 24-card deck into a 29-card one.
       expect(result.cards).toHaveLength(24);
       expect(importedNames(result).sort()).toEqual(['Lightning Bolt', 'Mountain']);
+
+      expect(result.sideboard).toHaveLength(5);
+      expect([...new Set(result.sideboard!.map((c) => c.name))].sort())
+        .toEqual(['Drill Too Deep', 'Pygmy Pyrosaur']);
     });
 
     it('should import a COMMANDER section together with the main deck', async () => {
@@ -169,7 +181,11 @@ DECK:
       expect(result.cards.filter((c) => c.name === 'Lightning Bolt').every((c) => !c.commander)).toBe(true);
     });
 
-    it('should keep commander + main and drop sideboard and maybeboard', async () => {
+    it('should sideboard a SIDEBOARD but still drop a MAYBEBOARD', async () => {
+      // Both are withheld from the deck, and there the resemblance ends. A
+      // sideboard is 15 cards the player owns and can bring in; a maybeboard is
+      // a scratch list of cards they were considering. Loading a maybeboard into
+      // a real game zone would hand the player cards they never registered.
       const deckText = `COMMANDER:
 1 Flubs, the Fool
 
@@ -185,6 +201,7 @@ MAYBEBOARD:
 
       expect(result.errors).toBeUndefined();
       expect(importedNames(result).sort()).toEqual(['Flubs, the Fool', 'Lightning Bolt']);
+      expect(result.sideboard?.map((c) => c.name)).toEqual(['Drill Too Deep']);
     });
 
     it('should import unrecognized (Archidekt-style) category headers', async () => {
@@ -423,14 +440,16 @@ Pet Cards (2)
       });
     });
 
-    it('counts the sideboard cards it deliberately dropped', async () => {
+    it('counts the sideboard cards separately from the deck', async () => {
       await importWith(`${STANDARD_60}
 
 SIDEBOARD:
 15 Counterspell`);
 
-      // The main deck is a legal 60 and the 15 sideboard cards are reported
-      // separately, so the 15 "missing" lines are explained rather than suspicious.
+      // The 15 sideboard cards are imported now, but they are still not deck
+      // cards: the deck is a legal 60, and the sideboard is reported beside it.
+      // Rolling them into `imported_card_count` would make every sideboarded
+      // list look like a 75-card deck and set off the illegal-size alarms.
       expect(capturedProps('deck_import_succeeded')).toMatchObject({
         requested_card_count: 60,
         imported_card_count: 60,

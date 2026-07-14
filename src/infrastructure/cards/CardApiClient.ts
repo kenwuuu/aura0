@@ -165,7 +165,7 @@ export class CardApiClient {
       const outcome = await this.lookupEntry(entry, retries);
 
       if (outcome.card) {
-        results.push(toCardDataResult(outcome.card, entry.count, entry.commander));
+        results.push(toCardDataResult(outcome.card, entry.count, entry.commander, entry.section));
       } else {
         failedItems.push(entry);
         failures.push({ item: entry, reason: outcome.reason, status: outcome.status });
@@ -176,6 +176,7 @@ export class CardApiClient {
           scryfallId: '',
           imageUris: { front: null, back: null },
           commander: entry.commander,
+          section: entry.section,
           error: `[${this.config.name}] lookup failed for "${entry.name}" (${outcome.reason})`,
         });
       }

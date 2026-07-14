@@ -2,6 +2,7 @@ import { DeckImporter, DeckImportResult } from './DeckImporter';
 import {
   DeckLineItem,
   ParsedDecklist,
+  isSideboardCard,
   parseDecklistWithStats,
   validateFormat,
 } from "@/features/deck-manager/DeckListParser";
@@ -76,11 +77,25 @@ export class MtgTextListDeckImporter extends DeckImporter {
 
     // The deck size the list asks for. Compared against what we actually build,
     // this is what separates "they sent a short list" from "our lookup broke".
+    // Sideboard cards are excluded on purpose: they are not part of the deck, so
+    // counting them here would make every sideboarded list look over-sized.
     const requestedCardCount = entries.reduce((sum, entry) => sum + entry.count, 0);
+
+    // Sideboard cards are looked up in the same pass as the deck. One call keeps
+    // the progress bar honest (it counts every card the user is waiting on) and
+    // gives the fallback a single shot at the whole list; the two are pulled back
+    // apart afterwards by the `section` each result carries.
+    //
+    // Only the *sideboard* slice of the excluded cards is fetched — a maybeboard
+    // or a token list is still dropped, and costs no lookup time. That also makes
+    // `section: 'excluded'` unambiguous downstream: the only excluded cards that
+    // reach the lookup are the ones bound for the sideboard.
+    const sideboardEntries = parsed.excluded.filter(isSideboardCard);
+    const lookupEntries: DeckLineItem[] = [...entries, ...sideboardEntries];
 
     let results: CardDataResult[];
     try {
-      const lookup = await this.cardLookup.fetchImagesForList(entries, (current, total) => {
+      const lookup = await this.cardLookup.fetchImagesForList(lookupEntries, (current, total) => {
         // Feed the analytics layer too, so an import abandoned mid-fetch can
         // report how far it got. Wrapping here means every caller gets it.
         trackImportProgress(current, total);
@@ -92,7 +107,7 @@ export class MtgTextListDeckImporter extends DeckImporter {
           triggeredCount: lookup.fallbackTriggeredCount,
           recoveredCount: lookup.fallbackRecoveredCount,
           failedCount: lookup.fallbackFailedCount,
-          totalCount: entries.length,
+          totalCount: lookupEntries.length,
           auraFailures: lookup.auraFailures,
           deadItems: lookup.failedItems,
         });
@@ -125,11 +140,16 @@ export class MtgTextListDeckImporter extends DeckImporter {
       .filter(r => r.error)
       .map(r => ({ name: r.name, error: r.error }));
 
+    // Deck-only, so the size numbers keep meaning what they meant before the
+    // sideboard was imported: a 60-card deck with a 15-card sideboard is still a
+    // 60-card import, not a 75-card one. Sideboard size is `excludedCardCount`.
+    const deckResults = results.filter((r) => r.section !== 'excluded');
+
     const counts: ImportCounts = {
       parsedEntryCount: entries.length,
       requestedCardCount,
       importedCardCount: deck.cards.length,
-      uniqueImportedCount: results.length - failedCards.length,
+      uniqueImportedCount: deckResults.filter((r) => !r.error).length,
       excludedCardCount: parsed.excludedCardCount,
       excludedSections: parsed.excludedSections,
       unrecognizedSections: parsed.unrecognizedSections,
@@ -189,8 +209,18 @@ export class MtgTextListDeckImporter extends DeckImporter {
     return deck;
   }
 
+  /**
+   * Turn looked-up card data into the deck and its sideboard.
+   *
+   * Each result carries the section it was parsed under, so a card lands in the
+   * sideboard because the *list* said so — not because of where it sits in the
+   * results array, which the Scryfall fallback reorders. `cardNumber` keeps
+   * running across both zones: it identifies a card, and a sideboard card that
+   * gets played is the same card it was in the sideboard.
+   */
   private parseResultsIntoDeck(deckImportResult: DeckImportResult, results: CardDataResult[]) {
     let cardNumberCounter = 1;
+    const sideboard: Card[] = [];
 
     for (const result of results) {
       if (result.error) {
@@ -205,8 +235,16 @@ export class MtgTextListDeckImporter extends DeckImporter {
 
       for (let i = 0; i < result.count; i++) {
         const card: Card = fromCardDataResult(result, { cardNumber: cardNumberCounter++ });
-        deckImportResult.cards.push(card);
+        if (result.section === 'excluded') {
+          sideboard.push(card);
+        } else {
+          deckImportResult.cards.push(card);
+        }
       }
+    }
+
+    if (sideboard.length > 0) {
+      deckImportResult.sideboard = sideboard;
     }
   }
 }

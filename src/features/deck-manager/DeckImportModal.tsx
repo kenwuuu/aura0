@@ -4,7 +4,7 @@ import { MtgTextListDeckImporter } from '@/features/deck-manager';
 import { DeckStorageService } from '@/infrastructure/persistence';
 import { SavedDeck } from '@/features/player/types';
 import { DeckImportHelpDialog } from './DeckImportHelpDialog';
-import { parseDecklistWithStats } from './DeckListParser';
+import { isSideboardCard, parseDecklistWithStats } from './DeckListParser';
 import { ModalFooter } from '@/shared/components/ModalFooter';
 import {InfoIcon} from "lucide-react"
 import {
@@ -104,8 +104,15 @@ export type DeckPreview = {
   main: number;
   /** Cards bound for the command zone — every one of these is drawn on turn one. */
   commander: number;
-  /** Cards under a sideboard-style header, which are NOT imported. */
-  excluded: number;
+  /** Cards bound for the sideboard pile. Imported, but not part of the deck. */
+  sideboard: number;
+  /**
+   * Cards under a maybeboard/wishlist/token header: withheld and genuinely
+   * dropped. Kept apart from `sideboard` because the two used to be one number
+   * and no longer mean the same thing — one lands in a zone the player can pull
+   * cards out of, the other doesn't land anywhere.
+   */
+  dropped: number;
 };
 
 /**
@@ -118,14 +125,24 @@ export type DeckPreview = {
  * to fix the list.
  */
 export function previewDeck(text: string): DeckPreview {
-  const { items, excludedCardCount } = parseDecklistWithStats(text);
+  const { items, excluded, excludedCardCount } = parseDecklistWithStats(text);
 
   const total = items.reduce((sum, item) => sum + item.count, 0);
   const commander = items
     .filter((item) => item.commander)
     .reduce((sum, item) => sum + item.count, 0);
 
-  return { total, main: total - commander, commander, excluded: excludedCardCount };
+  const sideboard = excluded
+    .filter(isSideboardCard)
+    .reduce((sum, item) => sum + item.count, 0);
+
+  return {
+    total,
+    main: total - commander,
+    commander,
+    sideboard,
+    dropped: excludedCardCount - sideboard,
+  };
 }
 
 /** Is this a deck size no format asks for? An empty list is not yet a deck. */
@@ -240,12 +257,15 @@ export function DeckImportModal({ isOpen, onClose, onDeckImported }: DeckImportM
           id: `deck-${Date.now()}-${randomIdSuffix(7)}`,
           name: deckName,
           source: 'scryfall',
+          // The deck's size, not the import's: the sideboard is saved alongside
+          // the deck, never counted as part of it.
           cardCount: result.cards.length,
           importedAt: new Date(),
           lastModified: new Date(),
           ...result.metadata,
         },
         cards: result.cards,
+        ...(result.sideboard ? { sideboard: result.sideboard } : {}),
       };
 
       await commitImport(savedDeck);
@@ -342,10 +362,13 @@ export function DeckImportModal({ isOpen, onClose, onDeckImported }: DeckImportM
               <h4>Unusual deck size</h4>
               <p>{describeUnusualDeckSize(deckPreview)}</p>
               {/* Where the cards went. A bare "101?" is a riddle; "the command
-                  zone took two" is an answer. */}
+                  zone took two" is an answer. The sideboard is named because it
+                  is imported now — and anything still being dropped is named
+                  separately, since that is the part a player might want back. */}
               <p className="warning-breakdown">
                 Deck {deckPreview.main} · Command zone {deckPreview.commander} · Sideboard{' '}
-                {deckPreview.excluded} (not imported)
+                {deckPreview.sideboard}
+                {deckPreview.dropped > 0 && ` · ${deckPreview.dropped} not imported`}
               </p>
             </div>
           )}
