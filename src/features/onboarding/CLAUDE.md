@@ -61,11 +61,31 @@ a bug waiting for the second one.
 
 ## Anchors and the moving board
 
-`useAnchorRect` re-measures on a rAF loop while the tour is up, rather than on
-resize/scroll. Board cards and piles are react-flow nodes inside `.react-flow__viewport`, a
-CSS-transformed container that fires **no scroll event** when it pans or zooms — anything
-event-driven goes stale the moment the player moves the board. The loop only re-renders
-when the rect actually changes.
+Two things `useAnchorRect` does that you'd otherwise get wrong:
+
+**It picks the visible match, not the first.** An anchor like `[data-testid="hand-card"]`
+matches all eight cards, and `querySelector` returns the first in *DOM order* — which, on a
+phone, is scrolled a few hundred pixels off the left edge. That shipped a ring at x=-553
+pointing at nothing. It now takes the on-screen match nearest the middle of the viewport,
+and renders the step anchorless if nothing is on screen. Same trap waits for board cards
+once the player pans away.
+
+**It re-measures on a rAF loop, not on resize/scroll.** Board cards and piles are react-flow
+nodes inside `.react-flow__viewport`, a CSS-transformed container that fires **no scroll
+event** when it pans or zooms — anything event-driven goes stale the moment the board moves.
+The loop only runs while the tour is up, and only re-renders when the rect actually changes.
 
 Anchors are the same `data-testid`s the e2e harness uses (`tests/e2e/harness/selectors.ts`),
 so a step and a test point at the same element by construction.
+
+## Tests
+
+`onboarding_tour.spec.ts` opts in with `test.use({ onboardingTour: true })`. Every *other*
+spec suppresses the tour, because a fresh browser context is a brand-new player and the tour
+would otherwise render in all of them (`tests/e2e/fixtures.ts` marks the browser a returning
+player by default).
+
+Both of the load-bearing assertions there have been checked against the bug they exist to
+catch — the drag one goes red under `pointer-events: auto`, the spotlight one goes red under
+a plain `querySelector` anchor. If you change either behaviour, re-run that check rather than
+trusting the green.
