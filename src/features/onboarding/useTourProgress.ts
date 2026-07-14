@@ -9,7 +9,7 @@ import { useEffect } from 'react';
 import { useGameInstance } from '@/app/stores/gameInstanceStore';
 import { useSettingsStore } from '@/app/stores/settingsStore';
 import { YDOC_CARDS_ON_BOARD, YDOC_PLAYER } from '@/constants';
-import { resolveTourStepOrder } from '@/infrastructure/analytics/FeatureFlags';
+import { isTourEnabled, resolveTourStepOrder } from '@/infrastructure/analytics/FeatureFlags';
 import { registerTourOutcome } from '@/infrastructure/analytics/PosthogFunctions';
 import { countPlayersInRoom } from '@/infrastructure/networking/roomOccupancy';
 import { usePhoneLayout } from '@/shared/hooks';
@@ -47,10 +47,12 @@ export function useTourProgress(): void {
     if (!shouldStart) return;
 
     let cancelled = false;
-    void resolveTourStepOrder().then((variant) => {
+    // Both flags resolve against the same memoized flag-load race, so this is one
+    // round trip, not two.
+    void Promise.all([isTourEnabled(), resolveTourStepOrder()]).then(([enabled, variant]) => {
       // The flag round-trip can take up to 1.5s — long enough for the player to
       // have skipped, or for this effect to have been torn down.
-      if (cancelled || useTourStore.getState().active) return;
+      if (cancelled || !enabled || useTourStore.getState().active) return;
 
       useTourStore.getState().start({
         tourId: 'intro',

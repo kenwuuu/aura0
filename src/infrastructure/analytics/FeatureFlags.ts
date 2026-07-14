@@ -80,6 +80,26 @@ export async function isManualTransportOverrideEnabled(): Promise<boolean> {
   return posthog.isFeatureEnabled(MANUAL_TRANSPORT_OVERRIDE_FLAG) ?? false;
 }
 
+const TOUR_ENABLED_FLAG = 'onboarding-tour-enabled';
+
+/**
+ * Whether to show the first-run tour at all.
+ *
+ * Ships at 100% — the tour has no holdout, so its "control" is the funnel as it
+ * stood before release. This exists as a kill switch: drop the rollout to 0% and
+ * the tour is gone without a deploy. Dropping it *below* 100% later turns it into
+ * a real randomized holdout, which is the only way to actually measure the tour's
+ * effect (see the note in features/onboarding/CLAUDE.md).
+ *
+ * A PostHog we never heard from falls back to **on**. The failure we care about is
+ * an ad-blocked new player silently getting no onboarding at all; showing the tour
+ * to someone whose flags didn't load is harmless.
+ */
+export async function isTourEnabled(): Promise<boolean> {
+  if (!(await whenFlagsReady())) return true;
+  return posthog.isFeatureEnabled(TOUR_ENABLED_FLAG) ?? true;
+}
+
 const TOUR_STEP_ORDER_FLAG = 'onboarding-tour-step-order';
 
 /**
