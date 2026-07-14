@@ -72,10 +72,16 @@ export interface TourStep {
   anchor?: string;
   /**
    * Draw a ring around `anchor`. Reserved for steps about a *specific control* —
-   * a halo on a hand card just competed with the card art for attention, which is
-   * why the hand steps use the bubble's tail instead.
+   * a halo on a hand card just competed with the card art for attention.
    */
   halo?: boolean;
+  /**
+   * Draw the bubble's tail. Defaults to true. Turn it off when the bubble sits
+   * somewhere for continuity rather than to point: `tap` and `draw` keep the
+   * bubble parked above the hand so it doesn't hop about, but their actions happen
+   * on the *board* — a tail aimed at the hand would be pointing at the wrong thing.
+   */
+  tail?: boolean;
   /** Verbs differ by input: you *click* a card with a mouse, but *long press* it on touch. */
   copy: { desktop: string; phone: string };
   /**

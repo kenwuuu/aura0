@@ -96,14 +96,19 @@ export function TourOverlay() {
   let tailLeft = width / 2;
   let placement: string = step.placement;
 
+  // A step can sit somewhere for continuity without pointing at it — `tap` and
+  // `draw` stay parked above the hand so the bubble doesn't hop about, but their
+  // actions happen on the board, so they show no tail.
+  const wantsTail = step.tail !== false;
+
   if (step.placement === 'aboveHand' && handRect) {
     position = { left: centeredLeft, bottom: `calc(100vh - ${handRect.top - TAIL_GAP}px)` };
-    tail = 'down';
+    if (wantsTail) tail = 'down';
   } else if (step.placement === 'belowAnchor' && anchorRect) {
     const anchorCenter = anchorRect.left + anchorRect.width / 2;
     const left = clamp(anchorCenter - width / 2, SIDE_MARGIN, viewportWidth - width - SIDE_MARGIN);
     position = { left, top: anchorRect.bottom + TAIL_GAP };
-    tail = 'up';
+    if (wantsTail) tail = 'up';
     // The bubble gets clamped inside the screen, but the tail still has to point
     // at the button — so it slides along the bubble's edge instead of sitting in
     // the middle of it. Kept off the rounded corners.
@@ -125,6 +130,7 @@ export function TourOverlay() {
       data-testid="tour-overlay"
       data-tour-step={step.id}
       data-tour-placement={placement}
+      data-tour-tail={tail ?? 'none'}
       // The invariant. Do not change this to `auto` — onboarding_tour.spec.ts
       // ("does not block the hand-to-board drag") fails immediately if you do.
       style={{ position: 'fixed', inset: 0, zIndex: TOUR_Z_INDEX, pointerEvents: 'none' }}

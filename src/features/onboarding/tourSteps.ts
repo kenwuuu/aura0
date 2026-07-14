@@ -23,6 +23,9 @@ export const TOUR_STEPS: Record<TourStepId, TourStep> = {
   tap: {
     id: 'tap',
     placement: 'aboveHand',
+    // Parked above the hand for continuity, but the action is on the *board* — a
+    // tail aimed at the hand would be pointing at the wrong thing.
+    tail: false,
     // There is no left-click-to-tap: tapping is the Space hotkey (routed by
     // hoverTarget) or the card's context menu. A board card is `menuFirst`, so on
     // touch a single tap opens that menu straight away — no preview first.
@@ -35,6 +38,7 @@ export const TOUR_STEPS: Record<TourStepId, TourStep> = {
   draw: {
     id: 'draw',
     placement: 'aboveHand',
+    tail: false,
     // Tapping (touch) or right-clicking (desktop) the empty board opens the
     // Global menu, whose first entry is Draw — one-click access without panning
     // back to your deck. See BattlefieldCanvas's pane handlers.

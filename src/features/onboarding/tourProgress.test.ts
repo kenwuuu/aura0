@@ -172,8 +172,19 @@ describe('isStepComplete', () => {
       expect(isStepComplete('invite', snapshot(seedDoc(), { roomLinkCopied: true }))).toBe(true);
     });
 
-    it('completes when someone actually joined, even without copying the link', () => {
-      expect(isStepComplete('invite', snapshot(seedDoc(), { playerCount: 2 }))).toBe(true);
+    it('does NOT complete just because other players are in the room', () => {
+      // Regression. This used to complete on `playerCount > 1`, which fires for a
+      // duplicate tab, a socket still closing after a reload, or — worst — simply
+      // being the friend who was invited (you join an existing room at 2 players).
+      // `invite` is the last step, so it auto-completed, ended the tour, and marked
+      // it done: the step was never seen at all.
+      expect(isStepComplete('invite', snapshot(seedDoc(), { playerCount: 2 }))).toBe(false);
+      expect(isStepComplete('invite', snapshot(seedDoc(), { playerCount: 4 }))).toBe(false);
+    });
+
+    it('still completes on copy while others are in the room', () => {
+      const s = snapshot(seedDoc(), { roomLinkCopied: true, playerCount: 3 });
+      expect(isStepComplete('invite', s)).toBe(true);
     });
   });
 

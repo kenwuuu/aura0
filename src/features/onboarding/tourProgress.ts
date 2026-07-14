@@ -66,9 +66,18 @@ const COMPLETION: Record<TourStepId, (s: TourSnapshot) => boolean> = {
   // out of hand can never read as a draw, and drawing back up to the hand you
   // began the tour with still counts.
   draw: (s) => s.handSize > s.baseline.handSize,
-  // Copying the link is the honest signal we control; a peer actually arriving
-  // is even better, and skips the step for anyone who shared the URL some other way.
-  invite: (s) => s.roomLinkCopied || s.playerCount > 1,
+  // Copying the link, and ONLY copying the link.
+  //
+  // This used to also complete on `playerCount > 1`, on the theory that a peer
+  // arriving meant the player had clearly invited someone. It fires for all sorts
+  // of reasons that have nothing to do with them: a duplicate tab, a socket that
+  // hasn't finished closing after a reload — and, worst of all, simply *being the
+  // friend who was invited*. Anyone who joins an existing room starts at 2 players,
+  // so `invite` completed the instant it appeared, which (being the last step)
+  // ended the whole tour and marked it done forever. The step was never seen.
+  //
+  // A predicate for "the player did X" must not be satisfiable by other people.
+  invite: (s) => s.roomLinkCopied,
   // Informational — nothing to observe, so it waits on its button.
   history: () => false,
 };

@@ -16,6 +16,7 @@ import { test, expect } from '../fixtures';
 import type { Page } from '@playwright/test';
 import {
   boardCards,
+  connectSecondPlayer,
   currentTourStep,
   drawCard,
   floatingPanel,
@@ -24,6 +25,7 @@ import {
   playHandCardToBoard,
   roomLinkButton,
   settingsButton,
+  waitForSync,
   tourBackButton,
   tourBubble,
   tourHalo,
@@ -31,6 +33,7 @@ import {
   tourOverlay,
   tourPlacement,
   tourSkipButton,
+  tourTail,
   zoomControls,
   PHONE_VIEWPORT,
 } from '../harness';
@@ -94,14 +97,22 @@ test.describe('onboarding tour', () => {
     expect(atPlay.y + atPlay.height).toBeLessThanOrEqual(handTop);
     expect(atPlay.y + atPlay.height).toBeGreaterThan(handTop - 40);
 
-    // It must not hop around between the hand steps — only the words change.
+    // `play` is the only hand step that points at the hand, so it's the only one
+    // with a tail.
+    expect(await tourTail(page)).toBe('down');
+
+    // It must not hop around between the hand steps — only the words change. And
+    // tap/draw act on the *board*, so they drop the tail rather than aim it at the
+    // hand, which is not where the player should be looking.
     const card = await playHandCardToBoard(page);
     await expect.poll(() => currentTourStep(page), { timeout: 3000 }).toBe('tap');
     expect(await tourPlacement(page)).toBe('aboveHand');
+    expect(await tourTail(page)).toBe('none');
 
     await tapBoardCard(page, card);
     await expect.poll(() => currentTourStep(page), { timeout: 3000 }).toBe('draw');
     expect(await tourPlacement(page)).toBe('aboveHand');
+    expect(await tourTail(page)).toBe('none');
   });
 
   test('no halo on the hand steps — only the invite step rings a control', async ({ page }) => {
@@ -256,6 +267,32 @@ test.describe('onboarding tour', () => {
     await roomLinkButton(page).click();
 
     await expect(tourOverlay(page)).toBeHidden();
+  });
+
+  test('the invite step survives another player being in the room', async ({ page }) => {
+    // Regression: `invite` used to also complete on `playerCount > 1`. A second
+    // client in the room — a duplicate tab, a socket still closing after a reload,
+    // or simply the friend you invited — satisfied it the instant it appeared.
+    // Being the last step, that ended the tour and marked it done: the step was
+    // never seen, and the tour just vanished after the draw.
+    await waitForTour(page);
+    const bob = await connectSecondPlayer(page);
+
+    try {
+      await waitForSync(page, 2);
+      await walkToInvite(page);
+
+      // Still there, still waiting on the player to actually copy the link.
+      expect(await currentTourStep(page)).toBe('invite');
+      await expect(tourOverlay(page)).toBeVisible();
+      await page.waitForTimeout(800);
+      await expect(tourOverlay(page)).toBeVisible();
+
+      await roomLinkButton(page).click();
+      await expect(tourOverlay(page)).toBeHidden();
+    } finally {
+      await bob.context().close();
+    }
   });
 
   test('skip dismisses the tour, and it stays gone across a reload', async ({ page }) => {

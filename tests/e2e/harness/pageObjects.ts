@@ -254,6 +254,13 @@ export function tourHalo(page: Page): Locator {
   return page.getByTestId(TESTID.tourHalo);
 }
 
+/** Which way the bubble's tail points: 'up', 'down', or 'none'. */
+export async function tourTail(page: Page): Promise<string | null> {
+  const overlay = tourOverlay(page);
+  if ((await overlay.count()) === 0) return null;
+  return overlay.getAttribute('data-tour-tail');
+}
+
 export function tourSkipButton(page: Page): Locator {
   return page.getByTestId(TESTID.tourSkip);
 }

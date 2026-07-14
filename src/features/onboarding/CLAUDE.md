@@ -80,6 +80,15 @@ the same `yCards` map, so a new play-path satisfies `play` for free — the same
 "complete semantic actions" in the root CLAUDE.md. A predicate that hooks one call site is a
 bug waiting for the second one.
 
+**But a predicate for "the player did X" must not be satisfiable by *other people*.** `invite`
+used to also complete on `playerCount > 1`, on the theory that a peer arriving meant the
+player had clearly invited someone. It fires for a duplicate tab, for a socket that hasn't
+finished closing after a reload, and — worst — for simply *being the friend who was invited*:
+you join an existing room at 2 players, so `invite` completed the instant it appeared. Being
+the last step, that ended the whole tour and marked it done. The step was never seen; the tour
+just vanished after the draw. Pinned by `tourProgress.test.ts` and by "the invite step survives
+another player being in the room" in the e2e.
+
 ## Back, and why the watcher has to stand down
 
 Going Back makes `stepIndex < furthestIndex`, which is what `isReviewing()` means. While
