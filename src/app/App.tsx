@@ -30,7 +30,7 @@ import { SavedDeck } from '@/features/player/types';
 import { CardLookupService, TokenService } from '@/infrastructure/cards';
 import { YjsNetworkProvider } from '@/infrastructure/networking/YjsNetworkFactory';
 import { AddCardManager } from '@/features/deck-manager/AddCardManager';
-import { WelcomeModal } from '@/app/WelcomeModal';
+import { OnboardingTour } from '@/features/onboarding';
 import { AnnouncementModal } from '@/app/AnnouncementModal';
 import { SettingsModal } from '@/features/settings/SettingsModal';
 import { ActionLogPanel } from '@/features/action-log/ActionLogPanel';
@@ -52,8 +52,6 @@ import { DEFAULT_CARD_BACK } from '@/constants';
 // Side-effect import: installs the last-input-modality listeners at app boot so
 // hover-preview goes inert on touch (see src/shared/pointerInput.ts).
 import '@/shared/pointerInput';
-
-const isDevEnv = import.meta.env.MODE === 'development';
 
 interface AppProps {
   yDoc: Y.Doc;
@@ -210,7 +208,10 @@ export function App({ yDoc, yjsNetworkProvider, player, roomManager, playerId, c
       <GameHotkeysManager />
       <Toaster />
       <SettingsModal />
-      {!isDevEnv && <WelcomeModal />}
+      {/* Replaces the old WelcomeModal, which described the buttons instead of
+          teaching the game. Deliberately NOT gated on `isDevEnv` the way that
+          modal was — a tour you can't see in dev is a tour nobody maintains. */}
+      <OnboardingTour />
       {AnnouncementsService.shouldShowAnnouncement() && (
         <AnnouncementModal onClose={() => AnnouncementsService.markAnnouncementAsSeen()} />
       )}

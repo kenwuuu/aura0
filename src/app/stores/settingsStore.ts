@@ -75,6 +75,11 @@ interface SettingsStore {
   // for "try WebRTC just for this session" without changing the saved default.
   sessionNetworkTransportOverride: NetworkTransport | null;
   setSessionNetworkTransportOverride: (transport: NetworkTransport | null) => void;
+  // Whether the player has finished (or skipped) the first-run tour. Persisted,
+  // so the tour doesn't reappear on every visit. Settings > Display offers a
+  // "Replay tour" that flips this back to false.
+  tourCompleted: boolean;
+  setTourCompleted: (completed: boolean) => void;
 }
 
 export const useSettingsStore = create<SettingsStore>()(
@@ -96,6 +101,8 @@ export const useSettingsStore = create<SettingsStore>()(
       setNetworkTransport: (transport) => set({ networkTransport: transport }),
       sessionNetworkTransportOverride: null,
       setSessionNetworkTransportOverride: (transport) => set({ sessionNetworkTransportOverride: transport }),
+      tourCompleted: false,
+      setTourCompleted: (completed) => set({ tourCompleted: completed }),
     }),
     {
       name: 'aura:settings',
@@ -118,6 +125,7 @@ export const useSettingsStore = create<SettingsStore>()(
         snapToGridEnabled: state.snapToGridEnabled,
         networkTransport: state.networkTransport,
         panelPositions: state.panelPositions,
+        tourCompleted: state.tourCompleted,
       }),
     },
   ),

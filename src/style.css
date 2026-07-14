@@ -1337,3 +1337,26 @@ body {
     @apply bg-background text-foreground;
   }
 }
+
+/* ── Onboarding tour ──────────────────────────────────────────────────────────
+   The spotlight is a ring, not a mask with a hole: the tour's first step is a
+   drag from the hand to the board, so nothing may sit between the player and
+   either region. It draws attention without taking input — see TourOverlay.tsx. */
+.tour-spotlight {
+  box-shadow:
+    0 0 0 2px rgb(255 255 255 / 0.9),
+    0 0 0 6px rgb(255 255 255 / 0.25),
+    0 0 24px 4px rgb(255 255 255 / 0.2);
+  animation: tour-spotlight-pulse 1.8s ease-in-out infinite;
+}
+
+@keyframes tour-spotlight-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.55; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tour-spotlight {
+    animation: none;
+  }
+}

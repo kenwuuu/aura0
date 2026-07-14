@@ -1,5 +1,6 @@
 import posthog from 'posthog-js';
 import type { NetworkTransport } from '@/infrastructure/networking/YjsNetworkFactory';
+import type { TourVariant } from '@/features/onboarding/types';
 
 const NETWORK_TRANSPORT_FLAG = 'network-transport-websocket';
 const MANUAL_TRANSPORT_OVERRIDE_FLAG = 'network-transport-manual-override';
@@ -77,6 +78,25 @@ export async function resolveNetworkTransport(): Promise<NetworkTransport> {
 export async function isManualTransportOverrideEnabled(): Promise<boolean> {
   if (!(await whenFlagsReady())) return false;
   return posthog.isFeatureEnabled(MANUAL_TRANSPORT_OVERRIDE_FLAG) ?? false;
+}
+
+const TOUR_STEP_ORDER_FLAG = 'onboarding-tour-step-order';
+
+/**
+ * Which arm of the onboarding step-order experiment this player is in.
+ *
+ * A PostHog we never heard from falls back to `control` rather than delaying the
+ * tour — a first-time visitor staring at an unexplained board for 1.5s is a worse
+ * outcome than one unbalanced assignment. Any variant we don't recognize is also
+ * `control`, so a typo in the PostHog UI can't strand players in a tour with no
+ * steps.
+ *
+ * To add an arm: add a key to STEP_ORDERS (tourSteps.ts) and add the matching
+ * variant to this flag.
+ */
+export async function resolveTourStepOrder(): Promise<TourVariant> {
+  if (!(await whenFlagsReady())) return 'control';
+  return posthog.getFeatureFlag(TOUR_STEP_ORDER_FLAG) === 'draw_first' ? 'draw_first' : 'control';
 }
 
 /** Test seam: drops the memoized flag-resolution race between test cases. */

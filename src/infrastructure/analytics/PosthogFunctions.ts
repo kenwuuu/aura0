@@ -527,3 +527,139 @@ export function trackImportPartialFailure(props: {
     total_failed: props.failedEntryCount,
   });
 }
+
+// ONBOARDING TOUR
+
+/**
+ * Every tour event carries `variant` (the `onboarding-tour-step-order` arm) and
+ * `layout`, because the tour's whole reason for existing is an A/B on step order
+ * and the copy differs by input modality. A funnel that can't split on those two
+ * can't answer the question the tour was built to ask.
+ */
+type TourEventContext = {
+  variant: string;
+  layout: 'phone' | 'desktop';
+  stepId: string;
+  stepIndex: number;
+};
+
+function tourProperties(ctx: TourEventContext): Record<string, unknown> {
+  return {
+    variant: ctx.variant,
+    layout: ctx.layout,
+    step_id: ctx.stepId,
+    step_index: ctx.stepIndex,
+  };
+}
+
+/**
+ * The tour a player is currently in, if any. Same reasoning as `inFlightImport`
+ * above: a first-run tour that a user walks away from mid-step would otherwise
+ * emit `tour_started` with no terminal event, and the funnel's denominator would
+ * quietly stop meaning anything. Most first-time visitors arrive from Instagram
+ * and a good number of them will close the tab — abandonment is the *expected*
+ * outcome here, not an edge case, so it has to be counted.
+ */
+type InFlightTour = {
+  startedAt: number;
+  variant: string;
+  layout: 'phone' | 'desktop';
+  stepId: string;
+  stepIndex: number;
+  stepsCompleted: number;
+};
+
+let inFlightTour: InFlightTour | null = null;
+let tourAbandonListenerInstalled = false;
+
+function installTourAbandonListener(): void {
+  if (tourAbandonListenerInstalled || typeof window === 'undefined') {
+    return;
+  }
+  tourAbandonListenerInstalled = true;
+
+  // `pagehide` + `sendBeacon` for the same reason as the deck-import listener:
+  // it is the only pair that survives an unload on mobile Safari, which is most
+  // of this audience.
+  window.addEventListener('pagehide', () => {
+    const pending = inFlightTour;
+    if (!pending) {
+      return;
+    }
+    inFlightTour = null;
+
+    posthog.capture(
+      'tour_abandoned',
+      {
+        ...tourProperties(pending),
+        elapsed_ms: Date.now() - pending.startedAt,
+        steps_completed: pending.stepsCompleted,
+      },
+      { transport: 'sendBeacon' },
+    );
+  });
+}
+
+export function trackTourStarted(ctx: TourEventContext): void {
+  inFlightTour = {
+    startedAt: Date.now(),
+    variant: ctx.variant,
+    layout: ctx.layout,
+    stepId: ctx.stepId,
+    stepIndex: ctx.stepIndex,
+    stepsCompleted: 0,
+  };
+  installTourAbandonListener();
+
+  posthog.capture('tour_started', tourProperties(ctx));
+}
+
+/** Fired when a step becomes the active one — the funnel's per-step denominator. */
+export function trackTourStepViewed(ctx: TourEventContext): void {
+  if (inFlightTour) {
+    inFlightTour.stepId = ctx.stepId;
+    inFlightTour.stepIndex = ctx.stepIndex;
+  }
+
+  posthog.capture('tour_step_viewed', tourProperties(ctx));
+}
+
+/**
+ * Fired when the player actually performs the step's action (or presses the
+ * button on an informational step). `dwell_ms` is how long the step took, which
+ * is the signal that tells you whether a step is confusing or merely last.
+ */
+export function trackTourStepCompleted(ctx: TourEventContext & { dwellMs: number }): void {
+  if (inFlightTour) {
+    inFlightTour.stepsCompleted += 1;
+  }
+
+  posthog.capture('tour_step_completed', {
+    ...tourProperties(ctx),
+    dwell_ms: ctx.dwellMs,
+  });
+}
+
+export function trackTourCompleted(ctx: Omit<TourEventContext, 'stepId' | 'stepIndex'> & { stepCount: number }): void {
+  const elapsedMs = inFlightTour ? Date.now() - inFlightTour.startedAt : 0;
+  inFlightTour = null;
+
+  posthog.capture('tour_completed', {
+    variant: ctx.variant,
+    layout: ctx.layout,
+    step_count: ctx.stepCount,
+    elapsed_ms: elapsedMs,
+  });
+}
+
+/** Terminal, like `tour_completed` — the two together close the funnel. */
+export function trackTourSkipped(ctx: TourEventContext): void {
+  const pending = inFlightTour;
+  inFlightTour = null;
+
+  posthog.capture('tour_skipped', {
+    ...tourProperties(ctx),
+    elapsed_ms: pending ? Date.now() - pending.startedAt : 0,
+    steps_completed: pending?.stepsCompleted ?? 0,
+  });
+}

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import posthog from 'posthog-js';
 import { useGameInstance } from '@/app/stores/gameInstanceStore';
+import { useTourStore } from '@/features/onboarding';
 
 const CopyIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" style={{ verticalAlign: 'middle' }}>
@@ -22,6 +23,9 @@ export const RoomLinkButton: React.FC = () => {
     e.preventDefault();
     navigator.clipboard.writeText(window.location.href).then(() => {
       if (roomManager) posthog.capture('room_link_copied', { room: roomManager.getRoomName() });
+      // The tour's `invite` step is the one whose completion leaves no trace in
+      // Yjs, so it has to be told. No-ops when no tour is running.
+      useTourStore.getState().noteRoomLinkCopied();
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     });
