@@ -11,7 +11,7 @@ Edit `TOUR_STEPS` in `tourSteps.ts`. Copy is per-layout; the verbs genuinely dif
 ```ts
 play: {
   id: 'play',
-  placement: 'aboveHand',   // 'aboveHand' (bubble sits over the hand, with a tail) | 'top'
+  placement: 'aboveHand',   // 'aboveHand' | 'belowAnchor' (needs `anchor`) | 'top'
   copy: {
     desktop: '**Play a card.** Drag one up onto the board.',
     phone: '**Play a card.** Long press, then drag it up onto the board.',
@@ -20,9 +20,18 @@ play: {
 }
 ```
 
-`**bold**` is the only markup. The bubble follows the action: `play` happens in the hand, so
-it sits above the hand; everything else happens on the board or the toolbar, so it gets out
-of the way at the top.
+`**bold**` is the only markup.
+
+The shipping tour is four steps: **play, tap, draw, invite**. The three hand/board steps all
+park the bubble in the same place, above the hand — moving it between them made the tour feel
+like it was chasing the player around, so only the words change. `invite` is the one step
+about a *specific control*, so it's the only one that leaves: it drops under the room-link
+button (`belowAnchor` + `anchor`) with the tail pointing up at it, and `halo: true` rings the
+button. A halo on a hand card only competed with the card art, which is why the hand steps
+point with the tail instead.
+
+The bubble is clamped inside the viewport, so the tail slides along its edge
+(`--tour-tail-left`) to keep pointing at an anchor that sits off toward a corner.
 
 ## Add a step
 
@@ -31,7 +40,9 @@ of the way at the top.
 3. Add a predicate to `COMPLETION` in `tourProgress.ts` — or `() => false` if it's
    informational and advances on its button.
 4. **Add it to every order in `STEP_ORDERS`.** An order that omits it silently drops the
-   step for that arm, and the experiment stops comparing like with like.
+   step for that arm, and the experiment stops comparing like with like. (`history` is absent
+   from *all* of them — that's what "disabled" means, and it's the one legitimate way for a
+   step to be missing. Put its id back into the orders to re-enable it.)
 
 ## Run an A/B
 
@@ -80,10 +91,14 @@ denominator, not a render count.
 
 ## Position
 
-`useHandTop` measures the hand with a `ResizeObserver`. The hand is `position: fixed` against
-the bottom edge, so its top only moves when its height does (zoom, rotation, resize) — unlike
-a react-flow node, it does not move when the board pans, which is why this replaced an
-earlier per-frame rAF loop that was paying for nothing.
+`useElementRect` measures anchors with a `ResizeObserver`. Everything the tour points at — the
+hand, the toolbar's room-link button — is `position: fixed` against a screen edge, so it moves
+only when it *resizes* (zoom, rotation, window resize). A react-flow node would need per-frame
+measurement, because the board's CSS transform moves it without firing anything; nothing the
+tour points at lives in there, which is why an earlier rAF loop was paying for nothing.
+
+Anchor the hand steps to the hand *cards*, not their container — the container carries ~20px
+of padding above them, and anchoring to it left the tail pointing at empty space.
 
 ## Tests
 

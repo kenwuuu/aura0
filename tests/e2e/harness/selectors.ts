@@ -26,6 +26,7 @@ export const TESTID = {
   peerCursor: 'peer-cursor',
   tourOverlay: 'tour-overlay',
   tourBubble: 'tour-bubble',
+  tourHalo: 'tour-halo',
   tourSkip: 'tour-skip',
   tourNext: 'tour-next',
   tourBack: 'tour-back',

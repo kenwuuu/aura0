@@ -69,9 +69,8 @@ const COMPLETION: Record<TourStepId, (s: TourSnapshot) => boolean> = {
   // Copying the link is the honest signal we control; a peer actually arriving
   // is even better, and skips the step for anyone who shared the URL some other way.
   invite: (s) => s.roomLinkCopied || s.playerCount > 1,
-  // Informational — nothing to observe, so they wait on their button.
+  // Informational — nothing to observe, so it waits on its button.
   history: () => false,
-  'learn-more': () => false,
 };
 
 export function isStepComplete(id: TourStepId, snapshot: TourSnapshot): boolean {

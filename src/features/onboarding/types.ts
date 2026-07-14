@@ -1,16 +1,16 @@
 import type { WhiteboardCard } from '@/features/battlefield/types';
 
 /**
- * Steps of the first-run tour. `history` and `learn-more` are informational —
- * they have no game action to wait for and advance on their button instead.
+ * Steps of the first-run tour. Every shipping step waits on a real game action;
+ * `history` is informational (button-advance) and currently disabled.
  */
 export type TourStepId =
   | 'play'
   | 'tap'
   | 'draw'
   | 'invite'
-  | 'history'
-  | 'learn-more';
+  // Defined but currently in no STEP_ORDER — see the note there.
+  | 'history';
 
 /** A/B variant, resolved from the `onboarding-tour-step-order` PostHog flag. */
 export type TourVariant = 'control' | 'draw_first';
@@ -49,15 +49,33 @@ export interface TourSnapshot {
 }
 
 /**
- * Where the coach mark sits. It follows the action: the `play` step asks the
- * player to do something *in their hand*, so the mark sits just above the hand
- * with a tail pointing down at it. Everything else sits out of the way at the top.
+ * Where the coach mark sits. It follows the action:
+ *
+ *  - `aboveHand` — the whole early game happens down at the hand (play, tap,
+ *    draw), so the bubble parks there with a tail pointing down at the cards and
+ *    stays put across those steps rather than hopping around.
+ *  - `belowAnchor` — sits under `anchor` with a tail pointing *up* at it. Used by
+ *    `invite`, which is about one specific button up in the toolbar.
+ *  - `top` — out of the way. Nothing in the shipping orders uses it today.
  */
-export type TourPlacement = 'top' | 'aboveHand';
+export type TourPlacement = 'top' | 'aboveHand' | 'belowAnchor';
 
 export interface TourStep {
   id: TourStepId;
   placement: TourPlacement;
+  /**
+   * CSS selector for the element this step is about. Required by `belowAnchor`,
+   * and the thing `halo` rings. Prefer a `data-testid` the e2e harness already
+   * owns (tests/e2e/harness/selectors.ts) so a step and a test point at the same
+   * element by construction.
+   */
+  anchor?: string;
+  /**
+   * Draw a ring around `anchor`. Reserved for steps about a *specific control* —
+   * a halo on a hand card just competed with the card art for attention, which is
+   * why the hand steps use the bubble's tail instead.
+   */
+  halo?: boolean;
   /** Verbs differ by input: you *click* a card with a mouse, but *long press* it on touch. */
   copy: { desktop: string; phone: string };
   /**

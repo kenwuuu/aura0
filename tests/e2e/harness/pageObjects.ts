@@ -249,6 +249,11 @@ export async function tourPlacement(page: Page): Promise<string | null> {
   return overlay.getAttribute('data-tour-placement');
 }
 
+/** The ring drawn around the control a step is about (only the room-link button). */
+export function tourHalo(page: Page): Locator {
+  return page.getByTestId(TESTID.tourHalo);
+}
+
 export function tourSkipButton(page: Page): Locator {
   return page.getByTestId(TESTID.tourSkip);
 }

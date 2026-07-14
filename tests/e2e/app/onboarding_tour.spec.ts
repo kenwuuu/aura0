@@ -1,5 +1,5 @@
 /**
- * The onboarding tour (issue #74).
+ * The onboarding tour (issue #74). Four steps: play, tap, draw, invite.
  *
  * The load-bearing assertion here is the one about pointer events. The tour's
  * `play` step asks the player to drag a card from the hand to the board — two
@@ -13,6 +13,7 @@
  * "PostHog never answered" path on every run.
  */
 import { test, expect } from '../fixtures';
+import type { Page } from '@playwright/test';
 import {
   boardCards,
   currentTourStep,
@@ -21,9 +22,11 @@ import {
   handCards,
   phoneHudActionLogToggle,
   playHandCardToBoard,
+  roomLinkButton,
   settingsButton,
   tourBackButton,
   tourBubble,
+  tourHalo,
   tourNextButton,
   tourOverlay,
   tourPlacement,
@@ -37,14 +40,37 @@ import {
 test.use({ onboardingTour: true });
 
 /** The tour starts behind the 1.5s feature-flag fallback, so it never races the app. */
-async function waitForTour(page: import('@playwright/test').Page) {
+async function waitForTour(page: Page) {
   await expect(tourOverlay(page)).toBeVisible({ timeout: 5000 });
+}
+
+/** Tap the card on the board: Space while hovering it. There is no click-to-tap. */
+async function tapBoardCard(page: Page, card: ReturnType<typeof boardCards>) {
+  await card.hover();
+  await page.keyboard.press('Space');
+}
+
+/** Walk the control order (play -> tap -> draw) to land on `invite`. */
+async function walkToInvite(page: Page) {
+  const card = await playHandCardToBoard(page);
+  await expect.poll(() => currentTourStep(page), { timeout: 3000 }).toBe('tap');
+
+  await tapBoardCard(page, card);
+  await expect.poll(() => currentTourStep(page), { timeout: 3000 }).toBe('draw');
+
+  await drawCard(page);
+  await expect.poll(() => currentTourStep(page), { timeout: 3000 }).toBe('invite');
+}
+
+function overlaps(a: { x: number; y: number; width: number; height: number }, b: typeof a) {
+  return a.x < b.x + b.width && a.x + a.width > b.x && a.y < b.y + b.height && a.y + a.height > b.y;
 }
 
 test.describe('onboarding tour', () => {
   test('a new player is shown the tour, starting with "play a card"', async ({ page }) => {
     await waitForTour(page);
     expect(await currentTourStep(page)).toBe('play');
+    await expect(tourBubble(page)).toContainText('1 / 4');
   });
 
   test('phone copy names the long-press; desktop copy does not', async ({ page }) => {
@@ -57,39 +83,64 @@ test.describe('onboarding tour', () => {
     await expect(tourBubble(page)).toContainText(/drag one up onto the board/i);
   });
 
-  test('the bubble sits above the hand for the hand step, and up top for the rest', async ({ page }) => {
+  test('the bubble stays parked above the hand across play, tap and draw', async ({ page }) => {
     await page.setViewportSize(PHONE_VIEWPORT);
     await waitForTour(page);
 
-    // `play` is the only step whose action happens in the hand, so it's the only
-    // one that sits down there — below the board, above the cards.
     expect(await tourPlacement(page)).toBe('aboveHand');
     const handTop = (await handCards(page).first().boundingBox())!.y;
-    const bubble = (await tourBubble(page).boundingBox())!;
-    expect(bubble.y + bubble.height).toBeLessThanOrEqual(handTop);
-    expect(bubble.y + bubble.height).toBeGreaterThan(handTop - 60);
+    const atPlay = (await tourBubble(page).boundingBox())!;
+    // Sitting on the cards, not floating clear of them.
+    expect(atPlay.y + atPlay.height).toBeLessThanOrEqual(handTop);
+    expect(atPlay.y + atPlay.height).toBeGreaterThan(handTop - 40);
 
-    await playHandCardToBoard(page);
+    // It must not hop around between the hand steps — only the words change.
+    const card = await playHandCardToBoard(page);
     await expect.poll(() => currentTourStep(page), { timeout: 3000 }).toBe('tap');
+    expect(await tourPlacement(page)).toBe('aboveHand');
 
-    // `tap` happens on the board, so the bubble gets out of the way.
-    expect(await tourPlacement(page)).toBe('top');
-    const topBubble = (await tourBubble(page).boundingBox())!;
-    expect(topBubble.y).toBeLessThan(handTop / 2);
+    await tapBoardCard(page, card);
+    await expect.poll(() => currentTourStep(page), { timeout: 3000 }).toBe('draw');
+    expect(await tourPlacement(page)).toBe('aboveHand');
+  });
+
+  test('no halo on the hand steps — only the invite step rings a control', async ({ page }) => {
+    await waitForTour(page);
+    await expect(tourHalo(page)).toBeHidden();
+
+    await walkToInvite(page);
+    await expect(tourHalo(page)).toBeVisible();
+  });
+
+  test('the invite step drops under the copy-link button and haloes it', async ({ page }) => {
+    await page.setViewportSize(PHONE_VIEWPORT);
+    await waitForTour(page);
+    await walkToInvite(page);
+
+    expect(await tourPlacement(page)).toBe('belowAnchor');
+
+    const link = (await roomLinkButton(page).boundingBox())!;
+    const bubble = (await tourBubble(page).boundingBox())!;
+    const halo = (await tourHalo(page).boundingBox())!;
+
+    // Bubble sits below the button it points at.
+    expect(bubble.y).toBeGreaterThanOrEqual(link.y + link.height);
+    expect(bubble.y).toBeLessThan(link.y + link.height + 30);
+
+    // Halo rings the button rather than something else.
+    expect(halo.x).toBeLessThanOrEqual(link.x);
+    expect(halo.y).toBeLessThanOrEqual(link.y);
+    expect(halo.x + halo.width).toBeGreaterThanOrEqual(link.x + link.width);
+    expect(halo.y + halo.height).toBeGreaterThanOrEqual(link.y + link.height);
   });
 
   test('the bubble clears the board chrome instead of sitting on top of it', async ({ page }) => {
-    const overlaps = (a: { x: number; y: number; width: number; height: number }, b: typeof a) =>
-      a.x < b.x + b.width && a.x + a.width > b.x && a.y < b.y + b.height && a.y + a.height > b.y;
-
     // Phone: the HUD column runs down the left, settings + zoom down the right.
     // A full-width bubble covered both. It's pointer-events:none so they still
     // *worked*, but it looked broken.
     await page.setViewportSize(PHONE_VIEWPORT);
     await waitForTour(page);
-    await playHandCardToBoard(page); // -> `tap`, which is a `top`-placed step
-    await expect.poll(() => currentTourStep(page), { timeout: 3000 }).toBe('tap');
-    expect(await tourPlacement(page)).toBe('top');
+    await walkToInvite(page); // `invite` is the step that rides up near them
 
     const phoneBubble = (await tourBubble(page).boundingBox())!;
     for (const chrome of [phoneHudActionLogToggle(page), settingsButton(page), zoomControls(page)]) {
@@ -99,7 +150,7 @@ test.describe('onboarding tour', () => {
 
     // Desktop: the Game Actions panel sits directly under the toolbar.
     await page.setViewportSize({ width: 1280, height: 800 });
-    await page.waitForTimeout(200);
+    await page.waitForTimeout(300);
     const deskBubble = (await tourBubble(page).boundingBox())!;
     for (const panel of [floatingPanel(page, 'game-actions-toolbar'), floatingPanel(page, 'action-log')]) {
       const box = await panel.boundingBox();
@@ -150,8 +201,7 @@ test.describe('onboarding tour', () => {
     await expect(tourBubble(page)).toContainText(/space/i);
     await expect(tourBubble(page)).toContainText(/right-click/i);
 
-    await card.hover();
-    await page.keyboard.press('Space');
+    await tapBoardCard(page, card);
     await expect.poll(() => currentTourStep(page), { timeout: 3000 }).toBe('draw');
   });
 
@@ -165,10 +215,7 @@ test.describe('onboarding tour', () => {
     const card = await playHandCardToBoard(page);
     await expect.poll(() => currentTourStep(page), { timeout: 3000 }).toBe('tap');
 
-    // Tapping is Space-while-hovering (or the context menu) — there is no
-    // left-click-to-tap, which is exactly what the step's copy now says.
-    await card.hover();
-    await page.keyboard.press('Space');
+    await tapBoardCard(page, card);
     await expect.poll(() => currentTourStep(page), { timeout: 3000 }).toBe('draw');
 
     const handBefore = await handCards(page).count();
@@ -200,6 +247,15 @@ test.describe('onboarding tour', () => {
   test('there is no Back button on the first step', async ({ page }) => {
     await waitForTour(page);
     await expect(tourBackButton(page)).toBeHidden();
+  });
+
+  test('copying the room link finishes the tour', async ({ page }) => {
+    await waitForTour(page);
+    await walkToInvite(page);
+
+    await roomLinkButton(page).click();
+
+    await expect(tourOverlay(page)).toBeHidden();
   });
 
   test('skip dismisses the tour, and it stays gone across a reload', async ({ page }) => {

@@ -183,7 +183,6 @@ describe('isStepComplete', () => {
       const s = snapshot(yDoc, { roomLinkCopied: true, playerCount: 4 });
 
       expect(isStepComplete('history', s)).toBe(false);
-      expect(isStepComplete('learn-more', s)).toBe(false);
     });
   });
 });

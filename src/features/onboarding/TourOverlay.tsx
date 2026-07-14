@@ -1,5 +1,6 @@
 /**
- * The tour's only UI: a speech bubble that sits where the action is.
+ * The tour's only UI: a speech bubble that sits where the action is, and — for
+ * the one step that's about a specific button — a halo around that button.
  *
  * INVARIANT: the overlay never captures pointer events. The `play` step is a drag
  * that starts in the hand and ends on the board — two disjoint regions — so any
@@ -14,31 +15,38 @@
  */
 import React from 'react';
 import { usePhoneLayout } from '@/shared/hooks';
-import { useHandTop } from './useHandTop';
+import { useElementRect, useViewportWidth } from './useElementRect';
 import { useTourStore } from './tourStore';
 
 /** Above the deck-import dialogs (10004), which are the highest thing in the app. */
 const TOUR_Z_INDEX = 10500;
 
-/** Gap between the bubble's tail and the top of the hand cards. */
+/** Gap between the bubble's tail and whatever it points at. */
 const TAIL_GAP = 14;
 
+/** Breathing room between the halo and the control it rings. */
+const HALO_PADDING = 6;
+
+const MAX_WIDTH = 448; // 28rem
+
 /**
- * How far down a `top`-placed bubble sits. It has to clear the board chrome that
- * lives along the top edge, which differs by layout:
- *
- *  - phone: the toolbar (55px). The HUD column (left) and the settings/zoom
- *    column (right) are cleared *horizontally* instead — see the width below —
- *    because they run down the sides and no vertical offset escapes them.
- *  - desktop: the Game Actions panel, which sits directly under the toolbar and
- *    ends around y=120.
- *
- * Both are pinned by onboarding_tour.spec.ts ("clears the board chrome"), so a
- * layout change that invalidates them fails a test rather than shipping a bubble
- * sitting on top of the controls.
+ * Kept clear on each side. On a 390px phone this leaves the bubble at x 52–338,
+ * which clears the two control columns running down the edges of the board — the
+ * HUD ends at x≈42, and settings/zoom start at x≈348. Pinned by
+ * onboarding_tour.spec.ts ("clears the board chrome").
  */
-const TOP_OFFSET_PHONE = 72;
-const TOP_OFFSET_DESKTOP = 132;
+const SIDE_MARGIN = 52;
+
+/** Only used by `top`-placed steps, none of which currently ship. */
+const TOP_OFFSET = 132;
+
+/** The hand *cards*, not their container — the container carries ~20px of padding
+ * above them, and anchoring to it left the tail pointing at empty space. */
+const HAND_CARDS = '[data-pile-type="hand"] [data-testid="hand-card"]';
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(Math.max(value, min), Math.max(min, max));
+}
 
 /** Renders `**bold**` segments. The copy is one short line — not worth a markdown parser. */
 function Copy({ text }: { text: string }) {
@@ -57,6 +65,8 @@ function Copy({ text }: { text: string }) {
 
 export function TourOverlay() {
   const isPhone = usePhoneLayout();
+  const viewportWidth = useViewportWidth();
+
   const active = useTourStore((s) => s.active);
   const steps = useTourStore((s) => s.steps);
   const stepIndex = useTourStore((s) => s.stepIndex);
@@ -66,20 +76,42 @@ export function TourOverlay() {
   const skip = useTourStore((s) => s.skip);
 
   const step = active ? steps[stepIndex] : undefined;
-  const handTop = useHandTop(active && step?.placement === 'aboveHand');
+
+  // Hooks can't be conditional, so these run even with no step — `active` gates them.
+  const handRect = useElementRect(HAND_CARDS, active && step?.placement === 'aboveHand');
+  const anchorRect = useElementRect(
+    step?.anchor ?? null,
+    active && !!step?.anchor && (step.placement === 'belowAnchor' || !!step.halo),
+  );
 
   if (!step) return null;
 
-  // Falls back to the top if the hand isn't there to point at.
-  const aboveHand = step.placement === 'aboveHand' && handTop !== null;
+  const width = Math.min(MAX_WIDTH, viewportWidth - SIDE_MARGIN * 2);
+  const centeredLeft = (viewportWidth - width) / 2;
 
-  const position: React.CSSProperties = aboveHand
-    ? { bottom: `calc(100vh - ${handTop! - TAIL_GAP}px)` }
-    : {
-        top: `calc(env(safe-area-inset-top, 0px) + ${
-          isPhone ? TOP_OFFSET_PHONE : TOP_OFFSET_DESKTOP
-        }px)`,
-      };
+  // Each placement degrades to a centered bubble with no tail if the thing it
+  // wants to point at isn't on screen.
+  let position: React.CSSProperties;
+  let tail: 'up' | 'down' | null = null;
+  let tailLeft = width / 2;
+  let placement: string = step.placement;
+
+  if (step.placement === 'aboveHand' && handRect) {
+    position = { left: centeredLeft, bottom: `calc(100vh - ${handRect.top - TAIL_GAP}px)` };
+    tail = 'down';
+  } else if (step.placement === 'belowAnchor' && anchorRect) {
+    const anchorCenter = anchorRect.left + anchorRect.width / 2;
+    const left = clamp(anchorCenter - width / 2, SIDE_MARGIN, viewportWidth - width - SIDE_MARGIN);
+    position = { left, top: anchorRect.bottom + TAIL_GAP };
+    tail = 'up';
+    // The bubble gets clamped inside the screen, but the tail still has to point
+    // at the button — so it slides along the bubble's edge instead of sitting in
+    // the middle of it. Kept off the rounded corners.
+    tailLeft = clamp(anchorCenter - left, 16, width - 16);
+  } else {
+    position = { left: centeredLeft, top: `calc(env(safe-area-inset-top, 0px) + ${TOP_OFFSET}px)` };
+    placement = 'top';
+  }
 
   // Reviewing a step already passed: the game must not auto-advance us out of it
   // again, so paging forward is the player's job. (An informational step always
@@ -92,11 +124,28 @@ export function TourOverlay() {
     <div
       data-testid="tour-overlay"
       data-tour-step={step.id}
-      data-tour-placement={aboveHand ? 'aboveHand' : 'top'}
+      data-tour-placement={placement}
       // The invariant. Do not change this to `auto` — onboarding_tour.spec.ts
       // ("does not block the hand-to-board drag") fails immediately if you do.
       style={{ position: 'fixed', inset: 0, zIndex: TOUR_Z_INDEX, pointerEvents: 'none' }}
     >
+      {step.halo && anchorRect && (
+        <div
+          aria-hidden
+          data-testid="tour-halo"
+          className="tour-halo"
+          style={{
+            position: 'fixed',
+            left: anchorRect.left - HALO_PADDING,
+            top: anchorRect.top - HALO_PADDING,
+            width: anchorRect.width + HALO_PADDING * 2,
+            height: anchorRect.height + HALO_PADDING * 2,
+            borderRadius: 10,
+            pointerEvents: 'none',
+          }}
+        />
+      )}
+
       <div
         // A status message, not a dialog: it is non-modal, traps no focus, and
         // makes nothing else inert. Calling it a dialog would also make it a
@@ -105,12 +154,15 @@ export function TourOverlay() {
         aria-live="polite"
         aria-label="Onboarding tip"
         data-testid="tour-bubble"
-        // `100vw - 6.5rem` keeps the bubble inside the two control columns that
-        // run down the sides of the board on phone (HUD ends at x≈42, settings
-        // and zoom start at x≈348 on a 390px screen). On desktop the 28rem cap
-        // wins and the subtraction never bites.
-        className={`tour-bubble ${aboveHand ? 'tour-bubble--above-hand' : ''} fixed left-1/2 -translate-x-1/2 w-[min(28rem,calc(100vw-6.5rem))] rounded-xl border border-white/15 bg-neutral-900/95 px-4 py-3 text-sm text-neutral-300 shadow-2xl backdrop-blur`}
-        style={{ ...position, pointerEvents: 'none' }}
+        className={`tour-bubble ${tail ? `tour-bubble--tail-${tail}` : ''} fixed rounded-xl border border-white/15 bg-neutral-900/95 px-4 py-3 text-sm text-neutral-300 shadow-2xl backdrop-blur`}
+        style={
+          {
+            ...position,
+            width,
+            pointerEvents: 'none',
+            '--tour-tail-left': `${tailLeft}px`,
+          } as React.CSSProperties
+        }
       >
         <p className="leading-snug">
           <Copy text={isPhone ? step.copy.phone : step.copy.desktop} />
