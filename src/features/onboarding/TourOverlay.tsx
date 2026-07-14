@@ -20,8 +20,25 @@ import { useTourStore } from './tourStore';
 /** Above the deck-import dialogs (10004), which are the highest thing in the app. */
 const TOUR_Z_INDEX = 10500;
 
-/** Gap between the bubble's tail and the top of the hand. */
+/** Gap between the bubble's tail and the top of the hand cards. */
 const TAIL_GAP = 14;
+
+/**
+ * How far down a `top`-placed bubble sits. It has to clear the board chrome that
+ * lives along the top edge, which differs by layout:
+ *
+ *  - phone: the toolbar (55px). The HUD column (left) and the settings/zoom
+ *    column (right) are cleared *horizontally* instead — see the width below —
+ *    because they run down the sides and no vertical offset escapes them.
+ *  - desktop: the Game Actions panel, which sits directly under the toolbar and
+ *    ends around y=120.
+ *
+ * Both are pinned by onboarding_tour.spec.ts ("clears the board chrome"), so a
+ * layout change that invalidates them fails a test rather than shipping a bubble
+ * sitting on top of the controls.
+ */
+const TOP_OFFSET_PHONE = 72;
+const TOP_OFFSET_DESKTOP = 132;
 
 /** Renders `**bold**` segments. The copy is one short line — not worth a markdown parser. */
 function Copy({ text }: { text: string }) {
@@ -58,7 +75,11 @@ export function TourOverlay() {
 
   const position: React.CSSProperties = aboveHand
     ? { bottom: `calc(100vh - ${handTop! - TAIL_GAP}px)` }
-    : { top: 'calc(env(safe-area-inset-top, 0px) + 4.5rem)' };
+    : {
+        top: `calc(env(safe-area-inset-top, 0px) + ${
+          isPhone ? TOP_OFFSET_PHONE : TOP_OFFSET_DESKTOP
+        }px)`,
+      };
 
   // Reviewing a step already passed: the game must not auto-advance us out of it
   // again, so paging forward is the player's job. (An informational step always
@@ -84,7 +105,11 @@ export function TourOverlay() {
         aria-live="polite"
         aria-label="Onboarding tip"
         data-testid="tour-bubble"
-        className={`tour-bubble ${aboveHand ? 'tour-bubble--above-hand' : ''} fixed left-1/2 -translate-x-1/2 w-[min(28rem,calc(100vw-2rem))] rounded-xl border border-white/15 bg-neutral-900/95 px-4 py-3 text-sm text-neutral-300 shadow-2xl backdrop-blur`}
+        // `100vw - 6.5rem` keeps the bubble inside the two control columns that
+        // run down the sides of the board on phone (HUD ends at x≈42, settings
+        // and zoom start at x≈348 on a 390px screen). On desktop the 28rem cap
+        // wins and the subtraction never bites.
+        className={`tour-bubble ${aboveHand ? 'tour-bubble--above-hand' : ''} fixed left-1/2 -translate-x-1/2 w-[min(28rem,calc(100vw-6.5rem))] rounded-xl border border-white/15 bg-neutral-900/95 px-4 py-3 text-sm text-neutral-300 shadow-2xl backdrop-blur`}
         style={{ ...position, pointerEvents: 'none' }}
       >
         <p className="leading-snug">

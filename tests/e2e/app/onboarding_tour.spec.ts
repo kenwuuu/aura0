@@ -17,14 +17,18 @@ import {
   boardCards,
   currentTourStep,
   drawCard,
+  floatingPanel,
   handCards,
+  phoneHudActionLogToggle,
   playHandCardToBoard,
+  settingsButton,
   tourBackButton,
   tourBubble,
   tourNextButton,
   tourOverlay,
   tourPlacement,
   tourSkipButton,
+  zoomControls,
   PHONE_VIEWPORT,
 } from '../harness';
 
@@ -72,6 +76,35 @@ test.describe('onboarding tour', () => {
     expect(await tourPlacement(page)).toBe('top');
     const topBubble = (await tourBubble(page).boundingBox())!;
     expect(topBubble.y).toBeLessThan(handTop / 2);
+  });
+
+  test('the bubble clears the board chrome instead of sitting on top of it', async ({ page }) => {
+    const overlaps = (a: { x: number; y: number; width: number; height: number }, b: typeof a) =>
+      a.x < b.x + b.width && a.x + a.width > b.x && a.y < b.y + b.height && a.y + a.height > b.y;
+
+    // Phone: the HUD column runs down the left, settings + zoom down the right.
+    // A full-width bubble covered both. It's pointer-events:none so they still
+    // *worked*, but it looked broken.
+    await page.setViewportSize(PHONE_VIEWPORT);
+    await waitForTour(page);
+    await playHandCardToBoard(page); // -> `tap`, which is a `top`-placed step
+    await expect.poll(() => currentTourStep(page), { timeout: 3000 }).toBe('tap');
+    expect(await tourPlacement(page)).toBe('top');
+
+    const phoneBubble = (await tourBubble(page).boundingBox())!;
+    for (const chrome of [phoneHudActionLogToggle(page), settingsButton(page), zoomControls(page)]) {
+      const box = await chrome.boundingBox();
+      if (box) expect(overlaps(phoneBubble, box)).toBe(false);
+    }
+
+    // Desktop: the Game Actions panel sits directly under the toolbar.
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await page.waitForTimeout(200);
+    const deskBubble = (await tourBubble(page).boundingBox())!;
+    for (const panel of [floatingPanel(page, 'game-actions-toolbar'), floatingPanel(page, 'action-log')]) {
+      const box = await panel.boundingBox();
+      if (box) expect(overlaps(deskBubble, box)).toBe(false);
+    }
   });
 
   test('the overlay does not block the hand-to-board drag, and the drag advances the step', async ({ page }) => {

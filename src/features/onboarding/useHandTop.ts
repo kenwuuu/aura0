@@ -29,7 +29,15 @@ export function useHandTop(active: boolean): number | null {
       return;
     }
 
-    const measure = () => setTop(hand.getBoundingClientRect().top);
+    // The *cards*, not the container: the container carries ~20px of padding
+    // above them, and anchoring to it left the bubble visibly floating clear of
+    // the cards it was pointing at. Every card shares a top edge, so the first
+    // one in the DOM is fine even when the hand is scrolled sideways. Falls back
+    // to the container before any cards exist.
+    const measure = () => {
+      const card = hand.querySelector('[data-testid="hand-card"]');
+      setTop((card ?? hand).getBoundingClientRect().top);
+    };
     measure();
 
     const observer = new ResizeObserver(measure);

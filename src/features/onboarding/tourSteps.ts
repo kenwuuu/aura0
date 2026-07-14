@@ -24,7 +24,7 @@ export const TOUR_STEPS: Record<TourStepId, TourStep> = {
     // hoverTarget) or the card's context menu. A board card is `menuFirst`, so on
     // touch a single tap opens that menu straight away — no preview first.
     copy: {
-      desktop: '**Tap it.** Hover card and press Space, or right-click it and pick Tap.',
+      desktop: '**Tap it.** Right-click it, or hover it and press Space.',
       phone: '**Tap it.** Tap the card you just played, then pick Tap.',
     },
     advance: 'action',
@@ -63,8 +63,8 @@ export const TOUR_STEPS: Record<TourStepId, TourStep> = {
     id: 'learn-more',
     placement: 'top',
     copy: {
-      desktop: "That's it — you know how to play. Import your own deck whenever you're ready.",
-      phone: "That's it — you know how to play. Import your own deck whenever you're ready.",
+      desktop: "Invite a friend. Copy your link and see how fast this site is. Go on, it works on mobile too.",
+      phone: "Invite a friend. Copy your link and see how fast this site is. Go on, it works on mobile.",
     },
     advance: 'button',
   },
