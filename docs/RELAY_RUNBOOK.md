@@ -16,10 +16,40 @@ curl -s https://digitalocean-ws-ipv4.aura0.app/health
 |---|---|
 | `{"status":"ok","rooms":N}` | ✅ our relay, room eviction on |
 | `okay` (plain text) | 🚨 the **stock binary** is running — the memory leak is live |
-| nothing / 502 | 🚨 relay down; players are on WebRTC fallback or stuck |
+| nothing / 502 | 🚨 relay down — see [Relay is down](#relay-is-down) |
 
 `rooms` is `docs.size` — the live room count. It should **fall as rooms empty**. If it only
 ever climbs, eviction has regressed and you are leaking again.
+
+**There is no automatic failover.** WebSocket is the default transport, it's chosen **once at
+bootstrap**, and nothing switches a player to WebRTC when the relay dies — the manual toggle
+only renders if the `network-transport-manual-override` PostHog flag is on for that user. So a
+dead relay means players are **stuck**, not degraded. Treat it as a full outage.
+
+*How you find out before a player tells you:* the `sync_outcome` / `connection_outcome` PostHog
+signals and the DigitalOcean memory alerts — see
+[`DEPLOYMENT_RUNBOOK.md`](DEPLOYMENT_RUNBOOK.md#reading-the-health-metrics).
+
+## Relay is down
+
+```bash
+P=/root/aura/node_modules/pm2/bin/pm2
+$P list                                             # is y-websocket-<port> even there?
+tail -50 /root/.pm2/logs/y-websocket-<port>-error.log
+$P restart y-websocket-<port>                       # or `stage` a fresh one on the idle port
+```
+
+Two crash signatures are worth recognising on sight:
+
+- **`FATAL ERROR: Reached heap limit Allocation failed`** — the memory leak. V8's own heap cap
+  (~490 MB on this box) aborts the process and pm2 restarts it, dropping every connected player.
+  If you see this, **the stock binary is running** — check `/health` and redeploy ours.
+- **Restart count climbing with empty logs** — the process boots, binds nothing, and exits
+  silently. That's the `import.meta.url === argv[1]` main-module guard, which is *always false*
+  under pm2's fork mode. `listen()` must stay in `main.js`, which nothing imports.
+
+If you start a relay by hand, **`$P save`** or it won't come back on reboot (`deploy.sh` does
+this for you).
 
 ## The relay is deployed blue-green
 
@@ -60,6 +90,10 @@ A port's `/health` also tells you *which binary* is on it — JSON is ours, plai
 stock leaking binary, and `(unreachable)` means nothing is running there.
 
 ### Deploying a change
+
+⚠️ **There is one relay, and staging and production both point at it** — a relay deploy hits
+every environment at once. That is why the 2026-07-13 outage took staging down too, and why
+step 3 below is not optional.
 
 There are no git credentials on the droplet, so ship the code in:
 
@@ -146,6 +180,16 @@ admin API on `:2019` dies. Traffic keeps serving throughout, so it's easy to mis
 journalctl -u caddy | grep "grace period"
 # want: "servers shutting down; grace period initiated","duration":10
 # bad:  "servers shutting down with eternal grace period"
+```
+
+**Always `caddy validate` before restarting Caddy.** It parses the file *while the running Caddy
+is still serving*, so a syntax error costs nothing — and a Caddyfile Caddy refuses means Caddy
+won't come back at all, which takes the **card-search API down with it** (deck imports), not just
+the relay.
+
+```bash
+caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile   # then, only if valid:
+systemctl restart caddy
 ```
 
 **A reload cannot fix a wedged reload.** If Caddy is stuck in `reloading`, only
