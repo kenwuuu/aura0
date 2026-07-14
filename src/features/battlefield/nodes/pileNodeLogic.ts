@@ -2,7 +2,7 @@
  * Pure viewer-routing logic for a battlefield pile — no React, no Zustand.
  *
  * Extracted from `PileNode` so the durable rule (which pile-viewer a click
- * should open, and when an opponent's hand is gated) is unit-testable in
+ * should open, and when an opponent's pile is gated) is unit-testable in
  * isolation and survives the design-system rewrite of the node's markup.
  */
 
@@ -17,16 +17,27 @@ export interface PileNodeState {
   allowViewHand: boolean;
 }
 
-/** An opponent's hand pile is view-gated unless they've allowed it. */
-export function isHandViewDisabled(
+/**
+ * Piles whose contents belong to their owner alone. Opponents see the count —
+ * that much is public in paper Magic — but can never open them.
+ *
+ * The hand is the softer case: its owner can opt in and share it
+ * (`allowViewHand`). The sideboard has no such opt-in, because there is no point
+ * in a game where a sideboard is revealed.
+ */
+const PRIVATE_PILES = new Set<PileType>(['hand', 'sideboard']);
+
+/** An opponent's private pile is gated — the hand unless they've allowed it, the sideboard always. */
+export function isPileViewDisabled(
   state: Pick<PileNodeState, 'isLocal' | 'pileKind' | 'allowViewHand'>,
 ): boolean {
-  return state.pileKind === 'hand' && !state.isLocal && !state.allowViewHand;
+  if (state.isLocal || !PRIVATE_PILES.has(state.pileKind)) return false;
+  return state.pileKind === 'sideboard' || !state.allowViewHand;
 }
 
 /** Which pile-viewer open request (if any) a click on this pile should fire. */
 export function resolvePileOpenRequest(state: PileNodeState): OpenPileRequest | null {
-  if (isHandViewDisabled(state)) return null;
+  if (isPileViewDisabled(state)) return null;
 
   if (state.isLocal) {
     if (state.pileKind === 'hand') return null;

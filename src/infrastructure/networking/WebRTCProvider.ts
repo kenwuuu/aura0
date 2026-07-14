@@ -46,6 +46,7 @@
 import * as Y from 'yjs';
 import { WebrtcProvider, Room } from 'y-webrtc';
 import { IndexeddbPersistence } from 'y-indexeddb';
+import { createRoomPersistence, keepRoomAlive } from './roomDocStorage';
 import { WebRTCConfig } from './types';
 import { restoreAwarenessState, setupAwarenessStatePersistence, AwarenessState } from './persistence';
 import {NetworkStatusEvent, YjsNetworkProvider} from "@/infrastructure/networking/YjsNetworkFactory";
@@ -93,6 +94,7 @@ export class WebRTCProvider implements YjsNetworkProvider{
   private yDoc: Y.Doc;
   private provider: WebrtcProvider;
   private persistence: IndexeddbPersistence;
+  private stopRoomHeartbeat: () => void;
   private config: WebRTCConfig;
   private cleanupAwarenessPersistence?: () => void;
   private monitor: ConnectionMonitor;
@@ -148,8 +150,10 @@ export class WebRTCProvider implements YjsNetworkProvider{
     };
 
     // Set up IndexedDB persistence for the Y.Doc
-    // This persists the document state locally so it survives page reloads
-    this.persistence = new IndexeddbPersistence(this.config.roomName, this.yDoc);
+    // This persists the document state locally so it survives page reloads, and registers the
+    // room so the collector in roomDocStorage.ts knows it's alive rather than abandoned.
+    this.persistence = createRoomPersistence(this.config.roomName, this.yDoc);
+    this.stopRoomHeartbeat = keepRoomAlive(this.config.roomName);
 
     this.provider = new WebrtcProvider(this.config.roomName, this.yDoc, {
       signaling: this.config.signalingServers,
@@ -299,6 +303,7 @@ export class WebRTCProvider implements YjsNetworkProvider{
     this.syncPeersCleanup?.();
     this.syncMonitor.destroy();
 
+    this.stopRoomHeartbeat();
     this.provider.destroy();
     this.persistence.destroy();
   }

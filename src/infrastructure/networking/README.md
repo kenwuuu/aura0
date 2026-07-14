@@ -207,14 +207,43 @@ When you reload the page:
 This provides an **offline-first experience** where the app works even with no internet, and syncs when reconnected.
 
 **Storage location:**
-- Browser: IndexedDB database `yjs`
-- Table: `yjs-<roomName>`
+
+`y-indexeddb` names its database after the room, verbatim — there is **one IndexedDB database per
+room**, not one shared `yjs` database with a table per room:
+
+- Room `mtg-a1b2c3d` → IndexedDB database `mtg-a1b2c3d`
+
+Room docs are opened through `createRoomPersistence()` (`roomDocStorage.ts`) rather than by
+constructing `IndexeddbPersistence` directly, so that opening a room also registers it as alive.
+
+**Garbage collection:**
+
+Because room ids are minted fresh per game, an uncollected database would be left behind by every
+game a player ever opens. `purgeExpiredRoomDocs()` runs at boot and deletes room docs not opened in
+`ROOM_DOC_MAX_AGE_MS` (30 days).
+
+It is deliberately conservative, because **the relay keeps no durable copy of a room** (it installs a
+no-op persistence and forgets a room once the last client leaves — see `networking/websocket/`). The
+client's IndexedDB copy *is* the game, so collecting one is data loss, not cache eviction:
+
+- The room being played is never collected, however stale its stamp.
+- An unrecognized database is *adopted* (stamped with now), never deleted on sight — so shipping the
+  collector can't destroy rooms that predate it.
+- Only names **in the registry** are ever deleted, and only room-shaped names are ever adopted. This
+  is what keeps `aura-decks` — every deck the player has ever saved — off the chopping block.
+
+Adoption depends on `indexedDB.databases()`, which **Firefox does not implement**. There, adoption
+silently finds nothing and pre-existing orphans are never collected. That is the intended trade, not
+an oversight: under-adopting leaks a database, over-adopting deletes somebody's game. We under-adopt.
+Rooms still register themselves as they're opened, so the leak does not grow going forward.
 
 **To clear local state:**
 ```typescript
 import { clearPersistedSession } from './persistence';
+import { clearDocument } from 'y-indexeddb';
+
 clearPersistedSession();
-indexedDB.deleteDatabase('yjs'); // Clear Y.Doc
+clearDocument(roomName); // Clear one room's Y.Doc — the database IS the room name
 ```
 
 ## Session Persistence
@@ -311,7 +340,9 @@ const provider = new WebRTCProvider(yDoc, {
 ```javascript
 // In browser console, check IndexedDB
 indexedDB.databases().then(dbs => console.log(dbs));
-// Should see: [{ name: 'yjs', version: 1 }]
+// Should see one database per room you've opened, named after the room itself:
+//   [{ name: 'mtg-a1b2c3d', version: 1 }, { name: 'aura-decks', version: 1 }, ...]
+// (Firefox does not implement indexedDB.databases(); use the Storage inspector there.)
 ```
 
 ### Peer ID changes on every reload

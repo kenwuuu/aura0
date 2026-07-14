@@ -4,6 +4,12 @@ export const CARD_WIDTH = 63;
 // RoomManager
 export const ROOM_PREFIX = 'mtg-';
 
+// How long a room's local IndexedDB doc survives without being opened before it's collected
+// (see infrastructure/networking/roomDocStorage.ts). The relay keeps no durable copy of a
+// room, so this deletion is the game itself, not a cache — hence a deliberately generous TTL.
+// A room nobody has opened in a month is abandoned; the cost of being wrong is someone's game.
+export const ROOM_DOC_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
+
 // Default card back image (will be added to /public/assets/)
 export const DEFAULT_CARD_BACK = '/assets/card-back.png';
 
@@ -20,6 +26,9 @@ export const YSTATE_DECK_CARD_COUNT = 'deck-card-count';
 export const YSTATE_CUSTOM_COUNTERS = 'custom-counters';
 export const YSTATE_CAN_VIEW_HAND = 'allowViewHand';
 export const YSTATE_SCRY = 'scry';
+// Cards imported from a sideboard/maybeboard section. Private to their owner —
+// opponents may see the count but never the contents (see PileNode).
+export const YSTATE_SIDEBOARD = 'sideboard';
 // 0=hidden, -1=all cards revealed, N>0=top N cards revealed (deck pile-viewer scry/surveil state)
 export const YSTATE_DECK_REVEAL_COUNT = 'deckRevealCount';
 // Player-chosen display name. Synced via Yjs so other peers see it. Distinct from the

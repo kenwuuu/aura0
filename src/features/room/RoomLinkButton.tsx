@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import posthog from 'posthog-js';
 import { useGameInstance } from '@/app/stores/gameInstanceStore';
+import { useTourStore } from '@/features/onboarding';
+import { noteRoomLinkCopied } from './inviteConversion';
 
 const CopyIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" style={{ verticalAlign: 'middle' }}>
@@ -14,14 +16,59 @@ const CheckIcon = () => (
   </svg>
 );
 
+/**
+ * Copy `text`, falling back to the legacy path on insecure origins.
+ *
+ * `navigator.clipboard` is gated behind a secure context, so it is simply
+ * *undefined* over plain http — which is exactly how the app gets opened on a
+ * real phone during development (`vite --host`, then the machine's LAN IP). The
+ * unguarded `navigator.clipboard.writeText(...)` threw a TypeError there and the
+ * button did nothing at all, which also left the tour's `invite` step with no way
+ * to complete. Production is HTTPS and always takes the first branch.
+ */
+async function copyText(text: string): Promise<boolean> {
+  if (navigator.clipboard?.writeText) {
+    try {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } catch {
+      // Denied or unavailable — fall through rather than leaving a dead button.
+    }
+  }
+
+  const scratch = document.createElement('textarea');
+  scratch.value = text;
+  scratch.setAttribute('readonly', '');
+  scratch.style.position = 'fixed';
+  scratch.style.top = '-9999px';
+  document.body.appendChild(scratch);
+  scratch.select();
+
+  let copied = false;
+  try {
+    copied = document.execCommand('copy');
+  } catch {
+    copied = false;
+  }
+  document.body.removeChild(scratch);
+  return copied;
+}
+
 export const RoomLinkButton: React.FC = () => {
   const [copied, setCopied] = useState(false);
   const roomManager = useGameInstance((s) => s.roomManager);
 
   const handleClick = (e: React.MouseEvent) => {
     e.preventDefault();
-    navigator.clipboard.writeText(window.location.href).then(() => {
+    void copyText(window.location.href).then((ok) => {
+      if (!ok) return;
       if (roomManager) posthog.capture('room_link_copied', { room: roomManager.getRoomName() });
+      // Arms `invite_converted`: if somebody now turns up in this room, the invite
+      // landed. That — not the copy — is the outcome worth optimising.
+      noteRoomLinkCopied();
+      // The tour's `invite` step is the one whose completion leaves no trace in
+      // Yjs, so it has to be told. No-ops when no tour is running.
+      useTourStore.getState().noteRoomLinkCopied();
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     });

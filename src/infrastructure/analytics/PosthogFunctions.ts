@@ -105,6 +105,28 @@ export function trackSyncOutcome(props: {
 }
 
 /**
+ * Reports a pass of the room-doc collector (see networking/roomDocStorage.ts).
+ *
+ * `storageUsageBytes` is the whole origin's usage, not just room docs — it's the number that
+ * tells us whether the leak is actually draining in the field, and how big it had grown before
+ * anything collected it. `adopted` is only non-zero on a client's first pass after the collector
+ * ships, so a persistently high `adopted` would mean rooms are being created without registering.
+ */
+export function trackRoomDocsPurged(props: {
+  purged: number;
+  adopted: number;
+  tracked: number;
+  storageUsageBytes?: number;
+}): void {
+  posthog.capture('room_docs_purged', {
+    purged_count: props.purged,
+    adopted_count: props.adopted,
+    tracked_count: props.tracked,
+    ...(props.storageUsageBytes !== undefined ? { storage_usage_bytes: props.storageUsageBytes } : {}),
+  });
+}
+
+/**
  * `connectMs` times the successful connection attempt (handshake latency);
  * `offlineForMs` times the outage it ended. They are not interchangeable — a
  * client that slept through a three-day outage and then reconnected instantly
@@ -191,12 +213,33 @@ export type ImportCounts = {
   uniqueImportedCount: number;
   /** Cards the parser deliberately dropped (sideboard, maybeboard, …). */
   excludedCardCount: number;
+  /** Which sections those dropped cards came from, e.g. `["sideboard"]`. */
+  excludedSections: string[];
+  /**
+   * Header labels the parser didn't recognize and imported as main deck anyway.
+   * When a deck comes out over-sized, this is the first place to look — a custom
+   * category we waved through that was really a sideboard.
+   */
+  unrecognizedSections: string[];
+  /**
+   * Cards tagged for the command zone. `Player` draws every one of them into the
+   * opening hand, so this is the size of that hand — and the only number that
+   * can see a command zone that swallowed the deck.
+   */
+  commanderCardCount: number;
 };
 
 /**
- * Flatten counts into event properties, deriving the two signals worth alerting
- * on: `cards_missing` (our lookup lost cards) and `is_standard_deck_size` (the
- * list itself was odd).
+ * The most cards a command zone can legally hold: partners, or a commander and
+ * its background. Anything above this is not a deck-building choice, it is a
+ * parser fault.
+ */
+const MAX_LEGAL_COMMANDERS = 2;
+
+/**
+ * Flatten counts into event properties, deriving the signals worth alerting on:
+ * `cards_missing` (our lookup lost cards), `is_standard_deck_size` (the list
+ * itself was odd), and `command_zone_overflowed` (see below).
  */
 function countProperties(counts: ImportCounts): Record<string, unknown> {
   return {
@@ -205,6 +248,8 @@ function countProperties(counts: ImportCounts): Record<string, unknown> {
     imported_card_count: counts.importedCardCount,
     unique_imported_count: counts.uniqueImportedCount,
     excluded_card_count: counts.excludedCardCount,
+    excluded_sections: counts.excludedSections,
+    unrecognized_sections: counts.unrecognizedSections,
     // > 0 means the lookup dropped cards the list explicitly asked for.
     cards_missing: counts.requestedCardCount - counts.importedCardCount,
     // Describes the *input*: was the list itself a legal deck size?
@@ -213,6 +258,20 @@ function countProperties(counts: ImportCounts): Record<string, unknown> {
     // Describes the *output*: is what we handed the player a legal deck?
     imported_size_bucket: bucketDeckSize(counts.importedCardCount),
     is_standard_imported_size: STANDARD_DECK_SIZES.has(counts.importedCardCount),
+
+    // Every commander-tagged card is drawn into the opening hand, so this is
+    // that hand's size. It is reported on *every* import, not just the broken
+    // ones, because the failure it exists to catch is invisible to all the
+    // numbers above: a parser that tags the whole deck as commanders still
+    // yields a perfectly standard 100-card import. That is exactly what
+    // happened — 8.9% of imports dealt the player their entire library, and
+    // 44 of every 45 sailed past the deck-size checks with a legal size.
+    commander_card_count: counts.commanderCardCount,
+
+    // A deck cannot have three commanders. If this is ever true, the command
+    // zone has stopped meaning anything and the player is about to be handed
+    // their deck — alert on it rather than waiting for someone to notice.
+    command_zone_overflowed: counts.commanderCardCount > MAX_LEGAL_COMMANDERS,
   };
 }
 
@@ -488,5 +547,180 @@ export function trackImportPartialFailure(props: {
     total_requested: props.counts.parsedEntryCount,
     total_imported: importedCardCount,
     total_failed: props.failedEntryCount,
+  });
+}
+
+// ONBOARDING TOUR
+
+/**
+ * Every tour event carries `variant` (the `onboarding-tour-step-order` arm) and
+ * `layout`, because the tour's whole reason for existing is an A/B on step order
+ * and the copy differs by input modality. A funnel that can't split on those two
+ * can't answer the question the tour was built to ask.
+ */
+type TourEventContext = {
+  /** Which tour. See the note on TourId — this cannot be added retroactively. */
+  tourId: string;
+  variant: string;
+  layout: 'phone' | 'desktop';
+  stepId: string;
+  stepIndex: number;
+};
+
+function tourProperties(ctx: TourEventContext): Record<string, unknown> {
+  return {
+    tour_id: ctx.tourId,
+    variant: ctx.variant,
+    layout: ctx.layout,
+    step_id: ctx.stepId,
+    step_index: ctx.stepIndex,
+  };
+}
+
+/**
+ * Stamp the player's onboarding outcome onto *every* event from here on, as a
+ * PostHog super property.
+ *
+ * This is what answers the question the tour exists to justify — do onboarded
+ * players stick around? — because it lets any insight (retention, session count,
+ * deck imports) break down by whether the player finished the tour, skipped it,
+ * or never saw it (`null`).
+ *
+ * Deliberately a super property and not a *person* property: person properties
+ * require a person profile, which requires `identify()`, which makes every event
+ * an identified event — about 5x the price ($0.000248 vs $0.00005) for a profile
+ * keyed to the same device-scoped id we already have, since Aura has no login.
+ * Super properties are free, work for anonymous users, and are all we need.
+ */
+const TOUR_OUTCOME_PROPERTY = 'onboarding_tour_outcome';
+
+export function registerTourOutcome(outcome: string | null): void {
+  // `register({ x: null })` is a no-op — it does NOT clear a previously
+  // registered value. So a player who finished the tour and then replayed it
+  // would keep carrying `completed` on every event, describing a tour they are
+  // in the middle of redoing. Clearing needs `unregister`.
+  //
+  // Absence is meaningful, and is the right shape: a player who never saw the
+  // tour has no value here, which reads as "is not set" in PostHog.
+  if (outcome === null) {
+    posthog.unregister(TOUR_OUTCOME_PROPERTY);
+    return;
+  }
+
+  posthog.register({ [TOUR_OUTCOME_PROPERTY]: outcome });
+}
+
+/**
+ * The tour a player is currently in, if any. Same reasoning as `inFlightImport`
+ * above: a first-run tour that a user walks away from mid-step would otherwise
+ * emit `tour_started` with no terminal event, and the funnel's denominator would
+ * quietly stop meaning anything. Most first-time visitors arrive from Instagram
+ * and a good number of them will close the tab — abandonment is the *expected*
+ * outcome here, not an edge case, so it has to be counted.
+ */
+type InFlightTour = {
+  startedAt: number;
+  tourId: string;
+  variant: string;
+  layout: 'phone' | 'desktop';
+  stepId: string;
+  stepIndex: number;
+  stepsCompleted: number;
+};
+
+let inFlightTour: InFlightTour | null = null;
+let tourAbandonListenerInstalled = false;
+
+function installTourAbandonListener(): void {
+  if (tourAbandonListenerInstalled || typeof window === 'undefined') {
+    return;
+  }
+  tourAbandonListenerInstalled = true;
+
+  // `pagehide` + `sendBeacon` for the same reason as the deck-import listener:
+  // it is the only pair that survives an unload on mobile Safari, which is most
+  // of this audience.
+  window.addEventListener('pagehide', () => {
+    const pending = inFlightTour;
+    if (!pending) {
+      return;
+    }
+    inFlightTour = null;
+
+    posthog.capture(
+      'tour_abandoned',
+      {
+        ...tourProperties(pending),
+        elapsed_ms: Date.now() - pending.startedAt,
+        steps_completed: pending.stepsCompleted,
+      },
+      { transport: 'sendBeacon' },
+    );
+  });
+}
+
+export function trackTourStarted(ctx: TourEventContext): void {
+  inFlightTour = {
+    startedAt: Date.now(),
+    tourId: ctx.tourId,
+    variant: ctx.variant,
+    layout: ctx.layout,
+    stepId: ctx.stepId,
+    stepIndex: ctx.stepIndex,
+    stepsCompleted: 0,
+  };
+  installTourAbandonListener();
+
+  posthog.capture('tour_started', tourProperties(ctx));
+}
+
+/** Fired when a step becomes the active one — the funnel's per-step denominator. */
+export function trackTourStepViewed(ctx: TourEventContext): void {
+  if (inFlightTour) {
+    inFlightTour.stepId = ctx.stepId;
+    inFlightTour.stepIndex = ctx.stepIndex;
+  }
+
+  posthog.capture('tour_step_viewed', tourProperties(ctx));
+}
+
+/**
+ * Fired when the player actually performs the step's action (or presses the
+ * button on an informational step). `dwell_ms` is how long the step took, which
+ * is the signal that tells you whether a step is confusing or merely last.
+ */
+export function trackTourStepCompleted(ctx: TourEventContext & { dwellMs: number }): void {
+  if (inFlightTour) {
+    inFlightTour.stepsCompleted += 1;
+  }
+
+  posthog.capture('tour_step_completed', {
+    ...tourProperties(ctx),
+    dwell_ms: ctx.dwellMs,
+  });
+}
+
+export function trackTourCompleted(ctx: Omit<TourEventContext, 'stepId' | 'stepIndex'> & { stepCount: number }): void {
+  const elapsedMs = inFlightTour ? Date.now() - inFlightTour.startedAt : 0;
+  inFlightTour = null;
+
+  posthog.capture('tour_completed', {
+    tour_id: ctx.tourId,
+    variant: ctx.variant,
+    layout: ctx.layout,
+    step_count: ctx.stepCount,
+    elapsed_ms: elapsedMs,
+  });
+}
+
+/** Terminal, like `tour_completed` — the two together close the funnel. */
+export function trackTourSkipped(ctx: TourEventContext): void {
+  const pending = inFlightTour;
+  inFlightTour = null;
+
+  posthog.capture('tour_skipped', {
+    ...tourProperties(ctx),
+    elapsed_ms: pending ? Date.now() - pending.startedAt : 0,
+    steps_completed: pending?.stepsCompleted ?? 0,
   });
 }

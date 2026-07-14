@@ -1,6 +1,7 @@
 import { Card, CardImages } from '@/features/player/types';
 import { makeCard } from '@/features/player/makeCard';
 import { CardDataResult, ScryfallCard } from './types';
+import type { SectionKind } from '@/features/deck-manager/DeckListParser';
 
 function extractImageUris(cardObj: ScryfallCard): CardImages {
   if (cardObj.image_uris) {
@@ -24,10 +25,38 @@ function extractImageUris(cardObj: ScryfallCard): CardImages {
   };
 }
 
+/**
+ * Can this card actually be a commander?
+ *
+ * Only a legendary card can — a legendary creature, the handful of legendary
+ * planeswalkers that say so, or a Background (a legendary enchantment). So a
+ * single check on the type line covers every case, and it is the *only* evidence
+ * available: the deck list that named this card is plain text and carries no
+ * card types at all.
+ *
+ * That matters, because a commander section in a text list has no reliable end.
+ * Exporters variously close it with a blank line, a "Deck" header, or nothing
+ * whatsoever, and the parser has to guess where the command zone stops. Every
+ * card it guesses wrong about is drawn straight into the opening hand. Here,
+ * after the lookup, guessing is no longer necessary — Sol Ring is not legendary,
+ * so it is not a commander, whatever the list's formatting implied.
+ *
+ * A missing type line means the lookup could not tell us (an unresolved card, or
+ * a backend that omits it). We keep the tag rather than silently stripping a
+ * real commander on the strength of data we do not have.
+ */
+function canBeCommander(scryfallCard: ScryfallCard): boolean {
+  if (!scryfallCard.type_line) {
+    return true;
+  }
+  return scryfallCard.type_line.toLowerCase().includes('legendary');
+}
+
 export function toCardDataResult(
   scryfallCard: ScryfallCard,
   count: number = 1,
   commander: boolean = false,
+  section?: SectionKind,
 ): CardDataResult {
   return {
     count,
@@ -36,7 +65,8 @@ export function toCardDataResult(
     oracleText: scryfallCard.oracle_text,
     scryfallId: scryfallCard.id,
     imageUris: extractImageUris(scryfallCard),
-    ...(commander ? { commander: true } : {}),
+    ...(commander && canBeCommander(scryfallCard) ? { commander: true } : {}),
+    ...(section ? { section } : {}),
   };
 }
 

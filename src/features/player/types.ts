@@ -14,7 +14,14 @@ export interface CardImages {
 
 /** The full set of card zones a Player owns. The single source of truth for
  * "which pile" across battlefield drop targets, hotkeys, and pile viewers. */
-export type PileType = 'deck' | 'exile' | 'discard' | 'hand' | 'scry';
+export type PileType = 'deck' | 'exile' | 'discard' | 'hand' | 'scry' | 'sideboard';
+
+/**
+ * Zones whose contents opponents can see. A card's identity may appear in the
+ * shared action log only if it is visible in the zone it came from or the one it
+ * lands in — see `Player.movePileCard`.
+ */
+export const PUBLIC_PILES: ReadonlySet<PileType> = new Set<PileType>(['exile', 'discard']);
 
 export interface Card {
   id: string;
@@ -46,6 +53,12 @@ export interface DeckMetadata {
 export interface SavedDeck {
   metadata: DeckMetadata;
   cards: Card[]; // Full card list with images
+  /**
+   * Cards imported from a sideboard/maybeboard/companion section, kept out of
+   * the deck itself. Optional because decks saved before sideboards existed
+   * don't carry it — treat absent as empty, never as "not yet loaded".
+   */
+  sideboard?: Card[];
 }
 
 export interface CustomCounter {
@@ -63,6 +76,7 @@ export interface PlayerState {
   exilePile: Card[];
   discardPile: Card[];
   deck: Card[];
+  sideboard: Card[];
   customCounters: CustomCounter[];
 }
 

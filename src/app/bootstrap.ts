@@ -20,7 +20,8 @@ import {
   tabLockKey,
 } from '@/infrastructure/networking/tabLock';
 import { watchRoomOccupancy } from '@/infrastructure/networking/roomOccupancy';
-import { trackRoomOccupancyChanged } from '@/infrastructure/analytics/PosthogFunctions';
+import { purgeExpiredRoomDocs } from '@/infrastructure/networking/roomDocStorage';
+import { trackRoomOccupancyChanged, trackRoomDocsPurged } from '@/infrastructure/analytics/PosthogFunctions';
 import { DeckPersistenceService, DeckStorageService } from '@/infrastructure/persistence';
 import { useGameInstance } from '@/app/stores/gameInstanceStore';
 import { usePlayerStore } from '@/app/stores/playerStore';
@@ -29,8 +30,22 @@ import {
   autoLoadDeckOnStart,
   seedDefaultDeckIfFirstLoad,
 } from '@/features/deck-manager/deckLoading';
+import { recordVisit } from '@/shared/services/visitCount';
+import { watchInviteConversion } from '@/features/room/inviteConversion';
 
-const VISIT_COUNT_KEY = 'aura-visit-count';
+/**
+ * Delete room docs nobody has opened in a month, and report what that cost/freed.
+ *
+ * The reporting is the point as much as the deletion is: `storage_usage_bytes` is how we find
+ * out whether the leak is actually draining in the field, and how large it had grown before
+ * anything collected it. Never throws — a bad GC pass must not be able to fail a boot.
+ */
+async function collectAbandonedRoomDocs(roomName: string): Promise<void> {
+  const { purged, adopted, tracked } = await purgeExpiredRoomDocs(roomName);
+
+  const estimate = await navigator.storage?.estimate?.().catch(() => undefined);
+  trackRoomDocsPurged({ purged, adopted, tracked, storageUsageBytes: estimate?.usage });
+}
 
 export interface GameContext {
   yDoc: Y.Doc;
@@ -90,7 +105,17 @@ export async function bootstrapGame(options: BootstrapOptions = {}): Promise<Boo
 
   const yDoc = new Y.Doc();
 
-  // ── 3. Networking ──────────────────────────────────────────────────────────
+  // ── 3. Collect abandoned room docs ─────────────────────────────────────────
+  // Every room a player opens leaves an IndexedDB database behind, so without this a
+  // browser profile accumulates them forever — and since browsers evict IndexedDB
+  // origin-wide under pressure, that junk is what gets the *live* room thrown away.
+  //
+  // Awaited, and placed before the provider is built, for two reasons: the collector
+  // must not be reading the registry while the room we're about to open is writing its
+  // own timestamp into it, and it must never delete a database it's about to open.
+  await collectAbandonedRoomDocs(roomName);
+
+  // ── 4. Networking ──────────────────────────────────────────────────────────
   const peerId = getOrCreatePeerId();
   const transport = await getEffectiveNetworkTransport();
   const yjsNetworkProvider = await yjsNetworkFactory.create(yDoc, {
@@ -98,7 +123,7 @@ export async function bootstrapGame(options: BootstrapOptions = {}): Promise<Boo
     peerId,
   }, transport);
 
-  // ── 4. Player ──────────────────────────────────────────────────────────────
+  // ── 5. Player ──────────────────────────────────────────────────────────────
   // Wait for the local IndexedDB copy to load before constructing Player, which
   // seeds default state if the doc looks empty. Seeding into a not-yet-synced
   // doc writes empty defaults (e.g. an empty hand) that win the CRDT merge
@@ -111,11 +136,11 @@ export async function bootstrapGame(options: BootstrapOptions = {}): Promise<Boo
   // Populate playerStore immediately so any component reading yPlayerState gets it on mount
   usePlayerStore.getState().setYPlayerState(player.yPlayerState);
 
-  // ── 5. Services ────────────────────────────────────────────────────────────
+  // ── 6. Services ────────────────────────────────────────────────────────────
   const cardLookup = new CardLookupService();
   const tokenService = new TokenService(cardLookup);
 
-  // ── 6. Populate game-instance store (before React renders) ─────────────────
+  // ── 7. Populate game-instance store (before React renders) ─────────────────
   useGameInstance.getState().setYDoc(yDoc);
   useGameInstance.getState().setPlayer(player);
   useGameInstance.getState().setPlayerId(playerId);
@@ -126,15 +151,18 @@ export async function bootstrapGame(options: BootstrapOptions = {}): Promise<Boo
   // Broadcast playerId so peers can look up this player's Yjs name from the cursor overlay.
   awareness.setLocalStateField('playerId', playerId);
   watchRoomOccupancy(awareness, trackRoomOccupancyChanged);
+  watchInviteConversion(awareness, () => roomManager.getRoomName());
 
-  // ── 7. Deck seeding + auto-load ────────────────────────────────────────────
+  // ── 8. Deck seeding + auto-load ────────────────────────────────────────────
   const storage = new DeckStorageService();
   await seedDefaultDeckIfFirstLoad(storage);
   await autoLoadDeckOnStart(player, roomManager, storage);
 
-  // ── 8. Analytics ───────────────────────────────────────────────────────────
-  const visitCount = parseInt(localStorage.getItem(VISIT_COUNT_KEY) ?? '0', 10);
-  localStorage.setItem(VISIT_COUNT_KEY, (visitCount + 1).toString());
+  // ── 9. Analytics ───────────────────────────────────────────────────────────
+  // Must run before React mounts: the onboarding tour asks how many times this
+  // player has been here, and the answer stops being observable once the key is
+  // incremented (see shared/services/visitCount.ts).
+  recordVisit();
 
   return {
     status: 'ready',

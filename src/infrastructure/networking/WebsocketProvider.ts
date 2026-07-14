@@ -28,6 +28,7 @@
 import * as Y from 'yjs';
 import { WebsocketProvider as WsProvider } from "y-websocket";
 import { IndexeddbPersistence } from 'y-indexeddb';
+import { createRoomPersistence, keepRoomAlive } from './roomDocStorage';
 import { registerTransactionOriginClass } from './transactionOrigin';
 import { WebsocketConfig } from './types';
 import { restoreAwarenessState, setupAwarenessStatePersistence, AwarenessState } from './persistence';
@@ -53,8 +54,17 @@ const CONNECTION_ERROR_MESSAGE = "Can't reach the game server over WebSocket. Sw
  */
 const SYNC_ERROR_GRACE_PERIOD_MS = 5000;
 
-/** The relay every WebSocket-transport client connects to. */
-const WS_SERVER_URL = 'wss://digitalocean-ws-ipv4.aura0.app';
+/**
+ * The relay every WebSocket-transport client connects to.
+ *
+ * Overridable so a relay change can be proven against a real browser before it
+ * serves anyone — point this at an ssh-tunnelled staging port (`ws://127.0.0.1:47965`)
+ * and open two boards. Room accounting and `/health` say a relay is alive, not that
+ * it is relaying; on 2026-07-13 a relay that passed both emptied every board in prod.
+ * Unset — which is every deployed build today — it is the production relay, unchanged.
+ */
+const WS_SERVER_URL =
+  (import.meta.env.VITE_WS_SERVER_URL as string | undefined) ?? 'wss://digitalocean-ws-ipv4.aura0.app';
 
 // Both objects apply remote updates to the Y.Doc, and Yjs passes whichever one
 // did so as the transaction origin. Naming them here keeps that origin readable
@@ -70,6 +80,7 @@ export class WebsocketProvider implements YjsNetworkProvider{
   private yDoc: Y.Doc;
   private provider: WsProvider;
   private persistence: IndexeddbPersistence;
+  private stopRoomHeartbeat: () => void;
   private config: WebsocketConfig;
   private cleanupAwarenessPersistence?: () => void;
   private monitor: ConnectionMonitor;
@@ -118,8 +129,10 @@ export class WebsocketProvider implements YjsNetworkProvider{
     };
 
     // Set up IndexedDB persistence for the Y.Doc
-    // This persists the document state locally so it survives page reloads
-    this.persistence = new IndexeddbPersistence(this.config.roomName, this.yDoc);
+    // This persists the document state locally so it survives page reloads, and registers the
+    // room so the collector in roomDocStorage.ts knows it's alive rather than abandoned.
+    this.persistence = createRoomPersistence(this.config.roomName, this.yDoc);
+    this.stopRoomHeartbeat = keepRoomAlive(this.config.roomName);
 
     this.provider = new WsProvider(
       WS_SERVER_URL,
@@ -226,6 +239,7 @@ export class WebsocketProvider implements YjsNetworkProvider{
     this.monitor.destroy();
     this.syncMonitor.destroy();
 
+    this.stopRoomHeartbeat();
     this.persistence.destroy();
   }
 }

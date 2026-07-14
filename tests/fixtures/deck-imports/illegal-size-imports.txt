@@ -1,0 +1,6041 @@
+# Real deck lists, exactly as players pasted them.
+# Preset `illegal-size`, last 30 days, PostHog project 476486.
+# 87 decks. Regenerate: scripts/export-deck-import-corpus.py --preset illegal-size
+#
+#   imported  — cards the import actually built
+#   requested — sum of the quantities we parsed
+#   entries   — card lines the parser accepted
+#   excluded  — cards dropped under a sideboard-style header
+#
+# Deck bodies are verbatim and contain blank lines, so blocks are delimited
+# by the `===== DECK` lines below — never by blank lines.
+
+===== DECK 001 | imported=1 | requested=1 | entries=1 | excluded=0 | chars=19 | 2026-07-11 | 019f5386-b690-7be9-8a38-e43003e54743 =====
+1 KEFKA, COURT MAGE
+
+===== DECK 002 | imported=1 | requested=1 | entries=1 | excluded=0 | chars=22 | 2026-07-12 | 019f5612-71ec-7d84-bbf2-fff91c7c35c7 =====
+Hazel of the rootbloom
+
+===== DECK 003 | imported=1 | requested=1 | entries=1 | excluded=0 | chars=24 | 2026-07-12 | 019f5721-d689-7083-8b79-16071d2dee0a =====
+1 Iron Man , Tony Stark
+
+
+===== DECK 004 | imported=1 | requested=1 | entries=1 | excluded=0 | chars=15 | 2026-07-12 | 019f5725-9739-70de-94cf-c4c2f08dd927 =====
+Ms.bumbleflower
+
+===== DECK 005 | imported=1 | requested=1 | entries=1 | excluded=0 | chars=25 | 2026-07-12 | 019f57c5-fb5a-7951-952f-11321125af0a =====
+Roxanne, starfall servant
+
+===== DECK 006 | imported=1 | requested=1 | entries=1 | excluded=0 | chars=52 | 2026-07-12 | 019f5843-7552-7251-98b7-93baaddc2181 =====
+1x Doran, Besieged by Time (ecl) 215 ^Drawn,#1b1686^
+
+===== DECK 007 | imported=3 | requested=3 | entries=3 | excluded=0 | chars=37 | 2026-07-12 | 019f5615-5acc-765b-a157-fabba370e3df =====
+Hazel of the rootbloom
+Bosque
+Bosque
+
+
+===== DECK 008 | imported=3 | requested=3 | entries=3 | excluded=0 | chars=33 | 2026-07-12 | 019f578d-11fc-7956-b485-e6050723f970 =====
+Animar 
+Sol ring
+Doubling season
+
+
+===== DECK 009 | imported=4 | requested=4 | entries=1 | excluded=0 | chars=28 | 2026-07-12 | 019f578c-1293-7944-9643-81ea9afe695b =====
+4 animar , soul of éléments
+
+
+===== DECK 010 | imported=4 | requested=4 | entries=1 | excluded=0 | chars=28 | 2026-07-12 | 019f578c-1b2f-76c2-a05b-ff7154db8e36 =====
+4 animar , soul of éléments
+
+
+===== DECK 011 | imported=20 | requested=20 | entries=1 | excluded=0 | chars=12 | 2026-07-11 | 019f517d-043c-703a-8dc9-ca1c0f49eaab =====
+20 Mountains
+
+===== DECK 012 | imported=20 | requested=20 | entries=15 | excluded=0 | chars=405 | 2026-07-11 | 019f5227-e0e2-75b8-91ae-b799e2df7b6e =====
+Creature (7)
+1 Azula, Ruthless Firebender {2}{B}
+1 Canyon Crawler {4}{B}{B}
+1 Corrupt Court Official {1}{B}
+1 Dai Li Censor {1}{B}
+1 Fire Nation Ambushers {2}{B}
+1 Fire Navy Trebuchet {2}{B}
+1 Lo and Li, Twin Tutors {4}{B}
+Instant (2)
+1 Azula Always Lies {1}{B}
+1 Sold Out {3}{B}
+Sorcery (3)
+1 Dai Li Indoctrination {1}{B}
+1 Dark Deal {2}{B}
+1 Epic Downfall {1}{B}
+Land (8)
+6 Swamp
+1 Swamp
+1 Thriving Moor
+
+===== DECK 013 | imported=20 | requested=20 | entries=15 | excluded=0 | chars=413 | 2026-07-11 | 019f522a-3d69-7e4b-b334-9d10c2952223 =====
+Creature (6)
+1 Dutiful Knowledge Seeker {2}{U}
+1 Giant Koi {4}{U}{U}
+1 Knowledge Seeker {1}{U}
+1 Professor Zei, Anthropologist {U/R}{U/R}
+1 Suspicious Bookcase {2}
+1 Wan Shi Tong, All-Knowing {3}{U}{U}
+Instant (4)
+1 Accumulate Wisdom {1}{U}
+1 Brainstorm {U}
+1 Octopus Form {U}
+1 Zuko's Exile {5}
+Sorcery (2)
+1 Lost in the Spirit World {2}{U}
+1 Waterbending Lesson {3}{U}
+Land (8)
+6 Island
+1 Island
+1 Thriving Isle
+
+===== DECK 014 | imported=31 | requested=31 | entries=31 | excluded=0 | chars=646 | 2026-07-12 | 019f58cd-9b97-7ecc-be0e-350232c03da8 =====
+Commander:
+1 Zinnia, Valley's Voice
+
+Deck:
+1 Lunarch Veteran
+
+1 Agate Instigator
+
+1 Ledger Shredder
+
+1 Plumecreed Escort
+
+1 Selfless Spirit
+
+1 Tetsuko Umezawa, Fugitive
+
+1 Third Path Iconoclast
+
+1 Aether Channeler
+
+1 Combat Celebrant
+
+1 Devilish Valet
+
+1 Hanged Executioner
+
+1 Inspiring Overseer
+
+1 Rapid Augmenter
+
+1 Redoubled Stormsinger
+
+1 Snow Villiers
+
+1 Thopter Engineer
+
+1 Twilight Drover
+
+1 Beetleback Chief
+
+1 Curiosity Crafter
+
+1 Jazal Goldmane
+
+1 Luminous Broodmoth
+
+1 Restoration Angel
+
+1 Solemn Simulacrum
+
+1 Boss's Chauffeur
+
+1 Cloudblazer
+
+1 Shield Broker
+
+1 Siege-Gang Commander
+
+1 Inferno Titan
+
+1 Sun Titan
+
+1
+Angel of the Ruins
+
+===== DECK 015 | imported=36 | requested=36 | entries=13 | excluded=0 | chars=585 | 2026-07-12 | 019f57b4-25da-72e4-ab4d-63b40958e182 =====
+2x Audience with Trostani (mkm) 152 [Draw]
+2x Chalk Outline (mkm) 157 [Leave Graveyard Payoffs]
+4x Cloakwood Swarmkeeper (clb) 222 [Creature,Tokens]
+2x Deadly Brew (soc) 303 [Removal]
+2x Desecrated Tomb (m19) 230 [Leave Graveyard Payoffs]
+4x Grapple with the Past (tdc) 257 [Mill]
+2x Greater Mossdog (rvr) 145 [Mill]
+2x Grismold, the Dreadsower (c19) 44 [Tokens]
+4x Insidious Roots (mkm) 208 [Leave Graveyard Payoffs]
+2x Mole Man, Moloid Master (msh) 177 [Creature]
+4x Shambling Shell (rvr) 460 [Mill]
+2x Tear Asunder (eoc) 109 [Removal]
+4x Tortured Existence (plst) STH-74 [Recursion]
+
+===== DECK 016 | imported=40 | requested=40 | entries=30 | excluded=0 | chars=761 | 2026-07-11 | 019f522e-1ae2-7b51-9280-f6765c9af6cd =====
+Creature
+1 Dutiful Knowledge Seeker {2}{U}
+1 Giant Koi {4}{U}{U}
+1 Knowledge Seeker {1}{U}
+1 Professor Zei, Anthropologist {U/R}{U/R}
+1 Suspicious Bookcase {2}
+1 Wan Shi Tong, All-Knowing {3}{U}{U}
+1 Azula, Ruthless Firebender {2}{B}
+1 Canyon Crawler {4}{B}{B}
+1 Corrupt Court Official {1}{B}
+1 Dai Li Censor {1}{B}
+1 Fire Nation Ambushers {2}{B}
+1 Fire Navy Trebuchet {2}{B}
+1 Lo and Li, Twin Tutors {4}{B}
+Instant
+1 Accumulate Wisdom {1}{U}
+1 Brainstorm {U}
+1 Octopus Form {U}
+1 Zuko's Exile {5}
+1 Azula Always Lies {1}{B}
+1 Sold Out {3}{B}
+Sorcery
+1 Lost in the Spirit World {2}{U}
+1 Waterbending Lesson {3}{U}
+1 Dai Li Indoctrination {1}{B}
+1 Dark Deal {2}{B}
+1 Epic Downfall {1}{B}
+Land (8)
+6 Island
+1 Island
+1 Thriving Isle
+6 Swamp
+1 Swamp
+1 Thriving Moor
+
+===== DECK 017 | imported=56 | requested=56 | entries=44 | excluded=0 | chars=796 | 2026-07-11 | 019f51fa-9a52-79d0-b403-2b7786aaf49a =====
+Commander
+1 Gonti, Canny Acquisitor
+
+Deck
+1 Access Tunnel
+1 Arcane Signet
+1 Baleful Mastery
+1 Baleful Strix
+1 Chaos Wand
+1 Command Tower
+1 Culling Ritual
+1 Darkslick Shores
+1 Darksteel Ingot
+1 Doc Aurlock, Grizzled Genius
+1 Drowned Catacomb
+1 Fallen Shinobi
+1 Feed the Swarm
+1 Fetid Pools
+4 Forest
+1 Ghostly Pilferer
+1 Gonti, Lord of Luxury
+1 Hinterland Harbor
+1 Hostage Taker
+5 Island
+1 Llanowar Wastes
+1 Mind's Dilation
+1 Nashi, Moon Sage's Scion
+1 Opulent Palace
+1 Putrefy
+1 Rampant Growth
+1 Reliquary Tower
+1 Siphon Insight
+1 Slither Blade
+1 Sunken Hollow
+6 Swamp
+1 Temple of Deceit
+1 Temple of Malady
+1 Temple of Mystery
+1 Thief of Sanity
+1 Thieving Skydiver
+1 Triton Shorestalker
+1 Trygon Predator
+1 Underground River
+1 Villainous Wealth
+1 Whirler Rogue
+1 Woodland Cemetery
+1 Yavimaya Coast
+
+===== DECK 018 | imported=61 | requested=61 | entries=19 | excluded=0 | chars=358 | 2026-07-11 | 019f536d-a033-7330-bf4f-930d1760b816 =====
+Deck
+2 The Rise of Sozin
+4 Firdoch Core
+2 Weather Maker
+2 Thrumming Hivepool
+3 The End
+4 Duress
+4 Strategic Betrayal
+2 Ancient Vendetta
+3 Deadly Cover-Up
+4 Together as One
+3 Unholy Annex // Ritual Chamber
+2 Ugin, Eye of the Storms
+9 Swamp
+3 Blazemire Verge
+3 Gloomlake Verge
+3 Bleachbone Verge
+3 Wastewood Verge
+1 Starting Town
+4 Great Hall of the Biblioplex
+
+===== DECK 019 | imported=62 | requested=62 | entries=14 | excluded=15 | chars=300 | 2026-07-11 | 019f543f-4fb2-7510-af98-3fd12a967ab1 =====
+4 Akroma, Angel of Wrath
+4 Cabal Therapy
+4 Dark Ritual
+4 Duress
+3 Exhume
+3 Life/Death
+4 Putrid Imp
+3 Reanimate
+4 Rorix Bladewing
+3 Sickening Dreams
+14 Swamp
+4 Stitch Together
+4 Verdant Force
+4 Last Rites
+
+SIDEBOARD:
+4 Multani, Maro-Sorcerer
+3 Null Rod
+3 Phantom Nishoba
+1 Sickening Dreams
+4 Snuff Out
+
+===== DECK 020 | imported=64 | requested=64 | entries=22 | excluded=0 | chars=422 | 2026-07-13 | 019f5a80-39ee-753e-ac69-158c7faf440e =====
+2 Archmage of Runes
+1 Artist's Talent
+4 Ashling's Command
+2 Balmor, Battlemage Captain
+2 Banishing Betrayal
+2 Blazing Firesinger
+2 Brineborn Cutthroat
+1 Broadside Barrage
+9 Island
+2 Lightning Strike
+7 Mountain
+2 Noggle the Mind
+2 Ojer Pakpatiq, Deepest Epoch
+3 Opt
+4 Pearl of Wisdom
+2 Ral, Crackling Wit
+2 Retro-Mutation
+4 Stormcatch Mentor
+4 Tempest Angler
+4 Terramorphic Expanse
+1 Valley Floodcaller
+2 Witness Protection
+
+===== DECK 021 | imported=65 | requested=65 | entries=33 | excluded=0 | chars=969 | 2026-07-12 | 019f5798-e086-76ce-84ae-66e3bc61f0ae =====
+
+3 Quandrix, the Proof (SOS) 218
+6 Island (FIN) 297
+7 Forest (SOS) 281
+4 Imoti, Celebrant of Bounty (MUL) 108
+1 Prime Speaker Zegana (FDN) 664
+1 Koma, World-Eater (FDN) 121
+2 Dreamroot Cascade (SOS) 254
+1 Temple of Mystery (FDN) 702
+1 Lakeside Shack (DSK) 262
+4 Lush Oasis (OTJ) 261
+4 Thornwood Falls (FDN) 269
+1 Embrace the Paradox (SOS) 186
+1 Make Your Own Luck (OTJ) 218
+1 Lessons from Life (TMT) 155
+1 Pensive Professor (SOS) 63
+2 Troyan, Gutsy Explorer (WOE) 217
+1 Spring /// Mind (AKR) 263
+2 Trygon Predator (FDN) 667
+1 Kasmina, Enigma Sage (STX) 196
+1 Kinnan, Bonder Prodigy (IKO) 192
+1 Cuboid Colony (SOS) 183
+1 Railway Brawler (OTJ) 175
+1 A-Llanowar Loamspeaker (DMU) 170
+3 Frog Butler (TMT) 114
+2 Ilysian Caryatid (ANB) 98
+1 Pick Your Poison (MKM) 170
+3 Meeting of Minds (MOM) 66
+1 Press the Enemy (LTR) 65
+3 Origin of Metalbending (TLA) 187
+1 Elemental Teachings (TLA) 178
+1 Map the Frontier (OTJ) 170
+1 Rampaging Brontodon (ANB) 102
+1 Clone Legion (TLE) 12
+
+
+===== DECK 022 | imported=70 | requested=70 | entries=17 | excluded=0 | chars=792 | 2026-07-12 | 019f5779-1100-7f26-86ee-8dbf40d9bc11 =====
+4x Claws of Wirewood (scg) 114 [Sideboard{noDeck},Removal]
+2x Disallow (drc) 74 [Counterspells,Removal]
+2x Disallow (drc) 74 [Sideboard{noDeck},Counterspells,Removal]
+2x Eureka Moment (soc) 308 [Draw]
+11x Forest (msh) 295 [Land]
+2x Frantic Search (tle) 159 [Draw]
+2x Horned Loch-Whale // Lagoon Breach (woe) 53 [Removal]
+13x Island (msh) 289 [Land]
+2x Kellan, Inquisitive Prodigy // Tail the Suspect (mkm) 212 [Ramp]
+2x Mindsplice Apparatus (one) 63 [Ramp]
+4x Nexus Mentality (soc) 21 [Instant]
+4x Rebuild (mh1) 66 [Sideboard{noDeck},Removal]
+4x Repudiate // Replicate (rvr) 249 [Counterspells]
+4x Shardless Agent (mh2) 292 [Doing The Thing]
+4x Supreme Will (j25) 370 [Counterspells]
+4x Thing in the Ice // Awoken Horror (inr) 460 [Doing The Thing]
+4x Wistfulness (ecl) 252 [Removal,Creature]
+
+===== DECK 023 | imported=75 | requested=75 | entries=64 | excluded=0 | chars=1191 | 2026-07-11 | 019f51f9-2dd2-7cdb-956e-43362659404a =====
+
+Commander:
+1 Yuma, Proud Protector
+
+Deck:
+1 Abraded Bluffs
+1 Ancient Greenwarden
+1 Angel of the Ruins
+1 Arcane Signet
+1 Bitter Reunion
+1 Bovine Intervention
+1 Bristling Backwoods
+1 Chromatic Lantern
+1 Command Tower
+1 Conduit Pylons
+1 Crawling Sensation
+1 Creosote Heath
+1 Decimate
+1 Descend upon the Sinful
+1 Desert of the Fervent
+1 Desert of the Indomitable
+1 Desert of the True
+1 Eccentric Farmer
+1 Electric Revelation
+1 Elvish Rejuvenator
+1 Escape to the Wilds
+1 Evolving Wilds
+1 Explore
+4 Forest
+3 Forest
+1 Harrow
+1 Hashep Oasis
+1 Heaven // Earth
+1 Hour of Promise
+1 Magmatic Insight
+1 Map the Frontier
+1 Mirage Mesa
+2 Mountain
+2 Mountain
+1 Nantuko Cultivator
+1 Omnath, Locus of Rage
+1 Oracle of Mul Daya
+1 Path to Exile
+1 Perennial Behemoth
+3 Plains
+3 Plains
+1 Ramunap Excavator
+1 Ramunap Ruins
+1 Requisition Raid
+1 Return of the Wildspeaker
+1 Satyr Wayfinder
+1 Scattered Groves
+1 Scavenger Grounds
+1 Scute Swarm
+1 Sevinne's Reclamation
+1 Shefet Dunes
+1 Sheltered Thicket
+1 Springbloom Druid
+1 Sun Titan
+1 Swiftfoot Boots
+1 Terramorphic Expanse
+1 The Mending of Dominaria
+1 Thrilling Discovery
+1 Titania, Protector of Argoth
+1 Unholy Heat
+1 Valorous Stance
+1 Winding Way
+1 World Shaper
+
+===== DECK 024 | imported=75 | requested=75 | entries=58 | excluded=0 | chars=1109 | 2026-07-11 | 019f5226-fa61-7786-ade3-b423f8457047 =====
+Commander
+1 Satya, Aetherflux Genius
+
+Deck
+1 Adarkar Wastes
+1 Aether Hub
+1 Aether Revolt
+1 Aether Spike
+1 Aetherstorm Roc
+1 Aetherworks Marvel
+1 Akroma's Will
+1 Amped Raptor
+1 Angel of Invention
+1 Arcane Signet
+1 Battlefield Forge
+1 Bespoke Battlewagon
+1 Bident of Thassa
+1 Cayth, Famed Mechanist
+1 Chaos Warp
+1 Combustible Gearhulk
+1 Command Tower
+1 Cyclonic Rift
+1 Decoction Module
+1 Demolition Field
+1 Frostboil Snarl
+1 Furycalm Snarl
+1 Galvanic Discharge
+1 Goldspan Dragon
+1 Guide of Souls
+1 Invert Polarity
+5 Island
+1 Izzet Generatorium
+1 Jolted Awake
+1 Lightning Greaves
+6 Mountain
+1 Mystic Monastery
+1 Ornithopter of Paradise
+1 Panharmonicon
+9 Plains
+1 Port Razer
+1 Prairie Stream
+1 Professional Face-Breaker
+1 Roil Cartographer
+1 Scurry of Gremlins
+1 Shivan Reef
+1 Silent Hallcreeper
+1 Sink into Stupor
+1 Skyclave Apparition
+1 Solar Transformer
+1 Solemn Simulacrum
+1 Spire of Industry
+1 Starfield Shepherd
+1 Stormcarved Coast
+1 Sunbaked Canyon
+1 Swords to Plowshares
+1 Talisman of Conviction
+1 Talisman of Creativity
+1 Talisman of Progress
+1 Volatile Stormdrake
+1 Wheel of Potential
+1 Whirler Virtuoso
+
+===== DECK 025 | imported=75 | requested=75 | entries=16 | excluded=0 | chars=602 | 2026-07-11 | 019f5372-4fce-7043-9ecb-7548b2029ca4 =====
+4x Burlfist Oak (m21) 174 [Creature]
+4x Colossal Dreadmaw (j25) 646 [Finisher]
+4x Daggerback Basilisk (plst) M19-174 [Removal]
+4x Deepwood Denizen (j25) 648 [Draw]
+4x Flourishing Strike (mh2) 159 [Removal]
+20x Forest (msh) 295 [Land]
+4x Generous Stray (grn) 129 [Draw]
+4x Gnarled Sage (m21) 187 [Creature]
+4x Life Goes On (m21) 192 [Lifegain]
+4x Llanowar Elves (gnt) 46 [Removal]
+4x Llanowar Visionary (j25) 684 [Ramp]
+2x Naturalize (plst) M19-190 [Removal]
+1x Rishkar, Peema Renegade (j25) 708 [Ramp]
+4x Root Snare (m19) 199 [Protection]
+4x Titanic Growth (woe) 191 [Pump]
+4x Vineweft (m15) 207 [Pump]
+
+===== DECK 026 | imported=75 | requested=75 | entries=21 | excluded=0 | chars=338 | 2026-07-12 | 019f588d-5249-7f94-a3c0-0881931c7045 =====
+Deck:
+4 Cabal Archon
+4 Dark Supplicant
+4 Priest of Gix
+4 Rotlung Reanimator
+4 Withered Wretch
+2 Graveborn Muse
+1 Scion of Darkness
+4 Dark Ritual
+2 Smother
+1 Snuff Out
+3 Cabal Therapy
+3 Duress
+2 Cursed Scroll
+15 Swamp
+4 Rishadan Port
+3 City of Traitors
+
+SIDEBOARD:
+
+4 Phyrexian Negator
+4 Engineered Plague
+3 Dystopia
+3 Bad Moon
+1 Snuff Out
+
+===== DECK 027 | imported=77 | requested=77 | entries=66 | excluded=0 | chars=1235 | 2026-07-11 | 019f51fd-0da3-78e4-b536-548a26ff6199 =====
+
+
+Commander
+1 Temmet, Naktamun's Will
+
+Deck
+1 Adarkar Wastes
+1 Angel of Sanctions
+1 Arcane Signet
+1 Archfiend of Ifnir
+1 Ash Barrens
+1 Binding Mummy
+1 Bontu's Monument
+1 Cast Out
+1 Caves of Koilos
+1 Champion of Wits
+1 Command Tower
+1 Commence the Endgame
+1 Corpse Knight
+1 Cryptbreaker
+1 Damn
+1 Desert of the Glorified
+1 Desert of the Mindful
+1 Desert of the True
+1 Despark
+1 Dimir Signet
+1 Dread Summons
+1 Dreadhorde Invasion
+1 Drowned Catacomb
+1 Dusk // Dawn
+1 Eternal Skylord
+1 Evolving Wilds
+1 Fetid Pools
+1 Fleshbag Marauder
+1 Forgotten Creation
+1 Gate to the Afterlife
+1 Gempalm Polluter
+1 Glacial Fortress
+1 Gleaming Overseer
+1 God-Eternal Oketra
+1 God-Pharaoh's Gift
+1 Grave Titan
+1 Hashaton, Scarab's Fist
+1 Irrigated Farmland
+4 Island
+1 Isolated Chapel
+1 Lazotep Chancellor
+1 Liliana, Death's Majesty
+1 Lord of the Accursed
+1 Maskwood Nexus
+1 Midnight Reaper
+1 Murderous Rider
+1 Never // Return
+1 Orzhov Signet
+5 Plains
+1 Prairie Stream
+1 Pull from Tomorrow
+1 Sunken Hollow
+5 Swamp
+1 Swords to Plowshares
+1 Talisman of Dominance
+1 Talisman of Hierarchy
+1 Temple of Deceit
+1 Temple of Silence
+1 Terramorphic Expanse
+1 The Scarab God
+1 Timeless Dragon
+1 Undead Augur
+1 Underground River
+1 Vizier of Many Faces
+1 Wayward Servant
+
+===== DECK 028 | imported=78 | requested=78 | entries=62 | excluded=0 | chars=1180 | 2026-07-12 | 019f56a3-712a-7134-a769-3e1c76e6dc8b =====
+
+Commander
+1 Kaalia of the Vast
+
+Deck
+1 Akroma's Will
+1 All-Out Assault
+1 Ancient Copper Dragon
+1 Ancient Gold Dragon
+1 Archangel Avacyn
+1 Ardyn, the Usurper
+1 Aurelia, the Warleader
+1 Avacyn, Angel of Hope
+1 Blood Crypt
+1 Bloodgift Demon
+1 Bloodsoaked Insight
+1 Bruna, the Fading Light
+1 Buster Sword
+1 Combat Celebrant
+1 Command Tower
+1 Damn
+1 Dark Confidant
+1 Dark Ritual
+1 Decorum Dissertation
+1 Deflecting Palm
+1 Drana and Linvala
+1 Esper Sentinel
+1 Faithless Looting
+1 Giada, Font of Hope
+1 Gisela, the Broken Blade
+1 Glasswing Grace
+1 Godless Shrine
+1 Grand Abolisher
+1 Haste Magic
+1 Howling Mine
+1 Isshin, Two Heavens as One
+1 Jeska's Will
+1 Land Tax
+1 Legion Leadership
+1 Liesa, Forgotten Archangel
+1 Mithril Coat
+7 Mountain
+1 Phyrexian Arena
+6 Plains
+1 Platinum Angel
+1 Purphoros, Bronze-Blooded
+1 Rakdos, Patron of Chaos
+1 Read the Bones
+1 Reanimate
+1 Reliquary Tower
+1 Rogue's Passage
+1 Sacred Foundry
+1 Savai Triome
+1 Sephara, Sky's Blade
+1 Serra's Emissary
+1 Sign in Blood
+1 Smothering Tithe
+6 Swamp
+1 Swiftfoot Boots
+1 Teferi's Protection
+1 Terror of Mount Velus
+1 Terror of the Peaks
+1 The Fire Crystal
+1 Twinflame Tyrant
+1 Valgavoth, Terror Eater
+1 Windcrag Siege
+
+===== DECK 029 | imported=81 | requested=81 | entries=62 | excluded=0 | chars=1729 | 2026-07-11 | 019f5261-3324-7eb7-981d-d669c915cacf =====
+Ragost, Deft Gastronaut (EOE) 224
+
+1 Academy Manufactor (SLD) 7094
+1 Acrobatic Leap (LCI) 2
+1 Act of Heroism (A25) 1
+1 Alarum (MIR) 2
+1 Arbaaz Mir (ACR) 46
+1 Arcane Signet (LCC) 104
+1 Asgardian Citadel (MSH) 258
+1 Audacious Reshapers (C21) 374
+1 Balor (PCLB) 162p
+1 Battlefield Forge (BRO) 297
+1 Blasphemous Act (SLD) 322
+1 Boros Garrison (CLU) 231
+1 Boros Signet (TDC) 314
+1 Broadcast Takeover (TMT) 234
+1 Buried Ruin (EOC) 150
+1 Burst of Energy (ULG) 3
+1 Circuit Mender (BLC) 267
+1 Clifftop Retreat (EOC) 155
+1 Command Tower (EOC) 59
+1 Crime Novelist (MKM) 121
+1 Dimension X (TMT) 183
+1 Dispatch (EOC) 64
+1 Drumbellower (SOC) 143
+1 Edgar, Master Machinist (FIC) 80
+1 Fields of Strife (SOS) 255
+1 Foundry Inspector (CMM) 385
+1 Furycalm Snarl (SOC) 375
+1 Gleaming Barrier (FDN) 252
+1 Glittering Massif (MSC) 249
+1 Hangarback Walker (EOC) 139
+1 Hijack (XLN) 148
+1 Ichor Wellspring (C21) 245
+1 Illusionist's Bracers (RVR) 260
+1 Inspiring Vantage (SLD) 1375
+1 Inventors' Fair (KLD) 247
+1 Metallic Mastery (MBS) 71
+1 MjÃ¶lnir, Hammer of Thor (MSH) 146
+11 Mountain (SOS) 278
+1 Myr Retriever (2XM) 277
+1 Path to Exile (SOC) 159
+10 Plains (SOS) 272
+1 Prized Statue (CLB) 334
+1 Radiant Fountain (C21) 310
+1 Rugged Prairie (EOC) 174
+1 Rustvale Bridge (EOC) 175
+1 Servo Schematic (AER) 176
+1 Sol Ring (SLC) 19
+1 Solemn Simulacrum (SOC) 355
+1 Staff of Domination (CMR) 343
+1 Swiftfoot Boots (TDC) 328
+1 Sword of the Paruns (RVR) 270
+1 Swords to Plowshares (EOC) 45
+1 Talisman of Conviction (TDC) 329
+1 Temple of Triumph (EOC) 188
+1 Terramorphic Expanse (SOS) 265
+1 The Sound of Drums (WHO) 97
+1 Treasure Vault (DRC) 180
+1 Umbral Mantle (SHM) 267
+1 Weapons Manufacturing (EOE) 168
+1 Weftstalker Ardent (EOE) 169
+1 Wind-Scarred Crag (TDM) 271
+
+===== DECK 030 | imported=81 | requested=81 | entries=81 | excluded=0 | chars=1358 | 2026-07-12 | 019f5799-f84d-7b46-bdcd-4ded4788a238 =====
+cloud of faeries 
+yshtola rhul 
+restoration angel
+glacial fortress
+spellskite
+temple of the enlightenment 
+praire stream
+stonehorn dignitary
+riptide gearhulk
+farewell
+basalt monolith
+hero of bretagard
+conjurer's closet
+reliquary tower
+ghostly flicker
+adarkar wastes
+teleportation circle
+stroke of genius
+distinguished conjurer
+ephmerate
+rishidan footpad
+forced fruition
+laboratory maniac
+the one ring 
+chrome mox
+teferi time raveler
+thassa's oracle
+drannith magistrate 
+rhystic study
+consecrated sphinx
+esper sentinal 
+deafening silence
+counterspell
+brainstorm
+eerie interlude
+thought vessel
+path to exile
+agent of treachery
+venser shaper savant
+stroke of midnight
+cloudshift
+mystic gate
+lithoform engine
+propaganda
+the mind stone
+Grand arbieter augstin IV
+sword of forge and frontier 
+Sol ring
+ arcane signit 
+Sapphire medallion 
+peregrine drake
+Deadeye navigator
+venser the sojourner
+cloudblazer
+charming prine
+solemn simulacrum
+emeritus of ideation
+swan song
+archaeomancer
+whirler rogue
+gogo master of mimicry
+elesh norn mother of machines
+swiftfoot boots
+aqueous form
+tailsman of progress
+kor cartographer
+preordain
+dour port mage
+jin gitaxias core aurgur
+sword of one and future
+supreme verfict
+command tower
+deserted beach
+port town
+mystic sanctuary
+nimbus maze
+rouge's passage
+soul herder
+narset parter of veils
+sword of light and shadow
+panharmonicon
+
+===== DECK 031 | imported=81 | requested=81 | entries=30 | excluded=0 | chars=519 | 2026-07-13 | 019f5a74-6e72-7292-affe-08f54c9c6797 =====
+3x Abandon Attachments
+4x Aurora Eidolon
+2x Boros Garrison
+2x Breath Weapon
+2x Electrickery
+3x Escape Tunnel
+2x Faithless Looting
+1x Fields of Strife
+1x Flaring Pain
+2x Fling
+4x Inside Out
+3x Lightning Bolt
+2x Loran's Escape
+2x Loran's Escape
+5x Mountain
+5x Plains
+3x Prismatic Strands
+4x Pursue the Past
+3x Pyroblast
+2x Sandstorm Eidolon
+1x Sejiri Steppe
+2x Shenanigans
+1x Siege Smash
+4x Sneaky Snacker
+4x Spirit Mascot
+2x Standard Bearer
+2x Thraben Charm
+3x Thrilling Discovery
+4x Tireless Tribe
+3x Wind-Scarred Crag
+
+
+===== DECK 032 | imported=85 | requested=85 | entries=82 | excluded=0 | chars=1666 | 2026-07-12 | 019f575b-2856-79f8-8548-9b786b789343 =====
+Commander
+1 Betor, Ancestor's Voice
+
+Deck
+1 Abigale, Eloquent First-Year
+1 Abyssal Harvester
+1 Aftermath Analyst
+1 Agadeem's Awakening
+1 Alseid of Life's Bounty
+1 Anguished Unmaking
+1 Approach of the Second Sun
+1 Ardyn, the Usurper
+1 Bala Ged Recovery
+1 Birds of Paradise
+1 Black Market Connections
+1 Bleachbone Verge
+1 Bloodletter of Aclazotz
+1 Bloodstained Mire
+1 Boggart Trawler
+1 Brushland
+1 Caves of Koilos
+1 Cemetery Tampering
+1 Command Tower
+1 Damn
+1 Disciple of Freyalise
+1 Doom Whisperer
+1 Eerie Ultimatum
+1 Egrix the Bile Bulwark
+1 Eternal Witness
+1 Evra, Halcyon Witness
+1 Felidar Sovereign
+1 Fell the Profane
+2 Forest
+1 Godless Shrine
+1 Grisly Salvage
+1 Haywire Mite
+1 Heroic Intervention
+1 Hushwood Verge
+1 Icetill Explorer
+1 Indatha Triome
+1 Insatiable Avarice
+1 Lathiel, the Bounteous Dawn
+1 Liliana's Contract
+1 Llanowar Wastes
+1 Lush Portico
+1 Madame Null, Power Broker
+1 Mana Confluence
+1 Marsh Flats
+1 Mesmeric Orb
+1 Nurturing Peatland
+1 Overgrown Tomb
+1 Overlord of the Balemurk
+1 Path to Exile
+1 Perennation
+1 Phyrexian Reclamation
+2 Plains
+1 Priest of Fell Rites
+1 Prismatic Vista
+1 Regrowth
+1 Rhox Faithmender
+1 Ripples of Undeath
+1 Rise of the Witch-king
+1 Savanti Romero, Time's Exile
+1 Scorn-Blade Berserker
+1 Selfless Spirit
+1 Shadowy Backstreet
+1 Skull Prophet
+1 Starting Town
+1 Stitcher's Supplier
+2 Swamp
+1 Swords to Plowshares
+1 Temple Garden
+1 Underground Mortuary
+1 Unholy Annex // Ritual Chamber
+1 Valgavoth, Terror Eater
+1 Verdant Catacombs
+1 Vilis, Broker of Blood
+1 Vito, Thorn of the Dusk Rose
+1 Wastewood Verge
+1 Wight of the Reliquary
+1 Windswept Heath
+1 Witch Enchanter
+1 Withar, Cocoon Keeper
+1 Wood Elves
+1 Zenos yae Galvus
+
+===== DECK 033 | imported=86 | requested=86 | entries=86 | excluded=0 | chars=1744 | 2026-07-11 | 019f53b4-3041-7db2-97bc-a6f292c89856 =====
+Commander
+(1)
+
+Jenova, Ancient Calamity
+Planeswalkers
+(1)
+1
+Wrenn and Seven
+Creatures
+(37)
+1
+Agent Frank Horrigan
+1
+Alpha Deathclaw
+1
+Basking Broodscale
+1
+Blood Artist
+1
+Chatterfang, Squirrel General
+1
+Disciple of Freyalise
+1
+Duskshell Crawler
+1
+Elves of Deep Shadow
+1
+Elvish Mystic
+1
+Evolution Witness
+1
+Feral Ghoul
+1
+Fiend Artisan
+1
+Fyndhorn Elves
+1
+Gravecrawler
+1
+Gruff Triplets
+1
+Gyre Sage
+1
+Host of the Hereafter
+1
+Incubation Druid
+1
+Ivy Lane Denizen
+1
+Jarad, Golgari Lich Lord
+1
+Kodama of the West Tree
+1
+Lily Bowen, Raging Grandma
+1
+Llanowar Elves
+1
+Maester Seymour
+1
+Mazirek, Kraul Death Priest
+1
+Pitiless Plunderer
+1
+Psychosis Crawler
+1
+Rampaging Yao Guai
+1
+Reyhan, Last of the Abzan
+1
+Scurry Oak
+1
+Vigor
+1
+Vincent Valentine
+1
+Warden of the Grove
+1
+Warren Soultrader
+1
+Watchful Radstag
+1
+Wight of the Reliquary
+1
+Young Deathclaws
+Sorceries
+(6)
+1
+Bala Ged Recovery
+1
+Culling Ritual
+1
+Cultivate
+1
+Exsanguinate
+1
+Living Death
+1
+Rise of the Witch-king
+Instants
+(8)
+1
+Abrupt Decay
+1
+Autumn's Veil
+1
+Fell the Profane
+1
+Heroic Intervention
+1
+Inspiring Call
+1
+Noxious Revival
+1
+Tend the Pests
+1
+Wrap in Vigor
+Artifacts
+(9)
+1
+Arcane Signet
+1
+Ashnod's Altar
+1
+Decanter of Endless Water
+1
+Sol Ring
+1
+Tarrian's Soulcleaver
+1
+The Earth Crystal
+1
+The Skullspore Nexus
+1
+Thought Vessel
+1
+Venser's Journal
+Enchantments
+(7)
+1
+Branching Evolution
+1
+Court of Garenbrig
+1
+Greater Good
+1
+Growing Rites of Itlimoc
+1
+Hollowmurk Siege
+1
+Journey to Eternity
+1
+Loading Zone
+Lands
+(31)
+1
+Command Tower
+1
+Darkbore Pathway
+1
+Evolving Wilds
+1
+Exotic Orchard
+10
+Forest
+1
+Lazotep Quarry
+1
+Llanowar Wastes
+1
+Necroblossom Snarl
+1
+Reliquary Tower
+1
+Secret Tunnel
+6
+Swamp
+1
+Tainted Wood
+1
+Twilight Mire
+
+Underground Mortuary
+
+Vernal Fen
+Wastewood Verge
+Woodland Cemetery
+
+
+===== DECK 034 | imported=94 | requested=94 | entries=79 | excluded=0 | chars=1510 | 2026-07-11 | 019f53eb-0481-7e5e-b2d3-6dcb55f1227e =====
+1 A Little Chat
+1 Alania, Divergent Storm
+1 Alien Invasion
+1 Arcane Signet
+1 Archmage Emeritus
+1 Baron, Airship Kingdom
+1 Bristling Backwoods
+1 Case of the Ransacked Lab
+1 Chance Encounter
+1 Chatterstorm
+1 Colorstorm Stallion
+1 Command Tower
+1 Commander's Sphere
+1 Cosmic Crucible
+1 Creative Technique
+1 Double Vision
+1 Empty the Warrens
+1 Etali, Primal Storm
+1 Evolving Wilds
+1 Exotic Orchard
+1 Eye of the Storm
+1 Fellwar Stone
+1 Fire Diamond
+6 Forest
+1 Frontier Bivouac
+1 Galvanic Relay
+1 Genesis Storm
+1 Ghastly Discovery
+1 Gleeful Sabotage
+1 Goblin Anarchomancer
+1 Goblin Electromancer
+1 Great Hall of the Biblioplex
+1 Impulsivity
+1 Insight Engine
+1 Intergalactic Wrestling
+6 Island
+1 Izzet Signet
+1 Kaza, Roil Chaser
+1 Los Diablos Missile Base
+1 Mentor's Guidance
+1 Mindmoil
+1 Mists of Lórien
+1 Molten-Core Maestro
+1 Moss Diamond
+6 Mountain
+1 Mulldrifter
+1 Muse Seeker
+1 Natural Reclamation
+1 Night Market
+1 Paradox Gardens
+1 Peculiar Lighthouse
+1 Prismari Pianist
+1 Raiding Schemes
+1 Rally the Galadhrim
+1 Replication Technique
+1 Resonating Lute
+1 Rugged Highlands
+1 Savage Mansion
+1 Simic Guildgate
+1 Skirk Prospector
+1 Sky Diamond
+1 Spectacle Summit
+1 Storm-Kiln Artist
+1 Surge to Victory
+1 Swiftwater Cliffs
+1 Tavern Scoundrel
+1 Terramorphic Expanse
+1 The Gold Saucer
+1 The Scarlet Witch
+1 Thornwood Falls
+1 Throes of Chaos
+1 Train of Thought
+1 Transforming Flourish
+1 Up the Beanstalk
+1 Vacuumelt
+1 Whirlpool Warrior
+1 Wort, the Raidmother
+Commander
+1 Krark, the Thumbless
+1 Kydele, Chosen of Kruphix
+
+===== DECK 035 | imported=95 | requested=95 | entries=95 | excluded=0 | chars=1460 | 2026-07-12 | 019f579c-c9b0-7661-a04c-626a34c47284 =====
+cloud of faeries 
+yshtola rhul 
+restoration angel
+glacial fortress
+spellskite
+temple of the enlightenment 
+praire stream
+stonehorn dignitary
+riptide gearhulk
+farewell
+basalt monolith
+hero of bretagard
+conjurer's closet
+reliquary tower
+ghostly flicker
+adarkar wastes
+teleportation circle
+stroke of genius
+distinguished conjurer
+ephmerate
+rishidan footpad
+forced fruition
+laboratory maniac
+the one ring 
+chrome mox
+teferi time raveler
+thassa's oracle
+drannith magistrate 
+rhystic study
+consecrated sphinx
+esper sentinal 
+deafening silence
+counterspell
+brainstorm
+eerie interlude
+thought vessel
+path to exile
+agent of treachery
+venser shaper savant
+stroke of midnight
+cloudshift
+mystic gate
+lithoform engine
+propaganda
+the mind stone
+Grand arbieter augstin IV
+sword of forge and frontier 
+Sol ring
+ arcane signit 
+Sapphire medallion 
+peregrine drake 
+Deadeye navigator
+venser the sojourner
+cloudblazer
+charming prine
+solemn simulacrum
+emeritus of ideation
+swan song
+archaeomancer
+whirler rogue
+gogo master of mimicry
+elesh norn mother of machines
+swiftfoot boots
+aqueous form
+tailsman of progress
+kor cartographer
+preordain
+dour port mage
+jin gitaxias core aurgur
+sword of one and future
+supreme verfict
+command tower
+deserted beach
+port town
+mystic sanctuary
+nimbus maze
+rouge's passage
+soul herder
+narset parter of veils
+sword of light and shadow
+panharmonicon
+island 
+island
+island
+island
+island
+island
+island
+island
+island
+island
+plains 
+plains
+plains
+plains
+
+
+===== DECK 036 | imported=96 | requested=96 | entries=87 | excluded=0 | chars=1756 | 2026-07-11 | 019f5228-2385-73db-a830-10b8087f7025 =====
+Commander
+1 Ms. Bumbleflower
+
+Creatures (26)
+1 Baird, Steward of Argive
+1 Bloodroot Apothecary
+1 Body of Knowledge
+1 Chasm Skulker
+1 Coiling Oracle
+1 Faeburrow Elder
+1 Forgotten Ancient
+1 Jolly Gerbils
+1 Jolrael, Mwonvuli Recluse
+1 Kalonian Hydra
+1 Kwain, Itinerant Meddler
+1 Loran of the Third Path
+1 Managorger Hydra
+1 Mangara, the Diplomat
+1 Mr. Foxglove
+1 Octomancer
+1 Psychosis Crawler
+1 Realm-Cloaked Giant // Cast Off
+1 Rishkar, Peema Renegade
+1 Selvala, Explorer Returned
+1 Sphinx of Enlightenment
+1 Spore Frog
+1 Steelburr Champion
+1 Sunscorch Regent
+1 Triskaidekaphile
+1 Twenty-Toed Toad
+
+Instants (10)
+1 An Offer You Can't Refuse
+1 Broken Wings
+1 Generous Gift
+1 Illusionist's Gambit
+1 Long River's Pull
+1 Perch Protection
+1 Perplexing Test
+1 Riot Control
+1 Swords to Plowshares
+1 Wear Down
+
+Sorceries (6)
+1 Cultivate
+1 Farseek
+1 Intellectual Offering
+1 Peerless Recycling
+1 Secret Rendezvous
+1 Tempt with Discovery
+
+Enchantments (8)
+1 Communal Brewing
+1 Fisher's Talent
+1 Hoofprints of the Stag
+1 Martial Impetus
+1 Rites of Flourishing
+1 Simic Ascendancy
+1 Tenuous Truce
+1 Wizard Class
+
+Artifacts (6)
+1 Arcane Signet
+1 Coveted Jewel
+1 Fellwar Stone
+1 Mind Stone
+1 Sol Ring
+1 Thought Vessel
+
+Planeswalkers (1)
+1 Tamiyo, Field Researcher
+
+Lands (42)
+1 Adarkar Wastes
+1 Brushland
+1 Canopy Vista
+1 Command Tower
+1 Evolving Wilds
+1 Exotic Orchard
+1 Flooded Grove
+1 Glacial Fortress
+1 Hinterland Harbor
+1 Overflowing Basin
+1 Prairie Stream
+1 Razorverge Thicket
+1 Reliquary Tower
+1 Seachrome Coast
+1 Seaside Citadel
+1 Skycloud Expanse
+1 Sungrass Prairie
+1 Sunpetal Grove
+1 Temple of Enlightenment
+1 Temple of Mystery
+1 Temple of Plenty
+1 Terramorphic Expanse
+1 Thriving Grove
+1 Thriving Heath
+1 Thriving Isle
+1 Yavimaya Coast
+4 Plains
+4 Island
+4 Forest
+
+===== DECK 037 | imported=96 | requested=96 | entries=78 | excluded=0 | chars=1419 | 2026-07-11 | 019f5366-7bfb-78bd-83d9-0d6177432898 =====
+Commander: jenova ancient calamity  
+Incubation Druid 
+Ivy lane Denizen 
+Watchful radstag 
+Host of the hereafter 
+Reyhan last of the Abzan 
+Agent frank Horrigan 
+Jarad golgari lich lord 
+Rampaging Yao Guai 
+Kodama of the west tree 
+Alpha deathclaw 
+Warden of the grove 
+Llanowar elves 
+Psychosis crawler 
+Feral ghoul 
+Blood artist 
+Disciple of freylise 
+Mazirek kraul death priest 
+Duskshell crab 
+Elves of deep shadow 
+Young death claws 
+Wight of the reliquary 
+Elvish mystic 
+Basking broodscale 
+Vincent valentine 
+Lily Bowen raging grandma 
+Fiend artisan 
+Vigor 
+Fyndhorn elves 
+Gyre sage 
+Maester Seymour 
+Evolution witness 
+Warren soul trader 
+Grave crawler 
+Pittiless plunderer 
+Chatterfang squirrel general 
+Heroic intervention 
+Inspiring call 
+Abrupt decay 
+Fell the profane/fell mire 
+Tend the pests 
+Autum’s veil 
+Noxious revival 
+Culling ritual 
+Cultivate 
+Rise of the witch king 
+Exsanguinate 
+Living death 
+Bala ged recovery/sanctuary 
+Earth Crystal
+Ashnods 
+The skull spore nexus 
+Arcane signet 
+Sol ring 
+Thought vessel 
+Decanter of endless waters 
+Vensers journal 
+Wren and seven
+Greater good 
+Hallowmurk siege 
+Journey to eternity 
+Secret tunnel 
+Necro blossom snarl 
+Command tower
+Woodland cemetery 
+Llanowar waste 
+Underground mortuary 
+Wastewood verge 
+Twilight mire 
+Tainted wood 
+Darkbore pathway 
+Exotic orchard 
+Vernal fen
+Evolving wilds 
+Lazotep quarry 
+Reliquary tower
+10x swamps
+10x forrest 
+
+
+===== DECK 038 | imported=97 | requested=97 | entries=76 | excluded=0 | chars=1396 | 2026-07-11 | 019f53fb-1711-7d84-8e18-143f6458dc7d =====
+1 Academy Manufactor
+1 Arcane Signet
+1 Archon of Emeria
+1 Authority of the Consuls
+1 Blood Money
+1 Chaos Warp
+1 Chimil, the Inner Sun
+1 Command Tower
+1 Commander's Sphere
+1 Court of Ire
+1 Court of Locthwain
+1 Deflecting Swat
+1 Donnie's Bō
+1 Duskmantle Operative
+1 Enlightened Tutor
+1 Esper Sentinel
+1 Exotic Orchard
+1 Fellwar Stone
+1 Flawless Maneuver
+1 Ghostly Prison
+1 Giver of Runes
+1 Grand Abolisher
+1 Grave Venerations
+1 Hall of Heliod's Generosity
+1 Immolation Shaman
+1 Kambal, Consul of Allocation
+1 Karn's Bastion
+1 Keep Out
+1 Lolth, Spider Queen
+1 Monologue Tax
+8 Mountain
+1 Nadier's Nightblade
+1 Nemesis Trap
+1 Nesting Grounds
+1 Night Clubber
+1 Ondu Spiritdancer
+1 Orzhov Basilica
+1 Path of Ancestry
+1 Pitiless Plunderer
+8 Plains
+1 Professional Face-Breaker
+1 Rakdos Carnarium
+1 Ranger of Eos
+1 Reanimate
+1 Reliquary Tower
+1 Revel in Riches
+1 Riveteers Overlook
+1 Sevinne's Reclamation
+1 Sleeper Agent
+1 Slumbering Walker
+1 Smoldering Marsh
+1 Smothering Tithe
+1 Sol Ring
+1 Solemn Simulacrum
+1 Sorin the Mirthless
+1 Soul Warden
+8 Swamp
+1 Swords to Plowshares
+1 Teferi's Protection
+1 Temple of Silence
+1 Temple of Triumph
+1 The Akroan War
+1 The Birth of Meletis
+1 The Cruelty of Gix
+1 The Eldest Reborn
+1 The Restoration of Eiganjo
+1 Tormented Soul
+1 Tree of Perdition
+1 Tweeze
+1 Victimize
+1 Vihaan, Goldwaker
+1 Vryn Wingmare
+1 Wear/Tear
+1 Whip of Erebos
+1 Windborn Muse
+
+1 Queen Marchesa
+
+===== DECK 039 | imported=97 | requested=97 | entries=97 | excluded=0 | chars=1483 | 2026-07-12 | 019f579f-97d4-73ec-af8a-708fa8173645 =====
+cloud of faeries 
+yshtola rhul 
+restoration angel
+glacial fortress
+spellskite
+temple of the enlightenment 
+praire stream
+stonehorn dignitary
+riptide gearhulk
+farewell
+basalt monolith
+hero of bretagard
+conjurer's closet
+reliquary tower
+ghostly flicker
+adarkar wastes
+teleportation circle
+stroke of genius
+distinguished conjurer
+ephmerate
+rishidan footpad
+forced fruition
+laboratory maniac
+the one ring 
+chrome mox
+teferi time raveler
+thassa's oracle
+drannith magistrate 
+rhystic study
+consecrated sphinx
+esper sentinal 
+deafening silence
+counterspell
+brainstorm
+eerie interlude
+thought vessel
+path to exile
+agent of treachery
+venser shaper savant
+stroke of midnight
+cloudshift
+mystic gate
+lithoform engine
+propaganda
+the mind stone
+Grand arbieter augstin IV
+sword of forge and frontier 
+Sol ring
+ arcane signit 
+Sapphire medallion 
+peregrine drake 
+Deadeye navigator
+venser the sojourner
+cloudblazer
+charming prine
+solemn simulacrum
+emeritus of ideation
+swan song
+archaeomancer
+whirler rogue
+gogo master of mimicry
+elesh norn mother of machines
+swiftfoot boots
+aqueous form
+tailsman of progress
+kor cartographer
+preordain
+dour port mage
+jin gitaxias core aurgur
+sword of one and future
+supreme verfict
+command tower
+deserted beach
+port town
+mystic sanctuary
+nimbus maze
+rouge's passage
+soul herder
+narset parter of veils
+sword of light and shadow
+panharmonicon
+brago king eternal
+island
+island
+island
+island
+island
+island
+island
+island
+plains
+plains
+plains
+plains
+plains
+plains
+plains
+
+===== DECK 040 | imported=99 | requested=99 | entries=73 | excluded=0 | chars=2044 | 2026-07-11 | 019f52ca-984a-7190-a6ee-46b1d4685a80 =====
+1 Amazing Acrobatics (SPM) 25
+1 Aquitect's Will (LRW) 52
+1 Arcane Signet (MSC) 192
+1 Archmage's Charm (SCH) 2 *F*
+1 Bident of Thassa (M3C) 177
+1 Blue Sun's Zenith (STA) 12
+1 Brainstorm (STA) 13
+1 Castle Vantress (M3C) 327
+1 Commander's Insight (PRM) 90046
+1 Counterspell (PF24) 1
+1 Cryptic Command (PRM) 31447 *F*
+1 Curse of the Swine (TDC) 149
+1 Dig Through Time (PLG21) 2 *F*
+1 Disallow (DRC) 74
+1 Echocasting Symposium (SOS) 291
+1 Even the Score (SNC) 42
+1 Filter Out (MAT) 7
+1 Flood of Recollection (RIX) 38
+1 Flooded Strand (MH3) 220
+1 Flusterstorm (MH3) 496 *F*
+1 Force of Negation (TLE) 13
+1 Force of Will (DMR) 50
+1 Future Sight (DDM) 33
+1 High Tide (FEM) 18a
+1 Hope's Aero Magic (SLD) 1869
+1 Inundate (EVE) 25
+1 Invoke the Winds (NEO) 370
+27 Island (SLD) 255
+1 Isochron Scepter (MB2) 96
+1 Jace, Wielder of Mysteries (PRM) 72265
+1 Kindred Discovery (MSC) 150
+1 Lórien Revealed (LTR) 511
+1 Mana Drain (CMR) 80
+1 Mass Manipulation (RNA) 42
+1 Misdirection (DDT) 15
+1 Misty Rainforest (MM3) 240
+1 Mox Amber (DOM) 224
+1 Mystic Confluence (LTC) 193
+1 Mystic Sanctuary (SOC) 388
+1 Narset's Reversal (SLC) 14
+1 Opposition (DMR) 290
+1 Polluted Delta (MH3) 224
+1 Ponder (PRM) 35118 *F*
+1 Preordain (PF26) 7
+1 Propaganda (MSC) 151
+1 Raise the Palisade (LTC) 425
+1 Reconnaissance Mission (MAR) 59
+1 Reenact the Crime (MKM) 70
+1 Reliquary Tower (TDC) 386
+1 Rewind (MM3) 47
+1 Rimefire Torque (ECL) 65
+1 Rite of Replication (MAR) 14
+1 River's Rebuke (FDN) 595
+1 Scalding Tarn (MM3) 244
+1 Sea Gate Restoration / Sea Gate, Reborn (ZNR) 333
+1 Secret of Bloodbending (TLA) 337
+1 Shark Typhoon (DSC) 127
+1 Sink into Stupor / Soporific Springs (MH3) 241
+1 Skullclamp (MSC) 210
+1 Sky Diamond (MIC) 161
+1 Sol Ring (FIC) 358
+1 Spectral Deluge (KHC) 7
+1 Spirit Water Revival (TLA) 370
+1 Stock Up (SOA) 24
+1 Temporal Trespass (FRF) 55
+1 Tempted by the Oriq (PRM) 90022
+1 The Magic Mirror (PELD) 51p
+1 The Water Crystal (FIN) 85
+1 Time Warp (STA) 85
+1 Transcendent Message (MOM) 83
+1 Waterbending Scroll (TLA) 81
+1 Wisdom of Ages (SOS) 323
+1 Namor The Sub-Mariner
+
+===== DECK 041 | imported=99 | requested=99 | entries=98 | excluded=0 | chars=2849 | 2026-07-11 | 019f52cd-6e7e-753d-87dd-b7fa9001bdf3 =====
+1 Adrix and Nev, Twincasters (SPG) 156
+1 Afterlife from the Loam (TDC) 25
+1 Ancient Greenwarden (J25) 627
+1 Ancient Tomb (EOS) 1
+1 Arcane Signet (FIC) 334
+1 Assassin's Trophy (SOC) 294
+1 Bloodghast (SOC) 210
+1 Breeding Pool (EOE) 251
+1 Colossal Grave-Reaver (TDC) 50
+1 Command Tower (ECC) 59
+1 Creeping Tar Pit (UMA) 239
+1 Dakmor Salvage (EOC) 156
+1 Deathcap Glade (SOS) 253
+1 Deathrite Shaman (MB2) 81
+1 Diregraf Captain (SCD) 224
+1 Drag to the Roots (DSK) 414
+1 Dread Return (CMM) 153
+1 Dreamroot Cascade (M3C) 338
+1 Dredger's Insight (DFT) 159
+1 Elvish Reclaimer (MB2) 205
+1 Eternal Witness (SCD) 181
+1 Evendo, Waking Haven (EOE) 253
+1 Fang, Fearless l'Cie (FIN) 99
+1 Farseek (FIC) 302
+1 Field of the Dead (SLC) 6
+2 Forest (M14) 247
+1 Gravecrawler (DRC) 43
+1 Grisly Salvage (PLST) GK1-64
+1 Hedge Maze (MKM) 262
+1 Hissing Quagmire (EOS) 19
+1 Hogaak, Arisen Necropolis (MH1) 202
+1 Insidious Roots (MKM) 313
+1 Island (SUM) 297
+1 Jarad, Golgari Lich Lord (TDC) 293
+1 Life from the Loam (DDJ) 69
+1 Lightning Greaves (C19) 217
+1 Memorial to Folly (C20) 288
+1 Mistrise Village (PTDM) 261p
+1 Misty Rainforest (MM3) 240
+1 Muldrotha, the Gravetide (ECC) 128
+1 Murderous Rider / Swift End (PLST) ELD-97
+1 Narcomoeba (MMA) 55
+1 Nature's Lore (SOC) 278
+1 Nurturing Peatland (MH1) 243
+1 Ob Nixilis, the Fallen (TDC) 192
+1 Opulent Palace (PLST) KTK-238
+1 Oracle of Mul Daya (EOC) 102
+1 Otawara, Soaring City (PNEO) 271p
+1 Overgrown Tomb (ECL) 266
+1 Phyrexian Altar (2X2) 311
+1 Phyrexian Tower (JMP) 493
+1 Polluted Delta (MH3) 224
+1 Princess Sarah (FCA) 15
+1 Putrefy (DGM) 93
+1 Rakshasa's Bargain (TDM) 214
+1 Ramunap Excavator (M3C) 241
+1 Ravenous Chupacabra (PLST) RIX-82
+1 Reassembling Skeleton (M12) 104
+1 Reclamation Sage (SCD) 205
+1 Sakura-Tribe Elder (DSC) 194
+1 Satyr Wayfinder (C15) 201
+1 Scapeshift (M19) 201
+1 Shifting Woodland (MH3) 228
+1 Sink into Takenuma (SOK) 89
+1 Six (MH3) 169
+1 Skeleton Crew (LCC) 85
+1 Skull Prophet (TDC) 304
+1 Sol Ring (EOC) 57
+1 Stitcher's Supplier (FIC) 287
+1 Strip Mine (RIN) 174
+1 Swamp (MSH) 291
+1 Syr Konrad, the Grim (PLST) ELD-107
+1 Takenuma, Abandoned Mire (NEO) 278
+1 Tear Asunder (PLST) DMU-183
+1 Teval's Judgment (TDC) 28
+1 The Scarab God (DRC) 120
+1 Titania, Protector of Argoth (EOC) 111
+1 Twilight Diviner (ECL) 122
+1 Umbral Collar Zealot (SOC) 227
+1 Undercity Sewers (PZA) 20
+1 Underground Mortuary (PMKM) 271p
+1 Urborg, Tomb of Yawgmoth (PLC) 165
+1 Uro, Titan of Nature's Wrath (MB2) 93
+1 Vanille, Cheerful l'Cie (FIN) 211
+1 Verdant Catacombs (MM3) 249
+1 Vesuva (M3C) 404
+1 Wasteland (SLC) 23
+1 Waterlogged Grove (WHO) 331
+1 Watery Grave (EOE) 261
+1 Wight of the Reliquary (SOC) 338
+1 Willow Geist (PMID) 207p
+1 Wishclaw Talisman (FDN) 617
+1 Wonder (TDC) 170
+1 World Shaper (RIX) 151
+1 Yavimaya, Cradle of Growth (MH2) 261
+1 Zagoth Triome (PIKO) 259p
+1 Zuran Orb (MH2) 300
+1 Teval, the Balanced Scale (TDC) 8
+
+===== DECK 042 | imported=99 | requested=99 | entries=85 | excluded=1 | chars=1589 | 2026-07-12 | 019f547c-90f1-7382-b904-0a752993e38d =====
+1 Adaptive Automaton
+1 Axgard Cavalry
+1 Barkform Harvester
+1 Battered Golem
+1 Bloodfire Dwarf
+1 Dwarven Blastminer
+1 Dwarven Bloodboiler
+1 Dwarven Forge-Chanter
+1 Dwarven Grunt
+1 Dwarven Scorcher
+1 Dwarven Trader
+1 Enslaved Dwarf
+1 Knuckles the Echidna
+1 Liberated Dwarf
+1 Magda, the Hoardmaster
+1 Metallic Mimic
+1 Plundering Barbarian
+1 Professional Face-Breaker
+1 Reckless Fireweaver
+1 Roaming Throne
+1 Simian Spirit Guide
+1 Spark Mage
+1 Three Tree Mascot
+1 Universal Automaton
+1 Xorn
+1 Chrome Mox
+1 Clock of Omens
+1 Clown Car
+1 Cursed Mirror
+1 Damping Sphere
+1 Disruptor Flute
+1 Firdoch Core
+1 Flywheel Racer
+1 God-Pharaoh's Statue
+1 Grafdigger's Cage
+1 High-Speed Hoverbike
+1 Lifecraft Engine
+1 Liquimetal Torque
+1 Lotus Petal
+1 Mana Vault
+1 Maskwood Nexus
+1 Mirror of the Forebears
+1 Mox Amber
+1 Mox Opal
+1 Paradise Plume
+1 Portal to Phyrexia
+1 Sculpting Steel
+1 Smuggler's Copter
+1 Sol Ring
+1 Spine of Ish Sah
+1 Springleaf Drum
+1 Stalactite Dagger
+1 The One Ring
+1 Torpor Orb
+1 Unlicensed Hearse
+1 Vexing Bauble
+1 Abrade
+1 Bottle-Cap Blast
+1 Chaos Warp
+1 Deflecting Swat
+1 Flare of Duplication
+1 Galvanic Blast
+1 Lightning Bolt
+1 Red Elemental Blast
+1 Return the Favor
+1 Sudden Shock
+1 Tibalt's Trickery
+1 Untimely Malfunction
+1 Zoyowa's Justice
+1 Jeska's Will
+1 Blood Moon
+1 Ancient Tomb
+1 Cavern of Souls
+1 Command Beacon
+1 Dwarven Mine
+1 Gemstone Caverns
+1 Hammerheim
+1 Holdout Settlement
+1 Kavaron, Memorial World
+14 Mountain
+1 Shinka, the Bloodsoaked Keep
+2 Snow-Covered Mountain
+1 Survivors' Encampment
+1 Talon Gates of Madara
+1 Volatile Fault
+Sideboard
+1 Magda, Brazen Outlaw
+
+
+===== DECK 043 | imported=99 | requested=99 | entries=81 | excluded=0 | chars=1493 | 2026-07-12 | 019f5523-ec8c-76b3-bbe3-4dd50e6e5f5b =====
+1 Abrade
+1 Agitator Ant
+1 Alexios, Deimos of Kosmos
+1 Arcane Signet
+1 Bedevil
+1 Blade of Selves
+1 Blasphemous Act
+1 Blood Artist
+1 Blood Crypt
+1 Bloodstained Mire
+1 Bloodthirsty Blade
+1 Bojuka Bog
+1 Bothersome Quasit
+1 Brash Taunter
+1 Chaos Warp
+1 Command Tower
+1 Conjurer's Closet
+1 Curse of Opulence
+1 Cursed Mirror
+1 Dark Ritual
+1 Dictate of the Twin Gods
+1 Disrupt Decorum
+1 Dragonskull Summit
+1 Feed the Swarm
+1 Fellwar Stone
+1 Foreboding Ruins
+1 Frenzied Saddlebrute
+1 Geode Rager
+1 Ghoulish Impetus
+1 Goblin Spymaster
+1 Graven Cairns
+1 Haunted Ridge
+1 Hunted Horror
+1 Jaxis, the Troublemaker
+1 Jeska's Will
+1 Kaervek the Merciless
+1 Karazikar, the Eye Tyrant
+1 Kazuul, Tyrant of the Cliffs
+1 Luxury Suite
+1 Malakir Rebirth
+1 Mana Geyser
+1 Massacre Wurm
+1 Mind Stone
+1 Morbid Opportunist
+10 Mountain
+1 Myriad Landscape
+1 Orthion, Hero of Lavabrink
+1 Parasitic Impetus
+1 Phyrexian Arena
+1 Rakdos Charm
+1 Rakdos Signet
+1 Read the Bones
+1 Reanimate
+1 Rite of the Raging Storm
+1 Sanctum of Eternity
+1 Shadowblood Ridge
+1 Shiny Impetus
+1 Sign in Blood
+1 Slaughter Specialist
+1 Smoldering Marsh
+1 Sol Ring
+1 Solemn Simulacrum
+1 Soul Shatter
+1 Spectacular Showdown
+1 Spiteful Visions
+1 Stormfist Crusader
+1 Sulfurous Springs
+1 Supernatural Stamina
+10 Swamp
+1 Tainted Peak
+1 Talisman of Indulgence
+1 Temple of Malice
+1 Terminate
+1 Twinflame
+1 Undying Malice
+1 Vandalblast
+1 Varchild, Betrayer of Kjeldor
+1 Varragoth, Bloodsky Sire
+1 Vengeful Ancestor
+1 Wayfarer's Bauble
+1 Xantcha, Sleeper Agent
+
+===== DECK 044 | imported=99 | requested=99 | entries=90 | excluded=0 | chars=1662 | 2026-07-12 | 019f55ee-bfac-75d2-b313-e938fbc2bf6b =====
+1 An Offer You Can't Refuse
+1 Arcane Signet
+1 Ashiok, Dream Render
+1 Blasphemous Edict
+1 Bloatfly Swarm
+1 Bloodchief Ascension
+1 Bojuka Bog
+1 Breeding Pool
+1 Bruvac the Grandiloquent
+1 Chrome Mox
+1 Clamavus
+1 Counterspell
+1 Cultivate
+1 Dark Ritual
+1 Darkwater Catacombs
+1 Dauthi Voidwalker
+1 Deathrite Shaman
+1 Demonic Tutor
+1 Diabolic Intent
+1 Dreamtide Whale
+1 Drowned Catacomb
+1 Evolution Witness
+1 Expropriate
+1 Force of Negation
+4 Forest
+1 Ghouls' Night Out
+1 Gloomlake Verge
+1 Glowing One
+1 Golbez, Clad In Darkness
+1 Grindstone
+1 Hardened Scales
+1 Heroic Intervention
+1 Hinterland Harbor
+1 Hope's Aero Magic
+1 Icetill Explorer
+4 Island
+1 Kami of Whispered Hopes
+1 Lotus Petal
+1 Maddening Cacophony
+1 Mana Vault
+1 Master Emerald Shrine
+1 Memory Erosion
+1 Meteor Crater
+1 Mindcrank
+1 Mirelurk Hatchling
+1 Misty Rainforest
+1 Mothman Egg
+1 Muldrotha, the Gravetide
+1 Mutational Advantage
+1 Mystical Tutor
+1 Newfound Adventure
+1 Notion Thief
+1 Opulent Palace
+1 Overflowing Basin
+1 Overgrown Tomb
+1 Phyrexian Metamorph
+1 Polluted Delta
+1 Portal to Phyrexia
+1 Reanimate
+1 Rejuvenating Springs
+1 Ripples of Potential
+1 Rise of the Dark Realms
+1 Riverchurn Monument
+1 Screeching Scorchbeast
+1 Sensei's Divining Top
+1 Singularity Rupture
+1 Sol Ring
+1 Sphinx's Tutelage
+1 Sun Quan, Lord of Wu
+1 Sunken Hollow
+4 Swamp
+1 Swan Song
+1 Swarmyard
+1 Swiftfoot Boots
+1 Talion, the Kindly Lord
+1 Tato Farmer
+1 Terramorphic Expanse
+1 Terrasymbiosis
+1 The Water Crystal
+1 Toxrill, the Corrosive
+1 Underground Sea
+1 Unstable Harmonics
+1 Vampiric Tutor
+1 Verdant Catacombs
+1 Vexing Radgull
+1 Watery Grave
+1 Willowrush Verge
+1 Woodland Cemetery
+1 Worldly Tutor
+
+1 The Wise Mothman
+
+===== DECK 045 | imported=99 | requested=99 | entries=99 | excluded=0 | chars=2948 | 2026-07-12 | 019f56ce-d2df-7d67-8b07-7524b4b2a21e =====
+commander
+1 Breya, Etherium Shaper (SLD) 454 *F*
+
+deck
+1 Academy Manufactor (PLST) MH2-219
+1 Academy Ruins (DRC) 58
+1 Alloy Myr (MM2) 201
+1 Alpha Myr (MRD) 142
+1 Ancient Den (EOC) 148
+1 Ancient Tomb (EOS) 1
+1 Arcane Signet (MSC) 192
+1 Basalt Monolith (LTC) 274
+1 Birgi, God of Storytelling / Harnfel, Horn of Bounty (KHM) 123
+1 Blightsteel Colossus (2XM) 357
+1 Blood Crypt (ECL) 262
+1 Bolas's Citadel (PLG21) 3 *F*
+1 Chrome Mox (EMA) 219
+1 Cloud Key (EOC) 54
+1 Command Tower (TDC) 107
+1 Darksteel Citadel (MB2) 107
+1 Darksteel Forge (M14) 206
+1 Defense Grid (8ED) 296
+1 Emergence Zone (WAR) 245
+1 Emry, Lurker of the Loch (EOC) 71
+1 Enthusiastic Mechanaut (EOC) 114
+1 Esper Sentinel (MH2) 12
+1 Etherium Sculptor (EOC) 72
+1 Ethersworn Canonist (MB2) 10
+1 Exotic Orchard (C16) 295
+1 Gemstone Caverns (EOS) 16
+1 Glimmervoid (MMA) 223
+1 Goblin Welder (DDU) 35 *F*
+1 Godless Shrine (EOE) 254
+1 Great Furnace (C18) 250
+1 Grinding Station (MB2) 223
+1 Hallowed Fountain (RNA) 251
+1 Inventors' Fair (EOS) 21
+1 Iron Man, Titan of Innovation (SLD) 1731
+1 Island (SUM) 297
+1 Jan Jansen, Chaos Crafter (CLB) 424
+1 Jhoira, Weatherlight Captain (EOC) 118
+1 Karn, Silver Golem (V10) 6 *F*
+1 Krark-Clan Ironworks (MB2) 224
+1 Lotho, Corrupt Shirriff (LTR) 213
+1 Lotus Petal (TMP) 294
+1 Lurrus of the Dream-Den (IKO) 226
+1 Luxury Suite (MSC) 252
+1 Mana Vault (5ED) 388
+1 Marionette Apprentice (MH3) 100
+1 Marionette Master (KLD) 90
+1 Master Transmuter (BRC) 87
+1 Minamo, School at Water's Edge (PLST) CHK-279 *F*
+1 Mountain (PLST) WOE-273
+1 Mox Amber (DOM) 224
+1 Mox Opal (MM2) 223
+1 Mycosynth Lattice (BBD) 241
+1 Myr Retriever (MMA) 210
+1 Oswald Fiddlebender (AFR) 304
+1 Otawara, Soaring City (NEO) 271
+1 Padeem, Consul of Innovation (J25) 62
+1 Pili-Pala (SHM) 258
+1 Plains (M10) 232
+1 Reflecting Pool (EOS) 36
+1 Revel in Riches (XLN) 117
+1 Rings of Brighthearth (CMR) 335
+1 Sacred Foundry (EOE) 256
+1 Sai, Master Thopterist (DRC) 82
+1 Sculpting Steel (10E) 342
+1 Sea of Clouds (CLB) 360
+1 Seat of the Synod (J25) 773
+1 Sensei's Divining Top (MB2) 231
+1 Shuri, Wakandan Inventor (MSH) 75
+1 Simulacrum Synthesizer (BIG) 36
+1 Smothering Tithe (RNA) 22
+1 Sol Ring (SLD) 913 *F*
+1 Spectator Seating (MSC) 268
+1 Steam Vents (GRN) 257
+1 Storm the Vault / Vault of Catlacan (RIX) 173
+1 Swamp (M20) 271
+1 Tataru Taru (FIC) 30
+1 Tezzeret, Cruel Captain (EOE) 2
+1 The One Ring (LTR) 451
+1 Thopter Assembly (C18) 226
+1 Thopter Foundry (MB2) 92
+1 Thought Monitor (J25) 373
+1 Time Sieve (ARB) 31
+1 Tony Stark / The Invincible Iron Man (MSH) 80
+1 Training Center (CMR) 358
+1 Treasure Vault (DRC) 180
+1 Trinket Mage (5DN) 39
+1 Unwinding Clock (C18) 228
+1 Urza, Chief Artificer (BRC) 49
+1 Urza, Lord High Artificer (MB2) 244 *F*
+1 Urza's Saga (SLC) 21
+1 Uthros, Titanic Godcore (PEOE) 260p
+1 Vandalblast (MSC) 168
+1 Vault of Champions (CMR) 360
+1 Vault of Whispers (J25) 780
+1 Walking Ballista (FIC) 371
+1 Watery Grave (EOE) 261
+1 Wurmcoil Engine (CM2) 231
+1 Zidane Tribal (FCA) 43
+
+
+===== DECK 046 | imported=99 | requested=99 | entries=68 | excluded=0 | chars=1401 | 2026-07-12 | 019f572c-2c78-76e1-9840-2be3f06c41e5 =====
+1 Iron Man, Tony Stark
+1 Speed, Young Avenger
+1 Hulk, Bruce Banner
+1 Happy Hogan, Dauntless Driver
+1 Black Widow, Natasha Romanoff
+1 Quicksilver, Pietro Maxmioff
+1 Scarlet Witch, Wanda Maxmimoff
+1 Spider-Man, Hometown Hero
+1 The Immortal Weapons
+1 She-Hulk, Jennifer Walters
+1 Wiccan, Young Avenger
+1 Concentrated Fire
+1 Smashing Spree
+1 Power Boost
+1 Crimson Operative
+1 Repulsor Rays
+1 Marvelous Melee
+1 Furious Strength
+1 Hire a Crew
+1 Experimental Armor
+1 Lightning Strike
+1 Suplex
+1 Light of Judgement
+1 Haste Magic
+1 Painter's Studio
+1 Truck Toss
+1 Machinesmith Automaton
+1 Lightning, Security Sergeant
+1 Molten Man, Inferno Incarnate
+1 Stegron the Dinosaur Man
+1 Old Hob. Alleycat Blues
+1 Spider-Gwen, Free Spirit
+1 Seifer Almasy
+1 Gilgamesh, Master-at-Arms
+1 Freya Crescent
+1 Barret Wallace
+1 Zog, Triceraton Castaway
+1 Superior Foes of Spider-Man
+1 Angry Rabble
+1 Taxi Driver
+1 Masked Meower
+1 Spider-Islanders
+1 Romantic Rendezvous
+1 Shock
+1 Wisecrack
+1 Shadow of the Goblin
+1 Double Trouble
+1 Purple Dragon Punks
+1 Null Group Biological Assets
+1 Team Transmitter
+1 H.E.R.B.I.E. Scout Unit
+1 Vibranium Energy Daggers
+1 Glassworks
+1 Leyline of Resonance
+1 Sidequest: Play Blitzball
+1 Electro's Bolt
+1 Sear
+1 Impolite Entrance
+1 Giantfall
+32 Mountain
+1 Cryptic Spires
+1 Cabaretti Courtyard
+1 Crossroads Village
+1 Thriving Grove
+1 Thriving Heath
+1 Thriving Isle
+1 Thriving Moor
+1 Thriving Bluff
+
+===== DECK 047 | imported=99 | requested=99 | entries=87 | excluded=0 | chars=1613 | 2026-07-12 | 019f5868-8031-7567-bcca-781b8b2b4676 =====
+1 Annul
+1 Arcane Signet
+1 Archaeomancer
+1 Azula, Cunning Usurper
+1 Baron, Airship Kingdom
+1 Become Anonymous
+1 Black Dragon Gate
+1 Black Waltz No. 3
+1 Blackcleave Cliffs
+1 Boomerang
+1 Boomerang Basics
+1 Capital City
+1 Chilling Trap
+1 Concentrate
+1 Crumbling Necropolis
+1 Detect Intrusion
+1 Dragonskull Summit
+1 Drix Interception
+1 Drowned Catacomb
+1 Eagle Vision
+1 Effortless Master
+1 Emet-Selch, Unsundered
+1 Essence Backlash
+1 Fight On!
+1 Flaring Cinder
+1 Fluxcharger
+1 Frost Trickster
+1 Frostboil Snarl
+1 Garland, Knight of Cornelia
+1 Goldlust Triad
+1 Hide in Mundanity
+1 Ice Magic
+1 Invade the City
+1 Involuntary Employment
+1 Iron-Fist Pulverizer
+5 Island
+1 It'll Quench Ya!
+1 Kasmina's Transmutation
+1 Kefka, Court Mage
+1 Killing Glare
+1 Laughing Mad
+1 Locke Cole
+1 Mary Read and Anne Bonny
+1 Melek, Reforged Researcher
+5 Mountain
+1 Murder
+1 Nathan Drake, Treasure Hunter
+1 Nibelheim Aflame
+1 Overpowering Attack
+1 Prismari Apprentice
+1 Professor Zei, Anthropologist
+1 Refute
+1 Reliquary Tower
+1 Sea Gate Wreckage
+1 Serum-Core Chimera
+1 Shantotto, Tactician Magician
+1 Shao Jun
+1 Shatter
+1 Shivan Reef
+1 Shore Up
+1 Silverbluff Bridge
+1 Skygames
+1 Smoke Bomb
+1 Study Hall
+1 Submerged Boneyard
+1 Survivors' Encampment
+5 Swamp
+1 Swiftwater Cliffs
+1 Sword of Once and Future
+1 Teach by Example
+1 Tellah, Great Sage
+1 Temple of the False God
+1 Temple Trap
+1 Temporal Trespass
+1 The Emperor of Palamecia
+1 Thunder Magic
+1 Tranquilize
+1 Treno, Dark City
+1 Ultimecia, Time Sorceress
+1 Unknown Shores
+1 Unsummon
+1 Vector, Imperial Capital
+1 Vivi Ornitier
+1 Waterknot
+1 Wisecrack
+1 Wrangle
+
+1 Goben, Gene-Splice Savant
+
+===== DECK 048 | imported=99 | requested=99 | entries=94 | excluded=0 | chars=2337 | 2026-07-12 | 019f5974-5eb4-7651-9b9c-83a1ada0fd46 =====
+1 Spider-Man No More (SPM)
+1 Feed the Swarm (OTC)
+1 Invisible Woman, Sue Storm (MSH)
+1 Punishing Punch (MSH)
+1 Counterspell (CMM)
+2 Mountain (SPM)
+1 Scarlet Spider, Ben Reilly (SPM)
+2 Forest (SPM)
+1 Decoy Ploy (SPM)
+1 Spider-Punk (SPM)
+2 Swamp (SPM)
+1 Pillar of Origins (LCI)
+1 Web-Shooters (SPM)
+1 Villainous Wrath (MSH)
+1 Surveillance Room (MSH)
+2 Island (SPM)
+1 Lightning Strike (DMU)
+1 Rapid Rescue (SPM)
+1 Wall Crawl (SPM)
+1 HULK SMASH! (MSH)
+1 Spider-Sense (SPM)
+1 Mystic Confluence (CMM)
+1 Impostor Syndrome (SPM)
+1 Web of Life and Destiny (SPM)
+1 Spectacular Spider-Man (SPM)
+1 Peter Parker (SPM)
+1 Secret Invasion (MSH)
+1 Icon of Ancestry (LCC)
+1 Training Compound (MSH)
+1 Alien Symbiosis (SPM)
+2 Plains (SPM)
+1 Spider-Bot (SPM)
+1 Call Damage Control (MSH)
+1 Murdock's Crusade (MSH)
+1 Web-Warriors (SPM)
+1 Human Torch, Johnny Storm (MSH)
+1 Spider-Woman, Stunning Savior (SPM)
+1 Pym Technologies (MSH)
+1 Fisk Tower (SPM)
+1 Mirror of Galadriel (LTR)
+1 Baxter Building (MSH)
+1 Web Up (SPM)
+1 Spider-Woman, Secret Agent (SPM)
+1 Hide on the Ceiling (SPM)
+1 Spider-Man, Miles Morales (SPM)
+1 Arachne, Psionic Weaver (SPM)
+1 Epic Fight (MSH)
+1 The Death of Gwen Stacy (SPM)
+1 Earth's Mightiest Heroes (MSH)
+1 Symbiote Spider-Man (SPM)
+1 Stark Industries (MSH)
+1 Relentless Assault (DMR)
+1 Daily Bugle Building (SPM)
+1 Sol Ring (CMM)
+1 Radioactive Spider (SPM)
+1 Spectacular Tactics (SPM)
+1 Mary Jane Watson (SPM)
+1 Mister Fantastic, Reed Richards (MSH)
+1 Multiversal Passage (MSH)
+1 Take Up the Shield (DMU)
+1 Miles Morales (SPM)
+1 Spider-Suit (SPM)
+1 Avengers Tower (MSH)
+1 Super Intelligence (MSH)
+1 Glint Weaver (BLB)
+1 Dark Fortress (MSH)
+1 The Thing, Ben Grimm (MSH)
+1 Super Strength (MSH)
+1 Gwenom, Remorseless (SPM)
+1 Iron Man Armor (MSH)
+1 Super Villain Lockup (MSH)
+1 Friendly Neighborhood (SPM)
+1 Amazing Acrobatics (SPM)
+1 Origin of the Avengers (MSH)
+1 Ponder (MAR)
+1 Spider-Ham, Peter Porker (SPM)
+1 Gleaming Bastion (SPM)
+1 Aunt May (SPM)
+1 Three Steps Ahead (OTJ)
+1 Ancient Cornucopia (BIG)
+1 Cultivate (CMM)
+1 Herald's Horn (LCC)
+1 Elven Chorus (LTR)
+1 Realmwalker (KHM)
+1 Command Tower (CMM)
+1 Arcane Signet (CMM)
+1 Chromatic Lantern (OTC)
+1 Vanquisher's Banner (LCC)
+1 Path of Ancestry (OTC)
+1 Exotic Orchard (OTC)
+1 Unclaimed Territory (LCC)
+1 Secluded Courtyard (NEO)
+1 Cascading Cataracts (AKH)
+1 Opal Palace (CMM)
+
+===== DECK 049 | imported=99 | requested=99 | entries=82 | excluded=0 | chars=1603 | 2026-07-12 | 019f597f-2c01-7a25-aff2-c24d95dae2b3 =====
+1 Aang, at the Crossroads
+1 Aang, Swift Savior
+1 Aang's Iceberg
+1 Airbender Ascension
+1 Airbender's Reversal
+1 Airbending Lesson
+1 Airship Engine Room
+1 Allies at Last
+1 Avatar's Wrath
+1 Azula, Cunning Usurper
+1 Bender's Waterskin
+1 Bitter Work
+1 Boiling Rock Prison
+1 Boiling Rock Rioter
+1 Bolt Bend
+1 Bumi, Unleashed
+1 Cloudshift
+1 Combustion Technique
+1 Cunning Maneuver
+1 Cycle of Renewal
+1 Earth Kingdom Protectors
+1 Earthbender Ascension
+1 Enter the Avatar State
+1 Explore
+1 Fire Lord Zuko
+1 Fire Nation Occupation
+1 Firebender Ascension
+1 Fists of Flame
+1 Foggy Bottom Swamp
+6 Forest
+1 Frantic Search
+1 Glider Staff
+1 Great Divide Guide
+1 Hakoda, Selfless Commander
+1 Haru, Hidden Talent
+1 Hog-Monkey Rampage
+1 Iroh, Grand Lotus
+4 Island
+1 Jasmine Dragon Tea Shop
+1 Katara, the Fearless
+1 Katara, Water Tribe's Hope
+1 Kyoshi Village
+1 Many Partings
+1 Meditation Pools
+1 Misty Palms Oasis
+1 Monk Gyatso
+5 Mountain
+1 North Pole Gates
+1 Obsessive Pursuit
+1 Omashu City
+1 Origin of Metalbending
+4 Plains
+1 Reckless Blaze
+1 Redirect Lightning
+1 Ruthless Waterbender
+1 Serpent's Pass
+1 Shared Roots
+1 Sokka, Tenacious Tactician
+1 Sun Warriors
+1 Sun-Blessed Peak
+3 Swamp
+1 The Blue Spirit
+1 The Earth King
+1 The Last Agni Kai
+1 The Legend of Kuruk
+1 The Legend of Kyoshi
+1 The Legend of Roku
+1 The Legend of Yangchen
+1 The Rise of Sozin
+1 Thriving Bluff
+1 Thriving Grove
+1 Thriving Heath
+1 Thriving Isle
+1 Thriving Moor
+1 Toph, Hardheaded Teacher
+1 Toph, the First Metalbender
+1 Uncle Iroh
+1 Valorous Stance
+1 Wartime Protestors
+1 Waterbender Ascension
+1 Waterbender's Restoration
+1 Whirlwind Technique
+
+
+===== DECK 050 | imported=99 | requested=99 | entries=79 | excluded=0 | chars=2558 | 2026-07-13 | 019f5aff-2c26-711e-be4e-ad023af02110 =====
+COMMANDER
+1 Aang and Katara (TLE) 69
+
+DECK
+1 Aang, at the Crossroads / Aang, Destined Savior (TLA) 203
+1 Aang, Swift Savior / Aang and La, Ocean's Fury (TLA) 204
+1 Aang, the Last Airbender (TLA) 4
+1 Aang's Journey (TLA) 1
+1 Agna Qel'a (TLA) 264
+1 Airbender Ascension (TLA) 6
+1 Airbender's Reversal (TLA) 7
+1 Airbending Lesson (TLA) 8
+1 Appa, Loyal Sky Bison (TLA) 9
+1 Archway of Innovation (MH3) 214
+1 Avatar Enthusiasts (TLA) 11
+1 Avatar's Wrath (TLA) 12
+1 Barrels of Blasting Jelly (TLA) 254
+1 Bender's Waterskin (TLA) 255
+1 Blooming Marsh (POTJ) 266p
+1 Boomerang Basics (TLA) 46
+1 Cloudshift (TLE) 152
+1 Dai Li Indoctrination (TLA) 93
+1 Doubling Season (PFDN) 216p
+1 Earth King's Lieutenant (TLA) 217
+1 Earthbender Ascension (TLA) 175
+1 Earthbending Lesson (TLA) 176
+1 Enter the Avatar State (TLA) 18
+1 Fire Lord Zuko (TLA) 221
+1 Fire Navy Trebuchet (TLA) 100
+1 Firebending Lesson (TLA) 138
+6 Forest (M20) 279
+1 Glasswing Grace / Age-Graced Chapel (MH3) 254
+1 Godless Shrine (PEOE) 254p
+1 Great Divide Guide (TLA) 345
+1 Hakoda, Selfless Commander (TLA) 23
+1 Haru, Hidden Talent (TLA) 182
+1 Invasion Reinforcements (TLA) 24
+5 Island (DMU) 266
+1 It'll Quench Ya! (TLA) 58
+1 Jagged Barrens (OTJ) 259
+1 Katara, Bending Prodigy (TLA) 59
+1 Katara, the Fearless (TLA) 230
+1 Katara, Water Tribe's Hope (TLA) 231
+1 Legion Leadership / Legion Stronghold (MH3) 255
+1 Lush Oasis (M3C) 356
+1 Mai, Scornful Striker (TLA) 109
+1 Mirage Mesa (OTJ) 262
+1 Momo, Playful Pet (TLA) 30
+4 Mountain (DMU) 271
+1 Octopus Form (TLA) 66
+1 Origin of Metalbending (TLA) 187
+1 Ozai's Cruelty (TLA) 113
+7 Plains (M20) 264
+1 Professor Zei, Anthropologist (TLA) 238
+1 Rockalanche (TLA) 192
+1 Sacred Foundry (GTC) 245
+1 Sokka, Lateral Strategist (TLA) 241
+1 Sokka, Tenacious Tactician (TLA) 242
+1 Sokka's Haiku (TLA) 71
+1 Soured Springs (OTJ) 264
+1 South Pole Voyager (TLA) 35
+1 Strength of the Harvest / Haven of the Harvest (MH3) 258
+1 Suki, Courageous Rescuer (TLA) 37
+1 Suki, Kyoshi Warrior (TLA) 243
+1 Sundering Eruption / Volcanic Fissure (MH3) 248
+3 Swamp (IKO) 267
+1 Swiftwater Cliffs (IKO) 255
+1 The Earth King (TLA) 172
+1 The Legend of Kyoshi / Avatar Kyoshi (TLA) 186
+1 The Legend of Yangchen / Avatar Yangchen (TLA) 27
+1 The Walls of Ba Sing Se (TLA) 261
+1 Toph, Hardheaded Teacher (TLA) 246
+1 Toph, the First Metalbender (TLA) 247
+1 Trusty Boomerang (TLA) 260
+1 Uncharted Haven (BLB) 261
+1 United Front (TLA) 39
+1 Walltop Sentries (TLA) 202
+1 Waterbender Ascension (TLA) 79
+1 White Lotus Tile (TLA) 262
+1 Yip Yip! (TLA) 43
+1 Yue, the Moon Spirit (TLA) 83
+1 Zuko's Exile (TLA) 3
+
+===== DECK 051 | imported=101 | requested=101 | entries=86 | excluded=0 | chars=1561 | 2026-07-11 | 019f53a2-676e-7d62-b477-c32ed40674aa =====
+"COMMANDER"
+1 KEFKA, COURT MAGE
+
+1 ACLAZOTZ, DEEPEST BETRAYAL
+1 AFTERLIFE FROM THE LOAM
+1 ANGER
+1 ANIMATE DEAD
+1 ARCANE SIGNET
+1 ARENA OF GLORY
+1 BANDIT'S TALENT
+1 BLASPHEMOUS ACT
+1 BLASPHEMOUS EDICT
+1 BLOOD CRYPT
+1 BOJUKA BOG
+1 BOTTOMLESS PIT 
+1 BREACH THE MULTIVERSE
+1 CHAIN REACTION 
+1 CHAMELEON, MASTER OF DISGUISE 
+1 CHROMATIC LATERN
+1 CHARCOAL DIAMOND
+1 COMMAND TOWER
+1 CONJURER'S CLOSET
+1 DANCE OF THE DEAD
+1 DARK RITUAL
+1 DECANTER OF ENDLESS WATER
+1 DILUVIAN PRIMORDIAL
+1 DIMIR SIGNET
+1 DISPLACER KITTEN
+1 DRAGONSKULL SUMMIT
+1 EXOTIC ORCHARD
+1 FELL THE PROFANE
+1 FELLWAR STONE
+1 FIRE DIAMOND
+1 GLASSES OF URZA
+1 GOGO, MASTER OF MIMICRY
+1 HARMONIC PRODIGY
+1 HAUNTED RIDGE
+1 HOARDING BROODLORD
+1 HULLBREAKER HORROR
+6 ISLAND
+1 IZZET SIGNET
+1 KEFKA, DANCING MAD
+1 MANA DRAIN
+1 MONUMENT TO ENDURANCE
+5 MOUNTAIN
+1 NECROGEN MISTS
+1 OPPRESSION
+1 PAINFUL QUANDARY
+1 QUANTUM MISALIGNMENT
+1 RAKADOS SIGNET
+1 REANIMATE
+1 RELIQUARY TOWER
+1 SCHOLAR OF THE AGES
+1 SEETHING SONG
+1 SHEOLDRED, THE APOCALYPSE
+1 SHIPWRECK MARSH
+1 SHIVIAN REEF
+1 SINK INTO STUPOR
+1 SOL RING
+1 SOUL SHATTER
+1 SPELLBOOK
+1 STEAM VENTS
+1 STORMCARVED COAST
+1 STRIKE IT RICH
+1 SULFUR FALLS
+1 SULFUROUS SPRINGS
+7 SWAMP
+1 SYPHON MIND
+1 TAINTED ISLE
+1 TAINTED PEAK
+1 TALISMAN OF CREATIVITY
+1 TALISMAN OF DOMINANCE 
+1 TALISMAN OF INDULGENCE
+1 TERGRID, GOD OF FRIGHT
+1 TERMINATE
+1 THASSA, DEEP-DWELLING
+1 THE ONE RING
+1 TINYBONES JOINS UP
+1 TINYBONES, BAUBLE BURGLAR
+1 UNDERGROUND RIVER
+1 UNDERWORLD BREACH
+1 UNNERVE
+1 VALKI, GOD OF LIES
+1 VIVI ORNITIER
+1 WASTE NOT 
+1 WATERY GRAVE
+1 WITHERING TORMENT
+
+===== DECK 052 | imported=101 | requested=101 | entries=87 | excluded=0 | chars=1613 | 2026-07-11 | 019f53f4-e86f-7845-80e7-53a8c831ef9e =====
+1 Dina, Essence Brewer
+1 Arcane Signet
+1 Archfiend of Depravity
+1 Assassin's Trophy
+1 Awakening Zone
+1 Basking Broodscale
+1 Blight Mound
+1 Blood Artist
+1 Bloodghast
+1 Bojuka Bog
+1 Casualties of War
+1 Cauldron of Essence
+1 Command Tower
+1 Creakwood Liege
+1 Culling Ritual
+1 Cultivate
+1 Deadly Brew
+1 Dina's Guidance
+1 Dina, Soul Steeper
+1 Elvish Mystic
+1 Enduring Tenacity
+1 Eternal Witness
+1 Evolution Witness
+1 Exotic Orchard
+1 Fabled Passage
+1 Festering Thicket
+8 Forest
+1 Gilded Goose
+1 Grim Backwoods
+1 Haunted Mire
+1 Haywire Mite
+1 High Market
+1 Infernal Grasp
+1 Insidious Roots
+1 Jarad, Golgari Lich Lord
+1 Llanowar Wastes
+1 Merchant of Venom
+1 Meren of Clan Nel Toth
+1 Moldervine Reclamation
+1 Morbid Opportunist
+1 Mortality Spear
+1 Moseo, Vein's New Dean
+1 Necroblossom Snarl
+1 Nether Traitor
+1 Night's Whisper
+1 Ohran Frostfang
+1 Ophiomancer
+1 Path of Ancestry
+1 Pawn of Ulamog
+1 Pest Infestation
+1 Pest Rescuer
+1 Plaguecrafter
+1 Plumb the Forbidden
+1 Priest of Forgotten Gods
+1 Rise of the Witch-king
+1 Sadistic Hypnotist
+1 Sakura-Tribe Elder
+1 Sanguine Bond
+1 Smothering Abomination
+1 Sol Ring
+1 Sothera, the Supervoid
+1 Springbloom Druid
+1 Stensian Sanguinist // Exsanguinate
+1 Study Hall
+8 Swamp
+1 Temple of Malady
+1 Terramorphic Expanse
+1 Titan's Grave
+1 Toxic Deluge
+1 Tragedy Feaster
+1 Trudge Garden
+1 Turbulent Fen
+1 Twilight Mire
+1 Tyvar, Jubilant Brawler
+1 Veinwitch Coven
+1 Vernal Fen
+1 Victimize
+1 Viridescent Bog
+1 Viscera Seer
+1 Wight of the Reliquary
+1 Witch of the Moors
+1 Witherbloom Campus
+1 Witherbloom Charm
+1 Witherbloom Command
+1 Woe Strider
+1 Woodland Cemetery
+1 Zulaport Cutthroat
+
+===== DECK 053 | imported=101 | requested=101 | entries=74 | excluded=0 | chars=2107 | 2026-07-11 | 019f5447-d3c0-7232-bfbf-1ada0a4313a3 =====
+1 Lyra Dawnbringer (DMR) 413 *F*
+1 Aegis Angel (M15) 270
+1 Akroma, Angel of Wrath (A25) 2
+1 Angel of Finality (MOC) 169
+1 Angel of Jubilation (AVR) 2
+1 Angel of Serenity (C21) 83
+1 Angel of the Dawn (2XM) 4
+1 Angel of the Dire Hour (PLST) C14-1
+1 Angel's Grace (SOA) 2 *F*
+1 Angelic Accord (M14) 3
+1 Angelic Arbiter (CMA) 4
+1 Angelic Chorus (10E) 4
+1 Angelic Quartermaster (VOW) 2
+1 Angelic Skirmisher (PGTC) A11 *F*
+1 Arcane Signet (LCC) 299
+1 Archaeomancer's Map (C21) 12
+1 Arden Angel (SLD) 1344 *F*
+1 Baneslayer Angel (M21) 6
+1 Celestial Mantle (ZEN) 6
+1 Cleansing Nova (C21) 86
+1 Defy Death (J22) 174
+1 Destroy Evil (DMU) 17
+1 Emeria Shepherd (BFZ) 22
+1 Emeria, the Sky Ruin (SOC) 368
+1 Entreat the Angels (PLST) AVR-20 *F*
+1 Exemplar of Light (FDN) 297 *F*
+1 Firemane Commando (MOC) 73
+1 Flare of Fortitude (MH3) 26
+1 Giada, Font of Hope (FDN) 141
+1 Glorious Anthem (M21) 341 *F*
+1 Herald of Eternal Dawn (FDN) 17
+1 Herald of War (AVR) 24
+1 Herald's Horn (PLST) C17-53
+1 Holy Day (10E) 21
+1 Hour of Revelation (HOU) 15
+1 Idyllic Grange (ELD) 246
+1 Karmic Guide (MH2) 263
+1 Mass Calcify (M15) 18
+1 Mind's Eye (BRR) 33
+1 Moonsilver Spear (GN3) 118
+1 Myriad Landscape (MKC) 276
+1 Path of Ancestry (LCC) 346
+1 Path to Exile (PF20) 1 *F*
+1 Pearl Medallion (MH3) 294
+10 Plains (DMU) 277
+10 Plains (DMR) 403
+10 Plains (DMR) 402
+1 Quicksilver Amulet (BRR) 45
+1 Radiant Purge (DTK) 31
+1 Rally of Wings (SCD) 30
+1 Rebuff the Wicked (PLC) 12
+1 Resplendent Angel (LCI) 32
+1 Revoke Existence (THB) 34
+1 Righteous Valkyrie (PKHM) 24p
+1 Sephara, Sky's Blade (CMM) 54 *F*
+1 Seraph Sanctuary (AVR) 228
+1 Serra Angel (P30A) 1 *F*
+1 Serra the Benevolent (MH1) 26
+1 Serra's Emissary (MH2) 333
+1 Serra's Guardian (M19) 284
+1 Sigarda's Splendor (MID) 33
+1 Sigarda's Vanguard (MIC) 8
+1 Sol Ring (M3C) 305
+1 Starnheim Aspirant (J22) 250
+1 Sunblast Angel (DDI) 21
+1 Sunbond (BNG) 28 *F*
+1 Swiftfoot Boots (C14) 275
+1 Thraben Watcher (MH2) 34
+1 Valkyrie Harbinger (PKHM) 374★ *F*
+1 Vanquish the Horde (INR) 302 *F*
+1 Vanquisher's Banner (PLST) XLN-251
+1 Well of Lost Dreams (BRR) 125
+1 Wrath of God (DMR) 37
+1 Terminus (C18) 77
+
+===== DECK 054 | imported=101 | requested=101 | entries=85 | excluded=0 | chars=1650 | 2026-07-11 | 019f544e-31db-702f-b929-1e644a76152a =====
+Commander:
+1 Blech, Loafing Pest
+
+1 Amzu, Swarm's Hunger
+1 Ant Queen
+1 Arasta of the Endless Web
+1 Assassin's Trophy
+1 Beledros Witherbloom
+1 Black Market Connections
+1 Blex, Vexing Pest
+1 Bogwater Lumaret
+1 Canoptek Scarab Swarm
+1 Cauldron of Essence
+1 Caustic Caterpillar
+1 Comforting Counsel
+1 Command Tower
+1 Deathcap Glade
+1 Dina's Guidance
+1 Eccentric Pestfinder
+1 Eldrazi Monument
+1 Essence Warden
+1 Eumidian Terrabotanist
+1 Evendo, Waking Haven
+1 Farseek
+1 Feral Appetite
+12 Forest
+1 Fumulus, the Infestation
+1 Grist, the Hunger Tide
+1 Growing Rites of Itlimoc
+1 Hardened Scales
+1 Haywire Mite
+1 Hidden Hideout
+1 High Market
+1 Hornet Queen
+1 Icetill Explorer
+1 Immoral Bargain
+1 Iridescent Hornbeetle
+1 Karn's Bastion
+1 Kazandu Nectarpot
+1 Llanowar Wastes
+1 Mazirek, Kraul Death Priest
+1 Mirkwood Bats
+1 Moldervine Reclamation
+1 Mutable Explorer
+1 Mutavault
+1 Nature's Lore
+1 Necroblossom Snarl
+1 Ohran Frostfang
+1 Overgrown Tomb
+1 Ozolith, the Shattered Spire
+1 Pest Infestation
+1 Pest Mascot
+1 Pest Rescuer
+1 Pest Summoning
+1 Phyrexian Altar
+1 Phyrexian Tower
+1 Profane Memento
+1 Rabid Attack
+1 Rampant Growth
+1 Revitalizing Repast
+1 Ribtruss Roaster
+1 Ripples of Undeath
+1 Root Manipulation
+1 Sakura-Tribe Elder
+1 Scute Swarm
+1 Shared Roots
+1 Skullclamp
+1 Sol Ring
+1 Springheart Nantuko
+1 Springleaf Parade
+6 Swamp
+1 Swarmyard
+1 Swarmyard Massacre
+1 Teacher's Pest
+1 The Swarmweaver
+1 Three Visits
+1 Undergrowth Stadium
+1 Verdant Catacombs
+1 Vernal Fen
+1 Virulent Emissary
+1 Wastewood Verge
+1 Witherbloom Charm
+1 Witherbloom, the Balancer
+1 Woodland Cemetery
+1 Yavimaya, Cradle of Growth
+1 Zask, Skittering Swarmlord
+
+1 Blech, Loafing Pest
+
+===== DECK 055 | imported=101 | requested=101 | entries=95 | excluded=0 | chars=3051 | 2026-07-12 | 019f548f-af23-7ebd-abc8-bdd43c116a86 =====
+1x Anguished Unmaking (soi) [Removal]
+1x Anointed Procession (akh) [Tokens]
+1x Arcane Signet (soc) [Ramp]
+1x Arid Mesa (mh2)
+1x Awaken the Blood Avatar 
+1x Big Score (soa) [Draw]
+1x Blood Crypt (sld)
+1x Bloodstained Mire (ktk)
+1x Bojuka Bog (wwk)
+1x Boros Garrison (ima)
+1x Boros Signet (rav) [Ramp]
+1x Caesar, Legion's Emperor (pip) [Tokens]
+1x Caretaker's Talent (pblb) [Draw]
+1x Chandra, Acolyte of Flame (m20) [Tokens]
+1x Chandra, Hope's Beacon (mom) [Copy]
+1x Charismatic Conqueror (lcc) [Tokens]
+1x Clever Concealment (onc) [Protection]
+1x Command Tower (soc)
+1x Deadly Dispute (msc) [Draw]
+1x Demand Answers (mkm) [Draw]
+1x Descent into Avernus (clb) [Ramp]
+1x Despark (war) [Removal]
+1x Double Vision (m21) [Copy]
+1x Elenda, the Dusk Rose (rix) [Tokens]
+1x Elspeth, Storm Slayer (tdm) [Tokens]
+1x Elspeth, Sun's Champion (ths) [Tokens]
+1x Extus, Oriq Overlord // Awaken the Blood Avatar (stx) [Commander{top}]
+1x Farewell (neo) [Removal]
+1x Field of the Dead (m20)
+1x Fury Storm (c18) [Copy]
+1x Generous Gift (mh1) [Removal]
+1x Ghired's Belligerence (c19) [Removal]
+1x Godless Shrine (sld)
+1x Grand Crescendo (ncc) [Protection]
+1x Haunted Ridge (mid)
+1x Kambal, Profiteering Mayor (otj) [Drain]
+1x Kher Keep (tsr)
+1x Lightning Bolt (m10) [Removal]
+1x Liliana, Dreadhorde General (war) [Draw]
+1x Lolth, Spider Queen (afr) [Draw]
+1x Luxury Suite (bbd)
+1x Marsh Flats (mh2)
+1x Martial Coup (c18) [Removal]
+1x Mayhem Devil (war) [Removal]
+1x Molten Birth (uma) [Tokens]
+1x Monastery Mentor (frf) [Tokens]
+1x Mondrak, Glory Dominus (one) [Tokens]
+2x Mountain (gs1) 39
+1x Night's Whisper (ema) [Draw]
+1x Ominous Harvest (soc)
+1x Orzhov Basilica (gk2)
+1x Orzhov Signet (cm2) [Ramp]
+1x Painful Truths (bfz) [Draw]
+1x Pirate's Pillage (rix) [Draw]
+1x Pitiless Plunderer (rix) [Ramp]
+2x Plains (30a) 283
+1x Plumb the Forbidden (stx) [Draw]
+1x Prismari Pianist (soc)
+1x Prosperous Partnership (ncc) [Ramp]
+1x Rabid Attack (sos)
+1x Rakdos Carnarium (c18)
+1x Rakdos Charm (gk2) [Removal]
+1x Rakdos Signet (gk2) [Ramp]
+1x Read the Bones (ths) [Draw]
+1x Ruinous Ultimatum (iko) [Removal]
+1x Sacred Foundry (sld)
+1x Savai Triome (iko)
+1x Sedgemoor Witch (pstx) [Tokens]
+1x Seize the Spotlight (otc) [Draw]
+1x Shattered Sanctum (vow)
+1x Sign in Blood (sta) [Draw]
+1x Silverquill, the Disputant (sos)
+1x Skullclamp (c20) [Draw]
+2x Snow-Covered Mountain (mh1) 253
+2x Snow-Covered Plains (mh1) 250
+2x Snow-Covered Swamp (mh1) 252
+1x Sokenzan, Crucible of Defiance (neo)
+1x Sol Ring (msc) [Ramp]
+1x Spectator Seating (cmr)
+1x Spiked Corridor // Torture Pit (dsc) [Burn]
+1x Sram's Expertise (aer) [Tokens]
+1x Strip Mine (zne)
+1x Sundown Pass (vow)
+1x Suspend Aggression (sos)
+2x Swamp (30a) 289
+1x Talisman of Conviction (mh1) [Ramp]
+1x Talisman of Hierarchy (mh1) [Ramp]
+1x Talisman of Indulgence (afc) [Ramp]
+1x Teysa Karlov (mul) [Tokens]
+1x Thrill of Possibility (sta) [Draw]
+1x Unexpected Windfall (afr) [Draw]
+1x Vault of Champions (cmr)
+1x Wayfarer's Bauble (mm2) [Ramp]
+1x Westvale Abbey // Ormendahl, Profane Prince (soi)
+1x Young Pyromancer (ss3) [Tokens]
+
+===== DECK 056 | imported=101 | requested=101 | entries=90 | excluded=0 | chars=1713 | 2026-07-12 | 019f5638-c13a-74bb-aa0a-b7dd1dc109b0 =====
+"Commander"
+1 Zimone, Infinite Analyst
+
+1 Alchemist's Refuge
+1 Altered Ego
+1 Animist's Awakening
+1 Arcane Signet
+1 Astral Cornucopia
+1 Beast Within
+1 Benevolent Hydra
+1 Biomass Mutation
+1 Brass Infiniscope
+1 Command Tower
+1 Commander's Insight
+1 Curse of the Swine
+1 Decisive Denial
+1 Doppelgang
+1 Drown in Dreams
+1 Elementalist's Palette
+1 Entrancing Melody
+1 Eureka Moment
+1 Exotic Orchard
+1 Expansion Algorithm
+1 Fabled Passage
+1 Flooded Grove
+6 Forest
+1 Forgotten Ancient
+1 Goldvein Hydra
+1 Guardian Augmenter
+1 Hangarback Walker
+1 Hardened Scales
+1 Hinterland Harbor
+1 Hydroid Krasis
+1 Ingenious Prodigy
+7 Island
+1 Kami of Whispered Hopes
+1 Kinetic Ooze
+1 Lattice Library
+1 Lifeblood Hydra
+1 Mana Bloom
+1 March of Swirling Mist
+1 Mass Manipulation
+1 Mathemagics
+1 Nature's Lore
+1 Nev, the Practical Dean
+1 Opal Palace
+1 Open the Way
+1 Oran-Rief, the Vastwood
+1 Overflowing Basin
+1 Oversimplify
+1 Owlin Spiralmancer
+1 Ozolith, the Shattered Spire
+1 Paradox Gardens
+1 Path of Ancestry
+1 Perplexing Test
+1 Pest Infestation
+1 Primal Might
+1 Primo, the Unbounded
+1 Primordial Hydra
+1 Pull from Tomorrow
+1 Quandrix Campus
+1 Quandrix Command
+1 Rain-Slicked Copse
+1 Rapid Hybridization
+1 Reliquary Tower
+1 Rogue's Passage
+1 Silkguard
+1 Sodden Verdure
+1 Sol Ring
+1 Spectral Denial
+1 Spell Burst
+1 Steelbane Hydra
+1 Stonecoil Serpent
+1 Striding Shotcaller // Run the Play
+1 Stroke of Genius
+1 Study Hall
+1 Tanazir Quandrix
+1 Tangled Islet
+1 Temple of Mystery
+1 Temple of the False God
+1 Terramorphic Expanse
+1 The Goose Mother
+1 Three Visits
+1 Troyan, Gutsy Explorer
+1 Turbulent Wilderness
+1 Tyvar's Stand
+1 Unbound Flourishing
+1 Vineglimmer Snarl
+1 Yavimaya Bloomsage // Channel
+1 Yavimaya Coast
+1 Zimone's Hypothesis
+
+===== DECK 057 | imported=101 | requested=101 | entries=71 | excluded=0 | chars=2015 | 2026-07-12 | 019f5695-f9ee-79a0-aa61-b0fd02d8a2d6 =====
+1 An Offer You Can't Refuse (FDN) 311
+1 Ancient Tomb (UMA) 236
+1 Arcane Signet (CMM) 367
+1 Baleful Strix (FIC) 318
+1 Battle at the Big Bridge (FCA) 9
+1 Blasphemous Edict (FDN) 317
+1 Blur (CLB) 58
+1 Cabal Ritual (TOR) 51
+1 Campfire (CMM) 374
+1 Circular Logic (UMA) 47
+1 Clutch of the Undercity (RAV) 197
+1 Consider (MID) 44
+1 Dark Ritual (5ED) 153
+1 Demonic Consultation (ICE) 121
+1 Demonic Tutor (SLD) 1856
+1 Displace (PLST) EMN-55
+1 Displacer Kitten (SLD) 2506
+1 Doomsday (SLD) 1115
+1 Dramatic Reversal (KLD) 44
+1 Elixir of Immortality (M11) 206
+1 Emet-Selch of the Third Seat (FIC) 473 *F*
+1 Enhanced Surveillance (GRN) 40
+1 Essence Flux (INR) 64
+1 Fabricate (SLD) 2090
+1 Feed the Swarm (SOA) 29
+1 Feldon's Cane (CHR) 97
+1 Finale of Revelation (FDN) 589
+1 Flood of Recollection (CMR) 61
+1 Gemstone Caverns (TSR) 280
+1 Ghostly Flicker (KHC) 39
+1 Grim Monolith (ULG) 126
+1 Hang In There (SLD) 2670
+1 High Fae Trickster (FDN) 375 *F*
+1 Hope's Aero Magic (SLD) 1869
+1 Insidious Will (KLD) 52
+31 Island (J25) 86
+1 Isochron Scepter (MB2) 96
+1 Kitsa, Otterball Elite (BLB) 304
+1 Leyline of Anticipation (M20) 64
+1 Lion's Eye Diamond (MIR) 307
+1 Lotus Petal (PLST) TMP-294
+1 Mana Vault (5ED) 388
+1 Mox Diamond (STH) 138
+1 Mox Opal (SOM) 179
+1 Muddle the Mixture (RVR) 50
+1 Mulldrifter (SLD) 373
+1 Narset's Reversal (SLC) 41 *F*
+1 Opt (ELD) 59
+1 Otawara, Soaring City (NEO) 271
+1 Oubliette (PLST) 2XM-100
+1 Overkill (FIN) 109
+1 Overlord of the Floodpits (DSK) 399 *F*
+1 Perplex (RAV) 217
+1 Preordain (SOA) 21
+1 Priest of Gix (J25) 121
+1 See Double (MOM) 77
+1 Serum Visions (SLD) 2323
+1 Sol Ring (C19) 221
+1 Spellseeker (SLD) 1165
+1 Teferi, Master of Time (PRM) 85940
+1 Tendrils of Agony (MB2) 50
+1 Thassa, Deep-Dwelling (SLD) 1279
+1 Thassa's Oracle (SLD) 1280
+1 Tolaria West (TSR) 286
+1 Torment of Hailfire (SLD) 9992
+1 Twincast (10E) 120
+1 Twinning Staff (C20) 70
+1 Vampiric Tutor (CMR) 156
+1 Vedalken Orrery (CNS) 206
+1 Wishclaw Talisman (MB2) 51
+Commander
+1 Emet-Selch, Unsundered / Hades, Sorcerer of Eld (FIN) 539 *F*
+
+===== DECK 058 | imported=101 | requested=101 | entries=69 | excluded=0 | chars=1288 | 2026-07-12 | 019f56a2-1111-7f1d-8a9e-a52aa21953de =====
+1 Abhorrent Overlord
+1 Absorb into Time
+1 Ad Nauseam
+1 Archfiend of Depravity
+1 Archfiend of Ifnir
+1 Asmodeus the Archfiend
+1 Avatar of Woe
+1 Beseech the Queen
+1 Bloodgift Demon
+1 Bloodletter of Aclazotz
+1 Bontu's Monument
+1 Cabal Coffers
+1 Campfire
+1 Command Beacon
+1 Consuming Corruption
+1 Crypt Ghast
+1 Culling the Weak
+1 Dark Confidant
+1 Dark Ritual
+1 Dauthi Trapper
+1 Decorum Dissertation
+1 Defiler of Flesh
+1 Doom Blade
+1 Doomsday Excruciator
+1 Dragon Shadow
+1 Dread Presence
+1 Elbrus, the Binding Blade
+1 Erebos, God of the Dead
+1 Everglades
+1 Filth
+1 Final Act
+1 Gauntlet of Power
+1 Gix, Yawgmoth Praetor
+1 Grave Betrayal
+1 Gray Merchant of Asphodel
+1 Grim Servant
+1 Gwenom, Remorseless
+1 Jet Medallion
+1 K'rrik, Son of Yawgmoth
+1 Leaden Myr
+1 Lethal Vapors
+1 Lich's Mastery
+1 Lich's Mirror
+1 Magus of the Coffers
+1 Massacre Girl
+1 Massacre Wurm
+1 Murder
+1 Mutilate
+1 Necrodominance
+1 Necropotence
+1 Netherborn Altar
+1 Nykthos, Shrine to Nyx
+1 Nyx Lotus
+1 Peer into the Abyss
+1 Platinum Angel
+1 Prowler's Helm
+1 Royal Assassin
+1 Sengir, the Dark Baron
+1 Sheoldred, Whispering One
+1 Summon: Primal Odin
+1 Sundial of the Infinite
+33 Swamp
+1 The Meathook Massacre
+1 Torpor Orb
+1 Varragoth, Bloodsky Sire
+1 Whip of Erebos
+1 Wound Reflection
+1 Zenos yae Galvus
+
+1 Phage the Untouchable
+
+===== DECK 059 | imported=101 | requested=101 | entries=83 | excluded=0 | chars=2469 | 2026-07-12 | 019f56af-7562-7660-b4ea-7a3d6d0c04c8 =====
+commander
+1 Mr. House, President and CEO (PIP) 7 *F*
+
+deck
+1 Academy Manufactor (MH2) 219
+1 Agility Bobblehead (PIP) 126
+1 Barbarian Class (AFR) 131
+1 Big Score (SOA) 38
+1 Blood Crypt (RTR) 238
+1 Bottle-Cap Blast (PIP) 55
+1 Brazen Dwarf (AFR) 134
+1 Celebr-8000 (UNF) 185
+1 Chaos Channeler (PLST) AFR-136
+1 Chaos Dragon (CLB) 784
+1 Charisma Bobblehead (PIP) 130
+1 Circuits Act (UNF) 103
+1 Clifftop Retreat (LCC) 324
+1 Collector's Vault (WOE) 244
+1 Command Tower (DSC) 96
+1 Crime Novelist (MKM) 121
+1 Cyberman Patrol (WHO) 174
+1 Cybermen Squadron (WHO) 176
+1 Danse Macabre (AFC) 22
+1 Delina, Wild Mage (AFR) 317
+1 Descent into Avernus (CLB) 169
+1 Dragonskull Summit (ECC) 147
+1 Earth-Cult Elemental (AFR) 141
+1 Endurance Bobblehead (PIP) 132
+1 Exotic Orchard (ONC) 152
+1 Godless Shrine (PEOE) 254s *F*
+1 Haunted Ridge (PMID) 263s *F*
+1 Herald of Hadar (AFR) 108
+1 Hoarding Ogre (PLST) AFR-146
+1 Illusionist's Bracers (RVR) 392
+1 Impact Tremors (FDN) 717 *F*
+1 Intangible Virtue (CNS) 72
+1 Intelligence Bobblehead (PIP) 134
+1 Iron Mastiff (CLB) 317
+1 Isolated Chapel (TDC) 373
+1 Jan Jansen, Chaos Crafter (CLB) 424
+1 Kambal, Profiteering Mayor (POTJ) 211p
+1 Kellogg, Dangerous Mind (PIP) 106
+1 Krark-Clan Ironworks (MB2) 224
+1 Lightfoot Rogue (AFR) 111
+1 Losheel, Clockwork Scholar (BRC) 73
+1 Lotho, Corrupt Shirriff (LTR) 213
+1 Luck Bobblehead (PIP) 135
+1 Maddening Hex (MB2) 195
+1 Marionette Apprentice (MH3) 100
+1 Mines of Moria (LTR) 257
+1 Mirkwood Bats (LTR) 95
+1 Monoxa, Midway Manager (UNF) 265
+7 Mountain (KLD) 259
+1 Myrkul's Edict (CLB) 135
+1 Nadier's Nightblade (CMM) 175
+1 Night Shift of the Living Dead (UNF) 81
+1 Night's Whisper (SOC) 221
+1 Perception Bobblehead (PIP) 139
+1 Phyrexian Arena (ONE) 283 *F*
+1 Pitiless Plunderer (FIC) 281
+7 Plains (DMU) 262
+1 Rain of Riches (BLC) 200
+1 Reckless Endeavor (AFC) 302
+1 Reckless Fireweaver (DRC) 106
+1 Sacred Foundry (PEOE) 256p
+1 Securitron Squadron (PIP) 23
+1 Shattered Sanctum (SOS) 260
+1 Six-Sided Die (UNF) 92
+1 Sol Ring (SOC) 128
+1 Strength Bobblehead (PIP) 143
+1 Sundown Pass (SOS) 264
+7 Swamp (M13) 240
+1 Sword of Dungeons & Dragons (UND) 84
+1 Tempered Steel (BRC) 76
+1 The Deck of Many Things (AFR) 392
+1 The Gold Saucer (FIN) 279
+1 Treasure Chest (AFR) 395
+1 Treasure Vault (DRC) 180
+1 Underdark Rift (AFC) 62
+1 Unexpected Windfall (PIP) 193
+1 V.A.T.S. (PIP) 333
+1 Vexing Puzzlebox (CLB) 374
+1 Vihaan, Goldwaker (OTC) 8 *F*
+1 Wand of Wonder (CLB) 584
+1 Wyll, Blade of Frontiers (CLB) 405
+1 Xorn (SLD) 2495
+
+===== DECK 060 | imported=101 | requested=101 | entries=81 | excluded=0 | chars=1570 | 2026-07-12 | 019f57d9-fa5a-741c-946d-51a4e29ee97f =====
+1 Abundant Growth
+1 All That Glitters
+1 Ancestral Mask
+1 Authority of the Consuls
+1 Banishing Light
+1 Blind Obedience
+1 Chains of Custody
+1 Cleric Class
+1 Darksteel Mutation
+1 Enchantress's Presence
+1 Ethereal Armor
+1 Fertile Ground
+1 Flickering Ward
+1 Ghostly Prison
+1 Hallowed Haunting
+1 Kenrith's Transformation
+1 Meticulous Excavation
+1 Mirari's Wake
+1 Overgrowth
+1 Privileged Position
+1 Seal of Cleansing
+1 Seal of Primordium
+1 Sigil of the Empty Throne
+1 Solitary Confinement
+1 Sphere of Safety
+1 Sterling Grove
+1 Stony Silence
+1 Whip Silk
+1 Wild Growth
+1 Beast Within
+1 Path to Exile
+1 Swords to Plowshares
+1 Teferi's Protection
+1 Arasta of the Endless Web
+1 Archon of Sun's Grace
+1 Auramancer
+1 Celestial Ancient
+1 Destiny Spinner
+1 Dryad of the Ilysian Grove
+1 Eidolon of Blossoms
+1 Eternal Witness
+1 Generous Visitor
+1 Heliod, Sun-Crowned
+1 Herald of the Pantheon
+1 Jukai Naturalist
+1 Kami of Transience
+1 Karametra, God of Harvests
+1 Katilda, Dawnhart Martyr
+1 Mesa Enchantress
+1 Moon-Blessed Cleric
+1 Nyxbloom Ancient
+1 Sanctum Weaver
+1 Satyr Enchanter
+1 Selfless Squire
+1 Setessan Champion
+1 Starnheim Courser
+1 Sun Titan
+1 Trelasarra, Moon Dancer
+1 Verduran Enchantress
+1 Blossoming Sands
+1 Botanical Plaza
+1 Canopy Vista
+1 Command Tower
+8 Forest
+1 Graypelt Refuge
+14 Plains
+1 Selesnya Guildgate
+1 Sungrass Prairie
+1 Sunpetal Grove
+1 Temple of Plenty
+1 Thornglint Bridge
+1 Thriving Grove
+1 Thriving Heath
+1 Austere Command
+1 Brilliant Restoration
+1 Cultivate
+1 Farewell
+1 Idyllic Tutor
+1 Resurgent Belief
+1 Winds of Rath
+
+Commander
+1 Sythis, Harvest's Hand
+
+===== DECK 061 | imported=101 | requested=101 | entries=101 | excluded=0 | chars=1807 | 2026-07-12 | 019f57ed-7b34-7981-a7c1-82bd1ee82b20 =====
+"commander" 
+Roxanne, Starfall servant
+Beast master ascension 
+The ten rings
+Conjurer's closet 
+Panharmonicon 
+City on fire
+Firery emancipation 
+Impact tremors 
+Throne of the god pharao 
+Helm of the host
+Marvin, murderous mimic 
+Roaming throne
+Strionic resonator 
+Pest rescuer 
+Ravenous robots 
+Smaug the magnificent 
+Tippy-toe, terrific partner 
+Keeper of fables
+Lifeblood hydra 
+Ohran frostfang 
+Peregrin took 
+Skull clamp
+The one ring
+Towashi guide-bot
+Alien invasion 
+Spring leaf parade
+Craterhoof behemoth
+Overrun
+Bristling backwoods
+Castle doom
+Cliffgate
+Command tower
+Commercial district 
+Cragcrown pathway 
+Fire-lit thicket 
+Fountainport 
+Gnottvold slumbermount 
+Gruul turf 
+Highland forest 
+Karplusan forest 
+Kavaron, memorial world 
+Kazandu refuge
+Manor gate
+Omashu city
+Path of ancestry
+Racers' ring
+Restless ridgeline 
+Rockfall vale
+Rootbound crag
+Rugged highlands
+Sheltered thicket 
+Slagwoods ridge
+Spire garden
+Wooded ridgeline 
+Scute swarm 
+Titania, nature's force 
+Akroma's memorial 
+Kamahl, fist of krosa 
+Thunderfoot baloth 
+Agility bobblehead 
+Arcane signet 
+Strength bobblehead 
+Intelligence bobblehead 
+Endurance bobblehead 
+Charisma bobblehead 
+Luck bobblehead 
+Perception bobblehead 
+Cryptolith rite 
+Jaheira, friend of the forest
+Xenagos, the reveler 
+Xorn
+Bala ged recovery 
+Artifact mutation 
+Comet storm
+Kogla and yodaro 
+Stump stomp
+Elemental spectacle 
+Academy manufactor
+Blade of selves
+Doubling season 
+Hornet nest
+Hornet queen 
+Howlsquad heavy
+Hydra broodmaster 
+Jolrael, mwonvuli recluse 
+Krenko, mob boss 
+Legion warboss 
+Parallel lives 
+Quinea, qu gourmet 
+Second harvest 
+Sekki, seasons guide 
+Siege gang lieutenant 
+Sprouting phytohydra 
+Stridehanger automaton 
+Tendershoot dryad
+Thrumming hivepool 
+Ulamog's dreadsire 
+Ulasht, the hate seed 
+Verdant force
+Planar bridge
+
+===== DECK 062 | imported=101 | requested=101 | entries=89 | excluded=0 | chars=2698 | 2026-07-12 | 019f5849-7ff6-7ff8-85dc-a4a92636a2e1 =====
+“Commander”
+1 Kambal, Profiteering Mayor (OTJ) 211
+
+1 Academy Manufactor (PLST) MH2-219
+1 Angelic Ascension (M21) 3
+1 Arcane Signet (C20) 237
+1 Baron Bertram Graywater (OTJ) 195
+1 Bastion of Remembrance (IKO) 73
+1 Benevolent Offering (C14) 3
+1 Bennie Bracks, Zoologist (MKC) 57
+1 Black Market Connections (MSC) 155
+1 Blood Artist (JMP) 206
+1 Bloodvial Purveyor (VOW) 98
+1 Boggart Trawler / Boggart Bog (MH3) 243
+1 Bojuka Bog (C19) 232
+1 Bovine Intervention (OTJ) 6
+1 Bucknard's Everfull Purse (AFC) 57
+1 Caretaker's Talent (BLB) 6
+1 Caves of Koilos (DMU) 244
+1 Combat Calligrapher (SOC) 141
+1 Command Tower (DRC) 60
+1 Concealed Courtyard (OTJ) 268
+1 Contraband Livestock (CLB) 12
+1 Cruel Celebrant (LCC) 267
+1 Curse of Disturbance (SCD) 74
+1 Discerning Financier (WOE) 10
+1 Eiganjo, Seat of the Empire (NEO) 268
+1 Elas il-Kor, Sadistic Pilgrim (DMU) 297
+1 Emergency Eject (EOE) 14
+1 Exalted Sunborn (EOE) 15
+1 Excavation Technique (C21) 16
+1 Exotic Orchard (CM2) 250
+1 Fell the Profane / Fell Mire (MH3) 244
+1 Forbidden Orchard (2X2) 323
+1 Generous Gift (LCC) 128
+1 Get Lost (LCI) 14
+1 Godless Shrine (RNA) 248
+1 Hour of Reckoning (C19) 65
+1 Hunted Horror (CLB) 758
+1 Idol of Oblivion (C19) 55
+1 Inkshield (SOC) 316
+1 Isolated Chapel (TDC) 373
+1 Life Insurance (DSC) 224
+1 Marching Duodrone (CLB) 447
+1 Marsh Flats (MM3) 239
+1 Master of Ceremonies (NCC) 18
+1 Mondrak, Glory Dominus (PONE) 23p
+1 Monologue Tax (MSC) 139
+1 Morbid Opportunist (MID) 113
+1 Nadier's Nightblade (CMR) 136
+1 Orzhov Basilica (CLB) 906
+1 Orzhov Signet (C20) 247
+1 Parting Gust (BLB) 24
+1 Phyrexian Tower (MH3) 303
+1 Pitiless Plunderer (J25) 476
+7 Plains (J25) 81
+1 Reliquary Tower (PLST) M19-254
+1 Saw in Half (BLC) 113
+1 Shadowy Backstreet (MKM) 268
+1 Shadrix Silverquill (STX) 230
+1 Shattered Sanctum (SOS) 260
+1 Silverquill Lecturer (M3C) 96
+1 Silverquill, the Disputant (SOS) 226
+1 Skullclamp (MSC) 210
+1 Slaughter Specialist (MID) 349
+1 Sol Ring (C19) 221
+1 Stroke of Midnight (WOE) 33
+1 Suture Priest (NPH) 25
+7 Swamp (J25) 89
+1 Swiftfoot Boots (C13) 263
+1 Tainted Field (E02) 47
+1 Takenuma, Abandoned Mire (NEO) 278
+1 Talisman of Hierarchy (MH1) 233
+1 Tempting Contract (C21) 405
+1 Teysa Karlov (RNA) 212
+1 Thalisse, Reverent Medium (CMR) 291
+1 The Meathook Massacre (MID) 112
+1 The Sentry, Golden Guardian (MSH) 35
+1 Tribute to Horobi / Echo of Death's Wail (NEO) 124
+1 Urborg, Tomb of Yawgmoth (UMA) 254
+1 Vault of Champions (CMM) 436
+1 Vault of the Archangel (TDC) 410
+1 Village Rites (M21) 126
+1 Viscera Seer (CMR) 158
+1 Wanted Scoundrels (XLN) 131
+1 Warren Soultrader (MH3) 110
+1 Wedding Ring (WHO) 213
+1 Welcoming Vampire (VOW) 46
+1 Witch Enchanter / Witch-Blessed Meadow (MH3) 239
+1 Zulaport Cutthroat (ZNC) 57
+
+===== DECK 063 | imported=101 | requested=101 | entries=96 | excluded=0 | chars=1818 | 2026-07-12 | 019f5900-6d6a-7360-80d1-524369f72937 =====
+1 Spider-Man No More
+1 Feed the Swarm
+1 Invisible Woman, Sue Storm
+1 Punishing Punch
+1 Counterspell
+2 Mountain
+1 Scarlet Spider, Ben Reilly
+2 Forest
+1 Decoy Ploy
+1 Spider-Punk
+2 Swamp
+1 Pillar of Origins
+1 Web-Shooters
+1 Villainous Wrath
+1 Surveillance Room
+2 Island
+1 Lightning Strike
+1 Rapid Rescue
+1 Wall Crawl
+1 HULK SMASH!
+1 Spider-Sense
+1 Mystic Confluence
+1 Impostor Syndrome
+1 Web of Life and Destiny
+1 Spectacular Spider-Man
+1 Peter Parker
+1 Secret Invasion
+1 Icon of Ancestry
+1 Training Compound
+1 Alien Symbiosis
+2 Plains
+1 Spider-Bot
+1 Call Damage Control
+1 Murdock's Crusade
+1 Web-Warriors
+1 Human Torch, Johnny Storm
+1 Spider-Woman, Stunning Savior
+1 Pym Technologies
+1 Fisk Tower
+1 Mirror of Galadriel
+1 Baxter Building
+1 Web Up
+1 Spider-Woman, Secret Agent
+1 Hide on the Ceiling
+1 Spider-Man, Miles Morales
+1 Arachne, Psionic Weaver
+1 Epic Fight
+1 The Death of Gwen Stacy
+1 Earth's Mightiest Heroes
+1 Symbiote Spider-Man
+1 Stark Industries
+1 Relentless Assault
+1 Daily Bugle Building
+1 Sol Ring
+1 Radioactive Spider
+1 Spectacular Tactics
+1 Mary Jane Watson
+1 Mister Fantastic, Reed Richards
+1 Multiversal Passage
+1 Take Up the Shield
+1 Miles Morales
+1 Spider-Suit
+1 Avengers Tower
+1 Super Intelligence
+1 Glint Weaver
+1 Dark Fortress
+1 The Thing, Ben Grimm
+1 Super Strength
+1 Gwenom, Remorseless
+1 Iron Man Armor
+1 Super Villain Lockup
+1 Friendly Neighborhood
+1 Amazing Acrobatics
+1 Origin of the Avengers
+1 Ponder
+1 Spider-Ham, Peter Porker
+1 Gleaming Bastion
+1 Aunt May
+1 Three Steps Ahead
+1 Ancient Cornucopia
+1 Cultivate
+1 Herald's Horn
+1 Elven Chorus
+1 Realmwalker
+1 Command Tower
+1 Worthy Cost
+1 Arcane Signet
+1 Chromatic Lantern
+1 Vanquisher's Banner
+1 Path of Ancestry
+1 Exotic Orchard
+1 Unclaimed Territory
+1 Secluded Courtyard
+1 Cascading Cataracts
+1 Opal Palace
+
+Commander
+1 Cosmic Spider-Man
+
+===== DECK 064 | imported=101 | requested=101 | entries=96 | excluded=0 | chars=2388 | 2026-07-12 | 019f590e-b45a-78b8-b0d2-13092a67d4b0 =====
+1 Spider-Man No More (SPM)
+1 Feed the Swarm (OTC)
+1 Invisible Woman, Sue Storm (MSH)
+1 Punishing Punch (MSH)
+1 Counterspell (CMM)
+2 Mountain (SPM)
+1 Scarlet Spider, Ben Reilly (SPM)
+2 Forest (SPM)
+1 Decoy Ploy (SPM)
+1 Spider-Punk (SPM)
+2 Swamp (SPM)
+1 Pillar of Origins (LCI)
+1 Web-Shooters (SPM)
+1 Villainous Wrath (MSH)
+1 Surveillance Room (MSH)
+2 Island (SPM)
+1 Lightning Strike (DMU)
+1 Rapid Rescue (SPM)
+1 Wall Crawl (SPM)
+1 HULK SMASH! (MSH)
+1 Spider-Sense (SPM)
+1 Mystic Confluence (CMM)
+1 Impostor Syndrome (SPM)
+1 Web of Life and Destiny (SPM)
+1 Spectacular Spider-Man (SPM)
+1 Peter Parker (SPM)
+1 Secret Invasion (MSH)
+1 Icon of Ancestry (LCC)
+1 Training Compound (MSH)
+1 Alien Symbiosis (SPM)
+2 Plains (SPM)
+1 Spider-Bot (SPM)
+1 Call Damage Control (MSH)
+1 Murdock's Crusade (MSH)
+1 Web-Warriors (SPM)
+1 Human Torch, Johnny Storm (MSH)
+1 Spider-Woman, Stunning Savior (SPM)
+1 Pym Technologies (MSH)
+1 Fisk Tower (SPM)
+1 Mirror of Galadriel (LTR)
+1 Baxter Building (MSH)
+1 Web Up (SPM)
+1 Spider-Woman, Secret Agent (SPM)
+1 Hide on the Ceiling (SPM)
+1 Spider-Man, Miles Morales (SPM)
+1 Arachne, Psionic Weaver (SPM)
+1 Epic Fight (MSH)
+1 The Death of Gwen Stacy (SPM)
+1 Earth's Mightiest Heroes (MSH)
+1 Symbiote Spider-Man (SPM)
+1 Stark Industries (MSH)
+1 Relentless Assault (DMR)
+1 Daily Bugle Building (SPM)
+1 Sol Ring (CMM)
+1 Radioactive Spider (SPM)
+1 Spectacular Tactics (SPM)
+1 Mary Jane Watson (SPM)
+1 Mister Fantastic, Reed Richards (MSH)
+1 Multiversal Passage (MSH)
+1 Take Up the Shield (DMU)
+1 Miles Morales (SPM)
+1 Spider-Suit (SPM)
+1 Avengers Tower (MSH)
+1 Super Intelligence (MSH)
+1 Glint Weaver (BLB)
+1 Dark Fortress (MSH)
+1 The Thing, Ben Grimm (MSH)
+1 Super Strength (MSH)
+1 Gwenom, Remorseless (SPM)
+1 Iron Man Armor (MSH)
+1 Super Villain Lockup (MSH)
+1 Friendly Neighborhood (SPM)
+1 Amazing Acrobatics (SPM)
+1 Origin of the Avengers (MSH)
+1 Ponder (OTC)
+1 Spider-Ham, Peter Porker (SPM)
+1 Gleaming Bastion (SPM)
+1 Aunt May (SPM)
+1 Three Steps Ahead (OTJ)
+1 Ancient Cornucopia (BIG)
+1 Cultivate (CMM)
+1 Herald's Horn (LCC)
+1 Elven Chorus (LTR)
+1 Realmwalker (KHM)
+1 Command Tower (CMM)
+1 Worthy Cost (MSH)
+1 Arcane Signet (CMM)
+1 Chromatic Lantern (OTC)
+1 Vanquisher's Banner (LCC)
+1 Path of Ancestry (OTC)
+1 Exotic Orchard (OTC)
+1 Unclaimed Territory (LCC)
+1 Secluded Courtyard (NEO)
+1 Cascading Cataracts (AKH)
+1 Opal Palace (CMM)
+
+Commander
+1 Cosmic Spider-Man
+
+===== DECK 065 | imported=101 | requested=101 | entries=95 | excluded=0 | chars=2614 | 2026-07-13 | 019f59fe-bb82-7e6c-b4c0-d97fe7f28892 =====
+"commander"
+1 Witherbloom, the Balancer (SOS) 245
+1 Ad Nauseam (SOA) 25
+1 Allosaurus Shepherd (JMP) 28
+1 Ancient Tomb (UMA) 236
+1 Asmodeus the Archfiend (AFR) 88
+1 Autumn's Veil (M11) 162
+1 Awaken the Woods (BRO) 170
+1 Bayou (3ED) 283
+1 Birds of Paradise (MSC) 170
+1 Blood Pet (6ED) 115
+1 Bloodstained Mire (MH3) 216
+1 Bolas's Citadel (MB2) 39
+1 Boseiju, Who Endures (NEO) 266
+1 Cabal Coffers (MB2) 106
+1 Cabal Ritual (TOR) 51
+1 Candelabra of Tawnos (ATQ) 43
+1 Chain of Smog (PLST) ONS-132
+1 Chatterfang, Squirrel General (MH2) 151
+1 Chittering Dispatcher (M3C) 63
+1 Chrome Mox (EMA) 219
+1 Command Tower (ELD) 333
+1 Corpse Dance (TMP) 116
+1 Crop Rotation (PLST) DDR-7
+1 Culling the Weak (SOA) 27
+1 Dark Ritual (5ED) 153
+1 Deathrite Shaman (MB2) 81
+1 Delighted Halfling (LTR) 402
+1 Demonic Tutor (DVD) 49
+1 Diabolic Intent (BRO) 89
+1 Diabolic Revelation (M13) 87
+1 Dosan the Falling Leaf (CHK) 205
+1 Dryad Arbor (MB2) 108
+1 Elves of Deep Shadow (DDJ) 47
+1 Elvish Reclaimer (M20) 169
+1 Elvish Spirit Guide (MB2) 68
+1 Emergence Zone (WAR) 245
+1 Entomb (TLE) 310
+1 Exsanguinate (J25) 437
+1 Finale of Devastation (WAR) 160
+1 Force of Vigor (MAR) 77
+4 Forest (J25) 95
+1 Gaea's Cradle (USG) 321
+1 Gemstone Caverns (TSR) 280
+1 Grim Monolith (ULG) 126
+1 Lion's Eye Diamond (MIR) 307
+1 Llanowar Elves (9ED) 253
+1 Llanowar Wastes (C19) 258
+1 Lotus Petal (PLST) TMP-294
+1 Mana Vault (5ED) 388
+1 Marsh Flats (MM3) 239
+1 Memnite (SOM) 174
+1 Mirkwood Bats (LTR) 421
+1 Mox Amber (DOM) 224
+1 Mox Diamond (STH) 138
+1 Mox Opal (SOM) 179
+1 Nature's Rhythm (TDM) 150
+1 Necrotic Ooze (2X2) 83
+1 Opposition Agent (CMR) 141
+1 Orcish Bowmasters (LTR) 103
+1 Ornithopter (DMR) 233
+1 Overgrown Tomb (GRN) 253
+1 Peer into the Abyss (M21) 117
+1 Phyrexian Altar (UMA) 232
+1 Phyrexian Tower (MH3) 303
+1 Phyrexian Walker (VIS) 152
+1 Pitiless Plunderer (FIC) 281
+1 Priest of Titania (MH3) 286
+1 Reanimate (JMP) 270
+1 Sacrifice (3ED) 126
+1 Saw in Half (BLC) 113
+1 Sheoldred, the Apocalypse (DMU) 369
+1 Shield Sphere (ALL) 129
+1 Skirge Familiar (MH2) 276
+1 Sol Ring (C19) 221
+1 Songs of the Damned (ICE) 160
+1 Sprout Swarm (FUT) 138
+1 Stinging Study (SLD) 2481
+4 Swamp (J25) 89
+1 Talisman of Resilience (PIP) 250
+1 The One Ring (LTR) 451
+1 Torment of Hailfire (SLD) 2287
+1 Turbulent Fen (SOC) 55
+1 Undergrowth Stadium (TMC) 80
+1 Urborg, Tomb of Yawgmoth (UMA) 254
+1 Vampiric Tutor (CMR) 156
+1 Veil of Summer (SOA) 60
+1 Verdant Catacombs (MM3) 249
+1 Viscera Seer (M11) 120
+1 Warren Soultrader (MH3) 110
+1 Windswept Heath (MH3) 235
+1 Witherbloom Apprentice (STX) 247
+1 Wooded Foothills (MH3) 236
+1 Worldly Tutor (DMR) 185
+1 Zulaport Cutthroat (A25) 117
+
+===== DECK 066 | imported=101 | requested=101 | entries=66 | excluded=0 | chars=2054 | 2026-07-13 | 019f5a5b-3bad-7ca1-a3d6-3a2526d7a51d =====
+1 All Is Dust (MM2) 1
+1 Ancient Tomb (PLST) TMP-315
+1 Artisan of Kozilek (UMA) 2
+1 Breaker of Creation (MH3) 1
+1 Calamity of the Titans (CMM) 745
+1 Cavern of Souls (PLCI) 269p
+1 Chalice of Life / Chalice of Death (INR) 257
+1 Chromatic Orrery (M21) 228
+1 Chrome Mox (EMA) 219
+1 Commander's Plate (PLST) CMR-305
+1 Conduit of Ruin (BFZ) 4
+1 Coveted Jewel (C21) 240
+1 Crucible of Worlds (2X2) 303
+1 Cryptothrall (40K) 155★ *F*
+1 Darksteel Monolith (CMM) 778
+1 Desecrate Reality (CMM) 714
+1 Dust Bowl (EXP) 37 *F*
+1 Eldrazi Temple (DDP) 68
+1 Eldritch Immunity (M3C) 33
+1 Emrakul, the Promised End (INR) 330
+1 Emrakul, the World Anew (MH3) 6
+1 Extraplanar Lens (MRD) 169
+1 Eye of Ugin (WWK) 136
+1 Field of the Dead (SLC) 6
+1 Flayer of Loyalties (CMM) 747
+1 Glaring Spotlight (GTC) 229
+1 Grim Monolith (ULG) 126
+1 Herald's Horn (JMP) 469
+1 Homeward Path (C13) 295
+1 It That Betrays (ROE) 7
+1 Karn, the Great Creator (WAR) 1
+1 Kozilek, Butcher of Truth (MM2) 5
+1 Kozilek, the Broken Reality (MH3) 10
+1 Kozilek, the Great Distortion (CMM) 2
+1 Kozilek's Channeler (BFZ) 10
+1 Liberator, Urza's Battlethopter (BRO) 237
+1 Mana Vault (5ED) 388
+1 Matzalantli, the Great Door / The Core (LCI) 256
+1 Mind's Eye (MRD) 205
+1 Mirage Mirror (NEC) 154
+1 Mox Opal (MM2) 223
+1 Oblivion Sower (M3C) 158
+1 Palantír of Orthanc (LTR) 381
+1 Portal to Phyrexia (PBRO) 240p
+1 Reliquary Tower (SOC) 398
+1 Sanctum of Ugin (BFZ) 242
+1 Shrine of the Forsaken Gods (BFZ) 245
+1 Sol Ring (ECC) 57
+1 Sword of the Animist (ORI) 240
+1 The Immortal Sun (CMM) 393
+1 The One Ring (LTR) 451
+1 Ugin, Eye of the Storms (PTDM) 1p
+1 Ugin, the Ineffable (WAR) 2
+1 Ugin, the Spirit Dragon (PF25) 6 *F*
+1 Ulamog, the Defiler (MH3) 15
+1 Ulamog, the Infinite Gyre (MM2) 6
+1 Ulamog's Crusher (M3C) 161
+1 Unwinding Clock (BRR) 61
+1 Urza's Incubator (UDS) 142
+1 Vedalken Orrery (2X2) 317
+1 Void Winnower (BFZ) 17
+1 Wandering Archaic / Explore the Vastlands (STX) 6
+36 Wastes (FIN) 309
+1 Zhulodok, Void Gorger (CMM) 779 *E*
+
+commander
+1 Ulamog, the Ceaseless Hunger (CMM) 5
+1 Ulamog, the Ceaseless Hunger (CMM) 5
+
+===== DECK 067 | imported=101 | requested=101 | entries=92 | excluded=0 | chars=1532 | 2026-07-13 | 019f5bd0-bcbc-73e8-b20d-4e1511c9f3ce =====
+1 Ancient Tomb
+1 Arcane Signet
+1 Archon of Emeria
+1 Armageddon
+1 Aura of Silence
+1 Aven Mindcensor
+1 Azorius Signet
+1 Back to Basics
+1 Brainstorm
+1 Cataclysm
+1 Catastrophe
+1 Cephalid Coliseum
+1 Chrome Mox
+1 Command Tower
+1 Containment Priest
+1 Counterbalance
+1 Cursed Totem
+1 Cyclonic Rift
+1 Delay
+1 Dovin's Veto
+1 Drannith Magistrate
+1 Enlightened Tutor
+1 Fabricate
+1 Fellwar Stone
+1 Fierce Guardianship
+1 Flagstones of Trokair
+1 Flooded Strand
+1 Flusterstorm
+1 Force of Negation
+1 Force of Will
+1 Gemstone Caverns
+1 Gitaxian Probe
+1 Glacial Fortress
+1 Hallowed Fountain
+1 Heliod, Sun-Crowned
+1 Helm of Obedience
+1 Hullbreacher
+1 Hushbringer
+1 Hushwing Gryff
+1 Idyllic Tutor
+7 Island
+1 Jeweled Lotus
+1 Land Tax
+1 Lavinia, Azorius Renegade
+1 Linvala, Keeper of Silence
+1 Luminarch Ascension
+1 Mana Crypt
+1 Mana Drain
+1 Mana Vault
+1 Mangara, the Diplomat
+1 Marsh Flats
+1 Mental Misstep
+1 Misty Rainforest
+1 Mox Diamond
+1 Mox Opal
+1 Mystic Gate
+1 Mystic Remora
+1 Mystical Tutor
+1 Narset, Parter of Veils
+1 Narset's Reversal
+1 Nimbus Maze
+1 Pact of Negation
+4 Plains
+1 Polluted Delta
+1 Prairie Stream
+1 Ravages of War
+1 Reliquary Tower
+1 Rest in Peace
+1 Rhystic Study
+1 Scalding Tarn
+1 Sea of Clouds
+1 Sensei's Divining Top
+1 Silence
+1 Smothering Tithe
+1 Sol Ring
+1 Spell Snare
+1 Stasis
+1 Supreme Verdict
+1 Swan Song
+1 Swords to Plowshares
+1 Talisman of Progress
+1 Teferi, Master of Time
+1 Time Wipe
+1 Timetwister
+1 Torpor Orb
+1 Trickbind
+1 Tundra
+1 Walking Ballista
+1 Windfall
+1 Windswept Heath
+"Commander"
+1 Grand Arbiter Augustin IV
+
+===== DECK 068 | imported=101 | requested=101 | entries=95 | excluded=0 | chars=1690 | 2026-07-13 | 019f5c1b-75d7-7514-92df-475afdadd8dd =====
+1 Arcane Signet
+1 Archipelagore
+1 Auspicious Starrix
+1 Beast Whisperer
+1 Blooming Marsh
+1 Blossoming Defense
+1 Boneyard Lurker
+1 Brokers Hideout
+1 Brokkos, Apex of Forever
+1 Cabaretti Courtyard
+1 Cavern Whisperer
+1 Chaos Warp
+1 Chittering Harvester
+1 Cinder Glade
+1 Cloudpiercer
+1 Command Tower
+1 Condemn
+1 Cromat
+1 Cubwarden
+1 Cultivate
+1 Deathcap Glade
+1 Diabolic Tutor
+1 Dirge Bat
+1 Doom Blade
+1 Doomskar
+1 Dreamtail Heron
+1 Elegant Parlor
+1 Everquill Phoenix
+1 Evolving Wilds
+1 Faithless Looting
+1 Farseek
+1 Felidar Retreat
+3 Forest
+1 Garruk's Uprising
+1 Gemrazer
+1 Glacial Fortress
+1 Glowstone Recluse
+1 Growth Spiral
+1 Guildmages' Forum
+1 Hinterland Harbor
+1 Huntmaster Liger
+1 Illuna, Apex of Wishes
+1 Insatiable Hemophage
+2 Island
+1 Ivy, Gleeful Spellthief
+1 Jungle Hollow
+1 Killian, Ink Duelist
+1 Lore Drakkis
+1 Maestros Theater
+1 Majestic Auricorn
+1 Mana Tithe
+1 Migration Path
+1 Migratory Greathorn
+1 Mind Stone
+1 Mindleecher
+1 Morphic Pool
+2 Mountain
+1 Mysterious Egg
+1 Mythos of Brokkos
+1 Mythos of Nethroi
+1 Needlethorn Drake
+1 Nethroi, Apex of Death
+1 Obscura Storefront
+1 Otrimi, the Ever-Playful
+2 Plains
+1 Pollywog Symbiote
+1 Porcuparrot
+1 Pouncing Shoreshark
+1 Quirion Dryad
+1 Rampant Growth
+1 Regal Leosaur
+1 Riveteers Overlook
+1 Rockfall Vale
+1 Scute Swarm
+1 Sea-Dasher Octopus
+1 Slippery Bogle
+1 Snapdax, Apex of the Hunt
+1 Sol Ring
+1 Solemn Simulacrum
+1 Souvenir Snatcher
+1 Spell Pierce
+2 Swamp
+1 Swords to Plowshares
+1 Temple of Enlightenment
+1 Terramorphic Expanse
+1 Thespian's Stage
+1 Toski, Bearer of Secrets
+1 Trumpeting Gnarr
+1 Vadrok, Apex of Thunder
+1 Vibrant Cityscape
+1 Vulpikeet
+1 Wayfarer's Bauble
+1 Woodland Cemetery
+
+“Commander”
+1 Esika, God of the Tree
+
+===== DECK 069 | imported=102 | requested=102 | entries=66 | excluded=0 | chars=1813 | 2026-07-11 | 019f5209-aae8-7b5a-8033-6d5f14cd0d58 =====
+
+1 Arm with Aether (NPH) 28
+1 Bident of Thassa (C15) 86
+1 Bloodforged Battle-Axe (MOC) 349
+1 Bonesplitter (CMR) 458
+1 Cancel (M11) 48
+1 Captain's Claws (OGW) 162
+1 Cephalid Constable (JUD) 35
+1 Cloak and Dagger (MOR) 141
+1 Coastal Piracy (MMQ) 68
+1 Counterspell (CMM) 81
+1 Curiosity (WOT) 17
+1 Deepfathom Skulker (OGW) 43
+1 Desert of the Mindful (C21) 287
+1 Disdainful Stroke (SNC) 39
+1 Dissolve (IMA) 51
+1 Eldrazi Skyspawner (BFZ) 58
+1 Eternal of Harsh Truths (HOU) 34
+1 Explorer's Scope (CMM) 380
+1 Fact or Fiction (CLB) 720
+1 Fireshrieker (CMM) 949
+1 Frost Walker (FRF) 35
+1 Frozen Aether (PLC) 54
+1 Graceful Adept (CHK) 63
+1 Hands of Binding (GTC) 37
+1 Hidden Strings (Q06) 5
+1 Illusory Ambusher (GN3) 29
+37 Island (WOE) 270
+1 Jhessian Thief (IMA) 61
+1 Knowledge Exploitation (MOR) 38
+1 Latchkey Faerie (ZNC) 28
+1 Lightning Greaves (PLST) C19-217
+1 Lonely Sandbar (C21) 298
+1 Mask of Memory (CMR) 324
+1 Master of Waves (THS) 53
+1 Mindshrieker (ISD) 67
+1 Mistblade Shinobi (BOK) 43
+1 Necropede (SOM) 185
+1 Negate (ORI) 65
+1 Neurok Commando (MBS) 28
+1 Nimble Obstructionist (HOU) 40
+1 Notorious Throng (ZNC) 33
+1 Omniscience (WOT) 24
+1 Ovalchase Dragster (KLD) 225
+1 Phyrexian Digester (MBS) 120
+1 Phyrexian Revoker (BRR) 40
+1 Prying Blade (XLN) 244
+1 Quietus Spike (BRR) 109
+1 Remote Isle (DMR) 254
+1 Rhystic Study (PCY) 45
+1 Riptide Entrancer (ONS) 108
+1 Riptide Pilferer (TSR) 83
+1 Rogue's Gloves (M19) 243
+1 Rogue's Passage (WHO) 299
+1 Sigil of Sleep (UDS) 46
+1 Siren Stormtamer (XLN) 79
+1 Specter's Shroud (DST) 142
+1 Spellbook (9ED) 309
+1 Stolen Identity (ZNC) 37
+1 Swiftfoot Boots (C14) 275
+1 Thassa, God of the Sea (LCC) 176
+1 True-Name Nemesis (TSR) 321
+1 Umezawa's Jitte (PLST) BOK-163
+1 Unwind (DOM) 72
+1 Vendilion Clique (MM2) 67
+1 Voidwalk (GTC) 55
+
+Commander
+
+1 Tetsuko Umezawa, Fugitive (CMM) 126
+
+===== DECK 070 | imported=102 | requested=102 | entries=74 | excluded=0 | chars=2173 | 2026-07-11 | 019f52ba-bfd4-70a6-bb2f-addab3bcbee4 =====
+1 Kykar, Zephyr Awakener (FDN) 122
+1 Aether Channeler (BLC) 160
+1 Aetherize (BLC) 161
+1 Amphibian Downpour (MH3) 51
+1 An Offer You Can't Refuse (PLST) SNC-51
+1 Another Round (OTJ) 1
+1 Approach of the Second Sun (AKH) 4
+1 Arcane Signet (LCC) 299
+1 Archaeomancer (M14) 43
+1 Azorius Signet (DSC) 240
+1 Caretaker's Talent (BLB) 6
+1 Charming Prince (FDN) 568
+1 Cloud of Faeries (DMR) 43
+1 Cloudblazer (KHC) 84
+1 Cloudshift (AVR) 12
+1 Command Tower (MKC) 256
+1 Conjurer's Closet (DRC) 126
+1 Counterspell (CMM) 81
+1 Curator of Destinies (FDN) 34
+1 Dazzling Denial (BLB) 45
+1 Divine Visitation (TDC) 113
+1 Dour Port-Mage (BLB) 303
+1 Eiganjo, Seat of the Empire (NEO) 268
+1 Elesh Norn, Mother of Machines (ONE) 414
+1 Elspeth, Storm Slayer (TDM) 11
+1 Enduring Innocence (DSK) 6
+1 Ephemerate (MH1) 7
+1 Farewell (MKC) 64
+1 Flicker of Fate (THB) 16
+1 Floodfarm Verge (PDSK) 259p
+1 Ghostly Flicker (CMM) 98
+1 Hallowed Fountain (RNA) 251
+1 Helpful Hunter (FDN) 16
+15 Island (UST) 213
+1 Loran of the Third Path (BLC) 143
+1 Lunarch Veteran / Luminous Phantom (INR) 32
+1 Marang River Regent / Coil and Catch (TDM) 378
+1 Moonshaker Cavalry (PWOE) 21p
+1 Mystic Sanctuary (MKC) 277
+1 Negate (BBD) 123
+1 No More Lies (MKM) 221
+1 Opt (XLN) 65
+1 Overlord of the Floodpits (DSK) 68
+1 Panharmonicon (KLD) 226
+1 Path to Exile (ACR) 81
+1 Pearl Medallion (MH3) 294
+1 Peregrine Drake (DMR) 65
+15 Plains (UST) 212
+1 Reflector Mage (PLST) OGW-157
+1 Reliquary Tower (DSC) 295
+1 Restless Anchorage (PLCI) 280p
+1 Riptide Gearhulk (DFT) 219
+1 Riptide Laboratory (MH2) 303
+1 Run Away Together (FDN) 162
+1 Sapphire Medallion (MH3) 296
+1 Shark Typhoon (DSC) 127
+1 Shipwreck Dowser (CMM) 119
+1 Skullclamp (TDC) 103
+1 Skyknight Squire (FDN) 23
+1 Sol Ring (PIP) 239
+1 Solemn Simulacrum (DSC) 253
+1 Soulherder (MH1) 214
+1 Spellseeker (BBD) 41
+1 Starfall Invocation (BLB) 298
+1 Strix Serenade (MH3) 71
+1 Supreme Verdict (LTC) 272
+1 Swiftfoot Boots (LCC) 314
+1 Swords to Plowshares (DSC) 106
+1 Talisman of Progress (SCD) 283
+1 The Eternal Wanderer (PLST) ONE-11
+1 Thought Vessel (BLC) 289
+1 Three Steps Ahead (OTJ) 75
+1 Virtue of Knowledge / Vantress Visions (WOE) 76
+1 Witch Enchanter / Witch-Blessed Meadow (MH3) 239
+
+===== DECK 071 | imported=102 | requested=102 | entries=74 | excluded=0 | chars=2184 | 2026-07-11 | 019f52bd-c1f9-74eb-80f1-4664162d5b35 =====
+commander: 1 Kykar, Zephyr Awakener (FDN) 122
+1 Aether Channeler (BLC) 160
+1 Aetherize (BLC) 161
+1 Amphibian Downpour (MH3) 51
+1 An Offer You Can't Refuse (PLST) SNC-51
+1 Another Round (OTJ) 1
+1 Approach of the Second Sun (AKH) 4
+1 Arcane Signet (LCC) 299
+1 Archaeomancer (M14) 43
+1 Azorius Signet (DSC) 240
+1 Caretaker's Talent (BLB) 6
+1 Charming Prince (FDN) 568
+1 Cloud of Faeries (DMR) 43
+1 Cloudblazer (KHC) 84
+1 Cloudshift (AVR) 12
+1 Command Tower (MKC) 256
+1 Conjurer's Closet (DRC) 126
+1 Counterspell (CMM) 81
+1 Curator of Destinies (FDN) 34
+1 Dazzling Denial (BLB) 45
+1 Divine Visitation (TDC) 113
+1 Dour Port-Mage (BLB) 303
+1 Eiganjo, Seat of the Empire (NEO) 268
+1 Elesh Norn, Mother of Machines (ONE) 414
+1 Elspeth, Storm Slayer (TDM) 11
+1 Enduring Innocence (DSK) 6
+1 Ephemerate (MH1) 7
+1 Farewell (MKC) 64
+1 Flicker of Fate (THB) 16
+1 Floodfarm Verge (PDSK) 259p
+1 Ghostly Flicker (CMM) 98
+1 Hallowed Fountain (RNA) 251
+1 Helpful Hunter (FDN) 16
+15 Island (UST) 213
+1 Loran of the Third Path (BLC) 143
+1 Lunarch Veteran / Luminous Phantom (INR) 32
+1 Marang River Regent / Coil and Catch (TDM) 378
+1 Moonshaker Cavalry (PWOE) 21p
+1 Mystic Sanctuary (MKC) 277
+1 Negate (BBD) 123
+1 No More Lies (MKM) 221
+1 Opt (XLN) 65
+1 Overlord of the Floodpits (DSK) 68
+1 Panharmonicon (KLD) 226
+1 Path to Exile (ACR) 81
+1 Pearl Medallion (MH3) 294
+1 Peregrine Drake (DMR) 65
+15 Plains (UST) 212
+1 Reflector Mage (PLST) OGW-157
+1 Reliquary Tower (DSC) 295
+1 Restless Anchorage (PLCI) 280p
+1 Riptide Gearhulk (DFT) 219
+1 Riptide Laboratory (MH2) 303
+1 Run Away Together (FDN) 162
+1 Sapphire Medallion (MH3) 296
+1 Shark Typhoon (DSC) 127
+1 Shipwreck Dowser (CMM) 119
+1 Skullclamp (TDC) 103
+1 Skyknight Squire (FDN) 23
+1 Sol Ring (PIP) 239
+1 Solemn Simulacrum (DSC) 253
+1 Soulherder (MH1) 214
+1 Spellseeker (BBD) 41
+1 Starfall Invocation (BLB) 298
+1 Strix Serenade (MH3) 71
+1 Supreme Verdict (LTC) 272
+1 Swiftfoot Boots (LCC) 314
+1 Swords to Plowshares (DSC) 106
+1 Talisman of Progress (SCD) 283
+1 The Eternal Wanderer (PLST) ONE-11
+1 Thought Vessel (BLC) 289
+1 Three Steps Ahead (OTJ) 75
+1 Virtue of Knowledge / Vantress Visions (WOE) 76
+1 Witch Enchanter / Witch-Blessed Meadow (MH3) 239
+
+===== DECK 072 | imported=102 | requested=102 | entries=70 | excluded=0 | chars=2065 | 2026-07-12 | 019f56a6-f350-708a-9740-de7835d984b2 =====
+commender
+1 Phage the Untouchable (CNS) 120
+
+deck
+1 Abhorrent Overlord (THS) 75
+1 Absorb into Time (SLD) 1859
+1 Ad Nauseam (SOA) 90
+1 Archfiend of Depravity (FIC) 273
+1 Archfiend of Ifnir (DRC) 86
+1 Asmodeus the Archfiend (AFR) 373
+1 Avatar of Woe (CM2) 57
+1 Beseech the Queen (HOP) 19
+1 Bloodgift Demon (SCD) 69
+1 Bloodletter of Aclazotz (LCI) 336
+1 Bontu's Monument (DRC) 124
+1 Cabal Coffers (MB2) 106
+1 Campfire (CMM) 374
+1 Command Beacon (TDC) 352
+1 Consuming Corruption (MH3) 84
+1 Crypt Ghast (C14) 139
+1 Culling the Weak (SOA) 92
+1 Dark Confidant (FIN) 94
+1 Dark Ritual (SLD) 2678
+1 Dauthi Trapper (PLST) STH-56
+1 Decorum Dissertation (SOS) 78
+1 Defiler of Flesh (DMU) 90
+1 Doom Blade (PLST) P11-3
+1 Doomsday Excruciator (PDSK) 94p
+1 Dragon Shadow (SCG) 65
+1 Dread Presence (M20) 96
+1 Elbrus, the Binding Blade / Withengar Unbound (V17) 8 *F*
+1 Erebos, God of the Dead (THS) 85
+1 Everglades (C14) 294
+1 Filth (PLST) JUD-66
+1 Final Act (M3C) 104
+1 Gauntlet of Power (DMR) 378
+1 Gix, Yawgmoth Praetor (TDC) 181
+1 Grave Betrayal (RTR) 67
+1 Gray Merchant of Asphodel (C14) 146
+1 Grim Servant (MH3) 97
+1 Gwenom, Remorseless (SPM) 286 *F*
+1 Jet Medallion (MH3) 292
+1 K'rrik, Son of Yawgmoth (MH3) 274
+1 Leaden Myr (MRD) 191
+1 Lethal Vapors (SCG) 68
+1 Lich's Mastery (DOM) 98
+1 Lich's Mirror (PLST) ALA-210 *F*
+1 Magus of the Coffers (C14) 148
+1 Massacre Girl (DSC) 146
+1 Massacre Wurm (FDN) 714 *F*
+1 Murder (SNC) 88
+1 Mutilate (MB2) 45
+1 Necrodominance (MH3) 102
+1 Necropotence (WOT) 31
+1 Netherborn Altar (PLST) C20-45
+1 Nykthos, Shrine to Nyx (THS) 223
+1 Nyx Lotus (THB) 235
+1 Peer into the Abyss (M21) 117
+1 Platinum Angel (MRD) 228
+1 Prowler's Helm (THS) 219
+1 Royal Assassin (ACR) 93
+1 Sengir, the Dark Baron (CMR) 149
+1 Sheoldred, Whispering One (MUL) 16
+1 Summon: Primal Odin (FIN) 121
+1 Sundial of the Infinite (PLST) M12-218 *F*
+33 Swamp (WAR) 257
+1 The Meathook Massacre (INR) 387
+1 Torpor Orb (BIG) 27
+1 Varragoth, Bloodsky Sire (KHM) 309
+1 Whip of Erebos (THS) 110
+1 Wound Reflection (WHO) 471
+1 Zenos yae Galvus / Shinryu, Transcendent Rival (FIN) 384
+
+===== DECK 073 | imported=102 | requested=102 | entries=66 | excluded=0 | chars=1296 | 2026-07-12 | 019f572d-8ed0-7fcf-b316-e684cd27b123 =====
+1 Abzan Falconer
+1 Additive Evolution
+1 Anafenza, Kin-Tree Spirit
+1 Beast Whisperer
+1 Bite Down
+1 Botanical Brawler
+1 Braulios of Pheres Band
+1 Cathars' Crusade
+1 Citadel Siege
+1 Conclave Sledge-Captain
+1 Cultivate
+1 Darksteel Colossus
+1 Disciple of Freyalise // Garden of Freyalise
+1 District Mascot
+1 Divine Resilience
+1 Duskshell Crawler
+1 Elvish Aberration
+1 Felidar Retreat
+1 Fertilid
+23 Forest
+1 Forgotten Ancient
+1 Garruk's Packleader
+1 Garruk's Uprising
+1 Generous Pup
+1 Ghalta, Stampede Tyrant
+1 Gnarlid Colony
+1 Great Forest Druid
+1 Haliya, Ascendant Cadet
+1 Inspiring Call
+1 Iridescent Hornbeetle
+1 Kinetic Ooze
+1 Leaf Gilder
+1 Llanowar Elves
+1 Llanowar Visionary
+1 Make a Stand
+1 Master Chef
+1 Metastatic Evangel
+1 Meteor Golem
+1 Mikaeus, the Lunarch
+1 Noxious Newt
+1 Ordeal of Nylea
+1 Owlbear Shepherd
+1 Pathrazer of Ulamog
+15 Plains
+1 Predator Ooze
+1 Pridemalkin
+1 Primeval Bounty
+1 Primordial Sage
+1 Ram Through
+1 Retreat to Kazandu
+1 Run Over
+1 Scythecat Cub
+1 Shamanic Revelation
+1 Soul of the Harvest
+1 Soul's Majesty
+1 Steel Hellkite
+1 Steelbane Hydra
+1 Stocking the Pantry
+1 Surrak, the Hunt Caller
+1 Tandem Takedown
+1 Tangled Florahedron // Tangled Vale
+1 Ulamog's Dreadsire
+1 Venerated Loxodon
+1 Warden of the Grove
+1 You Look Upon the Tarrasque
+1 Hamza, Guardian of Arashin
+
+===== DECK 074 | imported=102 | requested=102 | entries=102 | excluded=0 | chars=2119 | 2026-07-12 | 019f57df-6dd8-798b-829e-1649c7646b20 =====
+[COMMANDER]
+1 Najeela, the Blade-Blossom (SLD) 1032
+
+[CREATURES]
+1 Alesha, Who Laughs at Fate
+1 Ares, God of War
+1 Bramblewood Paragon
+1 Brutal Hordechief
+1 Caesar, Legion's Emperor
+1 Champion of Lambholt
+1 Chatterfang, Squirrel General
+1 Combat Celebrant
+1 Delighted Halfling
+1 Derevi, Empyrial Tactician
+1 Devilish Valet
+1 Frontline Medic
+1 Gornog, the Red Reaper
+1 Grand Warlord Radha
+1 Ignoble Hierarch
+1 Isshin, Two Heavens as One
+1 Jazal Goldmane
+1 Jetmir, Nexus of Revels
+1 Marneus Calgar
+1 Mindblade Render
+1 Mirri, Weatherlight Duelist
+1 Mirror Entity
+1 Mist-Cloaked Herald
+1 Mother of Runes
+1 Noble Hierarch
+1 Professional Face-Breaker
+1 Radha, Heir to Keld
+1 Rushblade Commander
+1 Samut, Vizier of Naktamun
+1 Species Specialist
+1 Toski, Bearer of Secrets
+1 Vexilus Praetor
+1 Winota, Joiner of Forces
+
+[ARTIFACTS]
+1 Arcane Signet
+1 Dolmen Gate
+1 Fellwar Stone
+1 Skullclamp
+1 Sol Ring
+1 The One Ring
+1 Throne of the God-Pharaoh
+
+[INSTANTS]
+1 Akroma's Will
+1 And They Shall Know No Fear
+1 Anguished Unmaking
+1 Assassin's Trophy
+1 Clever Concealment
+1 Deflecting Swat
+1 Fierce Guardianship
+1 Flawless Maneuver
+1 Heroic Intervention
+1 Malakir Rebirth
+1 Rite of Harmony
+1 Swords to Plowshares
+
+[SORCERIES]
+1 Everything Comes to Dust
+1 Jeska's Will
+1 Raise the Palisade
+1 Sundering Eruption
+
+[ENCHANTMENTS]
+1 Bear Umbra
+1 Beastmaster Ascension
+1 Black Market Connections
+1 Cryptolith Rite
+1 Druids' Repository
+1 Etchings of the Chosen
+1 Nature's Will
+1 Reconnaissance
+1 Shared Animosity
+1 Warleader's Call
+
+[LANDS]
+1 Arid Mesa
+1 Blood Crypt
+1 Bloodstained Mire
+1 Bountiful Promenade
+1 Breeding Pool
+1 Cavern of Souls
+1 Command Tower
+1 Exotic Orchard
+1 Forest
+1 Godless Shrine
+1 Hallowed Fountain
+1 Indatha Triome
+1 Jetmir's Garden
+1 Ketria Triome
+1 Marsh Flats
+1 Misty Rainforest
+1 Overgrown Tomb
+1 Path of Ancestry
+1 Plains
+1 Raffine's Tower
+1 Raugrin Triome
+1 Sacred Foundry
+1 Savai Triome
+1 Scalding Tarn
+1 Spara's Headquarters
+1 Spectator Seating
+1 Spire Garden
+1 Steam Vents
+1 Stomping Ground
+1 Temple Garden
+1 Verdant Catacombs
+1 Windswept Heath
+1 Wooded Foothills
+1 Xander's Lounge
+1 Ziatora's Proving Ground
+
+===== DECK 075 | imported=103 | requested=103 | entries=81 | excluded=0 | chars=3352 | 2026-07-11 | 019f535d-d841-7e4a-b8a3-589488986cf8 =====
+1x Adaptive Omnitool (drc) 16 [Sideboard,Draw]
+1x Akroma's Will (m3c) 165 [Protection]
+1x Alibou, Ancient Witness (eoc) 113 [Removal]
+1x All Will Be One (one) 118 [Removal]
+1x Ancient Den (eoc) 148 [Land]
+1x Andúril, Narsil Reforged (ltc) 491 [Counters]
+1x Arcane Signet (soc) 127 [Ramp]
+1x Arcee, Sharpshooter // Arcee, Acrobatic Coupe (bot) 7 [Removal]
+1x Biorganic Carapace (spm) 124 [Draw]
+1x Blasphemous Act (soc) 238 [Removal]
+1x Boros Charm (fdn) 721 *F* [Protection]
+1x Bronze Guardian (fic) 234 [Sideboard,Protection]
+1x Cancel (fdn) 505 [Removal]
+1x Cayth, Famed Mechanist (m3c) 6 [Creature,Tokens]
+1x Chaos Warp (soc) 239 [Removal]
+1x Clifftop Retreat (soc) 366 [Land]
+1x Command Tower (soc) 129 [Land]
+1x Counterspell (dsc) 114 [Removal]
+1x Cyclonic Rift (rvr) 313 [Removal]
+1x Damning Verdict (fic) 239 [Removal]
+1x Enthusiastic Mechanaut (eoc) 114 [Ramp]
+1x Erode (sos) 15 [Instant]
+1x Esper Sentinel (h2r) 2 [Draw]
+1x Exotic Orchard (soc) 369 [Land]
+1x Foundry Inspector (cmm) 385 [Ramp]
+1x Frostcliff Siege (tdm) 187 [Draw]
+1x Glacial Fortress (eoc) 160 [Land]
+1x Great Furnace (eoc) 161 [Land]
+1x Hallowed Fountain (ecl) 265 [Land]
+1x Herald of Secret Streams (lcc) 158 [Evasion]
+1x Inexorable Tide (fic) 265 [Proliferate]
+1x Insight Engine (eoc) 6 [Draw]
+1x Inspirit, Flagship Vessel (eoc) 2 [Counters]
+1x Iron Man, Armored Avenger (msc) 33 [Creature]
+1x Iron Man, Master of Machines (msh) 216 [Creature]
+1x Iron Spider, Stark Upgrade (spm) 166 [Counters]
+9x Island (hob) 195 [Land]
+1x Jetfire, Ingenious Scientist // Jetfire, Air Guardian (bot) 3 [Ramp]
+1x Krang, Utrom Warlord (tmt) 175 [Sideboard,Creature]
+1x Lae'zel, Vlaakith's Champion (clb) 29 [Counters]
+1x Lightning Greaves (soc) 350 [Protection]
+1x Lion Sash (neo) 26 [Removal]
+1x Lita, Mechanical Engineer (j22) 6 [Untap]
+1x Losheel, Clockwork Scholar (cmm) 38 [Draw]
+1x Lux Artillery (eoc) 140 [Counters]
+1x Mendicant Core, Guidelight (dft) 213 [Copy]
+7x Mountain (hob) 197 [Land]
+1x Mystic Forge (m3c) 302 [Draw]
+1x Negate (tmt) 47 [Removal]
+1x Optimus Prime, Hero // Optimus Prime, Autobot Leader (bot) 13 [Commander{top}]
+1x Ornithopter of Paradise (drc) 133 [Ramp]
+1x Padeem, Consul of Innovation (j25) 62 [Protection]
+1x Path to Exile (soc) 159 [Removal]
+9x Plains (hob) 194 [Land]
+1x Ratchet, Field Medic // Ratchet, Rescue Racer (bot) 2 [Recursion]
+1x Rhystic Study (j22) 114 [Draw]
+1x Sacred Foundry (eoe) 256 [Land]
+1x Scour for Scrap (eoe) 73 [Tutor]
+1x Scrap Trawler (moc) 373 [Recursion]
+1x Seat of the Synod (eoc) 176 [Land]
+1x Sensei's Divining Top (2x2) 314 [Draw]
+1x Shuri, Wakandan Inventor (msh) 75 [Creature]
+1x Smothering Tithe (cmm) 57 [Ramp]
+1x Sol Ring (soc) 128 [Ramp]
+1x Solar Array (eoc) 18 [Ramp]
+1x SP//dr, Piloted by Peni (spm) 147 [Draw]
+1x Steam Vents (ecl) 267 [Land]
+1x Steel Overseer (eoc) 144 [Counters]
+1x Storm the Vault // Vault of Catlacan (rix) 173 [Ramp]
+1x Sulfur Falls (soc) 408 [Land]
+1x Surge Conductor (eoc) 19 [Proliferate]
+1x Sword of the Animist (fic) 362 [Ramp]
+1x Swords to Plowshares (soc) 179 [Removal]
+1x The Aetherspark (dft) 231 [Draw]
+1x The Ozolith (iko) 237 [Counters]
+1x Thopter Spy Network (drc) 83 [Draw]
+1x Together Forever (tmc) 44 [Protection]
+1x Uncivil Unrest (moc) 35 [Counters]
+1x Urza, Lord High Artificer (cmm) 130 [Ramp]
+1x Uthros Research Craft (eoc) 7 [Draw]
+1x Wake the Past (eoc) 128 [Recursion]
+
+
+===== DECK 076 | imported=103 | requested=103 | entries=100 | excluded=4 | chars=2995 | 2026-07-12 | 019f548d-e924-798a-b2bc-2a2df94a819f =====
+1 Grolnok, the Omnivore (VOW) 238
+1 Aesi, Tyrant of Gyre Strait (PLST) CMR-365
+1 Aftermath Analyst (EOC) 91
+1 Allosaurus Shepherd (JMP) 28
+1 Ancient Tomb (UMA) 236
+1 Arcane Signet (C20) 237
+1 Autumn's Veil (M11) 162
+1 Azusa, Lost but Seeking (M21) 173
+1 Barkchannel Pathway / Tidechannel Pathway (KHM) 251
+1 Basalt Monolith (2XM) 232
+1 Birds of Paradise (MSC) 170
+1 Boseiju, Who Endures (NEO) 501
+1 Breeding Pool (RNA) 246
+1 Cavern of Souls (UMA) 237
+1 Cephalid Illusionist (PLST) TOR-28
+1 Chrome Mox (EMA) 219
+1 City of Brass (TMC) 62
+1 Command Beacon (C15) 56
+1 Command Tower (ELD) 333
+1 Craterhoof Behemoth (INR) 480
+1 Crop Rotation (DDR) 7
+1 Crucible of Worlds (SLD) 7162
+1 Crystal Vein (PLST) MIR-325
+1 Dryad Arbor (MB2) 108
+1 Dryad of the Ilysian Grove (THB) 169
+1 Eternal Witness (PLST) UMA-163
+1 Exotic Orchard (CM2) 250
+1 Exploration (DMR) 159
+1 Exploration Broodship (EOC) 14
+1 Fellwar Stone (DMC) 182
+1 Field of the Dead (SLC) 6
+1 Fierce Guardianship (C20) 35
+1 Flooded Strand (MH3) 220
+1 Flusterstorm (MH1) 255
+1 Force of Will (DMR) 50
+3 Forest (J25) 95
+1 Gaea's Cradle (USG) 321
+1 Gifts Ungiven (SS1) 5
+1 Grim Monolith (ULG) 126
+1 Hedge Shredder (DSK) 183
+1 Hedron Crab (TDC) 155
+1 Hermit Druid (INR) 202
+1 Hope's Aero Magic (SLD) 1869
+1 Icetill Explorer (EOE) 192
+1 Intuition (TMP) 70
+2 Island (J25) 86
+1 Jace, Wielder of Mysteries (WAR) 54
+1 Leyline of Transformation (DSK) 63
+1 Lightning Greaves (MSC) 202
+1 Lotus Cobra (ZNR) 307
+1 Lumra, Bellow of the Woods (BLB) 183
+1 Mana Confluence (JOU) 163
+1 Mana Drain (CMR) 80
+1 Memory's Journey (ISD) 66
+1 Mesmeric Orb (2XM) 272
+1 Mindbreak Trap (OTP) 12
+1 Mistrise Village (TDM) 261
+1 Misty Rainforest (MH2) 250
+1 Mole Man, Moloid Master (MSH) 177
+1 Mox Amber (DOM) 224
+1 Mox Diamond (STH) 138
+1 Mox Opal (SOM) 179
+1 Mystic Remora (ICE) 87
+1 Mystical Tutor (DMR) 60
+1 Noxious Revival (MB2) 70
+1 Oracle of Mul Daya (OTC) 200
+1 Otawara, Soaring City (NEO) 271
+1 Pact of Negation (A25) 68
+1 Prismatic Vista (MH1) 244
+1 Rampaging Baloths (IMA) 184
+1 Ramunap Excavator (M3C) 241
+1 Rejuvenating Springs (MSC) 260
+1 Return of the Mole Man (MSC) 729
+1 Rhystic Study (PLST) PCY-45
+1 Scalding Tarn (MH2) 254
+1 Scute Swarm (M3C) 245
+1 Seat of the Synod (J25) 773
+1 Shifting Woodland (MH3) 228
+1 Sink into Stupor / Soporific Springs (MH3) 241
+1 Six (MH3) 169
+1 Sol Ring (C19) 221
+1 Springheart Nantuko (PMH3) 171p
+1 Swan Song (EOC) 46
+1 Sylvan Safekeeper (MH3) 287
+1 Sylvan Tutor (SPG) 59
+1 Talon Gates of Madara (M3C) 134
+1 Tarnished Citadel (MB2) 112
+1 Tato Farmer (PIP) 86
+1 Tatyova, Benthic Druid (PLST) DOM-206
+1 Tireless Provisioner (MH2) 180
+1 Tropical Island (3ED) 288
+1 Vana'diel Adventurers (FCA) 30
+1 Veil of Summer (SOA) 60
+1 Waterlogged Grove (WHO) 331
+1 Winds of Rebuke (AKH) 76
+1 Windswept Heath (MH3) 235
+1 Worldly Tutor (DMR) 185
+1 Yavimaya Coast (C20) 322
+1 Yavimaya, Cradle of Growth (M3C) 409
+1 Zuran Orb (MH2) 300
+
+SIDEBOARD:
+1 PuPu UFO (FIN) 266
+1 Retreat to Coralhelm (DSC) 126
+1 Walking Atlas (WWK) 131
+1 Wasteland (SLC) 23
+
+===== DECK 077 | imported=103 | requested=103 | entries=90 | excluded=0 | chars=2611 | 2026-07-13 | 019f5bfb-f3a7-7411-b6c1-0235e70a3dd3 =====
+Commander
+1 Frodo, Adventurous Hobbit (LTC) 2
+1 Sam, Loyal Attendant (LTC) 7
+
+Deck
+1 Academy Manufactor (BLC) 264
+1 Access Tunnel (LTC) 294
+1 Anguished Unmaking (2X2) 170
+1 Arcane Signet (NCC) 360
+1 Assemble the Entmoot (LTC) 36
+1 Banquet Guests (LTC) 47
+1 Beast Within (PLST) BBD-190
+1 Bilbo's Ring (LTR) 298
+1 Birds of Paradise (MSC) 170
+1 Blossoming Bogbeast (SOC) 264
+1 Bolas's Citadel (MB2) 39
+1 Boromir, Warden of the Tower (LTR) 4
+1 Brushland (FIC) 377
+1 Call of the Ring (LTR) 79
+1 Canopy Vista (NCC) 389
+1 Command Tower (ELD) 333
+1 Commander's Sphere (LTC) 276
+1 Cultivate (C20) 170
+1 Dusk / Dawn (C19) 63
+1 Elanor Gardner (LTR) 286
+1 Essence Warden (PLST) CMA-106
+1 Exotic Orchard (CM2) 250
+1 Farmer Cotton (LTC) 55
+1 Farseek (RVR) 138
+1 Feasting Hobbit (LTC) 37
+1 Fell the Mighty (LTC) 167
+1 Field-Tested Frying Pan (LTC) 11
+8 Forest (DTK) 262
+1 Fortified Village (AFC) 239
+1 Galadriel, Gift-Giver (LTR) 296
+1 Generous Gift (DMC) 100
+1 Gilded Goose (MOC) 299
+1 Go for the Throat (PLST) C17-114
+1 Gollum, Obsessed Stalker (LTC) 26
+1 Graypelt Refuge (LTC) 316
+1 Gwaihir, Greatest of the Eagles (LTC) 15
+1 Gyome, Master Chef (SOC) 313
+1 Idol of Oblivion (OTC) 258
+1 Isolated Chapel (DMR) 249
+1 Llanowar Wastes (C19) 258
+1 Lobelia, Defender of Bag End (LTC) 27
+1 Lotho, Corrupt Shirriff (LTR) 213
+1 Mentor of the Meek (E01) 15
+1 Meriadoc Brandybuck (LTR) 177
+1 Merry, Warden of Isengard (LTC) 61
+1 Minas Tirith (LTR) 256
+1 Mirkwood Bats (LTR) 421
+1 Mortality Spear (STX) 207
+1 Mortify (LTC) 269
+1 Motivated Pony (LTC) 42
+1 Murmuring Bosk (LTC) 320
+1 Nature's Lore (CLB) 244
+1 Necroblossom Snarl (STX) 269
+1 Night's Whisper (VOC) 133
+1 Nykthos Paragon (MH2) 22
+1 Of Herbs and Stewed Rabbit (LTC) 17
+1 Path of Ancestry (C20) 298
+1 Path to Exile (PLST) E02-3
+1 Peregrin Took (LTR) 181
+1 Pippin, Warden of Isengard (LTC) 65
+4 Plains (M10) 232
+1 Prize Pig (LTC) 43
+1 Prosperous Innkeeper (BLC) 121
+1 Rapacious Guest (LTC) 28
+1 Reanimate (LTC) 206
+1 Revive the Shire (LTR) 185
+1 Rogue's Passage (PLST) C17-272
+1 Rosie Cotton of South Lane (LTR) 440
+1 Samwise Gamgee (LTR) 327
+1 Sandsteppe Citadel (CMM) 1024
+1 Sanguine Bond (C21) 153
+1 Savvy Hunter (LTC) 271
+1 Scattered Groves (PLST) AKH-247
+1 Scoured Barrens (LTC) 329
+1 Shineshadow Snarl (FIC) 422
+1 Sol Ring (C19) 221
+1 Sunpetal Grove (PIP) 297
+4 Swamp (M20) 271
+1 Swords to Plowshares (WHO) 212
+1 The Gaffer (LTC) 12
+1 The Ring Goes South (LTR) 186
+1 The Shire (LTR) 345
+1 Tireless Provisioner (J25) 728
+1 Toxic Deluge (LTC) 209
+1 Trail of Crumbs (ELD) 179
+1 Treebeard, Gracious Host (LTC) 73
+1 Woodland Cemetery (BLC) 354
+1 Ygra, Eater of All (PBLB) 241p
+
+===== DECK 078 | imported=104 | requested=104 | entries=104 | excluded=0 | chars=1807 | 2026-07-11 | 019f5234-4a04-7742-8d6a-e75c2c6994c9 =====
+"Commander"
+1 Bjorna, Nightfall Alchemist
+"Commander"
+1 Lurrus of the Dream-Den
+"Commander"
+1 Wernog, Rider's Chaplain
+
+1 An Offer You Can't Refuse
+1 Approach of the Second Sun
+1 Arcane Signet
+1 Archivist of Oghma
+1 Arid Mesa
+1 Badlands
+1 Blasphemous Act
+1 Blind Obedience
+1 Blood Crypt
+1 Bloodstained Mire
+1 Borne Upon a Wind
+1 Brain Freeze
+1 Cabal Ritual
+1 Cephalid Coliseum
+1 Chain of Vapor
+1 Chance for Glory
+1 City of Brass
+1 Command Tower
+1 Copy Artifact
+1 Damn
+1 Dark Ritual
+1 Dauthi Voidwalker
+1 Deflecting Swat
+1 Demonic Consultation
+1 Dispel
+1 Dragon's Rage Channeler
+1 Dress Down
+1 Esper Sentinel
+1 Exhibition Tidecaller
+1 Faerie Mastermind
+1 Fellwar Stone
+1 Final Fortune
+1 Flare of Duplication
+1 Flashback
+1 Flesh Duplicate
+1 Flooded Strand
+1 Flusterstorm
+1 Force of Negation
+1 Gilded Drake
+1 Godless Shrine
+1 Grand Abolisher
+1 Grinding Station
+1 Guild Artisan
+1 Hallowed Fountain
+1 Hexing Squelcher
+1 Into the Flood Maw
+1 Island
+1 Ledger Shredder
+1 Lim-Dûl's Vault
+1 Lion's Eye Diamond
+1 Lotho, Corrupt Shirriff
+1 Lotus Petal
+1 Mana Drain
+1 Marsh Flats
+1 Mindbreak Trap
+1 Mnemonic Betrayal
+1 Mockingbird
+1 Mox Amber
+1 Mox Opal
+1 Mystic Remora
+1 Oswald Fiddlebender
+1 Otawara, Soaring City
+1 Plateau
+1 Polluted Delta
+1 Pollywog Prodigy
+1 Ragavan, Nimble Pilferer
+1 Reanimate
+1 Red Elemental Blast
+1 Rite of Flame
+1 Scalding Tarn
+1 Scrubland
+1 Sea of Clouds
+1 Sensei's Divining Top
+1 Sevinne's Reclamation
+1 Shizo, Death's Storehouse
+1 Silence
+1 Snap
+1 Sol Ring
+1 Steal Enchantment
+1 Steam Vents
+1 Swan Song
+1 Swords to Plowshares
+1 Tainted Pact
+1 Tataru Taru
+1 Thassa's Oracle
+1 The Mind Stone
+1 Training Center
+1 Trickbind
+1 Tundra
+1 Underground Sea
+1 Underworld Breach
+1 Vault of Champions
+1 Voice of Victory
+1 Volcanic Island
+1 Watery Grave
+1 Wheel of Fortune
+1 Windfall
+1 Wishclaw Talisman
+
+
+===== DECK 079 | imported=104 | requested=104 | entries=97 | excluded=0 | chars=2766 | 2026-07-11 | 019f53a0-223d-74b2-97a7-daa87315da8e =====
+1x Abandoned Air Temple (tla)
+1x Adeline, Resplendent Cathar (tdc)
+1x Agate Instigator (blc)
+1x Ancient Tomb (plst)
+
+1x Arabella, Abandoned Doll (dsk)
+1x Arcane Signet (msc)
+1x Arena of Glory (mh3)
+1x Arid Mesa (mh2)
+1x Battlefield Forge (soc)
+1x Bloodstained Mire (mh3)
+1x Boros Signet (tdc)
+1x Caretaker's Talent (blb)
+1x Chrome Mox (2xm)
+1x Clifftop Retreat (msc)
+1x Command Tower (msc)
+1x Dalkovan Encampment (tdm)
+1x Deflecting Swat (cmm)
+1x Dollmaker's Shop // Porcelain Gallery (dsk)
+1x Elegant Parlor (mkm)
+1x Elspeth, Storm Slayer (tdm)
+1x Endless Foot Assault (tmc)
+1x Enduring Courage (dsk)
+1x Erode (sos)
+1x Esper Sentinel (h2r)
+1x Exotic Orchard (msc)
+1x Fable of the Mirror-Breaker // Reflection of Kiki-Jiki (neo)
+1x Fellwar Stone (soc)
+1x Flooded Strand (mh3)
+1x Gamble (dmr)
+1x General Kreat, the Boltbringer (j25)
+1x Generous Gift (msc)
+1x Get Lost (lci)
+1x Goblin Bombardment (mh2)
+1x Goldnight Commander (tdc)
+1x Guide of Souls (mh3)
+1x Hawkeye, Young Avenger (msh)
+1x Idol of Oblivion (tdc)
+1x Impact Tremors (fdn)
+1x Ingenious Artillerist (clb)
+1x Inti, Seneschal of the Sun (lci)
+1x Kirol, Attentive First-Year (ecl)
+1x Krenko, Tin Street Kingpin (j25)
+1x Land Tax (soc)
+1x Legion Leadership // Legion Stronghold (mh3)
+1x Lightning Greaves (msc)
+1x Losheel, Clockwork Scholar (cmm)
+1x Luminarch Aspirant (ncc)
+1x Marsh Flats (mh2)
+1x Minas Tirith (ltr)
+1x Molten Gatekeeper (mh3)
+1x Mother of Runes (clb)
+4x Mountain (msh)
+1x Neyali, Suns' Vanguard (onc)
+1x Noble Heritage (clb)
+1x Ojer Axonil, Deepest Might // Temple of Power (lci)
+1x Path to Exile (msc)
+1x Pinnacle Monk // Mystic Peak (mh3)
+5x Plains (msh)
+1x Professional Face-Breaker (fic)
+1x Purphoros, God of the Forge (cmm)
+1x Raph & Leo, Sibling Rivals (tmt)
+1x Reckless Fireweaver (drc)
+1x Rosie Cotton of South Lane (ltr)
+1x Rugged Prairie (soc)
+1x Sacred Foundry (eoe)
+1x Sevinne's Reclamation (soc)
+1x Skullclamp (msc)
+1x Slash, Reptile Rampager (tmt)
+1x Sokenzan, Crucible of Defiance (neo)
+1x Sol Ring (msc)
+1x Spectator Seating (msc)
+1x Sunbaked Canyon (who)
+1x Sunbillow Verge (dft)
+1x Sundering Eruption // Volcanic Fissure (mh3)
+1x Sundown Pass (sos)
+1x Swiftfoot Boots (msc)
+1x Swords to Plowshares (msc)
+1x Talisman of Conviction (msc)
+1x Tarrian's Soulcleaver (lci)
+1x Teferi's Protection (2x2)
+1x The Ozolith (iko)
+1x The Seriema (eoe)
+1x Three Tree City (blb)
+1x Tibalt's Trickery (khm)
+1x Trouble in Pairs (mkc)
+1x Untimely Malfunction (dsk)
+1x Urza's Saga (mh2)
+1x Warleader's Call (mkm)
+1x Weftstalker Ardent (eoe)
+1x Welcoming Vampire (tdc)
+1x Wheel of Fortune (3ed)
+1x Windcrag Siege (tdm)
+1x Windswept Heath (mh3)
+1x Witch Enchanter // Witch-Blessed Meadow (mh3)
+1x Witty Roastmaster (snc)
+1x Wooded Foothills (mh3)
+Commander
+1x Anim Pakal, Thousandth Moon (lci)
+
+===== DECK 080 | imported=107 | requested=107 | entries=100 | excluded=0 | chars=4279 | 2026-07-12 | 019f57f9-d147-775f-b0bc-1b796e826e58 =====
+1x Adarkar Wastes (eoc) 147 [Land]
+1x Aether Hub (drc) 145 [Land]
+1x Aetheric Amplifier (drc) 18 [Maybeboard{noDeck}{noPrice},Ramp]
+1x Ajani Steadfast (cmm) 813 [Planeswalkers]
+1x Ajani Unyielding (aer) 127 [Planeswalkers]
+1x Ajani, the Greathearted (plst) WAR-184 [Planeswalkers]
+1x An Offer You Can't Refuse (plst) SNC-51 [Removal]
+1x Arcane Sanctum (fic) 373 [Land]
+1x Arcane Signet (msc) 192 [Ramp]
+1x Astral Cornucopia (soc) 342 [Ramp]
+1x Atraxa, Praetors' Voice (2xm) 190 [Commander{top}]
+1x Authority of the Consuls (fic) 232 [Protection]
+1x Bioessence Hydra (war) 186 [Counters]
+1x Brokers Ascendancy (snc) 297 [Counters]
+1x Brushland (fic) 377 [Land]
+1x Carth the Lion (mh2) 418 [Planeswalker support]
+1x Caves of Koilos (soc) 365 [Land]
+1x Chromatic Lantern (msc) 195 [Ramp]
+1x Command Tower (msc) 234 [Land]
+1x Contentious Plan (war) 46 [Proliferate]
+1x Crystalline Crawler (eoc) 133 [Ramp]
+1x Deepglow Skate (eoc) 70 [Proliferate]
+1x Dreamtide Whale (mh3) 59 [Proliferate]
+1x Drown in Ichor (one) 91 [Removal]
+1x Empowered Autogenerator (eoc) 135 [Ramp]
+1x Endless One (cmm) 804 [Maybeboard{noDeck}{noPrice},Counters]
+1x Everflowing Chalice (eoc) 137 [Ramp]
+1x Evolution Sage (ecc) 105 [Proliferate]
+1x Exotic Orchard (msc) 241 [Land]
+1x Expansion Algorithm (soc) 19 [Proliferate]
+1x Experimental Augury (plst) ONE-49 [Proliferate]
+1x Fabled Passage (msc) 242 [Land]
+1x Faeburrow Elder (ecc) 53 [Ramp]
+1x Fellwar Stone (msc) 285 [Ramp]
+1x Flux Channeler (plst) WAR-52 [Proliferate]
+3x Forest (mh2) 489 [Land]
+1x Garruk Wildspeaker (gvl) 1 *F* [Ramp]
+1x Gemstone Mine (dmr) 247 [Land]
+1x Ghostly Prison (soc) 146 [Maybeboard{noDeck}{noPrice},Protection]
+1x Grateful Apparition (war) 17 [Maybeboard{noDeck}{noPrice},Proliferate]
+1x Hickory Woodlot (mmq) 319 [Land]
+1x Ichormoon Gauntlet (one) 56 [Proliferate]
+1x Inexorable Tide (fic) 265 [Proliferate]
+1x Insight Engine (eoc) 6 [Draw]
+1x Interplanar Beacon (war) 247 [Land]
+1x Iron Apprentice (neo) 248 [Maybeboard{noDeck}{noPrice},Counters]
+1x Island (mh2) 483 [Land]
+3x Island (mh2) 484 [Land]
+1x Jace, Unraveler of Secrets (inr) 70 [Planeswalkers]
+1x Karn's Bastion (rvr) 464 [Land]
+1x Liliana Vess (m15) 103 [Planeswalkers]
+1x Liliana, Dreadhorde General (fdn) 176 [Planeswalkers]
+1x Llanowar Wastes (soc) 383 [Land]
+1x Lux Cannon (eoc) 141 [Removal]
+1x Magistrate's Scepter (m19) 238 [Counters]
+1x Mirrodin's Core (plst) DST-165 *F* [Land]
+1x Nissa, Voice of Zendikar (ogw) 138 [Planeswalkers]
+1x Norn's Annex (onc) 83 [Protection]
+1x Oath of Ajani (aer) 131 [Ramp]
+1x Oath of Nissa (plst) OGW-140 [Planeswalker support]
+1x Oath of Teferi (dom) 200 [Planeswalker support]
+1x Oko, Thief of Crowns (eld) 197 [Planeswalkers]
+1x Opulent Palace (tdm) 264 [Land]
+1x Path of Ancestry (msc) 254 [Land]
+1x Patrolling Peacemaker (eoc) 5 [Proliferate]
+1x Peat Bog (plst) MMQ-322 [Land]
+1x Pensive Professor (sos) 63 [Draw]
+1x Pentad Prism (2xm) 281 [Ramp]
+1x Phyrexian Arena (one) 283 *F* [Draw]
+3x Plains (mh2) 481 [Land]
+1x Plaza of Heroes (msc) 255 [Land]
+1x Propaganda (msc) 151 [Maybeboard{noDeck}{noPrice},Protection]
+1x Remote Farm (mmq) 323 [Land]
+1x Replicating Ring (moc) 372 [Ramp]
+1x Resourceful Defense (fic) 251 [Counters]
+1x Ripples of Potential (eoc) 77 [Proliferate]
+1x Sandsteppe Citadel (tdm) 266 [Land]
+1x Saprazzan Skerry (mmq) 328 [Land]
+1x Seaside Citadel (fic) 420 [Land]
+1x Sol Ring (msc) 214 [Ramp]
+1x Solar Transformer (drc) 137 [Ramp]
+1x Spark Double (msc) 337 [Planeswalkers]
+2x Swamp (mh2) 486 [Land]
+1x Swan Song (ltc) 197 [Removal]
+1x Swords to Plowshares (msc) 143 [Removal]
+1x Tamiyo, Field Researcher (blc) 100 [Planeswalkers]
+1x Teferi, Hero of Dominaria (mb2) 90 [Planeswalkers]
+1x Teferi, Master of Time (m21) 276 [Planeswalkers]
+1x Teferi, Temporal Archmage (cmm) 125 [Planeswalkers]
+1x Tekuthal, Inquiry Dominus (eoc) 78 [Proliferate]
+1x Tendo Ice Bridge (m3c) 393 [Land]
+1x Tezzeret's Gambit (plst) NPH-47 [Draw]
+1x Thirsting Roots (one) 185 [Maybeboard{noDeck}{noPrice},Proliferate]
+1x Toxic Deluge (msc) 161 [Removal]
+1x Underground River (fic) 439 [Land]
+1x Unnatural Restoration (one) 191 [Proliferate]
+1x Vivisurgeon's Insight (one) 77 [Draw]
+1x Whisper of the Dross (one) 117 [Proliferate]
+1x Wrenn and Realmbreaker (mom) 217 [Planeswalkers]
+1x Yavimaya Coast (soc) 425 [Land]
+
+
+===== DECK 081 | imported=107 | requested=107 | entries=82 | excluded=0 | chars=3437 | 2026-07-12 | 019f583b-b4fa-71a5-9e19-0a63d68bcc37 =====
+1x Abzan Beastmaster (plst) FRF-119 [Draw]
+1x Ancient Lumberknot (vow) 230 [Pump]
+1x Anguished Unmaking (tdc) 279 [Removal]
+1x Arbor Adherent (tdc) 42 [Ramp]
+1x Arcane Signet (drc) 52 [Ramp]
+1x Armament Dragon (tdm) 307 [Sideboard,Counters]
+1x Assassin's Trophy (acr) 166 [Removal]
+1x Assault Formation (tdc) 246 [Pump]
+1x Axebane Guardian (tdc) 248 [Ramp]
+1x Baldin, Century Herdmaster (tdc) 110 [Pump]
+1x Beast Within (tdc) 249 [Removal]
+1x Bedrock Tortoise (lci) 176 [Protection]
+1x Betor, Kin to All (tdm) 308 [Commander{top}]
+1x Bojuka Bog (tdc) 341 [Land]
+1x Brave the Sands (ktk) 5 [Protection]
+1x Canopy Gargantuan (tdc) 45 [Counters]
+1x Canopy Vista (tdc) 343 [Land]
+1x Catapult Fodder // Catapult Captain (vow) 99 [Drain]
+1x Colfenor, the Last Yew (cmr) 274 [Recursion]
+1x Colfenor's Urn (tdc) 315 [Maybeboard{noDeck}{noPrice}]
+1x Command Tower (tdc) 107 [Land]
+1x Crashing Drawbridge (tdc) 316 [Protection]
+1x Crystal Barricade (fdn) 444 [Protection]
+1x Deathbringer Regent (j22) 396 [Removal]
+1x Despark (drc) 115 [Removal]
+1x Doran, Besieged by Time (ecl) 215 [Creature]
+1x Doran, the Siege Tower (2x2) 201 [Pump]
+1x Dusk // Dawn (drc) 65 [Removal]
+1x Eerie Ultimatum (plst) IKO-184 [Maybeboard{noDeck}{noPrice}]
+1x Essence of Antiquity (mkm) 15 [Protection]
+1x Exotic Orchard (drc) 155 [Land]
+1x Expel the Interlopers (tdc) 115 [Removal]
+1x Fecund Greenshell (blb) 171 [Draw]
+1x Fell the Mighty (mkc) 65 [Removal]
+1x Felothar the Steadfast (tdc) 4 [Draw]
+10x Forest (tdm) 285 [Land]
+1x Generous Gift (lcc) 128 [Removal]
+1x Gluntch, the Bestower (clb) 275 [Sideboard,Draw]
+1x Huatli, the Sun's Heart (war) 230 [Maybeboard{noDeck}{noPrice}]
+1x Ikra Shidiqi, the Usurper (tdc) 100 [Lifegain]
+1x Indomitable Ancients (tdc) 121 [Protection]
+1x Isolated Chapel (tdc) 373 [Land]
+1x Jaws of Defeat (tdc) 27 [Drain]
+1x Last March of the Ents (ltr) 172 [Maybeboard{noDeck}{noPrice}]
+1x Lightning Greaves (tdc) 102 [Protection]
+1x Mythos of Nethroi (iko) 97 [Removal]
+1x Nethroi, Apex of Death (dmc) 163 [Recursion]
+1x Nyx-Fleece Ram (tdc) 126 [Lifegain]
+1x Overgrown Battlement (tdc) 264 [Ramp]
+1x Path to Exile (pip) 169 [Removal]
+10x Plains (tdm) 278 [Land]
+1x Rampant Growth (j25) 704 [Ramp]
+1x Rampart Architect (tdc) 47 [Ramp]
+1x Reliquary Tower (dsc) 295 [Land]
+1x Reunion of the House (tdc) 15 [Recursion]
+1x Sandsteppe Citadel (tdm) 266 [Land]
+1x Sapling of Colfenor (eve) 128 [Draw]
+1x Shadrix Silverquill (tdc) 302 [Draw]
+1x Shalai, Voice of Plenty (tdc) 130 [Protection]
+1x Sidar Kondo of Jamuraa (tdc) 303 [Evasion]
+1x Slagwurm Armor (mrd) 243 [Protection]
+1x Slaughter the Strong (tdc) 131 [Removal]
+1x Smile at Death (ptdm) 24s *F* [Recursion]
+1x Sol Ring (drc) 56 [Ramp]
+1x Stoneskin (clb) 45 [Protection]
+1x Sunpetal Grove (tdc) 399 [Land]
+8x Swamp (tdm) 281 [Land]
+1x Swiftfoot Boots (tdc) 328 [Maybeboard{noDeck}{noPrice}]
+1x Swords to Plowshares (tdc) 134 [Removal]
+1x Sylvan Caryatid (tdc) 272 [Ramp]
+1x The Walls of Ba Sing Se (tla) 261 [Protection]
+1x Tip the Scales (tdc) 29 [Removal]
+1x Towering Titan (tdc) 276 [Finisher]
+1x Tree of Redemption (tdc) 97 [Lifegain]
+1x Trostani, Selesnya's Voice (gk1) 102 *F* [Lifegain]
+1x Unhallowed Phalanx (vow) 135 [Protection]
+1x Unnatural Growth (blc) 245 [Pump]
+1x Wall of Blossoms (tdc) 277 [Draw]
+1x Wave of Reckoning (c16) 79 [Removal]
+1x Weathered Sentinels (tdc) 336 [Protection]
+1x Woodland Cemetery (tdc) 412 [Land]
+1x Zopandrel, Hunger Dominus (one) 195 [Pump]
+
+
+===== DECK 082 | imported=111 | requested=111 | entries=75 | excluded=0 | chars=1485 | 2026-07-12 | 019f5729-4eb2-73c9-9da2-a90cfab75a3d =====
+1 Abzan Falconer
+1 Additive Evolution
+1 Anafenza, Kin-Tree Spirit
+1 Banishing Light
+1 Battlefront Krushok
+1 Beast Whisperer
+1 Bioengineered Future
+1 Bite Down
+1 Botanical Brawler
+1 Braulios of Pheres Band
+1 Broken Wings
+1 Cathars' Crusade
+1 Citadel Siege
+1 Conclave Sledge-Captain
+1 Cultivate
+1 Darksteel Colossus
+1 Disciple of Freyalise // Garden of Freyalise
+1 District Mascot
+1 Divine Resilience
+1 Duskshell Crawler
+1 Elvish Aberration
+1 Evolution Witness
+1 Felidar Retreat
+1 Ferrafor, Young Yew
+1 Fertilid
+23 Forest
+1 Forgotten Ancient
+1 Garruk's Packleader
+1 Garruk's Uprising
+1 Generous Pup
+1 Ghalta, Stampede Tyrant
+1 Gnarlid Colony
+1 Great Forest Druid
+1 Haliya, Ascendant Cadet
+1 High Sentinels of Arashin
+1 Inspiring Call
+1 Iridescent Hornbeetle
+1 Kinetic Ooze
+1 Leaf Gilder
+1 Llanowar Elves
+1 Llanowar Visionary
+1 Luminarch Aspirant
+1 Make a Stand
+1 Master Chef
+1 Metastatic Evangel
+1 Meteor Golem
+1 Mikaeus, the Lunarch
+1 Noxious Newt
+1 Oran-Rief Hydra
+1 Ordeal of Nylea
+1 Owlbear Shepherd
+1 Pathrazer of Ulamog
+15 Plains
+1 Predator Ooze
+1 Pridemalkin
+1 Primeval Bounty
+1 Primordial Sage
+1 Ram Through
+1 Retreat to Kazandu
+1 Run Over
+1 Scythecat Cub
+1 Shamanic Revelation
+1 Soul of the Harvest
+1 Soul's Majesty
+1 Steel Hellkite
+1 Steelbane Hydra
+1 Stocking the Pantry
+1 Surrak, the Hunt Caller
+1 Tandem Takedown
+1 Tangled Florahedron // Tangled Vale
+1 Ulamog's Dreadsire
+1 Venerated Loxodon
+1 Warden of the Grove
+1 You Look Upon the Tarrasque
+1 Hamza, Guardian of Arashin
+
+
+
+===== DECK 083 | imported=112 | requested=112 | entries=98 | excluded=0 | chars=4135 | 2026-07-12 | 019f57f2-50e0-732e-8604-7d7bf3fdd2ca =====
+1x Act of Aggression (c15) 141 [Theft]
+1x Adarkar Valkyrie (plst) CSP-1 [Recursion]
+1x Akoum Refuge (scd) 289 [Land]
+1x Altar of Dementia (mh1) 218 [Sac Outlet]
+1x Angrath, the Flame-Chained (rix) 152 [Discard]
+1x Animate Dead (plst) EMA-78 [Recursion]
+1x Arcane Signet (lcc) 299 [Ramp]
+1x Ashnod's Altar (cmm) 368 [Ramp]
+1x Ayli, Eternal Pilgrim (ogw) 151 [Removal]
+1x Blood Crypt (rvr) 273 [Maybeboard{noDeck}{noPrice}] ^Don't Have,#f47373^
+1x Bloodfell Caves (mom) 267 [Land]
+1x Bojuka Bog (lcc) 320 [Land]
+1x Boros Signet (rvr) 251 [Ramp]
+1x Breach the Multiverse (mom) 94 [Mill]
+1x Brion Stoutarm (a25) 200 [Sac Outlet]
+1x Burnished Hart (cmm) 373 [Maybeboard{noDeck}{noPrice}]
+1x Captivating Crew (lcc) 219 [Theft]
+1x Claim the Firstborn (eld) 118 [Theft]
+1x Coercive Recruiter (lcc) 222 [Theft]
+1x Command the Dreadhorde (war) 82 [Recursion]
+1x Command Tower (lcc) 325 [Land]
+1x Commander's Sphere (lcc) 301 [Maybeboard{noDeck}{noPrice}]
+1x Conquering Manticore (ddl) 55 [Theft]
+1x Crackling Doom (2x2) 196 [Removal]
+1x Crook of Condemnation (hou) 159 [Removal]
+1x Damn (lcc) 191 [Removal]
+1x Debtors' Knell (c21) 215 [Recursion]
+1x Dragonskull Summit (dmc) 207 [Maybeboard{noDeck}{noPrice}]
+1x Eldrazi Obligator (ogw) 96 [Theft]
+1x Evolving Wilds (lcc) 328 [Land]
+1x Exotic Orchard (lcc) 329 [Land]
+1x Firbolg Flutist (clb) 174 [Theft]
+1x Fling (jmp) 320 [Removal]
+1x Furnace Reins (mom) 141 [Theft]
+1x Goblin Bombardment (mh2) 279 [Sac Outlet]
+1x Godless Shrine (rvr) 277 [Maybeboard{noDeck}{noPrice}] ^Don't Have,#f47373^
+1x Grab the Reins (c16) 126 [Theft]
+1x Harness by Force (jou) 100 [Theft]
+1x Hidetsugu, Devouring Chaos (neo) 99 [Draw]
+1x High Market (afc) 246 [Land]
+1x Hofri Ghostforge (stx) 192 [Recursion]
+1x Insurrection (cmm) 236 [Maybeboard{noDeck}{noPrice}]
+1x Kari Zev's Expertise (aer) 88 [Theft]
+1x Kazuul's Fury // Kazuul's Cliffs (znr) 146 [Removal]
+1x Kiki-Jiki, Mirror Breaker (j22) 79 [Maybeboard{noDeck}{noPrice}] ^Don't Have,#f47373^
+1x Life's Finale (nph) 65 [Removal]
+1x Lightning Greaves (plst) C19-217 [Protection]
+1x Lion Sash (neo) 26 [Removal]
+1x Mark of Mutiny (plst) PCA-47 [Theft]
+1x Mass Mutiny (pca) 48 [Theft]
+1x Mob Rule (voc) 147 [Theft]
+1x Molten Primordial (gtc) 101 [Theft]
+7x Mountain (mkm) 283 [Land]
+1x Nomad Outpost (cmm) 1016 [Land]
+1x Orzhov Signet (rvr) 263 [Ramp]
+1x Phyrexian Tower (plst) USG-322 [Maybeboard{noDeck}{noPrice}] ^Don't Have,#f47373^
+1x Plaguecrafter (rvr) 89 [Removal]
+4x Plains (mkm) 277 [Land]
+1x Puppeteer Clique (woc) 115 [Recursion]
+1x Rakdos Signet (rvr) 265 [Ramp]
+1x Reanimate (jmp) 270 [Maybeboard{noDeck}{noPrice}] ^Don't Have,#f47373^
+1x Ruinous Ultimatum (iko) 204 [Removal]
+1x Sacred Foundry (rvr) 285 [Maybeboard{noDeck}{noPrice}] ^Don't Have,#f47373^
+1x Scoured Barrens (mom) 272 [Land]
+1x Seize the Spotlight (ncc) 52 [Draw]
+1x Sepulchral Primordial (scd) 106 [Recursion]
+1x Shadowheart, Dark Justiciar (clb) 146 [Draw]
+1x Skullclamp (moc) 379 [Draw]
+1x Smoldering Marsh (lcc) 353 [Land]
+1x Sol Ring (lcc) 313 [Ramp]
+1x Solar Blaze (war) 216 [Removal]
+1x Solemn Simulacrum (cmm) 973 [Ramp]
+6x Swamp (mkm) 281 [Land]
+1x Swiftfoot Boots (lcc) 314 [Protection]
+1x Syr Konrad, the Grim (moc) 269 [Drain]
+1x Tainted Field (lcc) 356 [Land]
+1x Tariel, Reckoner of Souls (2x2) 281 [Commander{top}]
+1x Temple of Malice (scd) 326 [Land]
+1x Temple of Silence (lcc) 358 [Land]
+1x Temple of Triumph (cmm) 1047 [Land]
+1x Terminate (scd) 249 [Removal]
+1x Terramorphic Expanse (lcc) 360 [Land]
+1x Tevesh Szat, Doom of Fools (cmr) 153 [Draw]
+1x Thornbite Staff (mor) 145 [Maybeboard{noDeck}{noPrice}] ^Don't Have,#f47373^
+1x Thousand-Year Elixir (c21) 271 [Untap]
+1x To Arms! (rvr) 30 [Maybeboard{noDeck}{noPrice}]
+1x Traitorous Blood (isd) 166 [Theft]
+1x Traitorous Greed (m21) 166 [Theft]
+1x Tymaret, Chosen from Death (thb) 119 [Removal]
+1x Vampiric Rites (scd) 116 [Draw]
+1x Village Rites (lcc) 212 [Draw]
+1x Viscera Seer (lcc) 213 [Sac Outlet]
+1x Vivid Crag (cm2) 276 [Land]
+1x Vivid Marsh (c17) 292 [Land]
+1x Vivid Meadow (ncc) 446 [Land]
+1x Wayfarer's Bauble (lcc) 317 [Ramp]
+1x Wind-Scarred Crag (mom) 276 [Land]
+1x Zealous Conscripts (mm3) 116 [Theft]
+
+===== DECK 084 | imported=113 | requested=113 | entries=100 | excluded=0 | chars=1830 | 2026-07-12 | 019f5945-6750-7192-9d72-d5947bd2307a =====
+1 Airborne Aid
+1 Ambrosia Whiteheart
+1 Aven Interrupter
+1 Aven Wind Guide
+1 Awaken the Woods
+1 Azorius Chancery
+1 Bant Panorama
+1 Bartz and Boko
+1 Beck // Call
+1 Birds of Paradise
+1 Blighted Woodland
+1 Botanical Sanctum
+1 Brawn
+1 Brushland
+1 Bushwhack
+1 Case of the Locked Hothouse
+1 Choco, Seeker of Paradise
+1 Chocobo Kick
+1 Chocobo Racetrack
+1 Clinquant Skymage
+1 Cloudchaser Kestrel
+1 Command Tower
+1 Cycle of Renewal
+1 Dazzling Denial
+1 Emeria Angel
+1 Empyrean Eagle
+1 Escape Tunnel
+1 Esior, Wardwing Familiar
+1 Evolving Wilds
+1 Fabled Passage
+1 Farseek
+1 Fertile Thicket
+1 Final Showdown
+1 Flurry of Wings
+1 Fog
+5 Forest
+1 Gaea's Gift
+1 Gysahl Greens
+1 Harrier Strix
+1 Hedge Maze
+1 Hindering Light
+1 Ishgard, the Holy See // Faith & Grief
+5 Island
+1 Jackdaw Savior
+1 Judge's Familiar
+1 Kangee, Aerie Keeper
+1 Kastral, the Windcrested
+1 Keep Watch
+1 Ledger Shredder
+1 Lifecreed Duo
+1 Lotusguard Disciple
+1 Lush Portico
+1 Migratory Route
+1 Mockingbird
+1 Mossborn Hydra
+1 Murmuration
+1 Oran-Rief, the Vastwood
+1 Overwhelming Stampede
+1 Path to Exile
+6 Plains
+1 Plumecreed Escort
+1 Plumecreed Mentor
+1 Port Town
+1 Rampaging Baloths
+1 Rampant Growth
+1 Reach the Horizon
+1 Repulsive Mutation
+1 Ride the Shoopuf
+1 Ruins of Trokair
+1 Sakura-Tribe Elder
+1 Salvation Swan
+1 Sawtooth Loon
+1 Sazh's Chocobo
+1 Scute Swarm
+1 Seaside Citadel
+1 Secluded Courtyard
+1 Sidequest: Raise a Chocobo // Black Chocobo
+1 Simic Growth Chamber
+1 Snakeskin Veil
+1 Soulcatchers' Aerie
+1 Spelunking
+1 Stroke of Midnight
+1 Summon: Fat Chocobo
+1 Swiftfoot Boots
+1 Swords to Plowshares
+1 Tangle
+1 Terramorphic Expanse
+1 The Goose Mother
+1 Thieving Magpie
+1 Three Steps Ahead
+1 Tranquil Landscape
+1 Tranquil Thicket
+1 Traveling Chocobo
+1 Unstoppable Plan
+1 Vanquish the Horde
+1 Vec Townships
+1 Watcher of the Spheres
+1 Wingmate Roc
+1 Wonder
+1 Yavimaya Coast
+
+
+===== DECK 085 | imported=115 | requested=115 | entries=72 | excluded=0 | chars=2836 | 2026-07-12 | 019f55e5-9eda-7ec5-b5ae-23889bb20d0a =====
+1x Achilles Davenport (acr) 294 [Anthem]
+1x Adéwalé, Breaker of Chains (acr) 136 [Draw]
+1x Admiral Beckett Brass (sld) 1561 [Commander{top}]
+1x Adrestia (acr) 68 [Draw]
+1x Apple of Eden, Isu Relic (acr) 254 *E* [Theft]
+1x Arno Dorian (acr) 139 [Anthem]
+10x Assassin (tacr) 4 [Tokens & Extras{noDeck}]
+1x Assassin Den (acr) 281 [Evasion]
+1x Assassin Gauntlet (acr) 12 [Draw]
+1x Assassin Initiate (acr) 22 [Evasion]
+1x Auditore Ambush (acr) 295 [Removal]
+1x Ballad of the Black Flag (acr) 13 [Draw]
+1x Become Anonymous (acr) 14 [Protection]
+1x Black Market Connections (acr) 87 [Draw]
+1x Brotherhood Ambushers (acr) 285 [Creature]
+1x Brotherhood Headquarters (acr) 80 [Land]
+1x Brotherhood Patriarch (acr) 286 [Drain]
+1x Brotherhood Regalia (acr) 71 *F* [Evasion]
+1x Cathartic Reunion (acr) 94 [Draw]
+1x Chain Assassination (acr) 199 *E* [Removal]
+1x Champion's Helm (pip) 228 [Protection]
+1x Coastal Piracy (acr) 187 *E* [Draw]
+1x Conspiracy (acr) 162 [Anthem]
+1x Cover of Darkness (acr) 163 [Evasion]
+1x Crystal Skull, Isu Spyglass (acr) 15 [Ramp]
+1x Desynchronization (acr) 159 *F* [Removal]
+1x Eagle Vision (acr) 17 [Draw]
+1x Edward Kenway (acr) 53 [Ramp]
+1x Escape Detection (acr) 18 [Removal]
+1x Excalibur, Sword of Eden (acr) 72 [Pump]
+1x Ezio, Blade of Vengeance (acr) 275 *F* [Draw]
+1x Fatal Push (acr) 204 *E* [Removal]
+1x Go for the Throat (acr) 91 [Removal]
+1x Hemlock Vial (acr) 26 [Draw]
+1x Hidden Blade (acr) 73 [Removal]
+1x Hidden Footblade (acr) 34 [Pump]
+1x Hired Blade (acr) 299 [Creature]
+10x Island (acr) 103 [Land]
+1x Jackdaw (acr) 58 [Draw]
+1x Loyal Inventor (acr) 21 [Tutor]
+1x Lydia Frye (acr) 149 [Evasion]
+1x Mary Read and Anne Bonny (acr) 242 *E* [Draw]
+1x Massacre Girl (rvr) 328 [Removal]
+1x Merciless Harlequin (acr) 287 [Draw]
+1x Mjölnir, Storm Hammer (acr) 170 *F* [Burn]
+1x Monastery Raid (acr) 35 [Draw]
+7x Mountain (acr) 108 [Land]
+1x Murder (acr) 92 [Removal]
+1x Mystical Tutor (dmr) 289 [Tutor]
+1x Overpowering Attack (acr) 218 *E* [Finisher]
+1x Petty Larceny (acr) 28 [Theft]
+1x Phantom Blade (acr) 29 [Removal]
+1x Pirate's Cutlass (cmr) 333 [Pump]
+1x Poison-Blade Mentor (acr) 288 [Evasion]
+1x Propaganda (acr) 85 [Protection]
+1x Restart Sequence (acr) 30 [Recursion]
+1x Rooftop Bypass (acr) 298 [Tokens]
+1x Roshan, Hidden Magister (acr) 133 [Draw]
+1x Royal Assassin (acr) 164 [Removal]
+5x Shapeshifter (tacr) 2 [Tokens & Extras{noDeck}]
+1x Skulduggery (xln) 123 [Removal]
+1x Smoke Bomb (acr) 75 [Protection]
+1x Submerged Boneyard (acr) 301 [Land]
+16x Swamp (fin) 302 [Land]
+1x Swashbuckler's Whip (lci) 263 [Draw]
+1x Sword of Feast and Famine (acr) 261 *E* [Ramp]
+1x Terminate (acr) 98 [Removal]
+1x The Animus (acr) 69 [Copy]
+1x The Capitoline Triad (acr) 117 *F* [Finisher]
+1x The Revelations of Ezio (acr) 31 [Removal]
+1x Towering Viewpoint (acr) 77 [Evasion]
+1x Tranquilize (acr) 284 [Removal]
+
+
+===== DECK 086 | imported=126 | requested=126 | entries=103 | excluded=0 | chars=2029 | 2026-07-12 | 019f5722-63ee-7979-9ad4-6c40acf0e282 =====
+1 Abrade
+1 Agrus Kos, Eternal Soldier
+1 Angel of Indemnity
+1 Anticausal Vestige
+1 Ao, the Dawn Sky
+1 Archon of Justice
+1 Aspiring Champion
+1 Atsushi, the Blazing Sky
+1 Aurelia, the Warleader
+1 Bishop of Rebirth
+1 Burnished Hart
+1 Cataclysmic Gearhulk
+1 Charming Prince
+1 Claim Jumper
+1 Clockwork Percussionist
+1 Coercive Recruiter
+1 Colossus of the Blood Age
+1 Combustible Gearhulk
+1 Curious Colossus
+1 Dalkovan Encampment
+1 Dalkovan Packbeasts
+1 Dauntless Aven
+1 Deafening Silence
+1 Determined Iteration
+1 Dire Fleet Daredevil
+1 Dragon Mage
+1 Duke Ulder Ravengard
+1 Eidolon of Rhetoric
+1 Emrakul's Hatcher
+1 Éowyn, Fearless Knight
+1 Ertha Jo, Frontier Mentor
+1 Felidar Cub
+1 Fell the Mighty
+1 Fields of Strife
+1 Firbolg Flutist
+1 Flickerwisp
+1 Fumigate
+1 Gift of Immortality
+1 Gold Myr
+1 Gratuitous Violence
+1 Hanweir Garrison
+1 Helpful Hunter
+1 Hoarding Dragon
+1 Idol of Oblivion
+1 Impact Tremors
+1 Inspiring Overseer
+1 Inspiring Vantage
+1 Jackdaw Savior
+1 Jaxis, the Troublemaker
+1 Kirol, Attentive First-Year
+1 Mage's Attendant
+1 Marble Titan
+1 Marvin, Murderous Mimic
+1 Mentor of the Meek
+1 Meteor Golem
+1 Mishra's Factory
+1 Mishra's Foundry
+1 Mogg Mob
+1 Molten Gatekeeper
+1 Monologue Tax
+13 Mountain
+1 Myr Battlesphere
+1 Needle Spires
+1 Neyali, Suns' Vanguard
+1 Oketra's Monument
+1 Ornithopter of Paradise
+12 Plains
+1 Redcap Gutter-Dweller
+1 Regal Caracal
+1 Restoration Angel
+1 Rule of Law
+1 Rustvale Bridge
+1 Sacred Peaks
+1 Scampering Surveyor
+1 Seize the Spoils
+1 Siege-Gang Commander
+1 Skyclave Apparition
+1 Slaughter the Strong
+1 Solemn Simulacrum
+1 Staff of the Storyteller
+1 Star Athlete
+1 Sun Titan
+1 Sun-Blessed Peak
+1 Sundown Pass
+1 Sunscorched Divide
+1 Sunset Strikemaster
+1 Sunspine Lynx
+1 Symmetry Matrix
+1 Tavern Brawler
+1 Tectonic Giant
+1 Temple of Triumph
+1 The Jolly Balloon Man
+1 Tocasia's Welcome
+1 Trumpeting Carnosaur
+1 Village Bell-Ringer
+1 Wave of Reckoning
+1 Weftstalker Ardent
+1 Westfold Rider
+1 Wind-Scarred Crag
+1 Witty Roastmaster
+1 Zealous Conscripts
+1 Zidane, Tantalus Thief
+1 Zookeeper Mechan
+
+
+===== DECK 087 | imported=135 | requested=135 | entries=125 | excluded=0 | chars=2221 | 2026-07-12 | 019f5940-0d20-7aed-87d9-acc840911f06 =====
+1 Adarkar Wastes
+1 Aerial Extortionist
+1 Airborne Aid
+1 Akroma's Will
+1 Alpha Status
+1 Ambrosia Whiteheart
+1 Analyze the Pollen
+1 Ash Barrens
+1 Banner of Kinship
+1 Bartz and Boko
+1 Beast
+1 Beck // Call
+1 Bird
+1 Bird
+1 Bird Soldier
+1 Birds of Paradise
+1 Bountiful Promenade
+1 Breeding Pool
+1 Brushland
+1 Bushwhack
+1 Canopy Vista
+1 Cartographer's Hawk
+1 Cat Beast
+1 Cat Bird
+1 Cavern of Souls
+1 Choco, Seeker of Paradise
+1 Chocobo Camp
+1 Chocobo Kick
+1 Chocobo Racetrack
+1 Clue
+1 Command Tower
+1 Counterspell
+1 Curiosity Crafter
+1 Dawn's Truce
+1 Dazzling Denial
+1 Deserted Beach
+1 Distant Melody
+1 Dreamroot Cascade
+1 Emeria Angel
+1 Empyrean Eagle
+1 Esior, Wardwing Familiar
+1 Evolving Wilds
+1 Exotic Orchard
+1 Fabled Passage
+1 Farseek
+1 Felidar Retreat
+1 Fierce Guardianship
+1 Finale of Devastation
+1 Flawless Maneuver
+1 Flurry of Wings
+1 Food
+4 Forest
+1 Gilded Goose
+1 Glacial Fortress
+1 Healer's Hawk
+1 Herald's Horn
+1 Hinterland Harbor
+1 Hushwood Verge
+5 Island
+1 Kastral, the Windcrested
+1 Kindred Discovery
+1 Ledger Shredder
+1 Lupinflower Village
+1 Map
+1 Migratory Route
+1 Miner's Guidewing
+1 Mockingbird
+1 Mossborn Hydra
+1 Murmuration
+1 Nature's Lore
+1 Nimble Obstructionist
+1 Overgrown Farmland
+1 Path of Ancestry
+1 Perch Protection
+4 Plains
+1 Plumecreed Escort
+1 Prairie Stream
+1 Raise the Palisade
+1 Rampant Growth
+1 Realmwalker
+1 Restless Anchorage
+1 Rhystic Study
+1 Ride the Shoopuf
+1 Roaming Throne
+1 Rout
+1 Salvation Swan
+1 Sazh Katzroy
+1 Sazh's Chocobo
+1 Search for Tomorrow
+1 Seaside Haven
+1 Secluded Courtyard
+1 Sephara, Sky's Blade
+1 Sevinne's Reclamation
+1 Sidequest: Raise a Chocobo // Black Chocobo
+1 Silver Raven
+1 Skycat Sovereign
+1 Skycoach Conductor // All Aboard
+1 Snakeskin Veil
+1 Sol Ring
+1 Soulcatchers' Aerie
+1 Spark Double
+1 Storm Crow
+1 Stormscape Familiar
+1 Strix Serenade
+1 Summon: Choco/Mog
+1 Summon: Fat Chocobo
+1 Sunpetal Grove
+1 Swan Song
+1 Swords to Plowshares
+1 Temple Garden
+1 Terramorphic Expanse
+1 The Goose Mother
+1 Three Tree City
+1 Tifa Lockhart
+1 Traveling Chocobo
+1 Traverse the Ulvenwald
+1 Treasure
+1 Unclaimed Territory
+1 Wan Shi Tong, Librarian
+1 Watcher of the Spheres
+1 Willowrush Verge
+1 Windbrisk Raptor
+1 Winged Portent
+1 Yavimaya Coast
+1 Your Temple Is Under Attack
+

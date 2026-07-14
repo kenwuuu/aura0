@@ -16,7 +16,7 @@ import { create } from 'zustand';
 
 export type LocalPileOpenRequest = {
   scope: 'local';
-  pile: 'deck' | 'exile' | 'discard';
+  pile: 'deck' | 'exile' | 'discard' | 'sideboard';
 };
 
 export type OpponentPileOpenRequest = {
