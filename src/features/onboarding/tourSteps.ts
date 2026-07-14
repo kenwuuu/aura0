@@ -56,7 +56,7 @@ export const TOUR_STEPS: Record<TourStepId, TourStep> = {
     anchor: ROOM_LINK,
     halo: true,
     copy: {
-      desktop: '**Invite a friend.** Go ahead, even if they\'re at work, you know it works on mobile.',
+      desktop: '**Invite a friend.** Go ahead, even if they\'re at work, our site works on mobile.',
       phone: '**Invite a friend.** Go ahead, even if they\'re at work, you know it works on mobile.',
     },
     advance: 'action',
