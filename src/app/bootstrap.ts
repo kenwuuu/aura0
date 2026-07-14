@@ -30,8 +30,7 @@ import {
   autoLoadDeckOnStart,
   seedDefaultDeckIfFirstLoad,
 } from '@/features/deck-manager/deckLoading';
-
-const VISIT_COUNT_KEY = 'aura-visit-count';
+import { recordVisit } from '@/shared/services/visitCount';
 
 /**
  * Delete room docs nobody has opened in a month, and report what that cost/freed.
@@ -158,8 +157,10 @@ export async function bootstrapGame(options: BootstrapOptions = {}): Promise<Boo
   await autoLoadDeckOnStart(player, roomManager, storage);
 
   // ── 9. Analytics ───────────────────────────────────────────────────────────
-  const visitCount = parseInt(localStorage.getItem(VISIT_COUNT_KEY) ?? '0', 10);
-  localStorage.setItem(VISIT_COUNT_KEY, (visitCount + 1).toString());
+  // Must run before React mounts: the onboarding tour asks how many times this
+  // player has been here, and the answer stops being observable once the key is
+  // incremented (see shared/services/visitCount.ts).
+  recordVisit();
 
   return {
     status: 'ready',
