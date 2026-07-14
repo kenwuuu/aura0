@@ -315,7 +315,7 @@ describe('DeckImportModal — import flow', () => {
     const user = userEvent.setup();
     renderModal();
 
-    // 100 in the deck + 1 commander = 101, with a 15-card sideboard dropped.
+    // 100 in the deck + 1 commander = 101, with a 15-card sideboard beside it.
     await fillForm(
       user,
       ['COMMANDER:', '1 Krenko, Mob Boss', '', '100 Mountain', '', 'Sideboard', '15 Duress'].join('\n'),
@@ -325,8 +325,32 @@ describe('DeckImportModal — import flow', () => {
       vi.advanceTimersByTime(2000);
     });
 
+    // The sideboard is imported, so it is named without the "(not imported)"
+    // caveat — and with nothing being dropped, no dropped count is shown.
     expect(
-      screen.getByText(/Deck 100 · Command zone 1 · Sideboard 15 \(not imported\)/),
+      screen.getByText(/Deck 100 · Command zone 1 · Sideboard 15$/),
+    ).toBeInTheDocument();
+  });
+
+  it('separates a sideboard it imports from a maybeboard it drops', async () => {
+    // Both are withheld from the deck, but only one of them still disappears.
+    // Reporting them as one number would tell a player their 3 maybeboard cards
+    // are in a sideboard pile they can open — they are not.
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    renderModal();
+
+    await fillForm(
+      user,
+      ['101 Mountain', '', 'Sideboard', '15 Duress', '', 'Maybeboard', '3 Counterspell'].join('\n'),
+    );
+
+    await act(async () => {
+      vi.advanceTimersByTime(2000);
+    });
+
+    expect(
+      screen.getByText(/Deck 101 · Command zone 0 · Sideboard 15 · 3 not imported/),
     ).toBeInTheDocument();
   });
 

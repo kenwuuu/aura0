@@ -51,7 +51,7 @@ function writePlayer(yDoc: Y.Doc, playerId: string, options: {
 }
 
 describe('buildPlaymatNodes', () => {
-  it('emits 5 nodes per player (playmat, health, deck, discard, exile)', () => {
+  it('emits 6 nodes per player (playmat, health, deck, discard, exile, sideboard)', () => {
     const yDoc = new Y.Doc();
     writePlayer(yDoc, 'local-p1', { joinedAt: 100 });
 
@@ -60,8 +60,39 @@ describe('buildPlaymatNodes', () => {
     const types = nodes.map((n) => n.type);
     expect(types).toContain('playmat');
     expect(types).toContain('health');
-    expect(types.filter((t) => t === 'pile')).toHaveLength(3); // deck, discard, exile
-    expect(nodes).toHaveLength(5);
+    expect(types.filter((t) => t === 'pile')).toHaveLength(4); // deck, discard, exile, sideboard
+    expect(nodes).toHaveLength(6);
+  });
+
+  it('emits a sideboard pile for every player, including opponents', () => {
+    // Opponents get one too: the count is public in paper Magic even though the
+    // contents never are. PileNode is what gates opening it (pileNodeLogic).
+    const yDoc = new Y.Doc();
+    writePlayer(yDoc, 'local-p1', { joinedAt: 100 });
+    writePlayer(yDoc, 'opp-p2', { joinedAt: 200 });
+
+    const nodes = buildPlaymatNodes(yDoc, 'local-p1');
+
+    const sideboardIds = nodes.filter((n) => n.id.startsWith('pile-sideboard-')).map((n) => n.id);
+    expect(sideboardIds.sort()).toEqual(['pile-sideboard-local-p1', 'pile-sideboard-opp-p2']);
+  });
+
+  it('places the sideboard left of the deck, clear of discard and exile', () => {
+    // The pile column is full at four, so the sideboard opens a second column —
+    // but only beside the deck. If it ever shared a row with discard or exile it
+    // would be fencing off battlefield space those piles do not need.
+    const yDoc = new Y.Doc();
+    writePlayer(yDoc, 'local-p1', { joinedAt: 100 });
+
+    const nodes = buildPlaymatNodes(yDoc, 'local-p1');
+    const at = (id: string) => nodes.find((n) => n.id === id)!.position;
+
+    const sideboard = at('pile-sideboard-local-p1');
+    const deck = at('pile-deck-local-p1');
+
+    expect(sideboard.x).toBeLessThan(deck.x);
+    expect(sideboard.y).toBe(deck.y);
+    expect(sideboard.y).toBeLessThan(at('pile-discard-local-p1').y);
   });
 
   it('emits an opponent hand pile for non-local players only', () => {

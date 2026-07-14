@@ -160,6 +160,10 @@ export function useAllGameHotkeys() {
   useHotkeys(getKeyBindingsForAction('moveToDeckBottom'), () => dispatch('moveToDeckBottom'),
     { ...board, enabled: isBattlefield || isHand || isPile });
 
+  // Move-to-sideboard (B) — battlefield / hand / pile
+  useHotkeys(getKeyBindingsForAction('moveToSideboard'), () => dispatch('moveToSideboard'),
+    { ...board, enabled: isBattlefield || isHand || isPile });
+
   // Token counters
   useHotkeys(getKeyBindingsForAction('tokenIncrement'), () => dispatch('tokenIncrement'),
     { ...board, enabled: isToken });
@@ -181,6 +185,8 @@ export function useAllGameHotkeys() {
   useHotkeys(getKeyBindingsForAction('moveToDeckTop'), () => dispatch('moveToDeckTop'),
     { ...pv, enabled: isPileViewer });
   useHotkeys(getKeyBindingsForAction('moveToDeckBottom'), () => dispatch('moveToDeckBottom'),
+    { ...pv, enabled: isPileViewer });
+  useHotkeys(getKeyBindingsForAction('moveToSideboard'), () => dispatch('moveToSideboard'),
     { ...pv, enabled: isPileViewer });
 }
 

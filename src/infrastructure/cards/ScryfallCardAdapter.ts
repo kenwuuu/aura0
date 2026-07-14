@@ -1,6 +1,7 @@
 import { Card, CardImages } from '@/features/player/types';
 import { makeCard } from '@/features/player/makeCard';
 import { CardDataResult, ScryfallCard } from './types';
+import type { SectionKind } from '@/features/deck-manager/DeckListParser';
 
 function extractImageUris(cardObj: ScryfallCard): CardImages {
   if (cardObj.image_uris) {
@@ -55,6 +56,7 @@ export function toCardDataResult(
   scryfallCard: ScryfallCard,
   count: number = 1,
   commander: boolean = false,
+  section?: SectionKind,
 ): CardDataResult {
   return {
     count,
@@ -64,6 +66,7 @@ export function toCardDataResult(
     scryfallId: scryfallCard.id,
     imageUris: extractImageUris(scryfallCard),
     ...(commander && canBeCommander(scryfallCard) ? { commander: true } : {}),
+    ...(section ? { section } : {}),
   };
 }
 

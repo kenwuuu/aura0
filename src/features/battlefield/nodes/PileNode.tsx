@@ -8,7 +8,7 @@ import { useHotkeyStore } from '@/app/stores/hotkeyStore';
 import { useContextMenuStore } from '@/features/hotkeys/contextMenuStore';
 import { useContextMenuTap } from '@/features/hotkeys/useContextMenuTap';
 import type { MenuTarget } from '@/features/hotkeys/hotkeys';
-import { isHandViewDisabled, resolvePileOpenRequest } from './pileNodeLogic';
+import { isPileViewDisabled, resolvePileOpenRequest } from './pileNodeLogic';
 import type { PileType } from '@/features/player';
 
 export interface PileNodeData {
@@ -26,17 +26,19 @@ const PILE_LABELS: Record<Exclude<PileType, 'scry'>, string> = {
   exile: 'Exile',
   discard: 'Discard',
   hand: 'Hand',
+  sideboard: 'Sideboard',
 };
 
-const HOTKEY_PILE_KINDS = new Set<PileType>(['deck', 'exile', 'discard']);
+const HOTKEY_PILE_KINDS = new Set<PileType>(['deck', 'exile', 'discard', 'sideboard']);
 
 export const PileNode = memo(function PileNode({ data }: NodeProps) {
   const d = data as unknown as PileNodeData;
   const { ownerId, isLocal, pileKind, count, allowViewHand } = d;
 
   const isHandPile = pileKind === 'hand';
-  const isOpponentHand = isHandPile && !isLocal;
-  const handDisabled = isHandViewDisabled({ isLocal, pileKind, allowViewHand });
+  const viewDisabled = isPileViewDisabled({ isLocal, pileKind, allowViewHand });
+  // Opponents see the count of a private pile but never its contents — mark it.
+  const isLockedOpponentPile = viewDisabled;
 
   // Register as a dnd-kit droppable for hand cards dragged from the FloatingHand.
   // Only local non-hand piles accept drops; disabled elsewhere.
@@ -64,12 +66,12 @@ export const PileNode = memo(function PileNode({ data }: NodeProps) {
     }
   };
 
-  // Only local deck/exile/discard piles carry a menu. Opponent piles get a
-  // null target, so on touch the tap detector opts out and `handleClick` runs
-  // as usual — a tap opens their viewer, the only thing they support.
+  // Only local deck/exile/discard/sideboard piles carry a menu. Opponent piles
+  // get a null target, so on touch the tap detector opts out and `handleClick`
+  // runs as usual — a tap opens their viewer, the only thing they support.
   const pileMenuTarget: MenuTarget | null =
     isLocal && HOTKEY_PILE_KINDS.has(pileKind)
-      ? { kind: 'pile', pileType: pileKind as 'deck' | 'exile' | 'discard' }
+      ? { kind: 'pile', pileType: pileKind as 'deck' | 'exile' | 'discard' | 'sideboard' }
       : null;
 
   const handleContextMenu = (e: React.MouseEvent) => {
@@ -107,8 +109,8 @@ export const PileNode = memo(function PileNode({ data }: NodeProps) {
         borderRadius: 3,
         boxSizing: 'border-box',
         justifyContent: 'center',
-        opacity: handDisabled ? 0.6 : 1,
-        cursor: handDisabled ? 'default' : 'pointer',
+        opacity: viewDisabled ? 0.6 : 1,
+        cursor: viewDisabled ? 'default' : 'pointer',
         outline: isOver && canReceiveDrop ? '2px solid #60a5fa' : undefined,
       }}
       onClick={handleClick}
@@ -122,7 +124,7 @@ export const PileNode = memo(function PileNode({ data }: NodeProps) {
     >
       <div className="pile-label" style={{ fontSize: 8 }}>
         {PILE_LABELS[pileKind]}
-        {isOpponentHand && !allowViewHand && ' 🔒'}
+        {isLockedOpponentPile && ' 🔒'}
       </div>
       <div className="pile-count" data-pile-count={count} style={{ fontSize: 22, lineHeight: 1 }}>{count}</div>
       {isLocal && pileKind === 'deck' && (

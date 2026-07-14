@@ -20,6 +20,9 @@ export const YSTATE_DECK_CARD_COUNT = 'deck-card-count';
 export const YSTATE_CUSTOM_COUNTERS = 'custom-counters';
 export const YSTATE_CAN_VIEW_HAND = 'allowViewHand';
 export const YSTATE_SCRY = 'scry';
+// Cards imported from a sideboard/maybeboard section. Private to their owner —
+// opponents may see the count but never the contents (see PileNode).
+export const YSTATE_SIDEBOARD = 'sideboard';
 // 0=hidden, -1=all cards revealed, N>0=top N cards revealed (deck pile-viewer scry/surveil state)
 export const YSTATE_DECK_REVEAL_COUNT = 'deckRevealCount';
 // Player-chosen display name. Synced via Yjs so other peers see it. Distinct from the

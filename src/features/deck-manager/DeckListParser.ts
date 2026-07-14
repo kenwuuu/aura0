@@ -39,10 +39,24 @@ export type DeckLineItem = {
 // matched by their exact (normalized) label — never a substring — so cards like
 // "Commander's Sphere" or "Island" (which contains "land") stay cards.
 const COMMANDER_HEADERS = new Set(['commander', 'commanders', 'command zone']);
+
+/**
+ * Excluded sections that are a *sideboard* — cards the player owns and can bring
+ * into the game, which the importer loads into the sideboard pile.
+ *
+ * A companion counts: by the rules it starts in the sideboard, and it is played
+ * from there. The rest of `EXCLUDED_HEADERS` — maybeboard, wishlist, tokens —
+ * are not cards in the player's 75; they are notes and printouts, and they stay
+ * dropped. The distinction matters because everything here ends up in a real
+ * game zone the player can pull cards out of.
+ */
+export const SIDEBOARD_HEADERS = new Set(['sideboard', 'side board', 'companion']);
+
 const EXCLUDED_HEADERS = new Set([
-  'sideboard', 'side board', 'maybeboard', 'maybe board',
+  ...SIDEBOARD_HEADERS,
+  'maybeboard', 'maybe board',
   'considering', 'consideration', 'wishlist', 'wish list',
-  'tokens', 'token', 'companion',
+  'tokens', 'token',
 ]);
 const MAIN_HEADERS = new Set([
   'deck', 'decklist', 'main', 'maindeck', 'main deck', 'mainboard',
@@ -271,6 +285,17 @@ export function parseDecklistWithStats(text: string): ParsedDecklist {
 /** Parse a text decklist into card entries. See {@link parseDecklistWithStats}. */
 export function parseDecklist(text: string): DeckLineItem[] {
   return parseDecklistWithStats(text).items;
+}
+
+/**
+ * Of the cards withheld from the deck, the ones that belong in the sideboard
+ * pile — as opposed to a maybeboard or a token list, which are withheld and then
+ * genuinely dropped. Reads the card's own provenance (`tags`), so the answer
+ * comes from the header the player actually wrote.
+ */
+export function isSideboardCard(item: DeckLineItem): boolean {
+  return item.section === 'excluded'
+    && (item.tags?.some((tag) => SIDEBOARD_HEADERS.has(tag)) ?? false);
 }
 
 /**
