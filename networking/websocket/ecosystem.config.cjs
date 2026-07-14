@@ -23,6 +23,11 @@ module.exports = {
       name: `y-websocket-${port}`,
       cwd: __dirname,
       script: './main.js',
+      // Room eviction should keep this flat, so a breach means eviction has regressed.
+      // The ceiling is pm2's, not V8's, because V8's default 554 MB heap is unreachable
+      // on a 1 GB box shared with the card API — the kernel OOM killer arrives first, and
+      // it does not reliably pick the relay (on 2026-07-11 it killed fwupd instead).
+      max_memory_restart: '450M',
       env: {
         // 0.0.0.0 matches the long-running deployment. The port is not exposed: ufw
         // defaults to deny-incoming and only Caddy (on localhost) proxies to it.
