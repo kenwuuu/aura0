@@ -105,6 +105,28 @@ export function trackSyncOutcome(props: {
 }
 
 /**
+ * Reports a pass of the room-doc collector (see networking/roomDocStorage.ts).
+ *
+ * `storageUsageBytes` is the whole origin's usage, not just room docs — it's the number that
+ * tells us whether the leak is actually draining in the field, and how big it had grown before
+ * anything collected it. `adopted` is only non-zero on a client's first pass after the collector
+ * ships, so a persistently high `adopted` would mean rooms are being created without registering.
+ */
+export function trackRoomDocsPurged(props: {
+  purged: number;
+  adopted: number;
+  tracked: number;
+  storageUsageBytes?: number;
+}): void {
+  posthog.capture('room_docs_purged', {
+    purged_count: props.purged,
+    adopted_count: props.adopted,
+    tracked_count: props.tracked,
+    ...(props.storageUsageBytes !== undefined ? { storage_usage_bytes: props.storageUsageBytes } : {}),
+  });
+}
+
+/**
  * `connectMs` times the successful connection attempt (handshake latency);
  * `offlineForMs` times the outage it ended. They are not interchangeable — a
  * client that slept through a three-day outage and then reconnected instantly
