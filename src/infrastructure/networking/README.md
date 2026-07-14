@@ -232,6 +232,11 @@ client's IndexedDB copy *is* the game, so collecting one is data loss, not cache
 - Only names **in the registry** are ever deleted, and only room-shaped names are ever adopted. This
   is what keeps `aura-decks` — every deck the player has ever saved — off the chopping block.
 
+Adoption depends on `indexedDB.databases()`, which **Firefox does not implement**. There, adoption
+silently finds nothing and pre-existing orphans are never collected. That is the intended trade, not
+an oversight: under-adopting leaks a database, over-adopting deletes somebody's game. We under-adopt.
+Rooms still register themselves as they're opened, so the leak does not grow going forward.
+
 **To clear local state:**
 ```typescript
 import { clearPersistedSession } from './persistence';
