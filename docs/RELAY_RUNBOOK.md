@@ -24,11 +24,40 @@ ever climbs, eviction has regressed and you are leaking again.
 ## The relay is deployed blue-green
 
 Two ports, **47964** and **47965**, pm2 app `y-websocket-<port>`. Caddy proxies exactly one;
-the other is idle. `networking/websocket/scripts/deploy.sh` drives it (run it *on* the box).
+the other is idle. **Neither port is permanently "the live one"** — they swap on every deploy,
+so never assume, always look.
+
+### Which port is live?
 
 ```bash
-./scripts/deploy.sh status    # which port is live, health of both
+cd /root/aura/networking/websocket && ./scripts/deploy.sh status
 ```
+
+```
+Caddy serves : 47965          ← live: every player is on this one
+idle port    : 47964          ← idle: safe to deploy onto
+
+:47965  (live) -> {"status":"ok","rooms":49}
+:47964  (idle) -> (unreachable)
+```
+
+If the script isn't available, **the Caddyfile is the ground truth** — Caddy is what decides
+which port is live, so ask it directly:
+
+```bash
+grep -oE 'reverse_proxy localhost:(47964|47965)' /etc/caddy/Caddyfile   # -> the LIVE port
+```
+
+The other port is the idle one. Two more things worth checking by hand:
+
+```bash
+/root/aura/node_modules/pm2/bin/pm2 list        # which y-websocket-<port> apps exist
+curl -s http://127.0.0.1:47964/health           # ask each port what it is
+curl -s http://127.0.0.1:47965/health
+```
+
+A port's `/health` also tells you *which binary* is on it — JSON is ours, plain `okay` is the
+stock leaking binary, and `(unreachable)` means nothing is running there.
 
 ### Deploying a change
 
@@ -44,21 +73,28 @@ cd /root/aura && tar xzf /root/relay.tgz && cd networking/websocket
 
 Then, in order — **do not skip step 3**:
 
-1. **`./scripts/deploy.sh stage`** — brings the new code up on the idle port and smoke-tests
-   it there. Aborts on any pm2 restart or smoke failure. Touches nothing serving users; safe
-   any time.
+1. **`./scripts/deploy.sh stage`** — brings the new code up on **the idle port** (it works out
+   which one; you don't pick) and smoke-tests it there. Aborts on any pm2 restart or smoke
+   failure. Touches nothing serving users; safe any time. It prints the port it staged on —
+   that's your `$STAGED` below.
 2. **Verify the resolved tree**, because a bad `npm ci` is how we broke prod once:
    ```bash
    node -e 'console.log(require("./node_modules/@y/websocket-server/package.json").version,
                         require("./node_modules/yjs/package.json").version)'   # want 0.1.1 13.x
    find node_modules -path '*@y/y*' -o -path '*@y/protocols*'                  # want EMPTY
    ```
-3. **Drive it from a real browser.** The staged port isn't public, so tunnel to it:
+3. **Drive it from a real browser.** The staged port isn't public, so tunnel to it. Substitute
+   the port `stage` just used — **do not assume 47965**, it alternates every deploy:
    ```bash
-   ssh -L 47965:127.0.0.1:47965 root@138.197.78.138          # match the staged port
-   VITE_WS_SERVER_URL=ws://127.0.0.1:47965 npm run dev       # then open two boards
+   STAGED=47965   # <-- whatever `deploy.sh status` calls the idle port
+   ssh -L $STAGED:127.0.0.1:$STAGED root@138.197.78.138
+   VITE_WS_SERVER_URL=ws://127.0.0.1:$STAGED npm run dev    # then open two boards
    ```
-   Move a card and watch it cross. **This is the step that catches what the tests can't** —
+   Confirm the tunnel reached the *staged* relay, not the live one — `curl
+   http://127.0.0.1:$STAGED/health` must return JSON, and its `rooms` count should be ~0 while
+   the live port carries everyone.
+
+   Then move a card and watch it cross. **This is the step that catches what the tests can't** —
    every automated check we had passed against a relay that synced nothing.
 4. **`./scripts/deploy.sh flip`** — points Caddy at the staged port. The old instance keeps
    running, so rollback is one command. **Now check the public URL**: it must return JSON, not
