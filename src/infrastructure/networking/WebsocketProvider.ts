@@ -28,6 +28,7 @@
 import * as Y from 'yjs';
 import { WebsocketProvider as WsProvider } from "y-websocket";
 import { IndexeddbPersistence } from 'y-indexeddb';
+import { createRoomPersistence, keepRoomAlive } from './roomDocStorage';
 import { registerTransactionOriginClass } from './transactionOrigin';
 import { WebsocketConfig } from './types';
 import { restoreAwarenessState, setupAwarenessStatePersistence, AwarenessState } from './persistence';
@@ -79,6 +80,7 @@ export class WebsocketProvider implements YjsNetworkProvider{
   private yDoc: Y.Doc;
   private provider: WsProvider;
   private persistence: IndexeddbPersistence;
+  private stopRoomHeartbeat: () => void;
   private config: WebsocketConfig;
   private cleanupAwarenessPersistence?: () => void;
   private monitor: ConnectionMonitor;
@@ -127,8 +129,10 @@ export class WebsocketProvider implements YjsNetworkProvider{
     };
 
     // Set up IndexedDB persistence for the Y.Doc
-    // This persists the document state locally so it survives page reloads
-    this.persistence = new IndexeddbPersistence(this.config.roomName, this.yDoc);
+    // This persists the document state locally so it survives page reloads, and registers the
+    // room so the collector in roomDocStorage.ts knows it's alive rather than abandoned.
+    this.persistence = createRoomPersistence(this.config.roomName, this.yDoc);
+    this.stopRoomHeartbeat = keepRoomAlive(this.config.roomName);
 
     this.provider = new WsProvider(
       WS_SERVER_URL,
@@ -235,6 +239,7 @@ export class WebsocketProvider implements YjsNetworkProvider{
     this.monitor.destroy();
     this.syncMonitor.destroy();
 
+    this.stopRoomHeartbeat();
     this.persistence.destroy();
   }
 }

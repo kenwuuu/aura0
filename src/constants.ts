@@ -4,6 +4,12 @@ export const CARD_WIDTH = 63;
 // RoomManager
 export const ROOM_PREFIX = 'mtg-';
 
+// How long a room's local IndexedDB doc survives without being opened before it's collected
+// (see infrastructure/networking/roomDocStorage.ts). The relay keeps no durable copy of a
+// room, so this deletion is the game itself, not a cache — hence a deliberately generous TTL.
+// A room nobody has opened in a month is abandoned; the cost of being wrong is someone's game.
+export const ROOM_DOC_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
+
 // Default card back image (will be added to /public/assets/)
 export const DEFAULT_CARD_BACK = '/assets/card-back.png';
 
