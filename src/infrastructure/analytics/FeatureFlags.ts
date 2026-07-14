@@ -42,9 +42,22 @@ function whenFlagsReady(): Promise<boolean> {
       };
       setTimeout(settle, FLAG_RESOLUTION_TIMEOUT_MS);
       posthog.onFeatureFlags((_flags, _variants, context) => {
-        // Also fires on failure, and fires synchronously with errorsLoading set
-        // if posthog.init() hasn't run yet. Neither case is a payload.
-        if (!context?.errorsLoading) flagsLoaded = true;
+        // Three ways in, and only one of them is a payload:
+        //
+        //   context = { errorsLoading: false }  the flags request came back  -> a payload
+        //   context = { errorsLoading: true }   the request failed           -> not a payload
+        //   context = undefined                 PostHog is replaying whatever it already
+        //                                       holds, without having fetched anything
+        //
+        // That last one is the trap. PostHog omits the context entirely when it invokes the
+        // callback from its existing state — and when the request never landed (ad-blocker,
+        // offline, a blocked route in e2e) that state is an *empty flag set*. Testing only
+        // `!context?.errorsLoading` reads the missing context as "loaded fine", so we would
+        // believe a payload arrived, find every flag `undefined`, and take that for "the flag
+        // said no". For the transport flag, "no" means WebRTC — so an ad-blocked player would
+        // silently join over a different transport than everyone else and see an empty room.
+        // Require PostHog to affirmatively tell us the load went fine.
+        if (context && !context.errorsLoading) flagsLoaded = true;
         settle();
       });
     });

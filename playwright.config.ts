@@ -9,6 +9,14 @@ import { defineConfig, devices } from '@playwright/test';
 // dotenv.config({ path: path.resolve(__dirname, '.env') });
 
 /**
+ * The Yjs relay the multiplayer specs sync through. Local, and ours: see the `webServer`
+ * note below for why talking to the deployed relay is not an option.
+ */
+const RELAY_HOST = '127.0.0.1';
+const RELAY_PORT = 47965;
+const RELAY_URL = `ws://${RELAY_HOST}:${RELAY_PORT}`;
+
+/**
  * See https://playwright.dev/docs/test-configuration.
  */
 export default defineConfig({
@@ -88,13 +96,43 @@ export default defineConfig({
     // },
   ],
 
-  /* Run your local dev server before starting the tests — skipped when
-     PLAYWRIGHT_BASE_URL points at an already-deployed URL (nothing to boot). */
+  /* Boot a local relay and a dev server pointed at it — skipped when
+     PLAYWRIGHT_BASE_URL points at an already-deployed URL (nothing to boot, and the
+     deployed app talks to the real relay, which is the whole point of that tier).
+
+     The relay matters. Multiplayer specs sync over the *websocket* transport, not WebRTC:
+     `blockAnalytics` means the PostHog flags never resolve, and `resolveNetworkTransport()`
+     falls back to `websocket` when it hasn't heard back. Without a local relay,
+     `WebsocketProvider` falls back to `wss://digitalocean-ws-ipv4.aura0.app` — so every
+     two-player test was round-tripping through the *production* droplet over the public
+     internet. That made the suite fail whenever prod had a bad second (~17-33% on
+     `two_player_sync` alone), and put test rooms on the live relay.
+
+     Run it out of `networking/websocket` so it resolves that package's own pinned
+     `@y/websocket-server@0.1.1`. The root manifest carries a `^0.1.1` caret, and 0.1.5
+     pulls incompatible Yjs 14 prereleases that hand back empty boards — the exact shape of
+     the relay outage. Never boot the relay from the root dependency tree. */
   webServer: process.env.PLAYWRIGHT_BASE_URL
     ? undefined
-    : {
-        command: 'npm run dev',
-        url: 'http://localhost:5173',
-        reuseExistingServer: !process.env.CI,
-      },
+    : [
+        {
+          command: 'node main.js',
+          cwd: 'networking/websocket',
+          env: { HOST: RELAY_HOST, PORT: String(RELAY_PORT) },
+          url: `http://${RELAY_HOST}:${RELAY_PORT}/health`,
+          reuseExistingServer: !process.env.CI,
+        },
+        {
+          command: 'npm run dev',
+          url: 'http://localhost:5173',
+          env: { VITE_WS_SERVER_URL: RELAY_URL },
+          // Never reuse. A dev server someone already started with a plain `npm run dev` has
+          // no VITE_WS_SERVER_URL, so reusing it would point the whole suite back at the
+          // production relay — the bug this config exists to close, and silently, since the
+          // tests would still mostly pass. Playwright errors out if 5173 is occupied, which
+          // is the loud failure we want. Stop your dev server, or run against it deliberately
+          // with `VITE_WS_SERVER_URL=... npm run dev`.
+          reuseExistingServer: false,
+        },
+      ],
 });
