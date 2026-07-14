@@ -9,6 +9,7 @@
 import React from 'react';
 import { Slider } from '@/shared/ui/slider';
 import { Checkbox } from '@/shared/ui/checkbox';
+import { Button } from '@/shared/ui/button';
 import {
   useSettingsStore,
   HAND_ZOOM_MIN,
@@ -16,6 +17,8 @@ import {
   PREVIEW_ZOOM_MIN,
   PREVIEW_ZOOM_MAX,
 } from '@/app/stores/settingsStore';
+import { useSettingsModalStore } from '@/app/stores/settingsModalStore';
+import { useTourStore } from '@/features/onboarding';
 import { useCardPreviewStore } from '@/features/card-preview/cardPreviewStore';
 import { DEFAULT_CARD_BACK } from '@/constants';
 import type { Card } from '@/features/player/types';
@@ -130,6 +133,25 @@ export function DisplaySection() {
           checked={snapToGridEnabled}
           onCheckedChange={(checked) => setSnapToGridEnabled(checked === true)}
         />
+      </SettingRow>
+
+      <p className={styles.sectionTitle}>Onboarding</p>
+      <SettingRow
+        label="Replay tour"
+        description="Walk through playing, tapping, and drawing a card again."
+      >
+        <Button
+          variant="secondary"
+          size="sm"
+          data-testid="replay-tour"
+          onClick={() => {
+            useTourStore.getState().requestReplay();
+            // Get the dialog off the board the tour is about to point at.
+            useSettingsModalStore.getState().close();
+          }}
+        >
+          Replay
+        </Button>
       </SettingRow>
     </div>
   );

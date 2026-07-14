@@ -1,0 +1,189 @@
+/**
+ * Tour UI state. Holds where the player is in the tour and nothing about the
+ * game — step *completion* is derived from Yjs in tourProgress.ts.
+ */
+import { create } from 'zustand';
+import { useSettingsStore } from '@/app/stores/settingsStore';
+import {
+  trackTourCompleted,
+  trackTourSkipped,
+  trackTourStarted,
+  trackTourStepCompleted,
+  trackTourStepViewed,
+} from '@/infrastructure/analytics/PosthogFunctions';
+import { registerTourOutcome } from '@/infrastructure/analytics/PosthogFunctions';
+import { stepsForVariant } from './tourSteps';
+import type { StepBaseline, TourId, TourLayout, TourOutcome, TourStep, TourVariant } from './types';
+
+const EMPTY_BASELINE: StepBaseline = { handSize: 0, boardCardCount: 0, tappedCardCount: 0 };
+
+interface TourStore {
+  active: boolean;
+  /** Which tour is running. Rides on every analytics event — see TourId. */
+  tourId: TourId;
+  variant: TourVariant;
+  steps: TourStep[];
+  stepIndex: number;
+  /**
+   * The furthest step reached. Going Back makes `stepIndex < furthestIndex`,
+   * which is what "reviewing" means: the player is re-reading a step they have
+   * already done, so the game must NOT auto-advance them out of it again.
+   */
+  furthestIndex: number;
+  /** Layout at start — for analytics only. The overlay reads the live one. */
+  layout: TourLayout;
+  /** Game counts as of the current step. See StepBaseline. */
+  baseline: StepBaseline;
+  roomLinkCopied: boolean;
+  /** When the current step became active — becomes `dwell_ms` on completion. */
+  stepStartedAt: number;
+  /**
+   * Set by Settings > Replay. Distinct from simply clearing `tourCompleted`,
+   * because a replay must bypass the new-player gate — someone who asked for the
+   * tour is the audience for it, however many times they've visited.
+   */
+  replayRequested: boolean;
+  /** Reads the live game counts. Supplied by useTourProgress, which has the Y.Doc. */
+  readCounts: (() => StepBaseline) | null;
+
+  start: (opts: {
+    tourId: TourId;
+    variant: TourVariant;
+    layout: TourLayout;
+    readCounts: () => StepBaseline;
+  }) => void;
+  /** The current step is done (action observed, or button pressed) — move on. */
+  advance: () => void;
+  /** Step backwards to re-read a step already passed. */
+  back: () => void;
+  /** Whether the game may auto-advance right now (i.e. we're not reviewing). */
+  isReviewing: () => boolean;
+  skip: () => void;
+  requestReplay: () => void;
+  noteRoomLinkCopied: () => void;
+}
+
+/**
+ * Records how the tour ended: persisted so it doesn't reappear, and stamped onto
+ * every subsequent event so any insight can split "finished the tour" from "bailed
+ * out of it" — the two groups the whole feature exists to compare.
+ */
+function finish(outcome: TourOutcome): void {
+  useSettingsStore.getState().setTourOutcome(outcome);
+  registerTourOutcome(outcome);
+}
+
+export const useTourStore = create<TourStore>((set, get) => ({
+  active: false,
+  tourId: 'intro',
+  variant: 'control',
+  steps: [],
+  stepIndex: 0,
+  furthestIndex: 0,
+  layout: 'desktop',
+  baseline: EMPTY_BASELINE,
+  roomLinkCopied: false,
+  stepStartedAt: 0,
+  replayRequested: false,
+  readCounts: null,
+
+  start: ({ tourId, variant, layout, readCounts }) => {
+    const steps = stepsForVariant(variant);
+    if (steps.length === 0) return;
+
+    set({
+      active: true,
+      tourId,
+      variant,
+      steps,
+      stepIndex: 0,
+      furthestIndex: 0,
+      layout,
+      readCounts,
+      baseline: readCounts(),
+      roomLinkCopied: false,
+      stepStartedAt: Date.now(),
+      // Consumed — a replay that has begun is just a running tour.
+      replayRequested: false,
+    });
+
+    const ctx = { tourId, variant, layout, stepId: steps[0].id, stepIndex: 0 };
+    trackTourStarted(ctx);
+    trackTourStepViewed(ctx);
+  },
+
+  isReviewing: () => get().stepIndex < get().furthestIndex,
+
+  advance: () => {
+    const { active, tourId, steps, stepIndex, furthestIndex, variant, layout, stepStartedAt, readCounts } = get();
+    if (!active) return;
+
+    const nextIndex = stepIndex + 1;
+
+    // Paging forward through steps already done — no completion, no analytics.
+    // Re-firing tour_step_viewed here would inflate the funnel's denominator
+    // with steps the player is merely re-reading.
+    if (stepIndex < furthestIndex) {
+      set({ stepIndex: nextIndex });
+      // Caught back up: take a fresh baseline so the game can resume advancing us.
+      if (nextIndex >= furthestIndex && readCounts) {
+        set({ baseline: readCounts(), stepStartedAt: Date.now() });
+      }
+      return;
+    }
+
+    trackTourStepCompleted({
+      tourId,
+      variant,
+      layout,
+      stepId: steps[stepIndex].id,
+      stepIndex,
+      dwellMs: Date.now() - stepStartedAt,
+    });
+
+    if (nextIndex >= steps.length) {
+      set({ active: false });
+      trackTourCompleted({ tourId, variant, layout, stepCount: steps.length });
+      finish('completed');
+      return;
+    }
+
+    set({
+      stepIndex: nextIndex,
+      furthestIndex: Math.max(furthestIndex, nextIndex),
+      baseline: readCounts ? readCounts() : EMPTY_BASELINE,
+      stepStartedAt: Date.now(),
+    });
+    trackTourStepViewed({ tourId, variant, layout, stepId: steps[nextIndex].id, stepIndex: nextIndex });
+  },
+
+  back: () => {
+    const { active, stepIndex } = get();
+    if (!active || stepIndex === 0) return;
+    set({ stepIndex: stepIndex - 1 });
+  },
+
+  skip: () => {
+    const { active, tourId, steps, stepIndex, variant, layout } = get();
+    if (!active) return;
+
+    set({ active: false });
+    trackTourSkipped({ tourId, variant, layout, stepId: steps[stepIndex].id, stepIndex });
+    finish('skipped');
+  },
+
+  requestReplay: () => {
+    // Also clears the persisted outcome, so a replay the player abandons doesn't
+    // leave them marked as "onboarded" on a tour they never finished.
+    useSettingsStore.getState().setTourOutcome(null);
+    registerTourOutcome(null);
+    set({ replayRequested: true });
+  },
+
+  noteRoomLinkCopied: () => {
+    // Copying the link is the one step-completion signal that leaves no trace in
+    // Yjs, so it has to be pushed in. One call site (RoomLinkButton), so this
+    // stays honest rather than becoming a second, parallel progress mechanism.
+    if (get().active) set({ roomLinkCopied: true });
+  },
+}));

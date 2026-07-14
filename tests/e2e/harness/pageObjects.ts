@@ -222,3 +222,59 @@ export function duplicateTabNotice(page: Page): Locator {
 export function playHereButton(page: Page): Locator {
   return page.getByRole('button', { name: /play here instead/i });
 }
+
+// ── Onboarding tour ──────────────────────────────────────────────────────────
+
+/** The tour's root. Carries `data-tour-step` so a spec can assert *which* step is up. */
+export function tourOverlay(page: Page): Locator {
+  return page.getByTestId(TESTID.tourOverlay);
+}
+
+/** The id of the step currently being shown, or null when no tour is running. */
+export async function currentTourStep(page: Page): Promise<string | null> {
+  const overlay = tourOverlay(page);
+  if ((await overlay.count()) === 0) return null;
+  return overlay.getAttribute('data-tour-step');
+}
+
+/** The speech bubble carrying the current step's copy. */
+export function tourBubble(page: Page): Locator {
+  return page.getByTestId(TESTID.tourBubble);
+}
+
+/** Where the bubble sits: `aboveHand` (with a tail) or `top`. */
+export async function tourPlacement(page: Page): Promise<string | null> {
+  const overlay = tourOverlay(page);
+  if ((await overlay.count()) === 0) return null;
+  return overlay.getAttribute('data-tour-placement');
+}
+
+/** The ring drawn around the control a step is about (only the room-link button). */
+export function tourHalo(page: Page): Locator {
+  return page.getByTestId(TESTID.tourHalo);
+}
+
+/** Which way the bubble's tail points: 'up', 'down', or 'none'. */
+export async function tourTail(page: Page): Promise<string | null> {
+  const overlay = tourOverlay(page);
+  if ((await overlay.count()) === 0) return null;
+  return overlay.getAttribute('data-tour-tail');
+}
+
+export function tourSkipButton(page: Page): Locator {
+  return page.getByTestId(TESTID.tourSkip);
+}
+
+/** Rendered on informational steps, and while paging back through finished ones. */
+export function tourNextButton(page: Page): Locator {
+  return page.getByTestId(TESTID.tourNext);
+}
+
+export function tourBackButton(page: Page): Locator {
+  return page.getByTestId(TESTID.tourBack);
+}
+
+/** Settings > Display > Replay tour. */
+export function replayTourButton(page: Page): Locator {
+  return page.getByTestId(TESTID.replayTour);
+}
