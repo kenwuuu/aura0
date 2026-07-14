@@ -1,0 +1,40 @@
+<!-- @dsCard group="Dialogs" -->
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Manabase — Dialog</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./tokens.css">
+<style>
+  * { box-sizing: border-box; margin: 0; }
+  body {
+    background: var(--bg); color: var(--text);
+    font-family: 'Space Grotesk', system-ui, sans-serif;
+    padding: 28px; min-height: 100vh;
+  }
+  .mono { font-family: 'Space Mono', monospace; }
+  .cap { font-family: 'Space Mono', monospace; font-size: 10px; letter-spacing: 1px;
+         text-transform: uppercase; color: var(--text-mute); margin: 0 0 12px; }
+  .row { display: flex; gap: 16px; flex-wrap: wrap; align-items: center; }
+  .scrim { position:relative; background:rgba(0,0,0,.5); border-radius:8px; padding:36px; }
+  .dialog { max-width:430px; margin:0 auto; background:var(--bg-2); border:1px solid var(--line-2);
+    border-radius:6px; box-shadow:var(--shadow-sheet); }
+  .dhead { padding:20px 24px; border-bottom:1px solid var(--line); font-size:20px; font-weight:600; }
+  .dbody { padding:20px 24px; color:var(--text-dim); font-size:14px; line-height:1.5; }
+  .dfoot { display:flex; gap:12px; padding:0 24px 20px; }
+  .b { flex:1; padding:11px; border-radius:4px; font:600 14px 'Space Grotesk',sans-serif; cursor:pointer; border:1px solid transparent; }
+  .cancel { background:var(--surface); color:var(--text); border-color:var(--line-2); }
+  .confirm { background:transparent; color:var(--danger); border-color:color-mix(in srgb, var(--danger) 35%, transparent); }
+</style>
+</head>
+<body>
+<p class="cap">Dialog — floating sheet (the one place shadow is allowed)</p>
+<div class="scrim"><div class="dialog">
+  <div class="dhead">Start a New Game?</div>
+  <div class="dbody">This opens a new room with a different room ID. You can use your browser's back button to come back.</div>
+  <div class="dfoot"><button class="b cancel">Cancel</button><button class="b confirm">New Game</button></div>
+</div></div>
+</body>
+</html>

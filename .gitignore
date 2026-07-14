@@ -1,6 +1,13 @@
 /tmp
 /out-tsc
 
+# design-sync (staged converter scripts + regenerated build output + machine state)
+/.ds-sync/
+/ds-bundle/
+/.design-sync/.cache/
+/.design-sync/learnings/
+/.design-sync/node_modules
+
 /node_modules
 npm-debug.log*
 yarn-debug.log*

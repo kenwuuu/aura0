@@ -3,7 +3,7 @@
  *
  * The default react-flow stylesheet uses white/light backgrounds which become
  * invisible on Aura's black board. These overrides apply the app's dark palette
- * (#1a1a1a / #2d2d2d bg, #4a4a4a borders, light icon fill) for clear contrast.
+ * (Manabase tokens: translucent bg-2, hairlines, dim icon fill) for clear contrast.
  *
  * We use a plain CSS file (not a CSS module) because react-flow's classes are
  * global — CSS modules generate scoped hashes that can't target external classes.
@@ -12,9 +12,9 @@
  */
 
 .react-flow__controls {
-  background: rgba(26, 26, 26, 0.9);
-  border: 1px solid #4a4a4a;
-  border-radius: 8px;
+  background: rgba(13, 13, 20, 0.92);
+  border: 1px solid var(--line-2);
+  border-radius: 6px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
   overflow: hidden;
   backdrop-filter: blur(8px);
@@ -23,8 +23,8 @@
 .react-flow__controls-button {
   background: transparent;
   border: none;
-  border-bottom: 1px solid #3d3d3d;
-  color: #d1d5db;
+  border-bottom: 1px solid var(--line);
+  color: var(--text-dim);
   width: 32px;
   height: 32px;
   display: flex;
@@ -39,8 +39,8 @@
 }
 
 .react-flow__controls-button:hover {
-  background: #2d2d2d;
-  color: #ffffff;
+  background: var(--surface-2);
+  color: var(--text);
 }
 
 .react-flow__controls-button svg {

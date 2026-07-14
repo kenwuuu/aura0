@@ -63,7 +63,7 @@ export const AnnouncementModal: React.FC<AnnouncementModalProps> = ({ onClose })
           <DialogTitle className="flex items-center justify-between">
             Today, {new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}
             {!canClose && (
-              <span className="text-sm font-normal text-gray-400 mr-10">
+              <span className="text-sm font-normal text-dim mr-10">
                 Please read… {secondsLeft}s
               </span>
             )}
@@ -73,17 +73,17 @@ export const AnnouncementModal: React.FC<AnnouncementModalProps> = ({ onClose })
           <ReactMarkdown
             remarkPlugins={[remarkGfm]}
             components={{
-              h1: ({ children }) => <h1 className="text-[28px] font-bold mb-4 mt-6 text-blue-400 border-b border-gray-700 pb-2">{children}</h1>,
-              h2: ({ children }) => <h2 className="text-[22px] font-bold mb-3 text-gray-50">{children}</h2>,
-              h3: ({ children }) => <h3 className="text-lg font-bold mb-2 mt-5 text-gray-100">{children}</h3>,
+              h1: ({ children }) => <h1 className="text-[28px] font-bold mb-4 mt-6 text-primary border-b border-line pb-2">{children}</h1>,
+              h2: ({ children }) => <h2 className="text-[22px] font-bold mb-3 text-foreground">{children}</h2>,
+              h3: ({ children }) => <h3 className="text-lg font-bold mb-2 mt-5 text-foreground">{children}</h3>,
               p: ({ children }) => <p className="mb-3">{children}</p>,
               ul: ({ children }) => <ul className="mb-4 pl-6 list-disc">{children}</ul>,
               ol: ({ children }) => <ol className="mb-4 pl-6 list-decimal">{children}</ol>,
               li: ({ children }) => <li className="mb-2">{children}</li>,
-              strong: ({ children }) => <strong className="font-bold text-blue-400">{children}</strong>,
-              code: ({ children }) => <code className="bg-gray-800 px-1.5 py-0.5 rounded font-mono text-[13px] text-emerald-400">{children}</code>,
-              pre: ({ children }) => <pre className="bg-gray-800 p-3 rounded-lg overflow-x-auto mb-4">{children}</pre>,
-              hr: () => <hr className="mb-5 border-gray-700" />,
+              strong: ({ children }) => <strong className="font-bold text-primary">{children}</strong>,
+              code: ({ children }) => <code className="bg-surface px-1.5 py-0.5 rounded font-mono text-[13px] text-good">{children}</code>,
+              pre: ({ children }) => <pre className="bg-surface p-3 rounded-lg overflow-x-auto mb-4">{children}</pre>,
+              hr: () => <hr className="mb-5 border-line" />,
             }}
           >
             {personalizedContent}

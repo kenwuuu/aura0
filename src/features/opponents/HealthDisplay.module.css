@@ -1,6 +1,9 @@
 /* ── Player health + counters widget ─────────────────────────────────── */
+/* Player identity (design §03): you = brand purple panel w/ subtle glow;
+   opponents = neutral hairline. --player-accent (NOT --accent — that's the
+   global brand token) drives Stat/Stepper/PlayerCounters tints via color-mix. */
 .healthContainer {
-  --accent: #1c8763;
+  --player-accent: var(--accent);
   display: flex;
   flex-direction: row;
   align-items: center;
@@ -8,14 +11,45 @@
   width: fit-content;
   min-height: 72px;
   padding: 6px 10px;
-  background-color: #1a1a1a;
-  border: 1px solid var(--accent);
+  background-color: var(--bg-2);
+  border: 1px solid var(--accent-line);
   border-radius: 4px;
+  box-shadow: 0 0 14px var(--glow);
   transition: all 0.3s ease;
 }
 
 .opponent {
-  --accent: #933030;
-  background-color: rgba(13, 13, 13, 0.9);
+  --player-accent: var(--text-dim);
+  background-color: rgba(13, 13, 20, 0.9);
   backdrop-filter: blur(10px);
+  border-color: var(--line-2);
+  box-shadow: none;
+}
+
+/* "YOU" identity chip (design §03) — sits beside the local player's name. */
+.nameRow {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  max-width: 100%;
+}
+
+/* The name truncates; the chip never does. */
+.nameText {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.youTag {
+  font-family: var(--font-mono);
+  font-size: 7px;
+  letter-spacing: 1px;
+  color: var(--accent);
+  background: var(--accent-soft);
+  border-radius: 2px;
+  padding: 1px 3px;
+  flex-shrink: 0;
 }

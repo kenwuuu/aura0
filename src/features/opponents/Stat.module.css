@@ -16,9 +16,9 @@
   align-items: center;
   gap: 8px;
   padding: 6px 8px;
-  background-color: color-mix(in srgb, var(--accent) 15%, transparent);
-  border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
-  border-radius: 8px;
+  background-color: color-mix(in srgb, var(--player-accent) 15%, transparent);
+  border: 1px solid color-mix(in srgb, var(--player-accent) 30%, transparent);
+  border-radius: 4px;
 }
 
 .icon {
@@ -36,9 +36,10 @@
 }
 
 .label {
-  color: #9ca3af;
+  color: var(--text-dim);
+  font-family: var(--font-mono);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 1px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -46,7 +47,7 @@
 
 .vertical .label {
   font-size: 9px;
-  max-width: 10ch;
+  max-width: 14ch;
   text-align: center;
 }
 
@@ -54,10 +55,13 @@
   font-size: 8px;
 }
 
+/* All game counts: mono + tabular so digits never shift (design guardrail).
+   Neutral text — the panel border carries player identity. */
 .value {
-  font-weight: bold;
-  color: var(--accent);
-  font-family: 'Courier New', monospace;
+  font-weight: 700;
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
 }
 
 .vertical .value {
@@ -109,9 +113,9 @@
   justify-content: center;
   width: 18px;
   height: 18px;
-  color: #ef4444;
+  color: var(--danger);
   background-color: transparent;
-  border: 1px solid #4a4a4a;
+  border: 1px solid var(--line-2);
   border-radius: 4px;
   font-size: 12px;
   line-height: 1;
@@ -120,6 +124,6 @@
 }
 
 .remove:hover {
-  background-color: rgba(239, 68, 68, 0.2);
-  border-color: #ef4444;
+  background-color: color-mix(in srgb, var(--danger) 20%, transparent);
+  border-color: var(--danger);
 }

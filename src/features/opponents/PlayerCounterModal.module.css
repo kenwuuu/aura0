@@ -11,19 +11,20 @@
 }
 
 .label {
-  font-size: 12px;
-  color: #9ca3af;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-mute);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
-  font-weight: 600;
+  letter-spacing: 1px;
+  font-weight: 400;
 }
 
 .input {
-  background-color: #2d2d2d;
-  border: 1px solid #4a4a4a;
-  border-radius: 8px;
+  background-color: var(--surface);
+  border: 1px solid var(--line-2);
+  border-radius: 4px;
   padding: 10px 12px;
-  color: #fff;
+  color: var(--text);
   font-size: 14px;
   font-family: inherit;
   transition: all 0.2s;
@@ -31,12 +32,12 @@
 
 .input:focus {
   outline: none;
-  border-color: #10b981;
-  background-color: #333;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-soft);
 }
 
 .input::placeholder {
-  color: #666;
+  color: var(--text-mute);
 }
 
 .iconGrid {
@@ -47,9 +48,9 @@
 
 .iconButton {
   aspect-ratio: 1;
-  background-color: #2d2d2d;
-  border: 2px solid #4a4a4a;
-  border-radius: 8px;
+  background-color: var(--surface);
+  border: 1px solid var(--line-2);
+  border-radius: 4px;
   font-size: 24px;
   cursor: pointer;
   transition: all 0.2s;
@@ -59,20 +60,22 @@
 }
 
 .iconButton:hover {
-  background-color: #3d3d3d;
-  border-color: #5a5a5a;
+  background-color: var(--surface-2);
+  border-color: var(--accent-line);
   transform: scale(1.05);
 }
 
+/* Selected icon: accent wash + ring, never a full fill (design §05 rule). */
 .iconButton.selected {
-  background-color: #10b981;
-  border-color: #10b981;
+  background-color: var(--accent-soft);
+  border-color: var(--accent);
+  box-shadow: 0 0 10px var(--glow);
 }
 
 .preview {
-  background-color: #0d0d0d;
-  border: 1px solid #4a4a4a;
-  border-radius: 8px;
+  background-color: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 4px;
   padding: 16px;
   display: flex;
   flex-direction: column;
@@ -81,10 +84,11 @@
 }
 
 .previewLabel {
+  font-family: var(--font-mono);
   font-size: 11px;
-  color: #9ca3af;
+  color: var(--text-mute);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 1px;
 }
 
 .previewCounter {
@@ -92,9 +96,9 @@
   align-items: center;
   gap: 12px;
   padding: 8px 16px;
-  background-color: #2d2d2d;
-  border: 1px solid #4a4a4a;
-  border-radius: 8px;
+  background-color: var(--surface);
+  border: 1px solid var(--line-2);
+  border-radius: 4px;
 }
 
 .previewIcon {
@@ -104,18 +108,20 @@
 }
 
 .previewTitle {
+  font-family: var(--font-mono);
   font-size: 12px;
-  color: #9ca3af;
+  color: var(--text-dim);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 1px;
   flex: 1;
 }
 
 .previewValue {
   font-size: 20px;
-  font-weight: bold;
-  color: #10b981;
-  font-family: 'Courier New', monospace;
+  font-weight: 700;
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
 }
 
 .actions {
@@ -128,7 +134,7 @@
 .addButton {
   flex: 1;
   padding: 12px;
-  border-radius: 8px;
+  border-radius: 4px;
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
@@ -137,26 +143,30 @@
 }
 
 .cancelButton {
-  background-color: #2d2d2d;
-  color: #fff;
-  border: 1px solid #4a4a4a;
+  background-color: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--line-2);
 }
 
 .cancelButton:hover {
-  background-color: #3d3d3d;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent-line), 0 0 12px var(--glow);
 }
 
 .addButton {
-  background-color: #10b981;
-  color: #fff;
+  background-color: var(--accent);
+  color: var(--accent-contrast);
+  box-shadow: 0 0 0 1px var(--accent-line), 0 0 12px var(--glow);
 }
 
 .addButton:hover {
-  background-color: #059669;
+  transform: translateY(-1px);
+  box-shadow: 0 0 0 1px var(--accent), 0 4px 16px var(--glow-strong);
 }
 
 .addButton:disabled {
-  background-color: #4a4a4a;
-  color: #666;
+  background-color: var(--surface);
+  color: var(--text-mute);
+  box-shadow: none;
   cursor: not-allowed;
 }

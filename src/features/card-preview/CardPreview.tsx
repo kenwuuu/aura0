@@ -55,9 +55,12 @@ function CardPreviewPopup() {
     width: `${width}px`,
     height: `${height}px`,
     zIndex: 10000,
+    // Radius deliberately tracks the card art's own corner geometry (Scryfall
+    // scans have baked-in rounded corners) — forcing the 4-8px chrome scale
+    // would expose corner artifacts at preview size.
     borderRadius: `${24 * zoom}px`,
     boxShadow: '0 8px 16px rgba(0, 0, 0, 0.6)',
-    border: '2px solid #4a4a4a',
+    border: '1px solid var(--line-2)',
     overflow: 'hidden',
     pointerEvents: 'none',
   };

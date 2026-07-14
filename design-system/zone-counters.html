@@ -1,0 +1,42 @@
+<!-- @dsCard group="Zone counters" -->
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Manabase — Zone counters</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./tokens.css">
+<style>
+  * { box-sizing: border-box; margin: 0; }
+  body {
+    background: var(--bg); color: var(--text);
+    font-family: 'Space Grotesk', system-ui, sans-serif;
+    padding: 28px; min-height: 100vh;
+  }
+  .mono { font-family: 'Space Mono', monospace; }
+  .cap { font-family: 'Space Mono', monospace; font-size: 10px; letter-spacing: 1px;
+         text-transform: uppercase; color: var(--text-mute); margin: 0 0 12px; }
+  .row { display: flex; gap: 16px; flex-wrap: wrap; align-items: center; }
+  .pile { width:96px; background:var(--bg-2); border:1px solid var(--line); border-radius:4px;
+    padding:12px 16px; display:flex; flex-direction:column; align-items:center; gap:8px;
+    transition:all .16s var(--ease-hud); cursor:pointer; }
+  .pile:hover { border-color:var(--line-2); background:var(--surface-2); }
+  .plabel { font:400 11px 'Space Mono',monospace; letter-spacing:1px; text-transform:uppercase; color:var(--text-mute); }
+  .pcount { font:700 24px 'Space Mono',monospace; font-variant-numeric:tabular-nums; color:var(--text-dim); }
+  .deck { border-color:var(--accent-line); box-shadow:0 0 10px var(--glow); }
+  .deck .pcount { color:var(--accent); text-shadow:0 0 12px var(--glow); }
+  .draw { background:var(--accent); color:var(--accent-contrast); border:none; border-radius:2px;
+    padding:6px 16px; font:600 12px 'Space Grotesk',sans-serif; cursor:pointer;
+    box-shadow:0 0 0 1px var(--accent-line), 0 0 10px var(--glow); }
+</style>
+</head>
+<body>
+<p class="cap">Zone counters — deck is the single active zone; others stay quiet</p>
+<div class="row">
+  <div class="pile deck"><span class="plabel">Deck</span><span class="pcount">92</span><button class="draw">Draw</button></div>
+  <div class="pile"><span class="plabel">Discard</span><span class="pcount">3</span></div>
+  <div class="pile"><span class="plabel">Exile</span><span class="pcount">0</span></div>
+</div>
+</body>
+</html>

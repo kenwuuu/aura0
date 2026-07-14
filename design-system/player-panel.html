@@ -1,0 +1,56 @@
+<!-- @dsCard group="Player panel" -->
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Manabase — Player panel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./tokens.css">
+<style>
+  * { box-sizing: border-box; margin: 0; }
+  body {
+    background: var(--bg); color: var(--text);
+    font-family: 'Space Grotesk', system-ui, sans-serif;
+    padding: 28px; min-height: 100vh;
+  }
+  .mono { font-family: 'Space Mono', monospace; }
+  .cap { font-family: 'Space Mono', monospace; font-size: 10px; letter-spacing: 1px;
+         text-transform: uppercase; color: var(--text-mute); margin: 0 0 12px; }
+  .row { display: flex; gap: 16px; flex-wrap: wrap; align-items: center; }
+  .panel { display:inline-flex; align-items:center; gap:12px; min-height:72px; padding:6px 14px;
+    background:var(--bg-2); border:1px solid var(--accent-line); border-radius:4px; box-shadow:0 0 14px var(--glow); }
+  .panel.opp { border-color:var(--line-2); box-shadow:none; background:rgba(13,13,20,.9); }
+  .stat { display:flex; flex-direction:column; align-items:center; gap:4px; min-width:56px; }
+  .pname { font:400 9px 'Space Mono',monospace; letter-spacing:1px; text-transform:uppercase; color:var(--text-dim);
+    display:inline-flex; gap:4px; align-items:center; }
+  .you { font:400 7px 'Space Mono',monospace; letter-spacing:1px; color:var(--accent);
+    background:var(--accent-soft); border-radius:2px; padding:1px 3px; }
+  .hp { font:700 22px 'Space Mono',monospace; font-variant-numeric:tabular-nums; color:var(--text); }
+  .steps { display:flex; gap:6px; }
+  .st { width:22px; height:22px; display:inline-flex; align-items:center; justify-content:center;
+    border-radius:4px; cursor:pointer; font-size:14px; transition:all .16s var(--ease-hud);
+    color:var(--pa); background:color-mix(in srgb, var(--pa) 20%, transparent);
+    border:1px solid color-mix(in srgb, var(--pa) 40%, transparent); }
+  .st.minus:hover { color:var(--danger); border-color:var(--danger);
+    background:color-mix(in srgb, var(--danger) 15%, transparent);
+    box-shadow:0 0 10px color-mix(in srgb, var(--danger) 35%, transparent); }
+  .st.plus:hover { color:var(--good); border-color:var(--good);
+    background:color-mix(in srgb, var(--good) 15%, transparent);
+    box-shadow:0 0 10px color-mix(in srgb, var(--good) 35%, transparent); }
+</style>
+</head>
+<body>
+<p class="cap">Player panels — you = purple energy + YOU chip; opponents = neutral. − / + hovers tint danger / good</p>
+<div class="row" style="gap:24px">
+  <div class="panel" style="--pa:var(--accent)">
+    <div class="stat"><span class="pname">Kenwu <span class="you">YOU</span></span><span class="hp">40</span>
+      <span class="steps"><button class="st minus">−</button><button class="st plus">+</button></span></div>
+  </div>
+  <div class="panel opp" style="--pa:var(--text-dim)">
+    <div class="stat"><span class="pname">Opponent</span><span class="hp">34</span>
+      <span class="steps"><button class="st minus">−</button><button class="st plus">+</button></span></div>
+  </div>
+</div>
+</body>
+</html>

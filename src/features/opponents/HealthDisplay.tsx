@@ -50,7 +50,14 @@ export const HealthDisplay: React.FC<HealthDisplayProps> = ({
       <Stat
         orientation="vertical"
         name="health"
-        label={onRename ? <EditableName name={label} onRename={onRename} /> : label}
+        label={
+          <span className={styles.nameRow}>
+            <span className={styles.nameText}>
+              {onRename ? <EditableName name={label} onRename={onRename} /> : label}
+            </span>
+            {!isOpponent && <span className={styles.youTag}>YOU</span>}
+          </span>
+        }
         value={<EditableHealth health={health} onModifyHealth={onModifyHealth} />}
         onModify={onModifyHealth}
       />

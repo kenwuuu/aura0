@@ -7,6 +7,7 @@ import {
   DialogTitle,
 } from '@/shared/ui/dialog';
 import { Input } from '@/shared/ui/input';
+import { Button } from '@/shared/ui/button';
 
 interface ScryModalProps {
   isOpen: boolean;
@@ -71,7 +72,7 @@ export const ScryModal: React.FC<ScryModalProps> = ({
           <DialogTitle>Scry and Surveil</DialogTitle>
         </DialogHeader>
         <div className="p-6 pt-0">
-          <label className="block mb-2 text-gray-400 text-md">
+          <label className="block mb-2 text-dim text-md">
             How many cards?
           </label>
           <Input
@@ -79,26 +80,24 @@ export const ScryModal: React.FC<ScryModalProps> = ({
             inputMode="numeric"
             value={count}
             onChange={handleInputChange}
-            className="w-full bg-[#0f0f0f] border-2 border-[#3d3d3d] rounded-lg px-3 py-3 text-white text-base focus-visible:border-blue-500 focus-visible:ring-0"
+            className="w-full text-base font-mono tabular-nums"
             autoFocus
           />
-          <div className="text-[#9ca3af] text-sm mt-2">
+          <div className="text-dim text-sm mt-2">
             Max: {maxCards} card{maxCards !== 1 ? 's' : ''} in deck
           </div>
           <div className="flex gap-3 mt-5">
-            <button
-              className="flex-1 px-3 py-3 rounded-lg border-none text-base font-bold cursor-pointer transition-colors bg-[#2d2d2d] text-[#9ca3af] hover:bg-[#3d3d3d]"
-              onClick={onCancel}
-            >
+            <Button variant="secondary" size="lg" className="flex-1" onClick={onCancel}>
               Cancel
-            </button>
-            <button
-              className="flex-1 px-3 py-3 rounded-lg border-none text-base font-bold cursor-pointer transition-colors bg-blue-500 text-white hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-blue-500"
+            </Button>
+            <Button
+              size="lg"
+              className="flex-1"
               onClick={handleConfirm}
               disabled={!count || parseInt(count, 10) <= 0 || parseInt(count, 10) > maxCards}
             >
               Scry
-            </button>
+            </Button>
           </div>
         </div>
       </DialogContent>

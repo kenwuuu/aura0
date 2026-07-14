@@ -51,7 +51,7 @@ export function ActionLogBody({ yDoc, localPlayerId }: ActionLogPanelProps) {
         <div style={{ padding: '4px 0' }}>
           {entries.length === 0 ? (
             <p style={{
-              color: 'rgba(255,255,255,0.3)',
+              color: 'var(--text-mute)',
               fontSize: 12,
               textAlign: 'center',
               padding: '16px 12px',
@@ -70,21 +70,22 @@ export function ActionLogBody({ yDoc, localPlayerId }: ActionLogPanelProps) {
                     padding: '3px 10px',
                     fontSize: 12,
                     lineHeight: '1.4',
-                    borderBottom: '1px solid rgba(255,255,255,0.04)',
+                    borderBottom: '1px solid var(--line)',
                   }}
                 >
                   <span style={{
                     fontWeight: 600,
-                    color: isLocal ? 'rgba(130,180,255,0.9)' : 'rgba(200,160,255,1)',
+                    color: isLocal ? 'var(--accent-2)' : 'var(--accent)',
                     marginRight: 4,
                   }}>
                     {name}
                   </span>
-                  <span style={{ color: entry.tone ?? 'rgba(255,255,255,1)' }}>
+                  <span style={{ color: entry.tone ?? 'var(--text)' }}>
                     {entry.text}
                   </span>
                   <span style={{
-                    color: 'rgba(255,255,255,0.75)',
+                    color: 'var(--text-mute)',
+                    fontFamily: 'var(--font-mono)',
                     fontSize: 10,
                     marginLeft: 6,
                     whiteSpace: 'nowrap',
@@ -100,7 +101,7 @@ export function ActionLogBody({ yDoc, localPlayerId }: ActionLogPanelProps) {
         </div>
       </ScrollArea>
 
-      <div style={{ borderTop: '1px solid rgba(255,255,255,0.07)' }}>
+      <div style={{ borderTop: '1px solid var(--line)' }}>
         <DiceControls yDoc={yDoc} localPlayerId={localPlayerId} />
       </div>
 
@@ -129,9 +130,9 @@ export function ActionLogPanel({ yDoc, localPlayerId }: ActionLogPanelProps) {
             alignItems: 'center',
             gap: 6,
             padding: '6px 10px',
-            borderBottom: isOpen ? '1px solid rgba(255,255,255,0.07)' : 'none',
+            borderBottom: isOpen ? '1px solid var(--line)' : 'none',
             cursor: 'grab',
-            color: 'rgba(255,255,255,0.7)',
+            color: 'var(--text-dim)',
             fontSize: 12,
             fontWeight: 600,
             letterSpacing: '0.04em',

@@ -28,9 +28,9 @@ import { useDraggablePanel, type DragHandleProps, type Position } from './useDra
  * non-draggable hosts of the same content, e.g. the phone HUD stack. */
 export const panelFrameStyle: CSSProperties = {
   borderRadius: 8,
-  background: 'rgba(18,18,24,0.92)',
+  background: 'rgba(13, 13, 20, 0.92)', /* --bg-2 @ 92% (blur needs alpha) */
   backdropFilter: 'blur(8px)',
-  border: '1px solid rgba(255,255,255,0.08)',
+  border: '1px solid var(--line-2)',
   boxShadow: '0 4px 24px rgba(0,0,0,0.5)',
   overflow: 'hidden',
 };
@@ -92,9 +92,9 @@ export function FloatingPanel({
             gap: 6,
             height: 18,
             cursor: 'grab',
-            color: 'rgba(255,255,255,0.4)',
-            borderBottom: '1px solid rgba(255,255,255,0.06)',
-            background: 'rgba(255,255,255,0.03)',
+            color: 'var(--text-mute)',
+            borderBottom: '1px solid var(--line)',
+            background: 'var(--surface)',
             userSelect: 'none',
             touchAction: 'none', // let pointer capture own the gesture, don't scroll
           }}

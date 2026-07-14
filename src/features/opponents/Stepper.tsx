@@ -12,8 +12,9 @@ interface StepperProps {
 
 /**
  * A themed increment/decrement control. Colors derive from the ambient
- * `--accent` custom property, so the same component renders green for the local
- * player and red for opponents without needing a variant prop.
+ * `--player-accent` custom property (set by HealthDisplay: purple for the
+ * local player, neutral for opponents) without needing a variant prop.
+ * Hover tints are semantic: − = danger, + = good (design §03).
  */
 export const Stepper: React.FC<StepperProps> = ({
   onDecrement,
@@ -25,7 +26,7 @@ export const Stepper: React.FC<StepperProps> = ({
   <div className={`${styles.stepper} ${styles[size]} ${className ?? ''}`}>
     <button
       type="button"
-      className={styles.button}
+      className={`${styles.button} ${styles.decrement}`}
       aria-label={`Decrease ${name}`}
       onClick={onDecrement}
     >
@@ -33,7 +34,7 @@ export const Stepper: React.FC<StepperProps> = ({
     </button>
     <button
       type="button"
-      className={styles.button}
+      className={`${styles.button} ${styles.increment}`}
       aria-label={`Increase ${name}`}
       onClick={onIncrement}
     >

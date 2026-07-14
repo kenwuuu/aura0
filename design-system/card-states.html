@@ -1,0 +1,44 @@
+<!-- @dsCard group="Card states" -->
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Manabase — Card states</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./tokens.css">
+<style>
+  * { box-sizing: border-box; margin: 0; }
+  body {
+    background: var(--bg); color: var(--text);
+    font-family: 'Space Grotesk', system-ui, sans-serif;
+    padding: 28px; min-height: 100vh;
+  }
+  .mono { font-family: 'Space Mono', monospace; }
+  .cap { font-family: 'Space Mono', monospace; font-size: 10px; letter-spacing: 1px;
+         text-transform: uppercase; color: var(--text-mute); margin: 0 0 12px; }
+  .row { display: flex; gap: 16px; flex-wrap: wrap; align-items: center; }
+  .card { width:126px; height:176px; border-radius:4px; background:var(--bg-2);
+    border:1px solid var(--line-2); box-shadow:0 6px 20px rgba(0,0,0,.45); position:relative;
+    transition:transform .18s var(--ease-hud), box-shadow .18s ease, border-color .18s ease, opacity .18s ease;
+    display:flex; align-items:flex-end; justify-content:center; padding-bottom:10px;
+    background-image:repeating-linear-gradient(45deg, var(--surface) 0 8px, transparent 8px 16px); }
+  .cl { font:400 9px 'Space Mono',monospace; letter-spacing:1px; text-transform:uppercase; color:var(--text-mute); }
+  .hover { border-color:var(--accent); box-shadow:0 6px 14px rgba(0,0,0,.5), 0 0 12px var(--glow); }
+  .selected { border-color:var(--accent); box-shadow:0 6px 20px rgba(0,0,0,.45), 0 0 0 1px var(--accent), 0 0 16px var(--glow); }
+  .tapped { transform:rotate(20deg); opacity:.85; box-shadow:0 4px 8px rgba(0,0,0,.4); }
+  .targeted { border-color:var(--accent); animation:pulse-glow 1.2s ease-in-out infinite; }
+</style>
+</head>
+<body>
+<p class="cap">Card states — hover lift lives in the hand; board cards glow in place</p>
+<div class="row" style="gap:28px">
+  <div><div class="card"><span class="cl">Rest</span></div></div>
+  <div><div class="card hover"><span class="cl">Hover</span></div></div>
+  <div><div class="card selected"><span class="cl">Selected</span></div></div>
+  <div style="padding:0 14px"><div class="card tapped"><span class="cl">Tapped</span></div></div>
+  <div><div class="card targeted"><span class="cl">Targeted</span></div></div>
+</div>
+<p class="cap" style="margin-top:22px">Targeted pulses (pulse-glow, 1.2s) — reserved for a future targeting mechanic</p>
+</body>
+</html>

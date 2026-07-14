@@ -1,4 +1,4 @@
-import { memo, useCallback } from 'react';
+import { memo, useCallback, useState } from 'react';
 import { NodeProps } from '@xyflow/react';
 import * as Y from 'yjs';
 import { WhiteboardCard } from '../types';
@@ -24,21 +24,36 @@ export type CardNodeType = {
   data: CardNodeData;
 };
 
+/* Card states (design §06, adapted for react-flow): rest = hairline + soft
+   shadow; hover = accent border + glow (NO translateY lift on board cards —
+   it fights react-flow's drag transform and the tap rotation); selected =
+   accent ring + glow, static (selection is routine — don't pulse ambient UI);
+   tapped = rotated (resolveCardRotation) + dimmed, glow dropped ("spent,
+   quiet"). Shadows here are scaled to the 63×88 world-space card. */
 const CARD_STYLE = {
   width: CARD_WIDTH,
   height: CARD_HEIGHT,
   position: 'relative' as const,
   cursor: 'grab',
   userSelect: 'none' as const,
-  backgroundColor: '#6a6a6a',
-  borderRadius: 3.5,
-  boxShadow: '0 4px 6px rgba(0,0,0,0.3)',
-  padding: .5,
+  backgroundColor: 'var(--bg-2)',
+  border: '1px solid var(--line-2)',
+  borderRadius: 4,
+  boxShadow: '0 4px 10px rgba(0, 0, 0, 0.45)',
+  padding: 0.5,
+  transition:
+    'transform 0.18s var(--ease-hud), box-shadow 0.18s ease, border-color 0.18s ease, opacity 0.18s ease',
 };
 
-export const CardNode = memo(function CardNode({ data, id }: NodeProps) {
+const HOVER_SHADOW = '0 6px 14px rgba(0, 0, 0, 0.5), 0 0 12px var(--glow)';
+const SELECTED_SHADOW =
+  '0 4px 10px rgba(0, 0, 0, 0.45), 0 0 0 1px var(--accent), 0 0 16px var(--glow)';
+const TAPPED_SHADOW = '0 4px 8px rgba(0, 0, 0, 0.4)';
+
+export const CardNode = memo(function CardNode({ data, id, selected }: NodeProps) {
   const card = data as unknown as CardNodeData;
   const { yCards } = card;
+  const [hovered, setHovered] = useState(false);
 
   const face = resolveCardFace(card);
 
@@ -53,8 +68,10 @@ export const CardNode = memo(function CardNode({ data, id }: NodeProps) {
 
   const handleMouseEnter = useCallback((e: React.MouseEvent) => {
     // Inert on touch: the synthetic mouseenter from a tap would fight the
-    // tap-driven preview (see pointerInput.ts). Taps own the preview instead.
+    // tap-driven preview (see pointerInput.ts). Taps own the preview instead
+    // — and the hover glow stays desktop-only so it can't stick after a tap.
     if (wasLastInputTouch()) return;
+    setHovered(true);
     showPreview(e.clientX, e.clientY);
   }, [showPreview]);
 
@@ -68,7 +85,10 @@ export const CardNode = memo(function CardNode({ data, id }: NodeProps) {
     // the preview the tap just raised and strand the two-tap machine on its
     // first step (it re-previews forever, never reaching the menu). Taps own the
     // preview on touch; the tap machine and the board/drag handlers dismiss it.
+    // (`hovered` is only ever raised on desktop, so bailing here can't strand the
+    // hover glow on.)
     if (wasLastInputTouch()) return;
+    setHovered(false);
     useHotkeyStore.getState().setHoveredBattlefieldCard(null);
     useCardPreviewStore.getState().hide();
   }, []);
@@ -92,12 +112,29 @@ export const CardNode = memo(function CardNode({ data, id }: NodeProps) {
   // tap + rotation transform
   const rotation = resolveCardRotation(card);
   const transform = rotation ? `rotate(${rotation}deg)` : undefined;
+  const tapped = Boolean(rotation);
+
+  const stateStyle: React.CSSProperties = {
+    transform,
+    borderColor: selected || hovered ? 'var(--accent)' : undefined,
+    boxShadow: selected
+      ? SELECTED_SHADOW
+      : tapped
+        ? TAPPED_SHADOW
+        : hovered
+          ? HOVER_SHADOW
+          : undefined,
+    opacity: tapped ? 0.85 : undefined,
+    // Future "targeted" state (design §06): when a targeting mechanic exists,
+    // key `animation: 'pulse-glow 1.2s ease-in-out infinite'` (keyframes in
+    // tokens.css) off card.isTargeted. Not wired to selection on purpose.
+  };
 
   return (
     <div
       data-testid="battlefield-card"
       data-card-id={id}
-      style={{ ...CARD_STYLE, transform }}
+      style={{ ...CARD_STYLE, ...stateStyle }}
       onMouseEnter={handleMouseEnter}
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
@@ -114,9 +151,10 @@ export const CardNode = memo(function CardNode({ data, id }: NodeProps) {
       ) : (
         <div style={{
           width: '100%', height: '100%',
-          backgroundColor: card.isFlipped ? '#4a4a4a' : '#2d2d2d',
+          backgroundColor: card.isFlipped ? 'var(--surface-2)' : 'var(--bg-2)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          color: '#888', fontSize: 11,
+          color: 'var(--text-mute)', fontSize: 11,
+          fontFamily: 'var(--font-mono)',
           borderRadius: 3,
         }}>
           #{card.cardNumber}

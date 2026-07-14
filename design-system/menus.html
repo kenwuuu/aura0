@@ -1,0 +1,43 @@
+<!-- @dsCard group="Menus" -->
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Manabase — Menus</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./tokens.css">
+<style>
+  * { box-sizing: border-box; margin: 0; }
+  body {
+    background: var(--bg); color: var(--text);
+    font-family: 'Space Grotesk', system-ui, sans-serif;
+    padding: 28px; min-height: 100vh;
+  }
+  .mono { font-family: 'Space Mono', monospace; }
+  .cap { font-family: 'Space Mono', monospace; font-size: 10px; letter-spacing: 1px;
+         text-transform: uppercase; color: var(--text-mute); margin: 0 0 12px; }
+  .row { display: flex; gap: 16px; flex-wrap: wrap; align-items: center; }
+  .menu { width:230px; background:var(--bg-2); border:1px solid var(--line-2); border-radius:4px;
+    box-shadow:var(--shadow-sheet); padding:4px; font-size:14px; }
+  .item { display:flex; justify-content:space-between; align-items:center; padding:7px 10px;
+    border-radius:2px; color:var(--text); cursor:default; }
+  .item:hover, .item.active { background:var(--accent-soft); box-shadow:inset 2px 0 0 var(--accent); }
+  .item.danger { color:var(--danger); }
+  .item.danger:hover { background:color-mix(in srgb, var(--danger) 10%, transparent); box-shadow:none; }
+  .key { font-family:'Space Mono',monospace; font-size:10px; letter-spacing:1px; color:var(--text-mute); }
+  .sep { height:1px; background:var(--line); margin:4px 0; }
+</style>
+</head>
+<body>
+<p class="cap">Dropdown / context menu — active row = accent-soft wash + 2px rail, never a fill</p>
+<div class="menu">
+  <div class="item">Tap <span class="key">SPACE</span></div>
+  <div class="item">Flip <span class="key">F</span></div>
+  <div class="item active">Copy/clone <span class="key">K</span></div>
+  <div class="item">Hand <span class="key">H</span></div>
+  <div class="sep"></div>
+  <div class="item danger">Delete <span class="key">BACK</span></div>
+</div>
+</body>
+</html>

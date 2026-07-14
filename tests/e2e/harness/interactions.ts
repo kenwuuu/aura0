@@ -96,16 +96,48 @@ export async function revealPile(
   );
 }
 
+/**
+ * Adjust a keyword token's count: +1 clicks its top half, -1 its bottom half
+ * (see `clickedTopHalf` — the token splits by height, not by button).
+ *
+ * Aims at a half explicitly rather than letting Playwright click the element's
+ * center: the halves meet at `height / 2` and the boundary belongs to the
+ * *bottom* half, so a center click lands on the decrement side or the increment
+ * side depending purely on how the token's box happens to round to sub-pixels.
+ * That made "click to add one" a coin flip that a restyle could — and did — flip.
+ */
+export async function adjustTokenCount(token: Locator, delta: 1 | -1): Promise<void> {
+  const box = await token.boundingBox();
+  if (!box) throw new Error('Token not found or not visible.');
+  await token.click({
+    position: { x: box.width / 2, y: delta > 0 ? box.height * 0.25 : box.height * 0.75 },
+  });
+}
+
+export type Orientation = 'portrait' | 'landscape' | 'square';
+
 /** A card's aspect ratio flips between portrait (untapped) and landscape
  * (tapped) — used as a DOM-visible proxy for tap state, since there's no
- * dedicated `data-tapped` attribute. */
-export async function getElementOrientation(locator: Locator): Promise<'portrait' | 'landscape' | 'square'> {
+ * dedicated `data-tapped` attribute.
+ *
+ * Returns undefined when the element isn't visible rather than throwing, so
+ * pollers can retry. Prefer `expectOrientation`, which polls: a card *eases*
+ * into its rotation, so a single read taken the moment a tap lands measures the
+ * card mid-turn and reports the orientation it is leaving. */
+export async function measureOrientation(locator: Locator): Promise<Orientation | undefined> {
   const box = await locator.boundingBox();
-  if (!box) throw new Error('Element not found or not visible.');
+  if (!box) return undefined;
   const { width, height } = box;
   if (width > height) return 'landscape';
   if (height > width) return 'portrait';
   return 'square';
+}
+
+/** Measure orientation once, throwing if the element isn't visible. */
+export async function getElementOrientation(locator: Locator): Promise<Orientation> {
+  const orientation = await measureOrientation(locator);
+  if (!orientation) throw new Error('Element not found or not visible.');
+  return orientation;
 }
 
 /**

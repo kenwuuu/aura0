@@ -1,0 +1,91 @@
+/*
+ * design-sync CSS compile source. Compiled by .design-sync/build-css.mjs into
+ * .design-sync/.cache/ds-tailwind.css, which cfg.cssEntry points at (copied to
+ * ds-bundle/_ds_bundle.css and @imported by styles.css → ships to designs).
+ *
+ * This reproduces src/style.css's @theme blocks WITHOUT the ~900 lines of
+ * app-global chrome CSS that don't belong in a component bundle. It scans only
+ * the scoped component sources (+ authored previews) so only the utilities they
+ * use are generated. Re-run build-css.mjs before the converter whenever tokens,
+ * components, or previews change.
+ */
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "../src/tokens.css";
+
+@custom-variant dark (&:is(.dark *));
+
+/* Scan the scoped components + authored preview cards for utility candidates. */
+@source "../src/shared/ui/button.tsx";
+@source "../src/shared/ui/dialog.tsx";
+@source "../src/shared/ui/dropdown-menu.tsx";
+@source "../src/shared/ui/popover.tsx";
+@source "../src/shared/ui/select.tsx";
+@source "../src/shared/ui/checkbox.tsx";
+@source "../src/shared/ui/input.tsx";
+@source "../src/shared/ui/tooltip.tsx";
+@source "../src/shared/ui/scroll-area.tsx";
+@source "../src/shared/ui/slider.tsx";
+@source "../src/shared/ui/alert.tsx";
+@source "../src/shared/ui/sonner.tsx";
+@source "../src/shared/ui/HudIconButton.tsx";
+@source "../src/shared/ui/FloatingPanel.tsx";
+@source "./previews/*.tsx";
+
+@theme {
+  --font-sans: 'Space Grotesk', system-ui, sans-serif;
+  --font-mono: 'Space Mono', ui-monospace, monospace;
+}
+
+@theme inline {
+  /* Manabase radius scale — sharp, not soft (design: base 4px). */
+  --radius-sm: 2px;  /* inner chips */
+  --radius-md: 4px;  /* controls & panels (default) */
+  --radius-lg: 6px;  /* medium containers */
+  --radius-xl: 8px;  /* large containers only */
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  /* shadcn's semantic "accent" = hover/active wash on menu rows. Mapped to the
+     Manabase purple wash, NOT the brand --accent. */
+  --color-accent: var(--accent-soft);
+  --color-accent-foreground: var(--text);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  /* Manabase tokens as utilities: bg-surface, border-line-2, text-dim, … */
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-line: var(--line);
+  --color-line-2: var(--line-2);
+  --color-dim: var(--text-dim);
+  --color-mute: var(--text-mute);
+  --color-accent-2: var(--accent-2);
+  --color-accent-pink: var(--accent-pink);
+  --color-good: var(--good);
+  --color-danger: var(--danger);
+  --color-warn: var(--warn);
+}
+
+/* Dark-only base surface: near-black bg + light text + tokenized default
+   border/outline colors that shadcn's `border`/`outline` width utilities
+   inherit. Matches src/style.css @layer base. */
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: var(--font-sans);
+  }
+}

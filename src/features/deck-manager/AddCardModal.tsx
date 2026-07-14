@@ -79,7 +79,7 @@ export const AddCardModal: React.FC<AddCardModalProps> = ({ isOpen, onClose, onA
             <div className="mb-4">
               <label
                 htmlFor="card-name-input"
-                className="block mb-2 text-gray-400 text-md"
+                className="block mb-2 text-dim text-md"
               >
                 Enter the exact card name
               </label>
@@ -91,7 +91,7 @@ export const AddCardModal: React.FC<AddCardModalProps> = ({ isOpen, onClose, onA
                 onChange={(e) => setCardName(e.target.value)}
                 placeholder='e.g., "Lightning Bolt"'
                 disabled={isLoading}
-                className="w-full px-3 py-2.5 text-sm bg-[#2a2a2a] border border-[#3d3d3d] rounded-md text-white outline-none transition-all duration-200 placeholder:text-[#666] focus:border-blue-500 focus:bg-[#333] disabled:opacity-60 disabled:cursor-not-allowed"
+                className="w-full text-sm"
               />
             </div>
 
@@ -102,8 +102,8 @@ export const AddCardModal: React.FC<AddCardModalProps> = ({ isOpen, onClose, onA
             )}
 
             {isLoading && (
-              <Alert className="mb-4 bg-blue-500/10 border-blue-500/30">
-                <AlertDescription className="text-blue-300">
+              <Alert className="mb-4 bg-accent-2/10 border-accent-2/30">
+                <AlertDescription className="text-accent-2">
                   Fetching card from Scryfall...
                 </AlertDescription>
               </Alert>
@@ -115,14 +115,13 @@ export const AddCardModal: React.FC<AddCardModalProps> = ({ isOpen, onClose, onA
               type="button"
               onClick={onClose}
               disabled={isLoading}
-              className="px-5 py-2.5 text-sm font-medium rounded-md cursor-pointer transition-all duration-200 border-none bg-[#2a2a2a] border border-[#3d3d3d] text-gray-400 hover:bg-[#3d3d3d] hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+              variant="secondary"
             >
               Cancel
             </Button>
             <Button
               type="submit"
               disabled={!cardName.trim() || isLoading}
-              className="px-5 py-2.5 text-sm font-medium rounded-md cursor-pointer transition-all duration-200 border-none bg-blue-500 text-white hover:bg-blue-600 disabled:bg-[#1e3a5f] disabled:text-gray-500 disabled:cursor-not-allowed"
             >
               {isLoading ? 'Adding...' : 'Add to Hand'}
             </Button>

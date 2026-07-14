@@ -32,7 +32,7 @@ export const RoomLinkButton: React.FC = () => {
       id="room-name"
       data-testid="room-link"
       onClick={handleClick}
-      style={{ color: copied ? '#4ade80' : undefined }}
+      style={{ color: copied ? 'var(--good)' : undefined }}
       aria-label={copied ? 'Copied room link to clipboard' : 'Copy room link to clipboard'}
     >
       {/* Text collapses below `sm` (see "Toolbar responsive collapse" in

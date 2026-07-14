@@ -1,7 +1,13 @@
 @import "tailwindcss";
 @import "tw-animate-css";
+@import "./tokens.css";
 
 @custom-variant dark (&:is(.dark *));
+
+@theme {
+  --font-sans: 'Space Grotesk', system-ui, sans-serif;
+  --font-mono: 'Space Mono', ui-monospace, monospace;
+}
 
 
 html,
@@ -13,9 +19,7 @@ body {
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
+  font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -41,7 +45,9 @@ body {
 }
 
 #toolbar {
-  background-color: #0a0a0a;
+  /* Raised bar: bg-2 + surface gradient wash + hairline bottom (design §02). */
+  background-color: var(--bg-2);
+  background-image: linear-gradient(180deg, var(--surface), transparent);
   /* Safe-area: the toolbar owns the top edge (and the sides at its own row),
      so it absorbs the notch/status-bar insets. Requires viewport-fit=cover. */
   padding: calc(8px + env(safe-area-inset-top, 0px))
@@ -50,32 +56,47 @@ body {
   display: flex;
   gap: 16px;
   align-items: center;
-  border-bottom: 1px solid #2d2d2d;
+  border-bottom: 1px solid var(--line);
   flex-shrink: 0;
   z-index: 1000;
 }
 
 #connection-status {
-  color: #facc15;
+  color: var(--text-dim);
   font-size: 13px;
   font-weight: 500;
   margin-left: auto;
+  white-space: nowrap;
 }
 
+/* Room-link + new-game: ghost/mono HUD buttons (design §02 "Copy Link"). */
 #room-name,
 #new-game-button {
   min-width: 170px;
-  color: #b1b5c5;
-  font-size: 12px;
-  font-weight: 500;
+  background: transparent;
+  color: var(--text-dim);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 400;
+  letter-spacing: 1px;
   padding: 8px 16px;
   border-radius: 4px;
-  border: 1px solid #6b7280;
+  border: 1px solid var(--line-2);
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 4px;
+  white-space: nowrap;
+  transition: color 0.16s var(--ease-hud), border-color 0.16s var(--ease-hud),
+    box-shadow 0.16s var(--ease-hud);
+}
+
+#room-name:hover,
+#new-game-button:hover {
+  color: var(--text);
+  border-color: var(--accent);
+  box-shadow: 0 0 14px var(--glow);
 }
 
 
@@ -109,75 +130,52 @@ body {
   touch-action: none;
 }
 
-/* Multi-Player Board Layers */
-.player-board {
-  position: absolute;
-  pointer-events: auto;
-}
-
-.player-board-local {
-  /* Local player's board - full opacity, normal rendering */
-  opacity: 1;
-  z-index: 10;
-}
-
-.player-board-opponent {
-  /* Opponent boards - low opacity by default */
-  opacity: 0.25;
-  pointer-events: none; /* Opponents' cards are not interactive */
-  transition: opacity 0.3s ease;
-}
-
-.card {
-  transition: box-shadow 0.2s;
-}
-
-.card:hover {
-  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.5) !important;
-}
-
-.card:active {
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.7) !important;
-}
-
 /* Game Resources Dock */
 
+/* Zone counters (design §04): deck is the single ACTIVE zone (accent border +
+   glow + accent count); discard/exile/hand are quiet (hairline, muted count).
+   The old per-pile identity colors (deck=blue/discard=red/exile=purple) are
+   retired with the HUD palette. */
 .resource-pile {
-  background-color: #1a1a1a;
-  border: 0.5px solid #3d3d3d;
-  border-radius: 12px;
+  background-color: var(--bg-2);
+  border: 1px solid var(--line);
+  border-radius: 4px;
   padding: 12px 16px;
   min-width: 80px;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 8px;
-  transition: all 0.2s;
+  transition: border-color 0.16s var(--ease-hud), background-color 0.16s var(--ease-hud),
+    box-shadow 0.16s var(--ease-hud);
   cursor: pointer;
 }
 
 .resource-pile:hover {
-  border-color: #5d5d5d;
-  background-color: #2a2a2a;
+  border-color: var(--line-2);
+  background-color: var(--surface-2);
 }
 
 .pile-label {
+  font-family: var(--font-mono);
   font-size: 11px;
-  color: #9ca3af;
+  color: var(--text-mute);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 1px;
 }
 
 .pile-count {
   font-size: 24px;
-  font-weight: bold;
-  color: #ffffff;
-  font-family: 'Courier New', monospace;
+  font-weight: 700;
+  color: var(--text-dim);
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
 }
 
+/* Draw: micro primary (accent fill + glow). */
 .draw-button {
-  background-color: #3b82f6;
-  color: white;
+  background-color: var(--accent);
+  color: var(--accent-contrast);
   border: none;
   padding: 6px 16px;
   border-radius: 2px;
@@ -185,17 +183,19 @@ body {
   font-weight: 600;
   font-family: inherit;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: box-shadow 0.16s var(--ease-hud), transform 0.16s var(--ease-hud);
+  box-shadow: 0 0 0 1px var(--accent-line), 0 0 10px var(--glow);
   margin-top: 4px;
 }
 
 .draw-button:hover {
-  background-color: #2563eb;
+  background-color: var(--accent);
   transform: translateY(-1px);
+  box-shadow: 0 0 0 1px var(--accent), 0 4px 14px var(--glow-strong);
 }
 
 .draw-button:active {
-  background-color: #1d4ed8;
+  background-color: var(--accent);
   transform: translateY(0);
 }
 
@@ -204,12 +204,12 @@ body {
   filter: brightness(0) saturate(100%);
 }
 /* Horizontal scroll wrapper. Height is set inline as card_height*zoom + 20px so
-   the hover-lift (translateY(-12px)) fits within bounds without clipping. */
+   the hover-lift (translateY(-10px), design §06) fits within bounds without clipping. */
 .hand-scroll {
   overflow-x: auto;
   overflow-y: hidden;
   scrollbar-width: thin;
-  scrollbar-color: #4a4a4a transparent;
+  scrollbar-color: var(--line-2) transparent;
 }
 
 /* Cards sit at the bottom; the 20px headroom at the top absorbs the hover lift. */
@@ -227,24 +227,27 @@ body {
   /* the 3 multiplier matches HandCardsContainer.tsx. multiply by 3 bc 1x is too small */
   width: calc(3 * 63px * var(--card-zoom, 1));
   height: calc(3 * 88px * var(--card-zoom, 1));
-  background-color: #2d2d2d;
-  border: 2px solid #4a4a4a;
-  border-radius: 10px;
+  background-color: var(--bg-2);
+  border: 1px solid var(--line-2);
+  border-radius: 6px;
   cursor: grab;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 10px;
-  color: #9ca3af;
-  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+  color: var(--text-dim);
+  transition: transform 0.15s var(--ease-hud), box-shadow 0.15s ease, border-color 0.15s ease;
   user-select: none;
   overflow: hidden;
 }
 
+/* Hand cards DO get the design §06 hover lift (unlike board cards — no
+   react-flow transform to fight here). The .hand-scroll 20px headroom
+   absorbs the -10px travel without clipping. */
 .hand-card:hover {
-  transform: translateY(-6px);
-  border-color: #6a6a6a;
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.6);
+  transform: translateY(-10px);
+  border-color: var(--accent);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.55), 0 0 16px var(--glow);
 }
 
 .hand-card-image {
@@ -253,365 +256,38 @@ body {
   object-fit: contain;
   display: block;
   pointer-events: none;
-  border-radius: 10px;
+  border-radius: 6px;
 }
 
-/* Specific pile colors */
-.exile-pile {
-  border-color: #8b5cf6;
-}
-
-.exile-pile:hover {
-  border-color: #a78bfa;
-}
-
-.exile-pile .pile-count {
-  color: #c4b5fd;
-}
-
-.discard-pile {
-  border-color: #ef4444;
-}
-
-.discard-pile:hover {
-  border-color: #f87171;
-}
-
-.discard-pile .pile-count {
-  color: #fca5a5;
-}
-
+/* Deck = the active zone (class is template-constructed in PileNode.tsx:
+   `${pileKind}-pile` — deck-pile/discard-pile/exile-pile/hand-pile). */
 .deck-pile {
-  border-color: #3b82f6;
+  border-color: var(--accent-line);
+  box-shadow: 0 0 10px var(--glow);
 }
 
 .deck-pile:hover {
-  border-color: #60a5fa;
+  border-color: var(--accent);
 }
 
 .deck-pile .pile-count {
-  color: #93c5fd;
-}
-
-/* Drag and Drop States */
-.resource-pile.drag-over {
-  border-color: #fbbf24 !important;
-  background-color: rgba(251, 191, 36, 0.1);
-  transform: scale(1.05);
+  color: var(--accent);
+  text-shadow: 0 0 12px var(--glow);
 }
 
 /* Card Number Badge */
 .card-number-badge {
   position: absolute;
   right: 4px;
-  background-color: rgba(59, 130, 246, 0.9);
-  color: white;
+  background-color: rgba(8, 8, 12, 0.85); /* --bg @ 85% */
+  color: var(--accent);
   font-size: 9px;
-  font-weight: bold;
+  font-weight: 700;
   padding: 2px 6px;
-  border-radius: 4px;
-  font-family: 'Courier New', monospace;
+  border-radius: 2px;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
   pointer-events: none;
-}
-
-.card-number-badge-battlefield {
-  position: absolute;
-  top: 4px;
-  right: 4px;
-  background-color: rgba(0, 0, 0, 0.8);
-  color: #60a5fa;
-  font-size: 10px;
-  font-weight: bold;
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-family: 'Courier New', monospace;
-  pointer-events: none;
-}
-
-/* Pile Viewer Modal */
-.pile-viewer-modal {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.8);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 10000;
-  backdrop-filter: blur(4px);
-}
-
-.pile-viewer-content {
-  background-color: #1a1a1a;
-  border: 2px solid #3d3d3d;
-  border-radius: 16px;
-  max-width: 80vw;
-  max-height: 80vh;
-  display: flex;
-  flex-direction: column;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8);
-}
-
-.pile-viewer-header {
-  padding: 20px;
-  border-bottom: 2px solid #2d2d2d;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.pile-viewer-header h2 {
-  color: #ffffff;
-  font-size: 20px;
-  margin: 0;
-}
-
-.pile-viewer-close {
-  background: none;
-  border: none;
-  color: #9ca3af;
-  font-size: 32px;
-  cursor: pointer;
-  padding: 0;
-  width: 40px;
-  height: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 8px;
-  transition: all 0.2s;
-}
-
-.pile-viewer-close:hover {
-  background-color: #2d2d2d;
-  color: #ffffff;
-}
-
-.pile-viewer-grid {
-  padding: 20px;
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
-  gap: 12px;
-  overflow-y: auto;
-  max-height: 60vh;
-}
-
-.pile-viewer-card {
-  background-color: #2d2d2d;
-  border: 2px solid #4a4a4a;
-  border-radius: 8px;
-  padding: 12px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  transition: all 0.2s;
-  cursor: default;
-}
-
-.pile-viewer-card:hover {
-  border-color: #6a6a6a;
-  background-color: #3d3d3d;
-  transform: translateY(-2px);
-}
-
-.pile-viewer-card-number {
-  font-size: 16px;
-  font-weight: bold;
-  color: #60a5fa;
-  font-family: 'Courier New', monospace;
-}
-
-.pile-viewer-card-position {
-  font-size: 11px;
-  color: #9ca3af;
-  text-align: center;
-}
-
-.pile-viewer-empty {
-  grid-column: 1 / -1;
-  text-align: center;
-  padding: 60px;
-  color: #6b7280;
-  font-size: 18px;
-}
-
-/* Card Counters */
-.card-counters {
-  position: absolute;
-  bottom: 4px;
-  left: 4px;
-  display: flex;
-  gap: 4px;
-  pointer-events: none;
-}
-
-.card-counter {
-  position: relative;
-  background-color: rgba(0, 0, 0, 0.9);
-  border: 2px solid #fbbf24;
-  border-radius: 6px;
-  padding: 4px 4px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-  pointer-events: auto;
-}
-
-.counter-value {
-  font-size: 14px;
-  font-weight: bold;
-  color: #fbbf24;
-  font-family: 'Courier New', monospace;
-  min-width: 16px;
-  text-align: center;
-  order: 2;
-}
-
-.counter-btn {
-  width: 20px;
-  height: 16px;
-  background-color: #2d2d2d;
-  color: #fbbf24;
-  border: 1px solid #fbbf24;
-  border-radius: 3px;
-  font-size: 12px;
-  font-weight: bold;
-  cursor: pointer;
-  transition: all 0.15s;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0;
-  line-height: 1;
-}
-
-.counter-btn:hover {
-  background-color: #fbbf24;
-  color: #000000;
-}
-
-.counter-btn:active {
-  transform: scale(0.9);
-}
-
-.counter-plus {
-  order: 1;
-}
-
-.counter-minus {
-  order: 3;
-}
-
-/* Modal Styles */
-.modal-backdrop {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.8);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 10000;
-  backdrop-filter: blur(4px);
-}
-
-.modal-content {
-  background-color: #1a1a1a;
-  border: 2px solid #3d3d3d;
-  border-radius: 16px;
-  max-width: 600px;
-  width: 90%;
-  max-height: 90vh;
-  display: flex;
-  flex-direction: column;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8);
-}
-
-.modal-header {
-  padding: 20px;
-  border-bottom: 2px solid #2d2d2d;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.modal-header h2 {
-  color: #ffffff;
-  font-size: 20px;
-  margin: 0;
-}
-
-.modal-close {
-  background: none;
-  border: none;
-  color: #9ca3af;
-  font-size: 32px;
-  cursor: pointer;
-  padding: 0;
-  width: 40px;
-  height: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 8px;
-  transition: all 0.2s;
-}
-
-.modal-close:hover {
-  background-color: #2d2d2d;
-  color: #ffffff;
-}
-
-.modal-body {
-  padding: 20px;
-  overflow-y: auto;
-  flex: 1;
-}
-
-.modal-footer {
-  padding: 20px;
-  border-top: 2px solid #2d2d2d;
-  display: flex;
-  gap: 12px;
-  justify-content: flex-end;
-}
-
-.modal-footer button {
-  padding: 10px 20px;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
-  border: 1px solid #3d3d3d;
-  background-color: #2d2d2d;
-  color: #ffffff;
-}
-
-.modal-footer button:hover {
-  background-color: #3d3d3d;
-  border-color: #4d4d4d;
-}
-
-.modal-footer button.primary {
-  background-color: #3b82f6;
-  border-color: #3b82f6;
-}
-
-.modal-footer button.primary:hover {
-  background-color: #2563eb;
-  border-color: #2563eb;
-}
-
-.modal-footer button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
 }
 
 /* Form Styles */
@@ -621,32 +297,33 @@ body {
 
 .form-group label {
   display: block;
-  color: #9ca3af;
-  font-size: 13px;
-  font-weight: 600;
+  color: var(--text-mute);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 400;
   margin-bottom: 8px;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 1px;
 }
 
 .form-group input,
 .form-group textarea {
   width: 100%;
-  background-color: #2d2d2d;
-  border: 2px solid #3d3d3d;
-  border-radius: 8px;
+  background-color: var(--surface);
+  border: 1px solid var(--line-2);
+  border-radius: 4px;
   padding: 10px 12px;
-  color: #ffffff;
+  color: var(--text);
   font-size: 14px;
   font-family: inherit;
-  transition: all 0.2s;
+  transition: border-color 0.16s var(--ease-hud), box-shadow 0.16s var(--ease-hud);
 }
 
 .form-group input:focus,
 .form-group textarea:focus {
   outline: none;
-  border-color: #3b82f6;
-  background-color: #1a1a1a;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-soft);
 }
 
 .form-group input:disabled,
@@ -657,7 +334,7 @@ body {
 
 .form-group textarea {
   resize: vertical;
-  font-family: 'Courier New', monospace;
+  font-family: var(--font-mono);
   font-size: 13px;
 }
 
@@ -669,7 +346,7 @@ body {
 .progress-bar {
   width: 100%;
   height: 8px;
-  background-color: #2d2d2d;
+  background-color: var(--surface-2);
   border-radius: 4px;
   overflow: hidden;
   margin-bottom: 8px;
@@ -677,27 +354,27 @@ body {
 
 .progress-fill {
   height: 100%;
-  background-color: #3b82f6;
+  background-image: linear-gradient(90deg, var(--accent-2), var(--accent));
   transition: width 0.3s ease;
 }
 
 .progress-text {
-  color: #9ca3af;
+  color: var(--text-dim);
   font-size: 13px;
   text-align: center;
 }
 
 /* Error and Success Styles */
 .error-container {
-  background-color: rgba(239, 68, 68, 0.1);
-  border: 1px solid #ef4444;
-  border-radius: 8px;
+  background-color: color-mix(in srgb, var(--danger) 10%, transparent);
+  border: 1px solid var(--danger);
+  border-radius: 4px;
   padding: 12px;
   margin-top: 16px;
 }
 
 .error-container h4 {
-  color: #ef4444;
+  color: var(--danger);
   font-size: 14px;
   margin: 0 0 8px 0;
 }
@@ -708,7 +385,7 @@ body {
 }
 
 .error-container li {
-  color: #fca5a5;
+  color: color-mix(in srgb, var(--danger) 60%, var(--text));
   font-size: 13px;
   margin: 4px 0;
 }
@@ -747,167 +424,96 @@ body {
 }
 
 .success-container {
-  background-color: rgba(16, 185, 129, 0.1);
-  border: 1px solid #10b981;
-  border-radius: 8px;
+  background-color: color-mix(in srgb, var(--good) 10%, transparent);
+  border: 1px solid var(--good);
+  border-radius: 4px;
   padding: 12px;
   margin-top: 16px;
 }
 
 .success-container p {
-  color: #10b981;
+  color: var(--good);
   font-size: 14px;
   margin: 0;
 }
 
-/* Deck Selection Modal */
-.deck-selection-modal {
-  max-width: 700px;
-}
-
-.deck-list {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
+/* Deck-list textarea placeholder (DeckImportModal, id="deck-list") */
 #deck-list::placeholder {
-  color: #afafaf;  /* darker/more muted gray */
+  color: var(--text-mute);
 }
 
-.deck-item {
-  background-color: #2d2d2d;
-  border: 2px solid #3d3d3d;
-  border-radius: 12px;
-  padding: 16px;
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.deck-item:hover {
-  border-color: #3b82f6;
-  background-color: #1a1a1a;
-  transform: translateX(4px);
-}
-
-.deck-info {
-  flex: 1;
-}
-
-.deck-info h3 {
-  color: #ffffff;
-  font-size: 18px;
-  margin: 0 0 8px 0;
-}
-
-.deck-meta {
-  display: flex;
-  gap: 12px;
-  margin-bottom: 8px;
-}
-
-.deck-card-count,
-.deck-format,
-.deck-source {
-  font-size: 12px;
-  color: #9ca3af;
-  background-color: #1a1a1a;
-  padding: 4px 8px;
-  border-radius: 4px;
-}
-
-.deck-date {
-  font-size: 12px;
-  color: #6b7280;
-  margin: 0;
-}
-
-.deck-delete {
-  background: none;
-  border: none;
-  font-size: 24px;
-  cursor: pointer;
-  padding: 8px;
-  border-radius: 8px;
-  transition: all 0.2s;
-  opacity: 0.6;
-}
-
-.deck-delete:hover {
-  background-color: rgba(239, 68, 68, 0.2);
-  opacity: 1;
-}
-
-.empty-state {
-  text-align: center;
-  padding: 60px 20px;
-  color: #6b7280;
-}
-
-.empty-state p {
-  font-size: 16px;
-  margin: 0;
-}
-
-/* Toolbar Button */
+/* Toolbar Button — design §01 Ghost: transparent at rest (the transparent
+   border reserves the hairline's space so hover doesn't shift layout). */
 .toolbar-button {
-  background-color: #2d2d2d;
-  color: #ffffff;
-  border: 1px solid #3d3d3d;
-  border-radius: 8px;
+  background-color: transparent;
+  color: var(--text-dim);
+  border: 1px solid transparent;
+  border-radius: 4px;
   padding: 8px 16px;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: background-color 0.16s var(--ease-hud), color 0.16s var(--ease-hud),
+    border-color 0.16s var(--ease-hud), box-shadow 0.16s var(--ease-hud);
   display: flex;
   align-items: center;
   gap: 8px;
+  white-space: nowrap;
 }
 
 .toolbar-button:hover {
-  background-color: #3d3d3d;
-  border-color: #4d4d4d;
+  background-color: var(--surface);
+  color: var(--text);
+  border-color: var(--line);
 }
 
+/* Primary — filled accent + glow elevation; one per view ("Choose Deck"). */
 .toolbar-button.primary {
-  background-color: #3b82f6;
-  border-color: #3b82f6;
+  background-color: var(--accent);
+  color: var(--accent-contrast);
+  border-color: transparent;
+  font-weight: 600;
+  box-shadow: 0 0 0 1px var(--accent-line), 0 0 16px var(--glow);
 }
 
 .toolbar-button.primary:hover {
-  background-color: #2563eb;
-  border-color: #2563eb;
+  background-color: var(--accent);
+  color: var(--accent-contrast);
+  border-color: transparent;
+  transform: translateY(-1px);
+  box-shadow: 0 0 0 1px var(--accent), 0 6px 22px var(--glow-strong);
 }
 
+/* Discord — the sanctioned --accent-2 (blue) exception (design §02). */
 .toolbar-button.discord {
-  background-color: #5865F2;
-  border-color: #5865F2;
+  background-color: transparent;
+  border-color: color-mix(in srgb, var(--accent-2) 45%, transparent);
+  color: var(--text);
   padding: 8px 12px;
 }
 
 .toolbar-button.discord:hover {
-  background-color: #4752C4;
-  border-color: #4752C4;
+  background-color: color-mix(in srgb, var(--accent-2) 12%, transparent);
+  border-color: var(--accent-2);
+  box-shadow: 0 0 14px color-mix(in srgb, var(--accent-2) 40%, transparent);
 }
 
-/* Ko-fi support link — an <a> carrying .toolbar-button, so reset anchor
-   styling; brand color matches the retired Ko-fi widget. */
+/* Ko-fi support link — an <a> carrying .toolbar-button; the sanctioned
+   --accent-pink (sparing) exception. */
 .toolbar-kofi {
-  background-color: #72a4f2;
-  border-color: #72a4f2;
-  color: #0a0a0a;
+  background-color: transparent;
+  border-color: color-mix(in srgb, var(--accent-pink) 35%, transparent);
+  color: var(--accent-pink);
   text-decoration: none;
   padding: 8px 12px;
 }
 
 .toolbar-kofi:hover {
-  background-color: #5a8ee2;
-  border-color: #5a8ee2;
+  background-color: color-mix(in srgb, var(--accent-pink) 10%, transparent);
+  border-color: var(--accent-pink);
+  color: var(--accent-pink);
 }
+
 
 /* ── Toolbar responsive collapse ──────────────────────────────────────────
    See src/app/Toolbar.tsx for why this is plain (unlayered) CSS rather than
@@ -931,6 +537,33 @@ body {
 
 .toolbar-deck-label-short {
   display: none;
+}
+
+/* Intermediate width (640–767px): the full toolbar doesn't fit even with the
+   old system font (pre-existing; verified 2026-07-10). Trim text labels to
+   icons and drop fixed min-widths; the 639px collapse below stays untouched.
+   Must come after the base display:none rules above (same specificity —
+   source order decides). */
+@media (max-width: 767px) and (min-width: 640px) {
+  #toolbar {
+    gap: 8px;
+  }
+
+  .toolbar-deck-label-full,
+  .toolbar-link-label,
+  .toolbar-collapsible-text {
+    display: none;
+  }
+
+  .toolbar-deck-label-short {
+    display: inline;
+  }
+
+  #room-name,
+  #new-game-button {
+    min-width: 0;
+    padding: 8px 10px;
+  }
 }
 
 @media (max-width: 639px) {
@@ -990,9 +623,9 @@ body {
 }
 
 .deck-pile-viewer-content {
-  background-color: #1a1a1a;
-  border: 2px solid #3d3d3d;
-  border-radius: 16px;
+  background-color: var(--bg-2);
+  border: 1px solid var(--line-2);
+  border-radius: 8px;
   max-width: 1200px;
   display: flex;
   flex-direction: column;
@@ -1001,7 +634,7 @@ body {
 
 .deck-pile-viewer-header {
   padding: 24px;
-  border-bottom: 2px solid #3d3d3d;
+  border-bottom: 1px solid var(--line);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -1010,7 +643,8 @@ body {
 .deck-pile-viewer-header h2 {
   margin: 0;
   font-size: 24px;
-  color: #ffffff;
+  font-weight: 500;
+  color: var(--text);
 }
 
 .deck-pile-viewer-reveal-controls {
@@ -1019,7 +653,7 @@ body {
   align-items: center;
   margin-left: auto;
   padding-left: 16px;
-  border-left: 1px solid #3d3d3d;
+  border-left: 1px solid var(--line);
 }
 
 .reveal-all-label {
@@ -1027,7 +661,7 @@ body {
   align-items: center;
   gap: 8px;
   cursor: pointer;
-  color: #d1d5db;
+  color: var(--text-dim);
   font-size: 14px;
   user-select: none;
 }
@@ -1036,41 +670,43 @@ body {
   cursor: pointer;
   width: 18px;
   height: 18px;
-  accent-color: #3b82f6;
+  accent-color: var(--accent);
 }
 
 .reveal-count-container {
   display: flex;
   align-items: center;
   gap: 8px;
-  color: #d1d5db;
+  color: var(--text-dim);
   font-size: 14px;
 }
 
 .reveal-count-input {
   width: 60px;
   padding: 6px 10px;
-  background-color: #1a1a1a;
-  border: 1px solid #4b5563;
-  border-radius: 6px;
-  color: #ffffff;
+  background-color: var(--surface);
+  border: 1px solid var(--line-2);
+  border-radius: 4px;
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
   font-size: 14px;
   text-align: center;
 }
 
 .reveal-count-input:focus {
   outline: none;
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-soft);
 }
 
 .reveal-count-input::placeholder {
-  color: #6b7280;
+  color: var(--text-mute);
 }
 
 .deck-pile-viewer-subtitle {
   font-size: 14px;
-  color: #9ca3af;
+  color: var(--text-dim);
   margin-top: 4px;
   font-weight: normal;
   white-space: pre-line;
@@ -1080,7 +716,7 @@ body {
   background: none;
   border: none;
   font-size: 36px;
-  color: #9ca3af;
+  color: var(--text-dim);
   cursor: pointer;
   padding: 0;
   width: 40px;
@@ -1088,22 +724,22 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 8px;
-  transition: all 0.2s;
+  border-radius: 4px;
+  transition: background-color 0.16s var(--ease-hud), color 0.16s var(--ease-hud);
 }
 
 .deck-pile-viewer-close:hover {
-  background-color: rgba(255, 255, 255, 0.1);
-  color: #ffffff;
+  background-color: var(--surface);
+  color: var(--text);
 }
 
 .deck-pile-viewer-controls {
   padding: 16px 24px;
-  border-bottom: 1px solid #3d3d3d;
+  border-bottom: 1px solid var(--line);
   display: flex;
   gap: 16px;
   align-items: center;
-  background-color: #0f0f0f;
+  background-color: var(--bg);
 }
 
 .deck-pile-viewer-grid {
@@ -1121,7 +757,7 @@ body {
   grid-column: 1 / -1;
   text-align: center;
   padding: 60px 20px;
-  color: #6b7280;
+  color: var(--text-mute);
   font-size: 18px;
 }
 
@@ -1137,29 +773,29 @@ body {
   position: absolute;
   left: 12px;
   font-size: 16px;
-  color: #9ca3af;
+  color: var(--text-dim);
   pointer-events: none;
 }
 
 .search-bar-input {
   width: 100%;
   padding: 10px 12px 10px 40px;
-  background-color: #2d2d2d;
-  border: 1px solid #3d3d3d;
-  border-radius: 8px;
-  color: #ffffff;
+  background-color: var(--surface);
+  border: 1px solid var(--line-2);
+  border-radius: 4px;
+  color: var(--text);
   font-size: 14px;
   outline: none;
-  transition: all 0.2s;
+  transition: border-color 0.16s var(--ease-hud), box-shadow 0.16s var(--ease-hud);
 }
 
 .search-bar-input:focus {
-  border-color: #3b82f6;
-  background-color: #1a1a1a;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-soft);
 }
 
 .search-bar-input::placeholder {
-  color: #6b7280;
+  color: var(--text-mute);
 }
 
 /* Sort Control Component */
@@ -1171,33 +807,34 @@ body {
 
 .sort-control-label {
   font-size: 14px;
-  color: #9ca3af;
+  color: var(--text-dim);
   font-weight: 500;
 }
 
 .sort-control-select {
   padding: 8px 32px 8px 12px;
-  background-color: #2d2d2d;
-  border: 1px solid #3d3d3d;
-  border-radius: 8px;
-  color: #ffffff;
+  background-color: var(--surface);
+  border: 1px solid var(--line-2);
+  border-radius: 4px;
+  color: var(--text);
   font-size: 14px;
   cursor: pointer;
   outline: none;
   appearance: none;
-  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 12 12"><path fill="%239ca3af" d="M6 8L2 4h8z"/></svg>');
+  /* Data-URI can't read CSS vars; %239A9AAB = --text-dim. */
+  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 12 12"><path fill="%239A9AAB" d="M6 8L2 4h8z"/></svg>');
   background-repeat: no-repeat;
   background-position: right 10px center;
-  transition: all 0.2s;
+  transition: border-color 0.16s var(--ease-hud), background-color 0.16s var(--ease-hud);
 }
 
 .sort-control-select:hover {
-  border-color: #4d4d4d;
-  background-color: #3d3d3d;
+  border-color: var(--accent-line);
+  background-color: var(--surface-2);
 }
 
 .sort-control-select:focus {
-  border-color: #3b82f6;
+  border-color: var(--accent);
 }
 
 /* Scrollbar Styling for Deck Viewer */
@@ -1206,25 +843,26 @@ body {
 }
 
 .deck-pile-viewer-grid::-webkit-scrollbar-track {
-  background: #1a1a1a;
+  background: var(--bg-2);
   border-radius: 8px;
 }
 
 .deck-pile-viewer-grid::-webkit-scrollbar-thumb {
-  background: #3d3d3d;
+  background: var(--line-2);
   border-radius: 8px;
-  border: 2px solid #1a1a1a;
+  border: 2px solid var(--bg-2);
 }
 
 .deck-pile-viewer-grid::-webkit-scrollbar-thumb:hover {
-  background: #4d4d4d;
+  background: var(--accent-line);
 }
 
 @theme inline {
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
+  /* Manabase radius scale — sharp, not soft (design: base 4px). */
+  --radius-sm: 2px;  /* inner chips */
+  --radius-md: 4px;  /* controls & panels (default) */
+  --radius-lg: 6px;  /* medium containers */
+  --radius-xl: 8px;  /* large containers only */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -1237,96 +875,32 @@ body {
   --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
-  --color-accent: var(--accent);
-  --color-accent-foreground: var(--accent-foreground);
+  /* shadcn's semantic "accent" = hover/active wash on menu rows. Mapped to the
+     Manabase purple wash, NOT the brand --accent (which those utilities would
+     turn into loud solid fills — see tokens.css). */
+  --color-accent: var(--accent-soft);
+  --color-accent-foreground: var(--text);
   --color-destructive: var(--destructive);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
-  --color-chart-1: var(--chart-1);
-  --color-chart-2: var(--chart-2);
-  --color-chart-3: var(--chart-3);
-  --color-chart-4: var(--chart-4);
-  --color-chart-5: var(--chart-5);
-  --color-sidebar: var(--sidebar);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-ring: var(--sidebar-ring);
+  /* Manabase tokens as utilities: bg-surface, border-line-2, text-dim, … */
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-line: var(--line);
+  --color-line-2: var(--line-2);
+  --color-dim: var(--text-dim);
+  --color-mute: var(--text-mute);
+  --color-accent-2: var(--accent-2);
+  --color-accent-pink: var(--accent-pink);
+  --color-good: var(--good);
+  --color-danger: var(--danger);
+  --color-warn: var(--warn);
 }
 
-:root {
-  --spacing: 0.25rem;
-  --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.129 0.042 264.695);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.129 0.042 264.695);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.129 0.042 264.695);
-  --primary: oklch(0.208 0.042 265.755);
-  --primary-foreground: oklch(0.984 0.003 247.858);
-  --secondary: oklch(0.968 0.007 247.896);
-  --secondary-foreground: oklch(0.208 0.042 265.755);
-  --muted: oklch(0.968 0.007 247.896);
-  --muted-foreground: oklch(0.554 0.046 257.417);
-  --accent: oklch(0.968 0.007 247.896);
-  --accent-foreground: oklch(0.208 0.042 265.755);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.929 0.013 255.508);
-  --input: oklch(0.929 0.013 255.508);
-  --ring: oklch(0.704 0.04 256.788);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.984 0.003 247.858);
-  --sidebar-foreground: oklch(0.129 0.042 264.695);
-  --sidebar-primary: oklch(0.208 0.042 265.755);
-  --sidebar-primary-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-accent: oklch(0.968 0.007 247.896);
-  --sidebar-accent-foreground: oklch(0.208 0.042 265.755);
-  --sidebar-border: oklch(0.929 0.013 255.508);
-  --sidebar-ring: oklch(0.704 0.04 256.788);
-}
-
-.dark {
-  --background: oklch(0.129 0.042 264.695);
-  --foreground: oklch(0.984 0.003 247.858);
-  --card: oklch(0.208 0.042 265.755);
-  --card-foreground: oklch(0.984 0.003 247.858);
-  --popover: oklch(0.208 0.042 265.755);
-  --popover-foreground: oklch(0.984 0.003 247.858);
-  --primary: oklch(0.929 0.013 255.508);
-  --primary-foreground: oklch(0.208 0.042 265.755);
-  --secondary: oklch(0.279 0.041 260.031);
-  --secondary-foreground: oklch(0.984 0.003 247.858);
-  --muted: oklch(0.279 0.041 260.031);
-  --muted-foreground: oklch(0.704 0.04 256.788);
-  --accent: oklch(0.279 0.041 260.031);
-  --accent-foreground: oklch(0.984 0.003 247.858);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.551 0.027 264.364);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.208 0.042 265.755);
-  --sidebar-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-accent: oklch(0.279 0.041 260.031);
-  --sidebar-accent-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.551 0.027 264.364);
-}
+/* Theme values live in src/tokens.css (Manabase primitives + shadcn slot
+   derivation). The app is dark-only: one value set, no .dark fork — the .dark
+   class stays on <html> for libraries that key off it. */
 
 
 @layer base {

@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  body { margin: 0; }
+  *, *::before, *::after { box-sizing: border-box; }
+  ::selection { background: var(--accent-soft); color: var(--text); }
+  @keyframes pulseGlow {
+    0%, 100% { box-shadow: 0 0 0 1px var(--accent), 0 0 10px var(--glow); }
+    50%      { box-shadow: 0 0 0 1px var(--accent), 0 0 28px var(--glow-strong); }
+  }
+  @keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: .35; } }
+  @keyframes spinReticle { to { transform: rotate(360deg); } }
+  @keyframes floatArt { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+  @keyframes sheen { 0% { background-position: -140% 0; } 100% { background-position: 240% 0; } }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @keyframes holoShift { 0% { background-position: 0% 50%; } 100% { background-position: 200% 50%; } }
+  @keyframes dashFlow { to { stroke-dashoffset: -80; } }
+  @keyframes rainbowSpin { to { transform: rotate(360deg); } }
+</style>
+</helmet>
+<div ref="{{ setRoot }}" style="--bg:#08080c; --bg-2:#0d0d14; --surface:rgba(255,255,255,0.03); --surface-2:rgba(255,255,255,0.055); --line:rgba(255,255,255,0.08); --line-2:rgba(255,255,255,0.14); --text:#ECECF2; --text-dim:#9A9AAB; --text-mute:#5E5E6C; --accent:#9B5CFF; --accent-2:#6E7BFF; --accent-pink:#FF5CAD; --accent-soft:rgba(155,92,255,0.14); --accent-line:rgba(155,92,255,0.45); --glow:rgba(155,92,255,0.5); --glow-strong:rgba(155,92,255,0.8); --good:#39D98A; --danger:#FF5C7A; --warn:#FFC46B; background:var(--bg); color:var(--text); min-height:100vh; font-family:'Space Grotesk',system-ui,sans-serif; -webkit-font-smoothing:antialiased; transition:background .3s ease, color .3s ease;">
+
+  <div style="max-width:1140px; margin:0 auto; padding:0 40px 120px;">
+
+    <!-- ============ 00 COVER ============ -->
+    <header style="position:relative; padding:72px 0 56px; overflow:hidden;">
+      <div style="position:absolute; inset:0; background-image:radial-gradient(circle at 1px 1px, var(--line) 1px, transparent 0); background-size:26px 26px; opacity:.6; mask-image:linear-gradient(to bottom, black, transparent 85%);"></div>
+      <div style="position:relative; display:flex; justify-content:space-between; align-items:flex-start; gap:24px;">
+        <div>
+          <div style="display:flex; align-items:center; gap:10px; margin-bottom:22px;">
+            <div style="width:11px; height:11px; border-radius:2px; background:var(--accent); box-shadow:0 0 14px var(--glow-strong);"></div>
+            <span style="font-family:'Space Mono',monospace; font-size:11px; letter-spacing:2px; text-transform:uppercase; color:var(--text-dim);">Manabase · Design System</span>
+            <span style="font-family:'Space Mono',monospace; font-size:11px; letter-spacing:1px; color:var(--text-mute);">v0.1</span>
+          </div>
+          <h1 style="font-size:68px; line-height:0.95; font-weight:600; letter-spacing:-0.045em; margin:0 0 20px; max-width:14ch;">The interface for a faster game.</h1>
+          <p style="font-size:17px; line-height:1.55; color:var(--text-dim); font-weight:300; max-width:52ch; margin:0;">A precise, HUD-inspired system for a Magic play surface. Thin lines, tabular data, and purple energy — built to recede so the cards can perform, and to light up when it matters.</p>
+        </div>
+        <div style="flex:none; display:flex; align-items:center; gap:10px; background:var(--surface); border:1px solid var(--line-2); border-radius:4px; color:var(--text); font-family:'Space Mono',monospace; font-size:12px; letter-spacing:1.5px; padding:10px 14px;">
+          <span style="width:8px; height:8px; border-radius:50%; background:var(--accent); box-shadow:0 0 8px var(--glow-strong);"></span>DARK
+        </div>
+      </div>
+      <div style="position:relative; display:flex; gap:8px; margin-top:34px; flex-wrap:wrap;">
+        <span style="font-family:'Space Mono',monospace; font-size:11px; letter-spacing:1px; color:var(--text-dim); background:var(--surface); border:1px solid var(--line); border-radius:3px; padding:6px 11px;">Space Grotesk</span>
+        <span style="font-family:'Space Mono',monospace; font-size:11px; letter-spacing:1px; color:var(--text-dim); background:var(--surface); border:1px solid var(--line); border-radius:3px; padding:6px 11px;">4px radius</span>
+        <span style="font-family:'Space Mono',monospace; font-size:11px; letter-spacing:1px; color:var(--text-dim); background:var(--surface); border:1px solid var(--line); border-radius:3px; padding:6px 11px;">Compact density</span>
+        <span style="font-family:'Space Mono',monospace; font-size:11px; letter-spacing:1px; color:var(--text-dim); background:var(--surface); border:1px solid var(--line); border-radius:3px; padding:6px 11px;">Dark mode only</span>
+      </div>
+    </header>
+
+    <!-- ============ 01 COLOR ============ -->
+    <section style="padding-top:40px;">
+      <div style="display:flex; align-items:baseline; gap:14px; margin-bottom:28px; padding-top:14px; border-top:1px solid var(--line);">
+        <span style="font-family:'Space Mono',monospace; font-size:12px; color:var(--accent); letter-spacing:1px;">01</span>
+        <h2 style="font-size:24px; font-weight:500; letter-spacing:-0.02em; margin:0;">Color</h2>
+        <span style="font-family:'Space Mono',monospace; font-size:10px; letter-spacing:1.5px; text-transform:uppercase; color:var(--text-mute);">surfaces · brand · state · mana</span>
+      </div>
+
+      <p style="font-size:13px; letter-spacing:1.5px; text-transform:uppercase; color:var(--text-mute); font-family:'Space Mono',monospace; margin:0 0 14px;">Surfaces</p>
+      <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:36px;">
+        <div style="border:1px solid var(--line); border-radius:4px; overflow:hidden;"><div style="height:74px; background:var(--bg);"></div><div style="padding:10px 12px;"><div style="font-size:13px; font-weight:500;">Base</div><div style="font-family:'Space Mono',monospace; font-size:11px; color:var(--text-mute);">--bg</div></div></div>
+        <div style="border:1px solid var(--line); border-radius:4px; overflow:hidden;"><div style="height:74px; background:var(--bg-2);"></div><div style="padding:10px 12px;"><div style="font-size:13px; font-weight:500;">Raised</div><div style="font-family:'Space Mono',monospace; font-size:11px; color:var(--text-mute);">--bg-2</div></div></div>
+        <div style="border:1px solid var(--line); border-radius:4px; overflow:hidden;"><div style="height:74px; background:var(--surface);"></div><div style="padding:10px 12px;"><div style="font-size:13px; font-weight:500;">Surface</div><div style="font-family:'Space Mono',monospace; font-size:11px; color:var(--text-mute);">--surface</div></div></div>
+        <div style="border:1px solid var(--line); border-radius:4px; overflow:hidden;"><div style="height:74px; background:var(--surface-2);"></div><div style="padding:10px 12px;"><div style="font-size:13px; font-weight:500;">Surface 2</div><div style="font-family:'Space Mono',monospace; font-size:11px; color:var(--text-mute);">--surface-2</div></div></div>
+      </div>
+
+      <p style="font-size:13px; letter-spacing:1.5px; text-transform:uppercase; color:var(--text-mute); font-family:'Space Mono',monospace; margin:0 0 14px;">Brand — purple carries energy; blue &amp; pink are rare highlights</p>
+      <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-bottom:36px;">
+        <div style="border:1px solid var(--line); border-radius:4px; overflow:hidden;"><div style="height:88px; background:var(--accent); box-shadow:inset 0 0 40px var(--glow-strong);"></div><div style="padding:11px 13px;"><div style="font-size:14px; font-weight:600;">Accent / Primary</div><div style="font-family:'Space Mono',monospace; font-size:11px; color:var(--text-mute);">--accent · everywhere</div></div></div>
+        <div style="border:1px solid var(--line); border-radius:4px; overflow:hidden;"><div style="height:88px; background:var(--accent-2);"></div><div style="padding:11px 13px;"><div style="font-size:14px; font-weight:600;">Accent Blue</div><div style="font-family:'Space Mono',monospace; font-size:11px; color:var(--text-mute);">--accent-2 · secondary</div></div></div>
+        <div style="border:1px solid var(--line); border-radius:4px; overflow:hidden;"><div style="height:88px; background:var(--accent-pink);"></div><div style="padding:11px 13px;"><div style="font-size:14px; font-weight:600;">Accent Pink</div><div style="font-family:'Space Mono',monospace; font-size:11px; color:var(--text-mute);">--accent-pink · sparingly</div></div></div>
+      </div>
+
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:36px;">
+        <div>
+          <p style="font-size:13px; letter-spacing:1.5px; text-transform:uppercase; color:var(--text-mute); font-family:'Space Mono',monospace; margin:0 0 14px;">State</p>
+          <div style="display:flex; flex-direction:column; gap:9px;">
+            <div style="display:flex; align-items:center; gap:12px; border:1px solid var(--line); border-radius:4px; padding:11px 13px;"><span style="width:22px; height:22px; border-radius:3px; background:var(--good);"></span><span style="font-size:13px; font-weight:500; flex:1;">Positive · connected · gain</span><span style="font-family:'Space Mono',monospace; font-size:11px; color:var(--text-mute);">--good</span></div>
+            <div style="display:flex; align-items:center; gap:12px; border:1px solid var(--line); border-radius:4px; padding:11px 13px;"><span style="width:22px; height:22px; border-radius:3px; background:var(--danger);"></span><span style="font-size:13px; font-weight:500; flex:1;">Damage · loss · destroy</span><span style="font-family:'Space Mono',monospace; font-size:11px; color:var(--text-mute);">--danger</span></div>
+            <div style="display:flex; align-items:center; gap:12px; border:1px solid var(--line); border-radius:4px; padding:11px 13px;"><span style="width:22px; height:22px; border-radius:3px; background:var(--warn);"></span><span style="font-size:13px; font-weight:500; flex:1;">Warning · priority · timer</span><span style="font-family:'Space Mono',monospace; font-size:11px; color:var(--text-mute);">--warn</span></div>
+          </div>
+        </div>
+        <div>
+          <p style="font-size:13px; letter-spacing:1.5px; text-transform:uppercase; color:var(--text-mute); font-family:'Space Mono',monospace; margin:0 0 14px;">Mana identity — for filters &amp; data, not chrome</p>
+          <div style="display:flex; gap:10px;">
+            <div style="flex:1; text-align:center;"><div style="height:44px; border-radius:50%; width:44px; margin:0 auto 8px; background:#EFE9CE; box-shadow:0 0 0 1px var(--line);"></div><div style="font-family:'Space Mono',monospace; font-size:11px; color:var(--text-dim);">W</div></div>
+            <div style="flex:1; text-align:center;"><div style="height:44px; border-radius:50%; width:44px; margin:0 auto 8px; background:#4A90E2; box-shadow:0 0 0 1px var(--line);"></div><div style="font-family:'Space Mono',monospace; font-size:11px; color:var(--text-dim);">U</div></div>
+            <div style="flex:1; text-align:center;"><div style="height:44px; border-radius:50%; width:44px; margin:0 auto 8px; background:#3B3B44; box-shadow:0 0 0 1px var(--line);"></div><div style="font-family:'Space Mono',monospace; font-size:11px; color:var(--text-dim);">B</div></div>
+            <div style="flex:1; text-align:center;"><div style="height:44px; border-radius:50%; width:44px; margin:0 auto 8px; background:#E5484D; box-shadow:0 0 0 1px var(--line);"></div><div style="font-family:'Space Mono',monospace; font-size:11px; color:var(--text-dim);">R</div></div>
+            <div style="flex:1; text-align:center;"><div style="height:44px; border-radius:50%; width:44px; margin:0 auto 8px; background:#3AA76D; box-shadow:0 0 0 1px var(--line);"></div><div style="font-family:'Space Mono',monospace; font-size:11px; color:var(--text-dim);">G</div></div>
+          </div>
+          <p style="font-size:12px; line-height:1.5; color:var(--text-mute); margin:16px 0 0;">Reserve the WUBRG palette for semantic use — mana pips, deck-color filters, log tags. Never for buttons or panels, or the HUD loses its calm.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 02 TYPOGRAPHY ============ -->
+    <section style="padding-top:52px;">
+      <div style="display:flex; align-items:baseline; gap:14px; margin-bottom:28px; padding-top:14px; border-top:1px solid var(--line);">
+        <span style="font-family:'Space Mono',monospace; font-size:12px; color:var(--accent); letter-spacing:1px;">02</span>
+        <h2 style="font-size:24px; font-weight:500; letter-spacing:-0.02em; margin:0;">Typography</h2>
+        <span style="font-family:'Space Mono',monospace; font-size:10px; letter-spacing:1.5px; text-transform:uppercase; color:var(--text-mute);">grotesk display · mono data</span>
+      </div>
+      <div style="display:grid; grid-template-columns:1.4fr 1fr; gap:40px; align-items:start;">
+        <div style="display:flex; flex-direction:column; gap:22px;">
+          <div style="display:flex; align-items:baseline; gap:16px; border-bottom:1px solid var(--line); padding-bottom:18px;"><span style="font-family:'Space Mono',monospace; font-size:10px; color:var(--text-mute); width:78px; flex:none;">DISPLAY / 600</span><span style="font-size:52px; font-weight:600; letter-spacing:-0.04em; line-height:1;">Untap, Upkeep</span></div>
+          <div style="display:flex; align-items:baseline; gap:16px; border-bottom:1px solid var(--line); padding-bottom:18px;"><span style="font-family:'Space Mono',monospace; font-size:10px; color:var(--text-mute); width:78px; flex:none;">H1 / 600</span><span style="font-size:34px; font-weight:600; letter-spacing:-0.03em;">Combat phase</span></div>
+          <div style="display:flex; align-items:baseline; gap:16px; border-bottom:1px solid var(--line); padding-bottom:18px;"><span style="font-family:'Space Mono',monospace; font-size:10px; color:var(--text-mute); width:78px; flex:none;">H2 / 500</span><span style="font-size:24px; font-weight:500; letter-spacing:-0.02em;">Declare attackers</span></div>
+          <div style="display:flex; align-items:baseline; gap:16px; border-bottom:1px solid var(--line); padding-bottom:18px;"><span style="font-family:'Space Mono',monospace; font-size:10px; color:var(--text-mute); width:78px; flex:none;">BODY / 300</span><span style="font-size:16px; font-weight:300; line-height:1.55; color:var(--text-dim);">Tap two Mountains, cast the spell, and pass priority. The log records every action.</span></div>
+          <div style="display:flex; align-items:baseline; gap:16px;"><span style="font-family:'Space Mono',monospace; font-size:10px; color:var(--text-mute); width:78px; flex:none;">LABEL / MONO</span><span style="font-family:'Space Mono',monospace; font-size:11px; letter-spacing:1.5px; text-transform:uppercase; color:var(--text-dim);">Deck · Discard · Exile</span></div>
+        </div>
+        <div style="border:1px solid var(--line); border-radius:4px; padding:26px;">
+          <p style="font-size:10px; letter-spacing:1.5px; text-transform:uppercase; color:var(--text-mute); font-family:'Space Mono',monospace; margin:0 0 18px;">Data readout — tabular mono</p>
+          <div style="font-family:'Space Mono',monospace; font-variant-numeric:tabular-nums;">
+            <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:14px;"><span style="font-size:12px; color:var(--text-dim);">LIFE</span><span style="font-size:40px; font-weight:700; letter-spacing:-0.02em;">40</span></div>
+            <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:14px;"><span style="font-size:12px; color:var(--text-dim);">DECK</span><span style="font-size:40px; font-weight:700; color:var(--accent); text-shadow:0 0 18px var(--glow);">92</span></div>
+            <div style="display:flex; justify-content:space-between; align-items:baseline;"><span style="font-size:12px; color:var(--text-dim);">DISCARD</span><span style="font-size:40px; font-weight:700; color:var(--text-mute);">01</span></div>
+          </div>
+          <p style="font-size:12px; line-height:1.5; color:var(--text-mute); margin:20px 0 0;">All game counts use Space Mono with tabular figures so digits never shift as numbers tick.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 03 RADIUS / SPACE / GLOW ============ -->
+    <section style="padding-top:52px;">
+      <div style="display:flex; align-items:baseline; gap:14px; margin-bottom:28px; padding-top:14px; border-top:1px solid var(--line);">
+        <span style="font-family:'Space Mono',monospace; font-size:12px; color:var(--accent); letter-spacing:1px;">03</span>
+        <h2 style="font-size:24px; font-weight:500; letter-spacing:-0.02em; margin:0;">Form &amp; Light</h2>
+        <span style="font-family:'Space Mono',monospace; font-size:10px; letter-spacing:1.5px; text-transform:uppercase; color:var(--text-mute);">radius · spacing · elevation glow</span>
+      </div>
+      <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:24px;">
+        <div>
+          <p style="font-size:10px; letter-spacing:1.5px; text-transform:uppercase; color:var(--text-mute); font-family:'Space Mono',monospace; margin:0 0 14px;">Radius · base 4</p>
+          <div style="display:flex; gap:10px; align-items:flex-end;">
+            <div style="text-align:center;"><div style="width:52px; height:52px; background:var(--surface-2); border:1px solid var(--line-2); border-radius:2px;"></div><span style="font-family:'Space Mono',monospace; font-size:10px; color:var(--text-mute);">2</span></div>
+            <div style="text-align:center;"><div style="width:52px; height:52px; background:var(--surface-2); border:1px solid var(--line-2); border-radius:4px;"></div><span style="font-family:'Space Mono',monospace; font-size:10px; color:var(--accent);">4</span></div>
+            <div style="text-align:center;"><div style="width:52px; height:52px; background:var(--surface-2); border:1px solid var(--line-2); border-radius:6px;"></div><span style="font-family:'Space Mono',monospace; font-size:10px; color:var(--text-mute);">6</span></div>
+            <div style="text-align:center;"><div style="width:52px; height:52px; background:var(--surface-2); border:1px solid var(--line-2); border-radius:8px;"></div><span style="font-family:'Space Mono',monospace; font-size:10px; color:var(--text-mute);">8</span></div>
+          </div>
+          <p style="font-size:12px; line-height:1.5; color:var(--text-mute); margin:16px 0 0;">Sharp, not soft. 4px on controls and panels; 2px for inner chips; up to 8px only on large containers.</p>
+        </div>
+        <div>
+          <p style="font-size:10px; letter-spacing:1.5px; text-transform:uppercase; color:var(--text-mute); font-family:'Space Mono',monospace; margin:0 0 14px;">Spacing · 4px grid</p>
+          <div style="display:flex; flex-direction:column; gap:7px;">
+            <div style="display:flex; align-items:center; gap:10px;"><div style="height:8px; width:4px; background:var(--accent);"></div><span style="font-family:'Space Mono',monospace; font-size:11px; color:var(--text-dim);">4</span></div>
+            <div style="display:flex; align-items:center; gap:10px;"><div style="height:8px; width:8px; background:var(--accent);"></div><span style="font-family:'Space Mono',monospace; font-size:11px; color:var(--text-dim);">8</span></div>
+            <div style="display:flex; align-items:center; gap:10px;"><div style="height:8px; width:12px; background:var(--accent);"></div><span style="font-family:'Space Mono',monospace; font-size:11px; color:var(--text-dim);">12</span></div>
+            <div style="display:flex; align-items:center; gap:10px;"><div style="height:8px; width:16px; background:var(--accent);"></div><span style="font-family:'Space Mono',monospace; font-size:11px; color:var(--text-dim);">16</span></div>
+            <div style="display:flex; align-items:center; gap:10px;"><div style="height:8px; width:24px; background:var(--accent);"></div><span style="font-family:'Space Mono',monospace; font-size:11px; color:var(--text-dim);">24</span></div>
+            <div style="display:flex; align-items:center; gap:10px;"><div style="height:8px; width:32px; background:var(--accent);"></div><span style="font-family:'Space Mono',monospace; font-size:11px; color:var(--text-dim);">32</span></div>
+          </div>
+        </div>
+        <div>
+          <p style="font-size:10px; letter-spacing:1.5px; text-transform:uppercase; color:var(--text-mute); font-family:'Space Mono',monospace; margin:0 0 14px;">Glow · elevation is light, not shadow</p>
+          <div style="display:flex; flex-direction:column; gap:12px;">
+            <div style="display:flex; align-items:center; gap:12px; padding:10px 13px; border:1px solid var(--line); border-radius:4px;"><span style="width:16px; height:16px; border-radius:3px; background:var(--accent);"></span><span style="font-size:12px; color:var(--text-dim);">Rest — 1px line</span></div>
+            <div style="display:flex; align-items:center; gap:12px; padding:10px 13px; border:1px solid var(--accent-line); border-radius:4px; box-shadow:0 0 14px var(--glow);"><span style="width:16px; height:16px; border-radius:3px; background:var(--accent); box-shadow:0 0 10px var(--glow-strong);"></span><span style="font-size:12px; color:var(--text-dim);">Focus — soft glow</span></div>
+            <div style="display:flex; align-items:center; gap:12px; padding:10px 13px; border:1px solid var(--accent); border-radius:4px; box-shadow:0 0 26px var(--glow-strong);"><span style="width:16px; height:16px; border-radius:3px; background:var(--accent); box-shadow:0 0 16px var(--glow-strong);"></span><span style="font-size:12px; color:var(--text-dim);">Active — full bloom</span></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 04 BUTTONS ============ -->
+    <section style="padding-top:52px;">
+      <div style="display:flex; align-items:baseline; gap:14px; margin-bottom:28px; padding-top:14px; border-top:1px solid var(--line);">
+        <span style="font-family:'Space Mono',monospace; font-size:12px; color:var(--accent); letter-spacing:1px;">04</span>
+        <h2 style="font-size:24px; font-weight:500; letter-spacing:-0.02em; margin:0;">Buttons</h2>
+        <span style="font-family:'Space Mono',monospace; font-size:10px; letter-spacing:1.5px; text-transform:uppercase; color:var(--text-mute);">hover the live examples</span>
+      </div>
+      <div style="border:1px solid var(--line); border-radius:6px; padding:30px; background:var(--bg-2);">
+        <div style="display:flex; gap:14px; flex-wrap:wrap; align-items:center; margin-bottom:26px;">
+          <button style="background:var(--accent); color:#0a0410; border:none; border-radius:4px; font-family:'Space Grotesk',sans-serif; font-size:14px; font-weight:600; letter-spacing:-0.01em; padding:11px 20px; cursor:pointer; box-shadow:0 0 0 1px var(--accent-line), 0 0 18px var(--glow); transition:all .16s cubic-bezier(.2,.7,.2,1);" style-hover="transform:translateY(-2px); box-shadow:0 0 0 1px var(--accent), 0 6px 22px var(--glow-strong);">Primary</button>
+          <button style="background:var(--surface); color:var(--text); border:1px solid var(--line-2); border-radius:4px; font-family:'Space Grotesk',sans-serif; font-size:14px; font-weight:500; padding:11px 20px; cursor:pointer; transition:all .16s ease;" style-hover="border-color:var(--accent); box-shadow:0 0 0 1px var(--accent-line), 0 0 16px var(--glow);">Secondary</button>
+          <button style="background:transparent; color:var(--text-dim); border:1px solid transparent; border-radius:4px; font-family:'Space Grotesk',sans-serif; font-size:14px; font-weight:500; padding:11px 20px; cursor:pointer; transition:all .16s ease;" style-hover="color:var(--text); background:var(--surface); border-color:var(--line);">Ghost</button>
+          <button style="background:transparent; color:var(--danger); border:1px solid rgba(255,92,122,.35); border-radius:4px; font-family:'Space Grotesk',sans-serif; font-size:14px; font-weight:500; padding:11px 20px; cursor:pointer; transition:all .16s ease;" style-hover="background:rgba(255,92,122,.12); border-color:var(--danger); box-shadow:0 0 16px rgba(255,92,122,.3);">Destroy</button>
+          <button style="background:var(--surface); color:var(--text); border:1px solid var(--line-2); border-radius:4px; font-size:16px; padding:9px 13px; cursor:pointer; transition:all .16s ease; line-height:1;" style-hover="border-color:var(--accent); color:var(--accent); box-shadow:0 0 14px var(--glow);">+</button>
+          <button disabled style="background:var(--surface); color:var(--text-mute); border:1px solid var(--line); border-radius:4px; font-family:'Space Grotesk',sans-serif; font-size:14px; font-weight:500; padding:11px 20px; cursor:not-allowed; opacity:.5;">Disabled</button>
+        </div>
+        <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:0; border-top:1px solid var(--line); padding-top:18px;">
+          <div style="font-family:'Space Mono',monospace; font-size:10px; letter-spacing:1px; text-transform:uppercase; color:var(--text-mute); line-height:1.7;">Primary<br/>brand action, one per view</div>
+          <div style="font-family:'Space Mono',monospace; font-size:10px; letter-spacing:1px; text-transform:uppercase; color:var(--text-mute); line-height:1.7;">Secondary<br/>common actions</div>
+          <div style="font-family:'Space Mono',monospace; font-size:10px; letter-spacing:1px; text-transform:uppercase; color:var(--text-mute); line-height:1.7;">Ghost<br/>toolbar, low emphasis</div>
+          <div style="font-family:'Space Mono',monospace; font-size:10px; letter-spacing:1px; text-transform:uppercase; color:var(--text-mute); line-height:1.7;">Destroy<br/>irreversible only</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 05 TOOLBAR ============ -->
+    <section style="padding-top:52px;">
+      <div style="display:flex; align-items:baseline; gap:14px; margin-bottom:28px; padding-top:14px; border-top:1px solid var(--line);">
+        <span style="font-family:'Space Mono',monospace; font-size:12px; color:var(--accent); letter-spacing:1px;">05</span>
+        <h2 style="font-size:24px; font-weight:500; letter-spacing:-0.02em; margin:0;">Top toolbar</h2>
+        <span style="font-family:'Space Mono',monospace; font-size:10px; letter-spacing:1.5px; text-transform:uppercase; color:var(--text-mute);">applied</span>
+      </div>
+      <div style="border:1px solid var(--line); border-radius:6px; overflow:hidden; background:var(--bg-2);">
+        <div style="display:flex; align-items:center; justify-content:space-between; padding:11px 16px; border-bottom:1px solid var(--line); background:linear-gradient(180deg, var(--surface), transparent);">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <button style="display:flex; align-items:center; gap:8px; background:var(--accent); color:#0a0410; border:none; border-radius:4px; font-family:'Space Grotesk',sans-serif; font-size:13px; font-weight:600; padding:9px 15px; cursor:pointer; box-shadow:0 0 16px var(--glow); transition:all .16s ease;" style-hover="transform:translateY(-1px); box-shadow:0 4px 20px var(--glow-strong);"><span style="width:6px; height:6px; border-radius:1px; background:#0a0410;"></span>Choose Deck</button>
+            <button style="background:transparent; color:var(--text-dim); border:1px solid transparent; border-radius:4px; font-family:'Space Grotesk',sans-serif; font-size:13px; padding:9px 14px; cursor:pointer; transition:all .16s ease;" style-hover="color:var(--text); background:var(--surface);">Hotkeys</button>
+            <button style="background:transparent; color:var(--text-dim); border:1px solid transparent; border-radius:4px; font-family:'Space Grotesk',sans-serif; font-size:13px; padding:9px 14px; cursor:pointer; transition:all .16s ease;" style-hover="color:var(--text); background:var(--surface);">Help</button>
+            <button style="display:flex; align-items:center; gap:8px; background:var(--surface); color:var(--text); border:1px solid var(--line-2); border-radius:4px; font-family:'Space Grotesk',sans-serif; font-size:13px; padding:8px 14px; cursor:pointer; transition:all .16s ease;" style-hover="border-color:var(--accent-2); box-shadow:0 0 14px rgba(110,123,255,.4);"><span style="width:14px; height:11px; border-radius:2px; background:var(--accent-2);"></span>Discord</button>
+          </div>
+          <div style="display:flex; align-items:center; gap:14px;">
+            <div style="display:flex; align-items:center; gap:8px; font-family:'Space Mono',monospace; font-size:11px; letter-spacing:1px; text-transform:uppercase; color:var(--good);"><span style="width:7px; height:7px; border-radius:50%; background:var(--good); box-shadow:0 0 8px var(--good); animation:blink 2.4s ease-in-out infinite;"></span>Connected</div>
+            <button style="display:flex; align-items:center; gap:8px; background:transparent; color:var(--text-dim); border:1px solid var(--line-2); border-radius:4px; font-family:'Space Mono',monospace; font-size:11px; letter-spacing:1px; text-transform:uppercase; padding:8px 13px; cursor:pointer; transition:all .16s ease;" style-hover="color:var(--text); border-color:var(--accent); box-shadow:0 0 14px var(--glow);">Copy Link<svg width="12" height="12" viewBox="0 0 12 12" fill="none" style="opacity:.7;"><rect x="1" y="3" width="6" height="7" rx="1" stroke="currentColor"/><rect x="4.5" y="1" width="6" height="7" rx="1" stroke="currentColor"/></svg></button>
+          </div>
+        </div>
+        <div style="display:flex; gap:8px; padding:10px 16px;">
+          <button style="background:var(--surface); color:var(--text); border:1px solid var(--line); border-radius:4px; font-family:'Space Grotesk',sans-serif; font-size:12px; padding:7px 13px; cursor:pointer;">Untap All</button>
+          <button style="background:var(--surface); color:var(--text); border:1px solid var(--line); border-radius:4px; font-family:'Space Grotesk',sans-serif; font-size:12px; padding:7px 13px; cursor:pointer;">Draw</button>
+          <button style="background:var(--surface); color:var(--text); border:1px solid var(--line); border-radius:4px; font-family:'Space Grotesk',sans-serif; font-size:12px; padding:7px 13px; cursor:pointer;">Pass</button>
+          <button style="background:var(--surface); color:var(--text); border:1px solid var(--line); border-radius:4px; font-family:'Space Grotesk',sans-serif; font-size:12px; padding:7px 13px; cursor:pointer; display:flex; align-items:center; gap:6px;">Actions <span style="opacity:.5; font-size:9px;">▾</span></button>
+          <button style="background:var(--surface); color:var(--text); border:1px solid var(--line); border-radius:4px; font-family:'Space Grotesk',sans-serif; font-size:12px; padding:7px 13px; cursor:pointer; display:flex; align-items:center; gap:6px;">Create <span style="opacity:.5; font-size:9px;">▾</span></button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 06 PLAYER PANEL + 07 ZONES ============ -->
+    <section style="padding-top:52px;">
+      <div style="display:flex; align-items:baseline; gap:14px; margin-bottom:28px; padding-top:14px; border-top:1px solid var(--line);">
+        <span style="font-family:'Space Mono',monospace; font-size:12px; color:var(--accent); letter-spacing:1px;">06</span>
+        <h2 style="font-size:24px; font-weight:500; letter-spacing:-0.02em; margin:0;">Player &amp; Zones</h2>
+        <span style="font-family:'Space Mono',monospace; font-size:10px; letter-spacing:1.5px; text-transform:uppercase; color:var(--text-mute);">interactive — tap the steppers</span>
+      </div>
+      <div style="display:grid; grid-template-columns:280px 1fr; gap:24px; align-items:start;">
+
+        <!-- Player panel -->
+        <div style="position:relative; border-radius:6px; padding:1px; background:var(--line-2); overflow:hidden;">
+          <div style="position:absolute; inset:-70%; background:conic-gradient(from 0deg, transparent 0deg, transparent 244deg, var(--accent-2) 296deg, var(--accent) 338deg, #ffffff 356deg, transparent 360deg); animation:spin 3.4s linear infinite;"></div>
+          <div style="position:relative; border-radius:5px; padding:22px; background:var(--bg-2); overflow:hidden;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+            <span style="font-family:'Space Mono',monospace; font-size:11px; letter-spacing:2px; text-transform:uppercase; color:var(--text-dim);">Ken</span>
+            <span style="font-family:'Space Mono',monospace; font-size:10px; letter-spacing:1px; color:var(--text-mute);">YOU</span>
+          </div>
+          <div style="display:flex; align-items:center; gap:16px; margin:8px 0 18px;">
+            <span ref="{{ lifeNumRef }}" style="font-family:'Space Mono',monospace; font-size:64px; font-weight:700; line-height:1; letter-spacing:-0.03em; text-shadow:0 0 24px var(--glow);">{{ life }}</span>
+            <div style="flex:1;"><div style="height:4px; border-radius:2px; background:var(--surface-2); overflow:hidden;"><div style="height:100%; width:100%; background:linear-gradient(90deg, var(--accent-2), var(--accent)); box-shadow:0 0 8px var(--glow);"></div></div><span style="font-family:'Space Mono',monospace; font-size:10px; color:var(--text-mute); letter-spacing:1px; display:block; margin-top:6px;">LIFE</span></div>
+          </div>
+          <div style="display:flex; gap:8px;">
+            <button onClick="{{ lifeDown }}" style="flex:1; background:var(--surface); color:var(--text); border:1px solid var(--line-2); border-radius:4px; font-size:20px; padding:8px; cursor:pointer; line-height:1; transition:all .16s ease;" style-hover="border-color:var(--danger); color:var(--danger); box-shadow:0 0 14px rgba(255,92,122,.3);">−</button>
+            <button onClick="{{ lifeUp }}" style="flex:1; background:var(--surface); color:var(--text); border:1px solid var(--line-2); border-radius:4px; font-size:20px; padding:8px; cursor:pointer; line-height:1; transition:all .16s ease;" style-hover="border-color:var(--good); color:var(--good); box-shadow:0 0 14px rgba(57,217,138,.3);">+</button>
+          </div>
+          </div>
+        </div>
+
+        <!-- Zone counters -->
+        <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:14px;">
+          <!-- Deck (active) -->
+          <div style="border:1px solid var(--accent-line); border-radius:6px; padding:18px 16px; background:var(--bg-2); box-shadow:0 0 20px var(--glow); position:relative;">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+              <span style="font-family:'Space Mono',monospace; font-size:10px; letter-spacing:1.5px; text-transform:uppercase; color:var(--accent);">Deck</span>
+              <button onClick="{{ deckReturn }}" title="return a card" style="background:var(--surface); color:var(--text-dim); border:1px solid var(--line); border-radius:3px; font-size:12px; line-height:1; padding:4px 7px; cursor:pointer; transition:all .16s ease;" style-hover="color:var(--accent); border-color:var(--accent-line);">↺</button>
+            </div>
+            <div style="display:flex; gap:1px; margin-top:2px; color:var(--accent); text-shadow:0 0 20px var(--glow);">
+              <div style="height:48px; overflow:hidden;"><div style="{{ tensReelStyle }}"><div style="height:48px; font-family:'Space Mono',monospace; font-size:44px; font-weight:700; line-height:48px; text-align:center;">9</div><div style="height:48px; font-family:'Space Mono',monospace; font-size:44px; font-weight:700; line-height:48px; text-align:center;">8</div><div style="height:48px; font-family:'Space Mono',monospace; font-size:44px; font-weight:700; line-height:48px; text-align:center;">7</div><div style="height:48px; font-family:'Space Mono',monospace; font-size:44px; font-weight:700; line-height:48px; text-align:center;">6</div><div style="height:48px; font-family:'Space Mono',monospace; font-size:44px; font-weight:700; line-height:48px; text-align:center;">5</div><div style="height:48px; font-family:'Space Mono',monospace; font-size:44px; font-weight:700; line-height:48px; text-align:center;">4</div><div style="height:48px; font-family:'Space Mono',monospace; font-size:44px; font-weight:700; line-height:48px; text-align:center;">3</div><div style="height:48px; font-family:'Space Mono',monospace; font-size:44px; font-weight:700; line-height:48px; text-align:center;">2</div><div style="height:48px; font-family:'Space Mono',monospace; font-size:44px; font-weight:700; line-height:48px; text-align:center;">1</div><div style="height:48px; font-family:'Space Mono',monospace; font-size:44px; font-weight:700; line-height:48px; text-align:center;">0</div></div></div>
+              <div style="height:48px; overflow:hidden;"><div style="{{ unitsReelStyle }}"><div style="height:48px; font-family:'Space Mono',monospace; font-size:44px; font-weight:700; line-height:48px; text-align:center;">9</div><div style="height:48px; font-family:'Space Mono',monospace; font-size:44px; font-weight:700; line-height:48px; text-align:center;">8</div><div style="height:48px; font-family:'Space Mono',monospace; font-size:44px; font-weight:700; line-height:48px; text-align:center;">7</div><div style="height:48px; font-family:'Space Mono',monospace; font-size:44px; font-weight:700; line-height:48px; text-align:center;">6</div><div style="height:48px; font-family:'Space Mono',monospace; font-size:44px; font-weight:700; line-height:48px; text-align:center;">5</div><div style="height:48px; font-family:'Space Mono',monospace; font-size:44px; font-weight:700; line-height:48px; text-align:center;">4</div><div style="height:48px; font-family:'Space Mono',monospace; font-size:44px; font-weight:700; line-height:48px; text-align:center;">3</div><div style="height:48px; font-family:'Space Mono',monospace; font-size:44px; font-weight:700; line-height:48px; text-align:center;">2</div><div style="height:48px; font-family:'Space Mono',monospace; font-size:44px; font-weight:700; line-height:48px; text-align:center;">1</div><div style="height:48px; font-family:'Space Mono',monospace; font-size:44px; font-weight:700; line-height:48px; text-align:center;">0</div></div></div>
+            </div>
+            <button onClick="{{ draw }}" style="width:100%; margin-top:12px; background:var(--accent); color:#0a0410; border:none; border-radius:4px; font-family:'Space Grotesk',sans-serif; font-size:13px; font-weight:600; padding:8px; cursor:pointer; box-shadow:0 0 16px var(--glow); transition:all .16s ease;" style-hover="transform:translateY(-1px); box-shadow:0 4px 20px var(--glow-strong);">Draw</button>
+          </div>
+          <!-- Discard -->
+          <div style="border:1px solid var(--line); border-radius:6px; padding:18px 16px; background:var(--bg-2); transition:all .16s ease;" style-hover="border-color:var(--line-2);">
+            <span style="font-family:'Space Mono',monospace; font-size:10px; letter-spacing:1.5px; text-transform:uppercase; color:var(--text-dim);">Discard</span>
+            <div style="font-family:'Space Mono',monospace; font-size:44px; font-weight:700; line-height:1.1; letter-spacing:-0.02em; color:var(--text-mute);">01</div>
+            <div style="margin-top:12px; height:33px; border:1px dashed var(--line); border-radius:4px; display:flex; align-items:center; justify-content:center; font-family:'Space Mono',monospace; font-size:10px; letter-spacing:1px; color:var(--text-mute);">DROP</div>
+          </div>
+          <!-- Exile -->
+          <div style="border:1px solid var(--line); border-radius:6px; padding:18px 16px; background:var(--bg-2); transition:all .16s ease;" style-hover="border-color:var(--line-2);">
+            <span style="font-family:'Space Mono',monospace; font-size:10px; letter-spacing:1.5px; text-transform:uppercase; color:var(--text-dim);">Exile</span>
+            <div style="font-family:'Space Mono',monospace; font-size:44px; font-weight:700; line-height:1.1; letter-spacing:-0.02em; color:var(--text-mute);">00</div>
+            <div style="margin-top:12px; height:33px; border:1px dashed var(--line); border-radius:4px; display:flex; align-items:center; justify-content:center; font-family:'Space Mono',monospace; font-size:10px; letter-spacing:1px; color:var(--text-mute);">EMPTY</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 08 MENUS ============ -->
+    <section style="padding-top:52px;">
+      <div style="display:flex; align-items:baseline; gap:14px; margin-bottom:28px; padding-top:14px; border-top:1px solid var(--line);">
+        <span style="font-family:'Space Mono',monospace; font-size:12px; color:var(--accent); letter-spacing:1px;">07</span>
+        <h2 style="font-size:24px; font-weight:500; letter-spacing:-0.02em; margin:0;">Menus</h2>
+        <span style="font-family:'Space Mono',monospace; font-size:10px; letter-spacing:1.5px; text-transform:uppercase; color:var(--text-mute);">dropdown · open state</span>
+      </div>
+      <div style="display:flex; gap:40px; align-items:flex-start;">
+        <div style="width:220px;">
+          <button style="width:100%; display:flex; align-items:center; justify-content:space-between; background:var(--surface); color:var(--text); border:1px solid var(--accent); border-radius:4px; font-family:'Space Grotesk',sans-serif; font-size:13px; padding:9px 14px; cursor:pointer; box-shadow:0 0 14px var(--glow);">Actions <span style="opacity:.6; font-size:9px;">▴</span></button>
+          <div style="margin-top:6px; border:1px solid var(--line-2); border-radius:4px; background:var(--bg-2); overflow:hidden; box-shadow:0 12px 40px rgba(0,0,0,.5), 0 0 0 1px var(--line);">
+            <div style="padding:10px 14px; font-size:13px; color:var(--text); cursor:pointer; border-left:2px solid var(--accent); background:var(--accent-soft);">Mulligan</div>
+            <div style="padding:10px 14px; font-size:13px; color:var(--text-dim); cursor:pointer; border-left:2px solid transparent;">Shuffle deck</div>
+            <div style="padding:10px 14px; font-size:13px; color:var(--text-dim); cursor:pointer; border-left:2px solid transparent;">Reveal hand</div>
+            <div style="height:1px; background:var(--line);"></div>
+            <div style="padding:10px 14px; font-size:13px; color:var(--danger); cursor:pointer; border-left:2px solid transparent;">Concede</div>
+          </div>
+        </div>
+        <p style="font-size:13px; line-height:1.6; color:var(--text-dim); max-width:40ch; margin:0; font-weight:300;">Menus float on a raised surface with a hairline outline and a deep shadow — the one place shadow is allowed, because the sheet leaves the plane. The active row is marked with a 2px accent rail and a faint purple wash, never a full fill.</p>
+      </div>
+    </section>
+
+    <!-- ============ 09 CARD STATES ============ -->
+    <section style="padding-top:52px;">
+      <div style="display:flex; align-items:baseline; gap:14px; margin-bottom:28px; padding-top:14px; border-top:1px solid var(--line);">
+        <span style="font-family:'Space Mono',monospace; font-size:12px; color:var(--accent); letter-spacing:1px;">08</span>
+        <h2 style="font-size:24px; font-weight:500; letter-spacing:-0.02em; margin:0;">Card states</h2>
+        <span style="font-family:'Space Mono',monospace; font-size:10px; letter-spacing:1.5px; text-transform:uppercase; color:var(--text-mute);">interactive — switch states</span>
+      </div>
+      <div style="border:1px solid var(--line); border-radius:6px; padding:34px; background:var(--bg-2); display:flex; gap:44px; align-items:center; flex-wrap:wrap;">
+        <!-- Live card -->
+        <div style="width:200px; height:280px; display:flex; align-items:center; justify-content:center; flex:none;">
+          <div style="{{ cardStyle }}">
+            <div style="height:100%; display:flex; flex-direction:column; padding:8px; gap:6px;">
+              <div style="display:flex; justify-content:space-between; align-items:center;"><span style="font-size:12px; font-weight:600;">Goblin Warchief</span><span style="width:16px; height:16px; border-radius:50%; background:#E5484D; box-shadow:0 0 0 1px rgba(0,0,0,.3);"></span></div>
+              <div style="flex:1; border-radius:3px; background:repeating-linear-gradient(135deg, var(--surface-2) 0 8px, transparent 8px 16px), var(--bg); display:flex; align-items:center; justify-content:center; animation:floatArt 5s ease-in-out infinite;"><span style="font-family:'Space Mono',monospace; font-size:9px; letter-spacing:1.5px; color:var(--text-mute);">CARD ART</span></div>
+              <div style="font-family:'Space Mono',monospace; font-size:8px; letter-spacing:.5px; color:var(--text-dim); text-transform:uppercase;">Creature — Goblin</div>
+              <div style="display:flex; flex-direction:column; gap:3px;"><div style="height:3px; width:90%; background:var(--surface-2); border-radius:2px;"></div><div style="height:3px; width:70%; background:var(--surface-2); border-radius:2px;"></div></div>
+              <div style="display:flex; justify-content:flex-end;"><span style="font-family:'Space Mono',monospace; font-size:11px; font-weight:700;">2/2</span></div>
+            </div>
+          </div>
+        </div>
+        <div style="flex:1; min-width:240px;">
+          <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:20px;">
+            <button onClick="{{ cardDefault }}" style="background:var(--surface); color:var(--text); border:1px solid var(--line-2); border-radius:4px; font-family:'Space Mono',monospace; font-size:11px; letter-spacing:1px; text-transform:uppercase; padding:8px 13px; cursor:pointer; transition:all .16s ease;" style-hover="border-color:var(--accent);">Default</button>
+            <button onClick="{{ cardHover }}" style="background:var(--surface); color:var(--text); border:1px solid var(--line-2); border-radius:4px; font-family:'Space Mono',monospace; font-size:11px; letter-spacing:1px; text-transform:uppercase; padding:8px 13px; cursor:pointer; transition:all .16s ease;" style-hover="border-color:var(--accent);">Hover</button>
+            <button onClick="{{ cardTapped }}" style="background:var(--surface); color:var(--text); border:1px solid var(--line-2); border-radius:4px; font-family:'Space Mono',monospace; font-size:11px; letter-spacing:1px; text-transform:uppercase; padding:8px 13px; cursor:pointer; transition:all .16s ease;" style-hover="border-color:var(--accent);">Tapped</button>
+            <button onClick="{{ cardTargeted }}" style="background:var(--surface); color:var(--text); border:1px solid var(--line-2); border-radius:4px; font-family:'Space Mono',monospace; font-size:11px; letter-spacing:1px; text-transform:uppercase; padding:8px 13px; cursor:pointer; transition:all .16s ease;" style-hover="border-color:var(--accent);">Targeted</button>
+          </div>
+          <div style="font-family:'Space Mono',monospace; font-size:11px; letter-spacing:1px; color:var(--accent); text-transform:uppercase; margin-bottom:8px;">State · {{ card }}</div>
+          <p style="font-size:13px; line-height:1.6; color:var(--text-dim); font-weight:300; max-width:44ch; margin:0;">Rest is a bare 1px frame. Hover lifts and blooms. Tapped rotates 20° with no glow — spent, quiet. Targeted pulses a continuous purple aura so the play reads instantly across the table. Every transition is spring-eased and under 200ms.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 10 MOTION ============ -->
+    <section style="padding-top:52px;">
+      <div style="display:flex; align-items:baseline; gap:14px; margin-bottom:28px; padding-top:14px; border-top:1px solid var(--line);">
+        <span style="font-family:'Space Mono',monospace; font-size:12px; color:var(--accent); letter-spacing:1px;">09</span>
+        <h2 style="font-size:24px; font-weight:500; letter-spacing:-0.02em; margin:0;">Motion</h2>
+        <span style="font-family:'Space Mono',monospace; font-size:10px; letter-spacing:1.5px; text-transform:uppercase; color:var(--text-mute);">snappy chrome · dramatic moments</span>
+      </div>
+      <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:16px;">
+        <div style="border:1px solid var(--line); border-radius:6px; padding:22px; background:var(--bg-2);">
+          <div style="height:70px; display:flex; align-items:center; justify-content:center; margin-bottom:16px;"><div style="width:44px; height:44px; border-radius:4px; background:var(--accent); animation:pulseGlow 1.6s ease-in-out infinite;"></div></div>
+          <div style="font-size:14px; font-weight:600; margin-bottom:4px;">Priority pulse</div>
+          <p style="font-family:'Space Mono',monospace; font-size:11px; color:var(--text-mute); line-height:1.5; margin:0;">Loops on whoever holds priority. Slow, breathing, never annoying.</p>
+        </div>
+        <div style="border:1px solid var(--line); border-radius:6px; padding:22px; background:var(--bg-2);">
+          <div style="height:70px; display:flex; align-items:center; justify-content:center; margin-bottom:16px;"><div style="width:56px; height:56px; border:1.5px dashed var(--accent); border-radius:6px; animation:spinReticle 6s linear infinite;"></div></div>
+          <div style="font-size:14px; font-weight:600; margin-bottom:4px;">Target reticle</div>
+          <p style="font-family:'Space Mono',monospace; font-size:11px; color:var(--text-mute); line-height:1.5; margin:0;">Rotating dashed ring while choosing a target. Reads at a glance.</p>
+        </div>
+        <div style="border:1px solid var(--line); border-radius:6px; padding:22px; background:var(--bg-2);">
+          <div style="height:70px; display:flex; align-items:center; justify-content:center; margin-bottom:16px;"><div ref="{{ burstRef }}" style="width:44px; height:44px; border-radius:4px; background:radial-gradient(circle, var(--accent), var(--accent-2)); box-shadow:0 0 30px var(--glow-strong); opacity:.5;"></div></div>
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:4px;"><span style="font-size:14px; font-weight:600;">Big moment</span><button onClick="{{ triggerBurst }}" style="background:var(--surface); color:var(--accent); border:1px solid var(--accent-line); border-radius:4px; font-family:'Space Mono',monospace; font-size:10px; letter-spacing:1px; text-transform:uppercase; padding:5px 10px; cursor:pointer;">Fire</button></div>
+          <p style="font-family:'Space Mono',monospace; font-size:11px; color:var(--text-mute); line-height:1.5; margin:0;">Reserved for kills, combos, wins. Earn it — one per swing.</p>
+        </div>
+      </div>
+      <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:20px;">
+        <span style="font-family:'Space Mono',monospace; font-size:11px; color:var(--text-dim); background:var(--surface); border:1px solid var(--line); border-radius:3px; padding:6px 11px;">Micro · 120–180ms</span>
+        <span style="font-family:'Space Mono',monospace; font-size:11px; color:var(--text-dim); background:var(--surface); border:1px solid var(--line); border-radius:3px; padding:6px 11px;">Ease · cubic-bezier(.2,.7,.2,1)</span>
+        <span style="font-family:'Space Mono',monospace; font-size:11px; color:var(--text-dim); background:var(--surface); border:1px solid var(--line); border-radius:3px; padding:6px 11px;">Moments · 400–700ms</span>
+      </div>
+    </section>
+
+    <!-- ============ 10 BOARD / RIPPLES ============ -->
+    <section style="padding-top:52px;">
+      <div style="display:flex; align-items:baseline; gap:14px; margin-bottom:28px; padding-top:14px; border-top:1px solid var(--line);">
+        <span style="font-family:'Space Mono',monospace; font-size:12px; color:var(--accent); letter-spacing:1px;">10</span>
+        <h2 style="font-size:24px; font-weight:500; letter-spacing:-0.02em; margin:0;">Board &amp; spellcast</h2>
+        <span style="font-family:'Space Mono',monospace; font-size:10px; letter-spacing:1.5px; text-transform:uppercase; color:var(--text-mute);">cast a card — or click the board</span>
+      </div>
+      <div ref="{{ boardRef }}" onClick="{{ boardClick }}" style="position:relative; height:280px; border:1px solid var(--line); border-radius:6px; overflow:hidden; cursor:crosshair; background-color:var(--bg-2); background-image:radial-gradient(circle at 1px 1px, var(--line-2) 1.4px, transparent 0); background-size:22px 22px;">
+        <div style="position:absolute; inset:0; background:radial-gradient(ellipse at 50% 50%, transparent 40%, rgba(0,0,0,.35)); pointer-events:none;"></div>
+        <div style="position:absolute; left:14px; bottom:12px; font-family:'Space Mono',monospace; font-size:10px; letter-spacing:1.5px; color:var(--text-mute); pointer-events:none;">RIPPLE SIZE ∝ MANA COST · HUE ∝ COLOR</div>
+      </div>
+      <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:14px;">
+        <button onClick="{{ castU }}" style="display:flex; align-items:center; gap:8px; background:var(--surface); color:var(--text); border:1px solid var(--line-2); border-radius:4px; font-family:'Space Grotesk',sans-serif; font-size:13px; padding:9px 14px; cursor:pointer; transition:all .16s ease;" style-hover="border-color:#4A90E2; box-shadow:0 0 14px rgba(74,144,226,.4);"><span style="width:14px; height:14px; border-radius:50%; background:#4A90E2;"></span>Blue · 1</button>
+        <button onClick="{{ castR }}" style="display:flex; align-items:center; gap:8px; background:var(--surface); color:var(--text); border:1px solid var(--line-2); border-radius:4px; font-family:'Space Grotesk',sans-serif; font-size:13px; padding:9px 14px; cursor:pointer; transition:all .16s ease;" style-hover="border-color:#E5484D; box-shadow:0 0 14px rgba(229,72,77,.4);"><span style="width:14px; height:14px; border-radius:50%; background:#E5484D;"></span>Red · 3</button>
+        <button onClick="{{ castBomb }}" style="display:flex; align-items:center; gap:8px; background:var(--surface); color:var(--text); border:1px solid var(--line-2); border-radius:4px; font-family:'Space Grotesk',sans-serif; font-size:13px; padding:9px 14px; cursor:pointer; transition:all .16s ease;" style-hover="border-color:var(--accent); box-shadow:0 0 14px var(--glow);"><span style="width:14px; height:14px; border-radius:50%; background:var(--accent);"></span>Bomb · 6</button>
+        <button onClick="{{ castEldrazi }}" style="display:flex; align-items:center; gap:8px; background:var(--surface); color:var(--text); border:1px solid var(--line-2); border-radius:4px; font-family:'Space Grotesk',sans-serif; font-size:13px; padding:9px 14px; cursor:pointer; transition:all .16s ease;" style-hover="border-color:#E9C46A; box-shadow:0 0 14px rgba(233,196,106,.4);"><span style="width:14px; height:14px; border-radius:50%; background:#E9C46A;"></span>Colorless · 9</button>
+      </div>
+    </section>
+
+    <!-- ============ 11 DEPENDENCIES ============ -->
+    <section style="padding-top:52px;">
+      <div style="display:flex; align-items:baseline; gap:14px; margin-bottom:28px; padding-top:14px; border-top:1px solid var(--line);">
+        <span style="font-family:'Space Mono',monospace; font-size:12px; color:var(--accent); letter-spacing:1px;">11</span>
+        <h2 style="font-size:24px; font-weight:500; letter-spacing:-0.02em; margin:0;">Dependencies</h2>
+        <span style="font-family:'Space Mono',monospace; font-size:10px; letter-spacing:1.5px; text-transform:uppercase; color:var(--text-mute);">equip · enchant · attach</span>
+      </div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+        <!-- Equip -->
+        <div style="border:1px solid var(--line); border-radius:6px; padding:22px; background:var(--bg-2);">
+          <div style="position:relative; width:100%; height:180px;">
+            <div style="position:absolute; left:16px; top:34px; width:92px; height:128px; border-radius:4px; border:1px solid var(--line-2); background:linear-gradient(160deg,#2a2320,#14100e); display:flex; flex-direction:column; justify-content:space-between; padding:7px;"><span style="font-size:9px; font-weight:600;">Goblin</span><span style="font-family:'Space Mono',monospace; font-size:10px; font-weight:700; align-self:flex-end;">4/3</span></div>
+            <div style="position:absolute; right:16px; top:34px; width:92px; height:128px; border-radius:4px; border:1px solid var(--warn); background:linear-gradient(160deg,#2a2416,#15120a); box-shadow:0 0 16px rgba(255,196,107,.25); display:flex; flex-direction:column; justify-content:space-between; padding:7px;"><span style="font-size:9px; font-weight:600; color:var(--warn);">Bonesaw</span><span style="font-family:'Space Mono',monospace; font-size:9px; color:var(--text-dim); align-self:flex-end;">+2/+0</span></div>
+            <svg viewBox="0 0 300 180" style="position:absolute; inset:0; width:100%; height:100%; pointer-events:none; overflow:visible;">
+              <path id="equipPath" d="M198 60 C 165 12, 130 12, 100 60" fill="none" stroke="var(--warn)" stroke-width="1.5" stroke-dasharray="5 5" style="animation:dashFlow 1s linear infinite; filter:drop-shadow(0 0 4px rgba(255,196,107,.6));"/>
+              <circle r="3.5" fill="var(--warn)" style="filter:drop-shadow(0 0 6px var(--warn));"><animateMotion dur="1.9s" repeatCount="indefinite" keyPoints="0;1" keyTimes="0;1" calcMode="linear"><mpath href="#equipPath"/></animateMotion></circle>
+            </svg>
+          </div>
+          <div style="font-family:'Space Mono',monospace; font-size:11px; letter-spacing:1px; text-transform:uppercase; color:var(--warn); margin-top:4px;">Equip</div>
+          <p style="font-size:12px; line-height:1.5; color:var(--text-mute); margin:6px 0 0;">A directional filament ties the equipment to its bearer. Energy flows toward the creature; sever it and the link snaps.</p>
+        </div>
+        <!-- Enchant -->
+        <div style="border:1px solid var(--line); border-radius:6px; padding:22px; background:var(--bg-2);">
+          <div style="position:relative; width:100%; height:180px;">
+            <div style="position:absolute; left:16px; top:34px; width:92px; height:128px; border-radius:4px; border:1px solid var(--line-2); background:linear-gradient(160deg,#20242a,#0e1014); display:flex; flex-direction:column; justify-content:space-between; padding:7px;"><span style="font-size:9px; font-weight:600;">Sphinx</span><span style="font-family:'Space Mono',monospace; font-size:10px; font-weight:700; align-self:flex-end;">5/6</span></div>
+            <div style="position:absolute; right:16px; top:34px; width:92px; height:128px; border-radius:4px; border:1px solid var(--accent-2); background:linear-gradient(160deg,#1c1e34,#0d0e1a); box-shadow:0 0 16px rgba(110,123,255,.3); display:flex; flex-direction:column; justify-content:space-between; padding:7px;"><span style="font-size:9px; font-weight:600; color:var(--accent-2);">Flight</span><span style="font-family:'Space Mono',monospace; font-size:9px; color:var(--text-dim); align-self:flex-end;">Aura</span></div>
+            <svg viewBox="0 0 300 180" style="position:absolute; inset:0; width:100%; height:100%; pointer-events:none; overflow:visible;">
+              <path id="auraPath" d="M198 60 C 165 12, 130 12, 100 60" fill="none" stroke="var(--accent-2)" stroke-width="1.5" stroke-dasharray="2 5" style="animation:dashFlow 1.4s linear infinite; filter:drop-shadow(0 0 5px rgba(110,123,255,.7));"/>
+              <circle r="3.5" fill="var(--accent-2)" style="filter:drop-shadow(0 0 7px var(--accent-2));"><animateMotion dur="2.2s" repeatCount="indefinite"><mpath href="#auraPath"/></animateMotion></circle>
+              <circle r="2" fill="#ffffff" opacity="0.8"><animateMotion dur="2.2s" begin="0.5s" repeatCount="indefinite"><mpath href="#auraPath"/></animateMotion></circle>
+            </svg>
+          </div>
+          <div style="font-family:'Space Mono',monospace; font-size:11px; letter-spacing:1px; text-transform:uppercase; color:var(--accent-2); margin-top:4px;">Enchant</div>
+          <p style="font-size:12px; line-height:1.5; color:var(--text-mute); margin:6px 0 0;">Auras stream a lighter, dotted thread — clearly magical, not mechanical. Colour keys to the aura's identity.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 12 FOIL / METAL ============ -->
+    <section style="padding-top:52px;">
+      <div style="display:flex; align-items:baseline; gap:14px; margin-bottom:28px; padding-top:14px; border-top:1px solid var(--line);">
+        <span style="font-family:'Space Mono',monospace; font-size:12px; color:var(--accent); letter-spacing:1px;">12</span>
+        <h2 style="font-size:24px; font-weight:500; letter-spacing:-0.02em; margin:0;">Foil &amp; metal</h2>
+        <span style="font-family:'Space Mono',monospace; font-size:10px; letter-spacing:1.5px; text-transform:uppercase; color:var(--text-mute);">luminance-aware holo · toggle it</span>
+      </div>
+      <div style="border:1px solid var(--line); border-radius:6px; padding:34px; background:var(--bg-2); display:flex; gap:44px; align-items:center; flex-wrap:wrap;">
+        <!-- Standard -->
+        <div style="flex:none; text-align:center;">
+          <div style="width:180px; height:252px; border-radius:8px; border:1px solid var(--line-2); overflow:hidden; position:relative; background:#0a0a0f;">
+            <div style="position:absolute; inset:0; background:radial-gradient(circle at 42% 34%, #d9d2bf 0%, #8a7f6a 34%, #3a3228 68%, #17130f 100%);"></div>
+            <div style="position:absolute; inset:0; background:repeating-linear-gradient(58deg, rgba(255,255,255,.06) 0 3px, transparent 3px 11px);"></div>
+            <div style="position:absolute; left:0; right:0; bottom:0; padding:9px; background:linear-gradient(0deg, rgba(0,0,0,.7), transparent); font-family:'Space Mono',monospace; font-size:9px; letter-spacing:1px; color:#e8e2d2;">STANDARD PRINT</div>
+          </div>
+          <div style="font-family:'Space Mono',monospace; font-size:10px; letter-spacing:1.5px; text-transform:uppercase; color:var(--text-mute); margin-top:12px;">Non-foil</div>
+        </div>
+        <!-- Foil -->
+        <div style="flex:none; text-align:center;">
+          <div style="position:relative; width:184px; padding:2px; border-radius:9px; overflow:hidden; box-shadow:0 0 26px rgba(255,60,200,.28), 0 0 44px rgba(60,180,255,.2);">
+            <div style="{{ foilBorderStyle }}"></div>
+            <div style="position:relative; width:180px; height:252px; border-radius:7px; overflow:hidden; background:#0a0a0f;">
+              <!-- same art as standard -->
+              <div style="position:absolute; inset:0; background:radial-gradient(circle at 42% 34%, #d9d2bf 0%, #8a7f6a 34%, #3a3228 68%, #17130f 100%);"></div>
+              <div style="position:absolute; inset:0; background:repeating-linear-gradient(58deg, rgba(255,255,255,.06) 0 3px, transparent 3px 11px);"></div>
+              <!-- foil overlays -->
+              <div style="{{ foilOverlayStyle }}">
+                <div style="position:absolute; inset:0; background:linear-gradient(115deg, #ff2fb0, #ff8c00, #ffed00, #12ffa0, #17b3ff, #9b5cff, #ff2fb0); background-size:220% 220%; mix-blend-mode:color-dodge; animation:holoShift 7s linear infinite;"></div>
+                <div style="position:absolute; inset:0; background:linear-gradient(115deg, transparent 40%, rgba(255,255,255,.6) 50%, transparent 60%); background-size:300% 300%; mix-blend-mode:overlay; animation:sheen 4s ease-in-out infinite;"></div>
+              </div>
+              <div style="position:absolute; left:0; right:0; bottom:0; padding:9px; background:linear-gradient(0deg, rgba(0,0,0,.7), transparent); font-family:'Space Mono',monospace; font-size:9px; letter-spacing:1px; color:#fff; z-index:2;">✦ PRISMATIC FOIL</div>
+            </div>
+          </div>
+          <button onClick="{{ toggleFoil }}" style="margin-top:12px; background:var(--surface); color:var(--accent); border:1px solid var(--accent-line); border-radius:4px; font-family:'Space Mono',monospace; font-size:10px; letter-spacing:1.5px; text-transform:uppercase; padding:7px 13px; cursor:pointer; transition:all .16s ease;" style-hover="box-shadow:0 0 14px var(--glow);">{{ foilLabel }}</button>
+        </div>
+        <p style="flex:1; min-width:220px; font-size:13px; line-height:1.65; color:var(--text-dim); font-weight:300; margin:0;">The holographic layer blends with <span style="color:var(--text); font-family:'Space Mono',monospace; font-size:12px;">color-dodge</span>, so it brightens light areas of the art and barely touches shadows — exactly how a real metallic surface throws light. A specular band sweeps on top, and a rainbow filament traces the edge. Works over <em>any</em> art, no per-card masking.</p>
+      </div>
+    </section>
+
+    <!-- ============ 13 COSMETICS ============ -->
+    <section style="padding-top:52px;">
+      <div style="display:flex; align-items:baseline; gap:14px; margin-bottom:28px; padding-top:14px; border-top:1px solid var(--line);">
+        <span style="font-family:'Space Mono',monospace; font-size:12px; color:var(--accent); letter-spacing:1px;">13</span>
+        <h2 style="font-size:24px; font-weight:500; letter-spacing:-0.02em; margin:0;">Cosmetics</h2>
+        <span style="font-family:'Space Mono',monospace; font-size:10px; letter-spacing:1.5px; text-transform:uppercase; color:var(--text-mute);">subscriber-facing · a menu</span>
+      </div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:22px;">
+        <!-- Combat text -->
+        <div style="border:1px solid var(--line); border-radius:6px; padding:22px; background:var(--bg-2);">
+          <div ref="{{ combatRef }}" style="position:relative; height:120px; border-radius:4px; background:var(--surface); overflow:hidden; display:flex; align-items:center; justify-content:center;">
+            <div style="width:64px; height:88px; border-radius:4px; border:1px solid var(--line-2); background:linear-gradient(160deg,#2a2320,#14100e);"></div>
+          </div>
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-top:14px;">
+            <span style="font-size:14px; font-weight:600;">Floating combat text</span>
+            <div style="display:flex; gap:8px;">
+              <button onClick="{{ dmg }}" style="background:transparent; color:var(--danger); border:1px solid rgba(255,92,122,.35); border-radius:4px; font-family:'Space Mono',monospace; font-size:12px; padding:6px 11px; cursor:pointer;">−3</button>
+              <button onClick="{{ heal }}" style="background:transparent; color:var(--good); border:1px solid rgba(57,217,138,.35); border-radius:4px; font-family:'Space Mono',monospace; font-size:12px; padding:6px 11px; cursor:pointer;">+2</button>
+            </div>
+          </div>
+        </div>
+        <!-- Coin -->
+        <div style="border:1px solid var(--line); border-radius:6px; padding:22px; background:var(--bg-2);">
+          <div style="height:120px; display:flex; align-items:center; justify-content:center; perspective:600px;">
+            <div style="{{ coinStyle }}">
+              <div style="position:absolute; inset:0; border-radius:50%; background:radial-gradient(circle at 38% 34%, #c8a8ff, var(--accent)); box-shadow:0 0 22px var(--glow); display:flex; align-items:center; justify-content:center; font-family:'Space Mono',monospace; font-weight:700; font-size:13px; color:#150a26; backface-visibility:hidden; -webkit-backface-visibility:hidden; transform:translateZ(1px);">HEADS</div>
+              <div style="position:absolute; inset:0; border-radius:50%; background:radial-gradient(circle at 38% 34%, #8fa8ff, var(--accent-2)); box-shadow:0 0 22px rgba(110,123,255,.5); display:flex; align-items:center; justify-content:center; font-family:'Space Mono',monospace; font-weight:700; font-size:13px; color:#0a0e26; backface-visibility:hidden; -webkit-backface-visibility:hidden; transform:rotateY(180deg) translateZ(1px);">TAILS</div>
+            </div>
+          </div>
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-top:14px;">
+            <span style="font-size:14px; font-weight:600;">Coin flip <span style="font-family:'Space Mono',monospace; font-size:11px; color:var(--text-mute);">· {{ coinResult }}</span></span>
+            <button onClick="{{ flipCoin }}" style="background:var(--accent); color:#0a0410; border:none; border-radius:4px; font-family:'Space Grotesk',sans-serif; font-size:13px; font-weight:600; padding:7px 16px; cursor:pointer; box-shadow:0 0 14px var(--glow);">Flip</button>
+          </div>
+        </div>
+      </div>
+      <p style="font-family:'Space Mono',monospace; font-size:10px; letter-spacing:1.5px; text-transform:uppercase; color:var(--text-mute); margin:0 0 12px;">On the roadmap — the cosmetics shelf</p>
+      <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:10px;">
+        <div style="border:1px solid var(--line); border-radius:4px; padding:13px;"><div style="font-size:13px; font-weight:600; margin-bottom:3px;">Playmats</div><div style="font-family:'Space Mono',monospace; font-size:10px; color:var(--text-mute); line-height:1.5;">Living backdrops — nebula, circuit, ink</div></div>
+        <div style="border:1px solid var(--line); border-radius:4px; padding:13px;"><div style="font-size:13px; font-weight:600; margin-bottom:3px;">Card sleeves</div><div style="font-family:'Space Mono',monospace; font-size:10px; color:var(--text-mute); line-height:1.5;">Animated backs, holo edges</div></div>
+        <div style="border:1px solid var(--line); border-radius:4px; padding:13px;"><div style="font-size:13px; font-weight:600; margin-bottom:3px;">Tap styles</div><div style="font-family:'Space Mono',monospace; font-size:10px; color:var(--text-mute); line-height:1.5;">Flip, slam, dissolve, warp</div></div>
+        <div style="border:1px solid var(--line); border-radius:4px; padding:13px;"><div style="font-size:13px; font-weight:600; margin-bottom:3px;">Life counters</div><div style="font-family:'Space Mono',monospace; font-size:10px; color:var(--text-mute); line-height:1.5;">Reel, flux, seven-seg, rune</div></div>
+        <div style="border:1px solid var(--line); border-radius:4px; padding:13px;"><div style="font-size:13px; font-weight:600; margin-bottom:3px;">Dice &amp; tokens</div><div style="font-family:'Space Mono',monospace; font-size:10px; color:var(--text-mute); line-height:1.5;">Skinned d6/d20, glowing counters</div></div>
+        <div style="border:1px solid var(--line); border-radius:4px; padding:13px;"><div style="font-size:13px; font-weight:600; margin-bottom:3px;">Avatar frames</div><div style="font-family:'Space Mono',monospace; font-size:10px; color:var(--text-mute); line-height:1.5;">Animated borders, rank badges</div></div>
+        <div style="border:1px solid var(--line); border-radius:4px; padding:13px;"><div style="font-size:13px; font-weight:600; margin-bottom:3px;">Emotes</div><div style="font-family:'Space Mono',monospace; font-size:10px; color:var(--text-mute); line-height:1.5;">Quick stickers &amp; reactions</div></div>
+        <div style="border:1px solid var(--line); border-radius:4px; padding:13px;"><div style="font-size:13px; font-weight:600; margin-bottom:3px;">Cursors &amp; reticles</div><div style="font-family:'Space Mono',monospace; font-size:10px; color:var(--text-mute); line-height:1.5;">Custom targeting styles</div></div>
+        <div style="border:1px solid var(--line); border-radius:4px; padding:13px;"><div style="font-size:13px; font-weight:600; margin-bottom:3px;">Victory screens</div><div style="font-family:'Space Mono',monospace; font-size:10px; color:var(--text-mute); line-height:1.5;">Signature win / concede moments</div></div>
+        <div style="border:1px solid var(--line); border-radius:4px; padding:13px;"><div style="font-size:13px; font-weight:600; margin-bottom:3px;">Cast trails</div><div style="font-family:'Space Mono',monospace; font-size:10px; color:var(--text-mute); line-height:1.5;">Ripple &amp; particle color per player</div></div>
+        <div style="border:1px solid var(--line); border-radius:4px; padding:13px;"><div style="font-size:13px; font-weight:600; margin-bottom:3px;">Name plates</div><div style="font-family:'Space Mono',monospace; font-size:10px; color:var(--text-mute); line-height:1.5;">Foil titles, seasonal flair</div></div>
+        <div style="border:1px solid var(--line); border-radius:4px; padding:13px;"><div style="font-size:13px; font-weight:600; margin-bottom:3px;">Sound packs</div><div style="font-family:'Space Mono',monospace; font-size:10px; color:var(--text-mute); line-height:1.5;">Tap, shuffle, draw audio sets</div></div>
+      </div>
+    </section>
+
+    <footer style="margin-top:64px; padding-top:20px; border-top:1px solid var(--line); display:flex; justify-content:space-between; align-items:center;">
+      <span style="font-family:'Space Mono',monospace; font-size:11px; letter-spacing:1px; color:var(--text-mute);">MANABASE · DESIGN SYSTEM · v0.1</span>
+      <span style="font-family:'Space Mono',monospace; font-size:11px; letter-spacing:1px; color:var(--text-mute);">DARK THEME</span>
+    </footer>
+
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;accent&quot;:{&quot;editor&quot;:&quot;color&quot;,&quot;default&quot;:&quot;#9B5CFF&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;options&quot;:[&quot;#9B5CFF&quot;,&quot;#6E7BFF&quot;,&quot;#FF5CAD&quot;,&quot;#3AA76D&quot;],&quot;section&quot;:&quot;Brand&quot;},&quot;glow&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;default&quot;:1,&quot;min&quot;:0,&quot;max&quot;:2,&quot;step&quot;:0.1,&quot;unit&quot;:&quot;x&quot;,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Brand&quot;}}">
+class Component extends DCLogic {
+  state = { life: 40, card: 'targeted', deck: 92, foilOn: true, coinDeg: 0 };
+
+  setRoot = (el) => { this.root = el; if (el) this.applyTheme(); };
+  lifeNumRef = (el) => { this.lifeNumEl = el; };
+  burstRef = (el) => { this.burstEl = el; };
+  boardRef = (el) => { this.boardEl = el; };
+  combatRef = (el) => { this.combatEl = el; };
+
+  reelStyle(digit) {
+    return { transform: `translateY(${-(9 - digit) * 48}px)`, transition: 'transform .55s cubic-bezier(.2,.8,.2,1)' };
+  }
+
+  spawnAt(x, y, cost, color) {
+    const b = this.boardEl; if (!b) return;
+    const size = 60 + cost * 34;
+    const card = document.createElement('div');
+    Object.assign(card.style, { position: 'absolute', left: (x - 20) + 'px', top: (y - 28) + 'px', width: '40px', height: '56px', borderRadius: '4px', background: color, boxShadow: '0 6px 18px rgba(0,0,0,.5), 0 0 18px ' + color, opacity: '0', pointerEvents: 'none', zIndex: '3' });
+    b.appendChild(card);
+    card.animate([
+      { opacity: 0, transform: 'translateY(-64px) scale(1.5) rotate(-7deg)' },
+      { opacity: 1, transform: 'translateY(0) scale(1) rotate(0)', offset: 0.5 },
+      { opacity: 1, transform: 'translateY(0) scale(.98)', offset: 0.72 },
+      { opacity: 0, transform: 'translateY(0) scale(.9)' }
+    ], { duration: 950, easing: 'cubic-bezier(.3,.85,.3,1)' }).onfinish = () => card.remove();
+    for (let i = 0; i < 2; i++) {
+      const r = document.createElement('div');
+      Object.assign(r.style, { position: 'absolute', left: x + 'px', top: y + 'px', width: '10px', height: '10px', marginLeft: '-5px', marginTop: '-5px', borderRadius: '50%', border: '2px solid ' + color, boxShadow: '0 0 14px ' + color, pointerEvents: 'none', zIndex: '2' });
+      b.appendChild(r);
+      r.animate([{ transform: 'scale(1)', opacity: 0.85 }, { transform: `scale(${size / 10})`, opacity: 0 }], { duration: 1050 + i * 260, delay: 260 + i * 150, easing: 'cubic-bezier(.1,.6,.2,1)' }).onfinish = () => r.remove();
+    }
+  }
+
+  spawnCombat(text, color) {
+    const c = this.combatEl; if (!c) return;
+    const s = document.createElement('div');
+    s.textContent = text;
+    Object.assign(s.style, { position: 'absolute', left: (32 + Math.random() * 46) + '%', top: '52%', transform: 'translateX(-50%)', fontFamily: "'Space Mono',monospace", fontSize: '32px', fontWeight: '700', color: color, textShadow: '0 0 16px ' + color, pointerEvents: 'none' });
+    c.appendChild(s);
+    s.animate([
+      { opacity: 0, transform: 'translate(-50%, 12px) scale(.6)' },
+      { opacity: 1, transform: 'translate(-50%,-12px) scale(1.15)', offset: 0.3 },
+      { opacity: 0, transform: 'translate(-50%,-58px) scale(1)' }
+    ], { duration: 1100, easing: 'cubic-bezier(.2,.7,.2,1)' }).onfinish = () => s.remove();
+  }
+
+  hexToRgba(hex, a) {
+    const h = hex.replace('#', '');
+    const full = h.length === 3 ? h.split('').map(c => c + c).join('') : h;
+    const n = parseInt(full, 16);
+    return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`;
+  }
+
+  themes() {
+    return {
+      '--bg': '#08080c', '--bg-2': '#0d0d14',
+      '--surface': 'rgba(255,255,255,0.03)', '--surface-2': 'rgba(255,255,255,0.055)',
+      '--line': 'rgba(255,255,255,0.08)', '--line-2': 'rgba(255,255,255,0.14)',
+      '--text': '#ECECF2', '--text-dim': '#9A9AAB', '--text-mute': '#5E5E6C',
+      '--good': '#39D98A', '--danger': '#FF5C7A', '--warn': '#FFC46B'
+    };
+  }
+
+  applyTheme() {
+    if (!this.root) return;
+    const t = this.themes();
+    Object.entries(t).forEach(([k, v]) => this.root.style.setProperty(k, v));
+    const accent = this.props.accent || '#9B5CFF';
+    const glow = this.props.glow != null ? this.props.glow : 1;
+    this.root.style.setProperty('--accent', accent);
+    this.root.style.setProperty('--accent-2', '#6E7BFF');
+    this.root.style.setProperty('--accent-pink', '#FF5CAD');
+    this.root.style.setProperty('--accent-soft', this.hexToRgba(accent, 0.14));
+    this.root.style.setProperty('--accent-line', this.hexToRgba(accent, 0.45));
+    this.root.style.setProperty('--glow', this.hexToRgba(accent, 0.5 * glow));
+    this.root.style.setProperty('--glow-strong', this.hexToRgba(accent, 0.85 * glow));
+  }
+
+  componentDidMount() { this.applyTheme(); }
+  componentDidUpdate() { this.applyTheme(); }
+
+  playTick(dir) {
+    const el = this.lifeNumEl;
+    if (!el) return;
+    const c = dir === 'up' ? '#39D98A' : '#FF5C7A';
+    el.animate(
+      [{ transform: 'scale(1)' }, { transform: 'scale(1.22)', color: c }, { transform: 'scale(1)' }],
+      { duration: 380, easing: 'cubic-bezier(.2,.7,.2,1)' }
+    );
+  }
+
+  cardStyleFor() {
+    const base = {
+      width: '156px', height: '218px', borderRadius: '4px',
+      background: 'var(--bg)', border: '1px solid var(--line-2)',
+      transition: 'transform .18s cubic-bezier(.2,.7,.2,1), box-shadow .18s ease, border-color .18s ease',
+      boxShadow: '0 6px 20px rgba(0,0,0,.45)', transformOrigin: 'center'
+    };
+    const c = this.state.card;
+    if (c === 'hover') return { ...base, transform: 'translateY(-10px)', border: '1px solid var(--accent)', boxShadow: '0 22px 46px rgba(0,0,0,.6), 0 0 0 1px var(--accent), 0 0 32px var(--glow)' };
+    if (c === 'tapped') return { ...base, transform: 'rotate(20deg)', boxShadow: '0 6px 16px rgba(0,0,0,.4)', opacity: 0.85 };
+    if (c === 'targeted') return { ...base, border: '1px solid var(--accent)', animation: 'pulseGlow 1.2s ease-in-out infinite' };
+    return base;
+  }
+
+  triggerBurst = () => {
+    const el = this.burstEl;
+    if (!el) return;
+    el.animate(
+      [
+        { opacity: 0.5, transform: 'scale(.7)' },
+        { opacity: 1, transform: 'scale(1.15)', offset: 0.4 },
+        { opacity: 0.5, transform: 'scale(1)' }
+      ],
+      { duration: 650, easing: 'cubic-bezier(.2,.7,.2,1)' }
+    );
+  };
+
+  renderVals() {
+    return {
+      setRoot: this.setRoot,
+      lifeNumRef: this.lifeNumRef,
+      burstRef: this.burstRef,
+      life: this.state.life,
+      lifeUp: () => { this.setState(s => ({ life: s.life + 1 })); this.playTick('up'); },
+      lifeDown: () => { this.setState(s => ({ life: Math.max(0, s.life - 1) })); this.playTick('down'); },
+      card: this.state.card,
+      cardStyle: this.cardStyleFor(),
+      cardDefault: () => this.setState({ card: 'default' }),
+      cardHover: () => this.setState({ card: 'hover' }),
+      cardTapped: () => this.setState({ card: 'tapped' }),
+      cardTargeted: () => this.setState({ card: 'targeted' }),
+      triggerBurst: this.triggerBurst,
+
+      // zone reels
+      boardRef: this.boardRef,
+      tensReelStyle: this.reelStyle(Math.floor(this.state.deck / 10) % 10),
+      unitsReelStyle: this.reelStyle(this.state.deck % 10),
+      draw: () => this.setState(s => ({ deck: Math.max(0, s.deck - 1) })),
+      deckReturn: () => this.setState(s => ({ deck: Math.min(99, s.deck + 1) })),
+
+      // board casts
+      boardClick: (e) => { const n = e.nativeEvent || e; this.spawnAt(n.offsetX, n.offsetY, 3, '#9B5CFF'); },
+      castU: () => this.spawnAt(60 + Math.random() * 500, 50 + Math.random() * 160, 1, '#4A90E2'),
+      castR: () => this.spawnAt(60 + Math.random() * 500, 50 + Math.random() * 160, 3, '#E5484D'),
+      castBomb: () => this.spawnAt(60 + Math.random() * 500, 50 + Math.random() * 160, 6, '#9B5CFF'),
+      castEldrazi: () => this.spawnAt(60 + Math.random() * 500, 50 + Math.random() * 160, 9, '#E9C46A'),
+
+      // foil
+      foilOn: this.state.foilOn,
+      foilLabel: this.state.foilOn ? 'Foil · On' : 'Foil · Off',
+      toggleFoil: () => this.setState(s => ({ foilOn: !s.foilOn })),
+      foilOverlayStyle: { position: 'absolute', inset: 0, opacity: this.state.foilOn ? 1 : 0, transition: 'opacity .45s ease', pointerEvents: 'none', zIndex: 1 },
+      foilBorderStyle: { position: 'absolute', inset: '-70%', background: 'conic-gradient(from 0deg, #ff2fb0, #ff8c00, #ffed00, #12ffa0, #17b3ff, #9b5cff, #ff2fb0)', animation: 'rainbowSpin 4s linear infinite', filter: 'blur(1px)', opacity: this.state.foilOn ? 1 : 0, transition: 'opacity .45s ease' },
+
+      // cosmetics
+      combatRef: this.combatRef,
+      dmg: () => this.spawnCombat('−3', '#FF5C7A'),
+      heal: () => this.spawnCombat('+2', '#39D98A'),
+      coinStyle: { position: 'relative', width: '72px', height: '72px', transformStyle: 'preserve-3d', transform: `rotateY(${this.state.coinDeg}deg)`, transition: 'transform 1.05s cubic-bezier(.3,.8,.25,1)' },
+      coinResult: ((this.state.coinDeg / 180) % 2 === 0) ? 'HEADS' : 'TAILS',
+      flipCoin: () => this.setState(s => ({ coinDeg: s.coinDeg + 180 * (5 + (Math.random() < 0.5 ? 0 : 1)) }))
+    };
+  }
+}
+</script>
+</body>
+</html>

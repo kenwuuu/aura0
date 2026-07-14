@@ -14,9 +14,9 @@ const STATUS_TEXT: Record<NetworkStatusEvent['status'], string> = {
 };
 
 const STATUS_COLOR: Record<NetworkStatusEvent['status'], string> = {
-  connected: '#4ade80',
-  connecting: '#facc15',
-  error: '#f87171',
+  connected: 'var(--good)',
+  connecting: 'var(--warn)',
+  error: 'var(--danger)',
 };
 
 export const RoomConnectionStatus: React.FC<ConnectionStatusProps> = ({ yjsNetworkProvider }) => {
@@ -41,7 +41,17 @@ export const RoomConnectionStatus: React.FC<ConnectionStatusProps> = ({ yjsNetwo
         aria-hidden="true"
         style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: STATUS_COLOR[event.status], flexShrink: 0 }}
       />
-      <span className="toolbar-collapsible-text" style={{ color: STATUS_COLOR[event.status] }}>
+      {/* Status pip label: mono uppercase HUD data (design §02). */}
+      <span
+        className="toolbar-collapsible-text"
+        style={{
+          color: STATUS_COLOR[event.status],
+          fontFamily: 'var(--font-mono)',
+          fontSize: 11,
+          textTransform: 'uppercase',
+          letterSpacing: 1,
+        }}
+      >
         {STATUS_TEXT[event.status]}
       </span>
     </span>

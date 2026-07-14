@@ -1,5 +1,6 @@
-import { Page, expect } from '@playwright/test';
+import { Locator, Page, expect } from '@playwright/test';
 import { boardCard, boardCardNode, pileCount, handCards, healthInput, transformPosition } from './pageObjects';
+import { measureOrientation, type Orientation } from './interactions';
 import { PileKind } from './selectors';
 
 /** Assert a specific card (by id) is present on the battlefield. */
@@ -53,4 +54,24 @@ export async function expectHandCount(page: Page, count: number): Promise<void> 
 /** Assert the local player's health value. */
 export async function expectHealth(page: Page, value: number): Promise<void> {
   await expect(healthInput(page)).toHaveValue(String(value));
+}
+
+/**
+ * Assert a card's rendered orientation — the DOM-visible proof that tapping and
+ * untapping actually rotated it.
+ *
+ * Polls, because a card *eases* into its rotation: the board card carries a
+ * ~0.18s transform transition, so the box measured the instant the tap lands is
+ * still the pre-rotation one and a single read reports the orientation the card
+ * is leaving, not the one it is entering. The poll also covers the render hop
+ * between clicking the menu item and the new transform reaching the DOM.
+ * (`reducedMotion` doesn't take in this Chromium env, so the animation can't be
+ * switched off — the assertion has to outlast it.)
+ */
+export async function expectOrientation(locator: Locator, expected: Orientation): Promise<void> {
+  await expect
+    .poll(() => measureOrientation(locator), {
+      message: `card never settled into ${expected} orientation`,
+    })
+    .toBe(expected);
 }

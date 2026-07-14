@@ -34,21 +34,21 @@ export const HotkeysModal: React.FC<HotkeysModalProps> = ({ isOpen, onClose }) =
               <table className="w-full border-collapse">
                 <thead>
                   <tr>
-                    <th className="text-left px-4 py-3 bg-[#0f0f0f] text-[#9ca3af] text-xs font-bold uppercase tracking-wider border-b-2 border-[#3d3d3d]">
+                    <th className="text-left px-4 py-3 bg-background text-mute font-mono text-xs font-normal uppercase tracking-[1px] border-b border-line-2">
                       Key
                     </th>
-                    <th className="text-left px-4 py-3 bg-[#0f0f0f] text-[#9ca3af] text-xs font-bold uppercase tracking-wider border-b-2 border-[#3d3d3d]">
+                    <th className="text-left px-4 py-3 bg-background text-mute font-mono text-xs font-normal uppercase tracking-[1px] border-b border-line-2">
                       Action
                     </th>
                   </tr>
                 </thead>
                 <tbody>
                   {leftColumn.map((hotkey, index) => (
-                    <tr key={index} className="border-b border-[#2d2d2d]">
+                    <tr key={index} className="border-b border-line">
                       <td className="px-4 py-3 font-mono font-bold text-blue-500 text-sm min-w-[80px]">
                         {hotkey.key}
                       </td>
-                      <td className="px-4 py-3 text-[#e5e7eb] text-sm">
+                      <td className="px-4 py-3 text-foreground text-sm">
                         {hotkey.action}
                       </td>
                     </tr>
@@ -62,21 +62,21 @@ export const HotkeysModal: React.FC<HotkeysModalProps> = ({ isOpen, onClose }) =
               <table className="w-full border-collapse">
                 <thead>
                   <tr>
-                    <th className="text-left px-4 py-3 bg-[#0f0f0f] text-[#9ca3af] text-xs font-bold uppercase tracking-wider border-b-2 border-[#3d3d3d]">
+                    <th className="text-left px-4 py-3 bg-background text-mute font-mono text-xs font-normal uppercase tracking-[1px] border-b border-line-2">
                       Key
                     </th>
-                    <th className="text-left px-4 py-3 bg-[#0f0f0f] text-[#9ca3af] text-xs font-bold uppercase tracking-wider border-b-2 border-[#3d3d3d]">
+                    <th className="text-left px-4 py-3 bg-background text-mute font-mono text-xs font-normal uppercase tracking-[1px] border-b border-line-2">
                       Action
                     </th>
                   </tr>
                 </thead>
                 <tbody>
                   {rightColumn.map((hotkey, index) => (
-                    <tr key={index} className="border-b border-[#2d2d2d]">
+                    <tr key={index} className="border-b border-line">
                       <td className="px-4 py-3 font-mono font-bold text-blue-500 text-sm min-w-[80px]">
                         {hotkey.key}
                       </td>
-                      <td className="px-4 py-3 text-[#e5e7eb] text-sm">
+                      <td className="px-4 py-3 text-foreground text-sm">
                         {hotkey.action}
                       </td>
                     </tr>

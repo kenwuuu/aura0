@@ -45,9 +45,9 @@ const btnStyle: React.CSSProperties = {
   padding: '4px 10px',
   height: 28,
   borderRadius: 6,
-  border: '1px solid rgba(255,255,255,0.12)',
-  background: 'rgba(255,255,255,0.06)',
-  color: 'rgba(255,255,255,0.85)',
+  border: '1px solid var(--line-2)',
+  background: 'var(--surface)',
+  color: 'var(--text)',
   fontSize: 12,
   fontWeight: 600,
   cursor: 'pointer',
@@ -57,7 +57,7 @@ const btnStyle: React.CSSProperties = {
 };
 
 const btnHoverStyle: React.CSSProperties = {
-  background: 'rgba(255,255,255,0.12)',
+  background: 'var(--surface-2)',
 };
 
 /**
@@ -153,7 +153,7 @@ export function GameActionsContent({ style }: { style?: React.CSSProperties } = 
       ))}
 
       {/* Divider */}
-      <div style={{ width: 1, height: 20, background: 'rgba(255,255,255,0.12)' }} />
+      <div style={{ width: 1, height: 20, background: 'var(--line-2)' }} />
 
       {/* Actions dropdown */}
       {/* modal={false}: several items open a Radix Dialog (NumberPrompt,
@@ -278,7 +278,7 @@ function TokenSubItem() {
         side="right"
         align="start"
         className="p-2 w-auto"
-        style={{ background: 'rgba(18,18,24,0.98)', border: '1px solid rgba(255,255,255,0.12)' }}
+        style={{ background: 'rgba(13, 13, 20, 0.98)', border: '1px solid var(--line-2)' }}
         // The popover's anchor IS a DropdownMenuItem. Radix Menu focuses the
         // item on pointermove; if the popover has grabbed focus on open, that
         // focus-steal reads as "focus left the popover" and the non-modal
@@ -290,7 +290,7 @@ function TokenSubItem() {
         onOpenAutoFocus={(e) => e.preventDefault()}
         onFocusOutside={(e) => e.preventDefault()}
       >
-        <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', marginBottom: 6, paddingLeft: 4 }}>
+        <p style={{ fontSize: 11, color: 'var(--text-mute)', marginBottom: 6, paddingLeft: 4 }}>
           Drag a token onto the board
         </p>
         <KeywordTokenGrid templates={DEFAULT_TOKEN_TEMPLATES} columns={5} gap={8} />

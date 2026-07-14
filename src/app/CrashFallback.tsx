@@ -16,12 +16,12 @@ export function CrashFallback({ eventId }: { eventId?: string }) {
         justifyContent: 'center',
         padding: 24,
         textAlign: 'center',
-        color: '#e5e5e5',
-        background: '#1a1a1a',
+        color: 'var(--text)',
+        background: 'var(--bg)',
       }}
     >
       <h1 style={{ fontSize: 20, marginBottom: 8 }}>Something went wrong.</h1>
-      <p style={{ marginBottom: 16, color: '#a3a3a3', maxWidth: 420 }}>
+      <p style={{ marginBottom: 16, color: 'var(--text-dim)', maxWidth: 420 }}>
         Aura hit an unexpected error and couldn't continue. Reloading usually fixes it.
       </p>
       <button
@@ -29,16 +29,16 @@ export function CrashFallback({ eventId }: { eventId?: string }) {
         style={{
           padding: '8px 16px',
           borderRadius: 6,
-          border: '1px solid #404040',
-          background: '#262626',
-          color: '#e5e5e5',
+          border: '1px solid var(--line-2)',
+          background: 'var(--surface)',
+          color: 'var(--text)',
           cursor: 'pointer',
         }}
       >
         Reload
       </button>
       {eventId && (
-        <p style={{ marginTop: 16, fontSize: 12, color: '#737373' }}>Error ID: {eventId}</p>
+        <p style={{ marginTop: 16, fontSize: 12, color: 'var(--text-mute)' }}>Error ID: {eventId}</p>
       )}
     </div>
   );
