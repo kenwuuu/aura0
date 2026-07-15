@@ -26,6 +26,7 @@ import {
   DropdownMenuShortcut,
   DropdownMenuTrigger,
 } from '@/shared/ui/dropdown-menu';
+import { CreateTokenGridItem } from '@/features/game-actions/CreateTokenGridItem';
 
 export function GameContextMenu() {
   const isOpen = useContextMenuStore((s) => s.isOpen);
@@ -132,6 +133,11 @@ export function GameContextMenu() {
             <DropdownMenuShortcut>{hotkey.key}</DropdownMenuShortcut>
           </DropdownMenuItem>
         ))}
+        {/* The empty-board menu offers token creation via the same drag-to-board
+            grid as the toolbar's Create ▾ menu (it took the "-1/-1 counter"
+            slot). It performs no dispatchable action, so it lives here rather
+            than in the HOTKEYS catalog and carries no keyboard shortcut. */}
+        {target?.kind === 'board' && <CreateTokenGridItem label="Create token" />}
       </DropdownMenuContent>
     </DropdownMenu>
   );
