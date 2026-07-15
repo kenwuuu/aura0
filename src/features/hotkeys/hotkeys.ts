@@ -81,10 +81,14 @@ export const HOTKEYS: Hotkey[] = [
     longDescription: 'Draw',
     action: 'draw',
   },
+  // Not in 'global' context: shuffle/mulligan are deck-pile actions, so they
+  // stay off the empty-board menu (they remain on the deck menu). The v/m keys
+  // still fire — those bindings are registered directly in useAllGameHotkeys,
+  // independent of this context list.
   {
     key: 'V',
     keys: ['v'],
-    context: ['global', 'deck'],
+    context: ['deck'],
     shortDescription: 'Shuffle',
     longDescription: 'Shuffle deck',
     action: 'shuffle',
@@ -92,7 +96,7 @@ export const HOTKEYS: Hotkey[] = [
   {
     key: 'M',
     keys: ['m'],
-    context: ['global', 'deck'],
+    context: ['deck'],
     shortDescription: 'Mulligan',
     longDescription: 'Mulligan (draw new hand)',
     action: 'mulligan',
@@ -110,10 +114,14 @@ export const HOTKEYS: Hotkey[] = [
     longDescription: 'Add a card from outside of game',
     action: 'addCard',
   },
+  // Not in 'global' context: +1/-1 life belong to a player's health node, not
+  // the empty-board menu, so they stay off it (they remain on the health-node
+  // menu). The +/- keys still adjust life — those bindings are registered
+  // directly in useAllGameHotkeys, independent of this context list.
   {
     key: '+  or  =',
     keys: ['shift+equal', 'equal'],
-    context: ['global', "health"],
+    context: ['health'],
     shortDescription: '+1 life',
     longDescription: 'Gain 1 life',
     action: 'gainHealth',
@@ -121,7 +129,7 @@ export const HOTKEYS: Hotkey[] = [
   {
     key: '-  or  _',
     keys: ['minus', 'shift+minus'],
-    context: ['global', "health"],
+    context: ['health'],
     shortDescription: '-1 life',
     longDescription: 'Lose 1 life',
     action: 'loseHealth',
@@ -161,9 +169,14 @@ export const HOTKEYS: Hotkey[] = [
     action: 'addCounter',
   },
   {
+    // Not in 'global' context: the empty-board (Global) menu shows the
+    // drag-to-board "Create token" grid in this slot instead (see
+    // GameContextMenu). The 'i' key still spawns a -1/-1 counter at the cursor —
+    // that binding is registered directly in useAllGameHotkeys, independent of
+    // this context list — and the row still appears on the battlefield-card menu.
     key: 'I',
     keys: ['i'],
-    context: ['global', 'battlefield'],
+    context: ['battlefield'],
     shortDescription: '-1/-1 counter',
     longDescription: 'Spawn -1/-1 counter token at cursor',
     action: 'removeCounter',
