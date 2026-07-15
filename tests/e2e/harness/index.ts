@@ -1,4 +1,5 @@
 export * from './network';
+export * from './onboarding';
 export * from './selectors';
 export * from './viewports';
 export * from './pageObjects';

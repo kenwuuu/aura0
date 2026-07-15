@@ -148,6 +148,14 @@ spec suppresses the tour, because a fresh browser context is a brand-new player 
 would otherwise render in all of them (`tests/e2e/fixtures.ts` marks the browser a returning
 player by default).
 
+**Suppression is per browser context, and a second player is a second context.** That fixture
+option only speaks for the context the spec runs in. `connectSecondPlayer` opens its own, so it
+opts *itself* out (`harness/onboarding.ts`) — pass `{ onboardingTour: true }` to give the
+invited friend a tour on purpose. This was a real bug: the opt-out used to be a page-level init
+script, so player two booted as a brand-new player and every two-player spec in the suite ran
+with an unasked-for overlay on the second client. Nothing asserted on it, so nothing went red.
+"The tour does not follow a second player into the room" pins it.
+
 The load-bearing assertions have each been checked against the bug they exist to catch — the
 drag test goes red under `pointer-events: auto`, and the baseline test in `tourStore.test.ts`
 goes red if `advance()` stops re-reading the counts. If you change either behaviour, re-run
