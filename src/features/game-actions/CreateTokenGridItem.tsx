@@ -18,7 +18,22 @@ import { Popover, PopoverAnchor, PopoverContent } from '@/shared/ui/popover';
 import { KeywordTokenGrid } from '@/features/keyword-tokens/KeywordTokenGrid';
 import { DEFAULT_TOKEN_TEMPLATES } from './defaultTokenTemplates';
 
-export function CreateTokenGridItem({ label = 'Token' }: { label?: string }) {
+export function CreateTokenGridItem({
+  label = 'Token',
+  columns = 5,
+  align = 'start',
+  contentClassName,
+}: {
+  label?: string;
+  columns?: number;
+  /** Cross-axis alignment of the popover against the anchoring menu item.
+   *  'end' bottom-aligns the grid with the item — used by the board context
+   *  menu so the grid's bottom lines up with the (long) menu's bottom edge. */
+  align?: 'start' | 'center' | 'end';
+  /** Extra classes for the popover surface (e.g. a z-index to match the host
+   *  menu). Merged over the base via the shared PopoverContent's cn(). */
+  contentClassName?: string;
+}) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -43,8 +58,8 @@ export function CreateTokenGridItem({ label = 'Token' }: { label?: string }) {
       </PopoverAnchor>
       <PopoverContent
         side="right"
-        align="start"
-        className="p-2 w-auto"
+        align={align}
+        className={['p-2 w-auto', contentClassName].filter(Boolean).join(' ')}
         style={{ background: 'rgba(18,18,24,0.98)', border: '1px solid rgba(255,255,255,0.12)' }}
         // The popover's anchor IS a DropdownMenuItem. Radix Menu focuses the
         // item on pointermove; if the popover has grabbed focus on open, that
@@ -60,7 +75,7 @@ export function CreateTokenGridItem({ label = 'Token' }: { label?: string }) {
         <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', marginBottom: 6, paddingLeft: 4 }}>
           Drag a token onto the board
         </p>
-        <KeywordTokenGrid templates={DEFAULT_TOKEN_TEMPLATES} columns={5} gap={8} />
+        <KeywordTokenGrid templates={DEFAULT_TOKEN_TEMPLATES} columns={columns} gap={8} />
       </PopoverContent>
     </Popover>
   );

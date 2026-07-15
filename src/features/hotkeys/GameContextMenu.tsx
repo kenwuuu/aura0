@@ -137,7 +137,17 @@ export function GameContextMenu() {
             grid as the toolbar's Create ▾ menu (it took the "-1/-1 counter"
             slot). It performs no dispatchable action, so it lives here rather
             than in the HOTKEYS catalog and carries no keyboard shortcut. */}
-        {target?.kind === 'board' && <CreateTokenGridItem label="Create token" />}
+        {target?.kind === 'board' && (
+          <CreateTokenGridItem
+            label="Create token"
+            columns={7}
+            // Bottom-align the grid with this (last) item so its bottom edge
+            // lines up with the long menu's bottom edge, and lift it to the
+            // menu's own z-index so it isn't layered behind it.
+            align="end"
+            contentClassName="z-[10001]"
+          />
+        )}
       </DropdownMenuContent>
     </DropdownMenu>
   );
