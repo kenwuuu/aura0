@@ -59,6 +59,19 @@ export interface Hotkey {
 }
 
 export const HOTKEYS: Hotkey[] = [
+  // Pointer-only (no key binding): opens the pile's card viewer. Left-click
+  // already opens it on desktop; this surfaces the same thing as a menu row so
+  // the viewer stays reachable on touch, where a tap opens the menu instead of
+  // opening the viewer directly. Kept at the top of the catalog so "View" is
+  // the first row on every pile's context menu (above "Draw" on the deck).
+  {
+    key: '',
+    keys: [],
+    context: ['deck', 'exile', 'discard', 'sideboard'],
+    shortDescription: 'View',
+    longDescription: 'View pile contents',
+    action: 'viewPile',
+  },
   // Global shortcuts (work anywhere)
   {
     key: 'C',
@@ -91,18 +104,6 @@ export const HOTKEYS: Hotkey[] = [
     shortDescription: 'Add any card',
     longDescription: 'Add a card from outside of game',
     action: 'addCard',
-  },
-  // Pointer-only (no key binding): opens the pile's card viewer. Left-click
-  // already opens it on desktop; this surfaces the same thing as a menu row so
-  // the viewer stays reachable on touch, where a tap opens the menu instead of
-  // opening the viewer directly.
-  {
-    key: '',
-    keys: [],
-    context: ['deck', 'exile', 'discard', 'sideboard'],
-    shortDescription: 'View',
-    longDescription: 'View pile contents',
-    action: 'viewPile',
   },
   {
     key: '+  or  =',
