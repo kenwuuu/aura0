@@ -13,6 +13,22 @@ export function boardCard(page: Page, id?: string): Locator {
 }
 
 /**
+ * The `data-card-id` of every battlefield card node currently on the board.
+ *
+ * Board cards must be addressed by id, never by DOM index: `boardCards().nth(n)`
+ * is unstable on two axes — playing a card can add *related token* card nodes
+ * (a Goblin, a Treasure — same `battlefield-card` testid, see
+ * `placeCardOnBattlefield`), and node order follows Y.Map iteration, not
+ * creation order. Diff this set before/after an action to find the card it
+ * added (e.g. the clone from Copy/clone).
+ */
+export async function boardCardIds(page: Page): Promise<string[]> {
+  return boardCards(page).evaluateAll((els) =>
+    els.map((el) => (el as HTMLElement).dataset.cardId ?? '').filter(Boolean),
+  );
+}
+
+/**
  * The react-flow wrapper around a board card. Distinct from `boardCard`: the
  * wrapper is what carries the node's *board-space* transform, which is the only
  * position two players can be compared on — each player's camera is centred on

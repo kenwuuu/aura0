@@ -1,5 +1,5 @@
 import { Page, Locator, expect } from '@playwright/test';
-import { boardCard, boardCardNode, cardPreview, pileTile, whiteboard, deckImportOpenButton, deckImportModal, boardTokens, transformPosition } from './pageObjects';
+import { boardCard, boardCardIds, boardCardNode, cardPreview, pileTile, whiteboard, deckImportOpenButton, deckImportModal, boardTokens, transformPosition } from './pageObjects';
 import { TESTID, PileKind } from './selectors';
 
 export async function centerOf(locator: Locator): Promise<{ x: number; y: number }> {
@@ -256,6 +256,49 @@ export async function dragBoardCardToHand(page: Page, card: Locator): Promise<vo
   const from = await centerOf(card);
   const to = await centerOf(page.getByTestId(TESTID.handCardsContainer));
   await mouseDrag(page, from, to);
+}
+
+/**
+ * Right-click a battlefield card and wait for its context menu to actually
+ * open before returning. The menu is a single controlled Radix DropdownMenu
+ * (`[data-game-context-menu]`, see `GameContextMenu.tsx`).
+ *
+ * The pre-wait for the *previous* menu to detach is load-bearing, not just
+ * tidy: clones cascade by only +20px, but the menu content is ~150px wide, so
+ * a still-closing menu from the last action overlaps the next card's centre.
+ * Right-click into that overlap and the `contextmenu` event lands on the menu
+ * instead of the card — no new menu opens, and this step times out. Waiting for
+ * a clean closed state first makes every right-click hit the card underneath.
+ */
+export async function openCardMenu(page: Page, card: Locator): Promise<void> {
+  const menu = page.locator('[data-game-context-menu]');
+  await menu.waitFor({ state: 'detached' });
+  await card.click({ button: 'right' });
+  await menu.waitFor({ state: 'visible' });
+}
+
+/**
+ * Clone a battlefield card via its right-click Copy/clone row and return an
+ * id-addressed locator to the *new* card node.
+ *
+ * The clone is found by diffing the board's card-id set (see `boardCardIds`),
+ * never by DOM index: `copy` inserts a fresh card id at an unpredictable
+ * position in Y.Map iteration order, and any related token card nodes on the
+ * board would throw an index off anyway.
+ */
+export async function cloneBoardCard(page: Page, card: Locator): Promise<Locator> {
+  const before = new Set(await boardCardIds(page));
+  await openCardMenu(page, card);
+  await page.getByText('Copy/cloneK').click();
+
+  let newId = '';
+  await expect(async () => {
+    const added = (await boardCardIds(page)).filter((id) => !before.has(id));
+    expect(added).toHaveLength(1);
+    newId = added[0];
+  }).toPass({ timeout: 5000 });
+
+  return boardCard(page, newId);
 }
 
 // Mana/colour tokens are the only templates that carry a starting count, so

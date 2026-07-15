@@ -1,5 +1,5 @@
 import { expect, test } from '../../fixtures';
-import {boardCards, boardTokens, expectPileCount, getElementOrientation, playCreature} from '../../harness';
+import {boardTokens, cloneBoardCard, expectPileCount, getElementOrientation, openCardMenu, playCreature} from '../../harness';
 
 test('testExileTooltip', async ({ page }) => {
   const card = await playCreature(page);
@@ -45,44 +45,41 @@ test('testHandTooltip', async ({ page }) => {
 });
 
 test('testInteractiveTooltip', async ({ page }) => {
-  await playCreature(page);
-
-  const firstBoardCard = boardCards(page).nth(0);
-  const secondBoardCard = boardCards(page).nth(1);
-  const thirdBoardCard = boardCards(page).nth(2);
+  // Address every card by id, never by boardCards().nth(): playing a card can
+  // add related token *card* nodes (a Goblin/Treasure share the battlefield-card
+  // testid) and node order follows Y.Map iteration, so indices are unstable.
+  // `playCreature` returns the id-addressed node of the card we actually played;
+  // `cloneBoardCard` returns each clone by diffing the card-id set. (This was the
+  // flake — ~1 in 6 plays spawned a related token card and shifted every index.)
+  const firstBoardCard = await playCreature(page);
 
   expect(await getElementOrientation(firstBoardCard)).toBe('portrait');
 
-  await firstBoardCard.click({ button: 'right' });
+  await openCardMenu(page, firstBoardCard);
   await page.getByText('TapSpace').click();
   expect(await getElementOrientation(firstBoardCard)).toBe('landscape');
 
-  await firstBoardCard.click({ button: 'right' });
+  await openCardMenu(page, firstBoardCard);
   await page.getByText('Untap allX').click();
   expect(await getElementOrientation(firstBoardCard)).toBe('portrait');
 
-  await firstBoardCard.click({ button: 'right' });
+  await openCardMenu(page, firstBoardCard);
   await page.getByText('FlipF').click();
   const cardImgSrc = await firstBoardCard.locator('img').getAttribute('src');
   expect(cardImgSrc === '/assets/card-back.png')
 
-  // copy first card to make second card.
-  // copy second card to make third card
-  await firstBoardCard.click({ button: 'right' });
-  await page.getByText('Copy/cloneK').click();
-  await secondBoardCard.waitFor({ state: 'visible' });
-  await secondBoardCard.click({ button: 'right' });
-  await page.getByText('Copy/cloneK').click();
-  await thirdBoardCard.waitFor({ state: 'visible' });
+  // copy first card to make second card; copy second card to make third card
+  const secondBoardCard = await cloneBoardCard(page, firstBoardCard);
+  const thirdBoardCard = await cloneBoardCard(page, secondBoardCard);
   await expect(thirdBoardCard).toBeVisible();
 
   // delete third card
-  await thirdBoardCard.click({ button: 'right' });
+  await openCardMenu(page, thirdBoardCard);
   await page.getByText('DeleteBack').click();
   await expect(thirdBoardCard).toBeHidden();
 
   // move second card to hand
-  await secondBoardCard.click({ button: 'right' });
+  await openCardMenu(page, secondBoardCard);
   await page.getByText('HandH').click();
   await expect(secondBoardCard).toBeHidden();
 
@@ -91,7 +88,7 @@ test('testInteractiveTooltip', async ({ page }) => {
   // Done last: the spawned token sits on top of the card and would intercept
   // pointer events for any further right-clicks on it.
   const tokensBefore = await boardTokens(page).count();
-  await firstBoardCard.click({ button: 'right' });
+  await openCardMenu(page, firstBoardCard);
   await page.getByText('CounterU').click();
   await expect(boardTokens(page)).toHaveCount(tokensBefore + 1);
   const counterToken = boardTokens(page).last();
