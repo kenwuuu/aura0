@@ -13,10 +13,17 @@ import {
 const onFeatureFlags = vi.spyOn(posthog, 'onFeatureFlags');
 const isFeatureEnabled = vi.spyOn(posthog, 'isFeatureEnabled');
 
-/** PostHog answers: a payload arrived, and `flags` is how it evaluates. */
+/**
+ * PostHog answers: a payload arrived, and `flags` is how it evaluates.
+ *
+ * The context matters as much as the flags. posthog-js hands every handler a context when
+ * it delivers a response (`{ errorsLoading: false }` here), and *omits* it when it merely
+ * replays state it already holds — see `flagsReplayEmptyState`. Passing no context here
+ * would be simulating the wrong call.
+ */
 const flagsDeliver = (flags: Record<string, boolean | undefined>) => {
   onFeatureFlags.mockImplementation((cb) => {
-    cb([], {});
+    cb([], {}, { errorsLoading: false });
     return () => {};
   });
   // A flag that is off — disabled, deleted, or 0%-rollout — is absent from the
@@ -27,6 +34,24 @@ const flagsDeliver = (flags: Record<string, boolean | undefined>) => {
 /** PostHog never answers: ad-blocker, offline, or slower than the timeout. */
 const flagsNeverLoad = () => {
   onFeatureFlags.mockImplementation(() => () => {});
+  isFeatureEnabled.mockReturnValue(undefined);
+};
+
+/**
+ * PostHog replays the state it already holds, with no context — its behaviour when a handler
+ * registers after it thinks flags are settled. If the request never landed (ad-blocker,
+ * offline, a blocked route in e2e) the state it replays is an *empty flag set*.
+ *
+ *   onFeatureFlags(cb) { this.addFeatureFlagsHandler(cb); if (this.receivedFlags) cb(flags, variants); }
+ *
+ * Two args, no third. This is the shape that made an ad-blocked player pick a different
+ * transport from everyone else.
+ */
+const flagsReplayEmptyState = () => {
+  onFeatureFlags.mockImplementation((cb) => {
+    cb([], {});
+    return () => {};
+  });
   isFeatureEnabled.mockReturnValue(undefined);
 };
 
@@ -76,6 +101,23 @@ describe('resolveNetworkTransport', () => {
       return () => {};
     });
     isFeatureEnabled.mockReturnValue(undefined);
+
+    await expect(resolveNetworkTransport()).resolves.toBe('websocket');
+  });
+
+  it('falls back to websocket when PostHog replays an empty flag set with no context', async () => {
+    // The bug this guards, and it was not theoretical: it made two_player_sync flaky and,
+    // in the field, would strand an ad-blocked player.
+    //
+    // PostHog omits the context when it replays state it already holds, and with the request
+    // blocked that state is empty. The old check — `!context?.errorsLoading` — read the
+    // missing context as "loaded cleanly", so we believed a payload had arrived, saw the
+    // transport flag come back `undefined`, and took that for "the flag said no": WebRTC.
+    // Everyone whose flags *did* load was on WebSocket. Two transports, one room, and the
+    // players cannot see each other.
+    //
+    // "We never heard back" must land on the same fallback as an outright failure.
+    flagsReplayEmptyState();
 
     await expect(resolveNetworkTransport()).resolves.toBe('websocket');
   });

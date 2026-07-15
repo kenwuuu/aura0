@@ -54,6 +54,13 @@ jobs:
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
 
+      # The multiplayer specs sync through a relay Playwright boots locally (see
+      # playwright.config.ts). Installed from the relay's own lockfile, which pins
+      # @y/websocket-server exactly — the root manifest's caret resolves to a version
+      # that hands back empty boards.
+      - name: Install relay dependencies
+        run: npm --prefix networking/websocket ci
+
       - name: Run @smoke E2E suite
         run: npm run test:e2e:smoke
 
@@ -87,6 +94,13 @@ jobs:
 
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
+
+      # The multiplayer specs sync through a relay Playwright boots locally (see
+      # playwright.config.ts). Installed from the relay's own lockfile, which pins
+      # @y/websocket-server exactly — the root manifest's caret resolves to a version
+      # that hands back empty boards.
+      - name: Install relay dependencies
+        run: npm --prefix networking/websocket ci
 
       - name: Run full E2E suite
         run: npm run test:e2e
