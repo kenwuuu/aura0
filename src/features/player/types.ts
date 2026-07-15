@@ -44,7 +44,7 @@ export interface DeckMetadata {
   id: string; // Unique deck ID
   name: string; // User-provided deck name
   format?: string; // Commander, Standard, Modern, etc.
-  source: 'scryfall' | 'moxfield' | 'manual';
+  source: 'scryfall' | 'moxfield' | 'manual' | 'precon';
   cardCount: number;
   importedAt: Date;
   lastModified: Date;

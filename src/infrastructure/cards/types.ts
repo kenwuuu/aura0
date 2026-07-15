@@ -4,6 +4,14 @@ import type { SectionKind } from '@/features/deck-manager/DeckListParser';
 export type ScryfallCard = {
   id: string;
   name: string;
+  /**
+   * Printing coordinates. Present on both Scryfall and Aura payloads; declared
+   * optional here because most call sites don't need them. The bulk lookup uses
+   * `set`+`collector_number` to map a returned card back to the entry that
+   * requested it (the response is unordered relative to the request).
+   */
+  set?: string;
+  collector_number?: string;
   type_line?: string;
   image_uris?: CardImageUris;
   oracle_text?: string;

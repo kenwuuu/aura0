@@ -8,6 +8,30 @@ export type CardApiEndpoints = {
   byId: (id: string) => string;
   byName: (name: string, attemptNumber: number) => string;
   bySet: (setCode: string, collectorNumber: string) => string;
+  /**
+   * Batch lookup endpoint (POST). Only backends that expose one set this — the
+   * Aura backend does; Scryfall does not, so `bulkLookup` on a client without it
+   * hands every entry to the caller's fallback instead.
+   */
+  bulk?: () => string;
+};
+
+/**
+ * The key both the Aura index and this client use to identify a printing:
+ * `set`+`collector_number`, lowercased with whitespace stripped. Mirrors the
+ * backend's `normalize_key(f"{set}{collector_number}")` so the keys we send and
+ * the keys we reconstruct from responses line up exactly.
+ */
+export function normalizeCardKey(setCode: string, collectorNumber: string): string {
+  return `${setCode}${collectorNumber}`.toLowerCase().replace(/\s+/g, '');
+}
+
+/** Backend caps a bulk request at 200 ids; chunk anything larger. */
+const BULK_CHUNK_SIZE = 200;
+
+type BulkLookupResponse = {
+  results: ScryfallCard[];
+  not_found: string[];
 };
 
 /**
@@ -188,6 +212,104 @@ export class CardApiClient {
     return { results, failedItems, failures };
   }
 
+  /**
+   * Resolve a whole list in one (or a few) batch requests instead of one GET per
+   * card. Returns the same shape as `fetchImagesForList` so the orchestrator can
+   * hand `failedItems` to the sequential fallback unchanged.
+   *
+   * Entries are keyed by `set`+`collector_number`; anything missing those (or any
+   * entry, if this client has no bulk endpoint) is returned in `failedItems` so a
+   * name-based fallback still gets a shot at it. A returned card is matched back to
+   * its entry by reconstructing that same key from `card.set`+`card.collector_number`
+   * — the response is not ordered relative to the request.
+   */
+  async bulkLookup(
+    entries: DeckLineItem[],
+    onProgress?: (current: number, total: number) => void,
+  ): Promise<FetchListResult> {
+    const results: CardDataResult[] = [];
+    const failedItems: DeckLineItem[] = [];
+    const failures: LookupFailure[] = [];
+
+    const buildEndpoint = this.config.endpoints.bulk;
+
+    // Entries that can't be looked up by key (or at all, without a bulk endpoint)
+    // fall straight through to the caller's fallback.
+    const keyable: DeckLineItem[] = [];
+    for (const entry of entries) {
+      if (buildEndpoint && entry.setCode && entry.collectorNumber) {
+        keyable.push(entry);
+      } else {
+        failedItems.push(entry);
+        failures.push({ item: entry, reason: 'unknown' });
+      }
+    }
+
+    // Group by key so a returned card can fan back out to every entry that asked
+    // for that printing (normally one; guards against a list repeating a printing).
+    const keyToEntries = new Map<string, DeckLineItem[]>();
+    for (const entry of keyable) {
+      const key = normalizeCardKey(entry.setCode!, entry.collectorNumber!);
+      const bucket = keyToEntries.get(key);
+      if (bucket) bucket.push(entry);
+      else keyToEntries.set(key, [entry]);
+    }
+
+    const uniqueKeys = [...keyToEntries.keys()];
+    const matchedKeys = new Set<string>();
+    let processed = 0;
+
+    for (let i = 0; i < uniqueKeys.length; i += BULK_CHUNK_SIZE) {
+      const chunk = uniqueKeys.slice(i, i + BULK_CHUNK_SIZE);
+      let response: BulkLookupResponse;
+      try {
+        response = await this.postJson<BulkLookupResponse>(
+          buildEndpoint!(),
+          { card_ids: chunk },
+          `bulk lookup (${chunk.length} cards)`,
+        );
+      } catch (err) {
+        // The whole chunk is unresolved — surface every entry to the fallback.
+        const reason = classifyError(err);
+        const status = statusOf(err);
+        for (const key of chunk) {
+          for (const entry of keyToEntries.get(key) ?? []) {
+            failedItems.push(entry);
+            failures.push({ item: entry, reason, status });
+          }
+        }
+        processed += chunk.length;
+        onProgress?.(processed, uniqueKeys.length);
+        continue;
+      }
+
+      for (const card of response.results) {
+        const key = normalizeCardKey(card.set ?? '', card.collector_number ?? '');
+        const bucket = keyToEntries.get(key);
+        if (!bucket) continue; // unmappable — handled as a miss below
+        matchedKeys.add(key);
+        for (const entry of bucket) {
+          results.push(toCardDataResult(card, entry.count, entry.commander, entry.section));
+        }
+      }
+
+      processed += chunk.length;
+      onProgress?.(processed, uniqueKeys.length);
+    }
+
+    // Any requested key we didn't match (in `not_found`, or a card we couldn't map
+    // back) becomes a fallback candidate.
+    for (const key of uniqueKeys) {
+      if (matchedKeys.has(key)) continue;
+      for (const entry of keyToEntries.get(key) ?? []) {
+        failedItems.push(entry);
+        failures.push({ item: entry, reason: 'not_found' });
+      }
+    }
+
+    return { results, failedItems, failures };
+  }
+
   getQueueSize(): number {
     return this.queue.size;
   }
@@ -259,6 +381,50 @@ export class CardApiClient {
         },
       }),
     ) as Promise<ScryfallCard>;
+  }
+
+  /**
+   * POST a JSON body through the same rate-limit queue, retry, and error
+   * classification as GET lookups. Returns the parsed JSON of whatever shape the
+   * endpoint provides (not necessarily a single card).
+   */
+  private postJson<T>(url: string, body: unknown, label: string, retries = 2): Promise<T> {
+    return this.queue.add(() =>
+      pRetry(
+        async () => {
+          let response: Response;
+          try {
+            response = await fetch(url, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(body),
+            });
+          } catch (err) {
+            throw new CardApiError(
+              `[${this.config.name}] ${label}: request never completed (${String(err)})`,
+              classifyError(err),
+            );
+          }
+          if (!response.ok) {
+            const reason = reasonForStatus(response.status);
+            throw new CardApiError(
+              `[${this.config.name}] ${response.status} ${response.statusText} for ${url}`,
+              reason,
+              response.status,
+            );
+          }
+          return (await response.json()) as T;
+        },
+        {
+          retries,
+          onFailedAttempt: (error) => {
+            console.warn(
+              `[${this.config.name}] attempt ${error.attemptNumber} failed for ${label}. ${error.retriesLeft} retries left.`,
+            );
+          },
+        },
+      ),
+    ) as Promise<T>;
   }
 
   private async requestJson(url: string, label: string): Promise<ScryfallCard> {
