@@ -132,6 +132,14 @@ describe('GameContextMenu', () => {
     expect(screen.getByRole('menuitem', { name: /^Counter\b/ })).toBeInTheDocument();
     expect(screen.queryByRole('menuitem', { name: /-1\/-1 counter/ })).not.toBeInTheDocument();
 
+    // Deck-pile actions (Shuffle/Mulligan) and per-player health (+1/-1 life)
+    // aren't empty-board actions — they live on the deck and health-node menus,
+    // not here.
+    expect(screen.queryByRole('menuitem', { name: /^Shuffle\b/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('menuitem', { name: /^Mulligan\b/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('menuitem', { name: /^\+1 life\b/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('menuitem', { name: /^-1 life\b/ })).not.toBeInTheDocument();
+
     // It hosts the same drag-to-board grid as the toolbar's Create ▾ menu.
     await user.click(createToken);
     expect(await screen.findByText(/drag a token onto the board/i)).toBeInTheDocument();

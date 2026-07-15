@@ -16,8 +16,15 @@ test('right-clicking empty board opens the global actions menu', async ({ page }
   await page.mouse.click(x, y, { button: 'right' });
 
   await expect(page.getByRole('menuitem', { name: /^Draw\b/ })).toBeVisible();
-  await expect(page.getByRole('menuitem', { name: /^Shuffle\b/ })).toBeVisible();
   await expect(page.getByRole('menuitem', { name: /^Untap all\b/ })).toBeVisible();
+
+  // Deck-pile actions (Shuffle/Mulligan) and per-player health (+1/-1 life)
+  // are not empty-board actions — they stay off this menu (they live on the
+  // deck and health-node menus respectively).
+  await expect(page.getByRole('menuitem', { name: /^Shuffle\b/ })).toHaveCount(0);
+  await expect(page.getByRole('menuitem', { name: /^Mulligan\b/ })).toHaveCount(0);
+  await expect(page.getByRole('menuitem', { name: /^\+1 life\b/ })).toHaveCount(0);
+  await expect(page.getByRole('menuitem', { name: /^-1 life\b/ })).toHaveCount(0);
 });
 
 test('board pane menu offers Create token in place of "-1/-1 counter"', async ({ page }) => {
