@@ -1366,6 +1366,26 @@ body {
   justify-content: flex-end;
 }
 
+/* ===== Pile Viewer — phone header (design 1a): pile action left of the title ===== */
+/* Overrides DialogHeader's flex-col/text-center so the bulk action (Close &
+   Shuffle / Exile All) sits to the left of the title, freeing the controls row
+   below for sort + reveal. */
+.pile-header-phone {
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+  text-align: left;
+}
+.pile-header-phone-action {
+  flex: 0 0 auto;
+}
+.pile-header-phone-titles {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
 /* ===== Pile Viewer — phone control stack (design 1a) ===== */
 .pile-controls-phone {
   flex-direction: column;
@@ -1377,8 +1397,19 @@ body {
   gap: 10px;
   align-items: center;
 }
+/* Sort flexes to fill the row; the reveal control keeps its natural (compact)
+   width beside it. Override the trigger's desktop w-[170px] so it can shrink. */
+.pile-controls-phone-sort {
+  flex: 1 1 0;
+  min-width: 0;
+}
+/* Fill the flex track; override the trigger's desktop w-[170px] so it can shrink. */
+.pile-controls-phone-sort [data-slot="select-trigger"] {
+  width: 100%;
+}
 .pile-controls-phone-reveal {
   display: flex;
+  flex: 0 0 auto;
 }
 
 /* ===== Pile Viewer — reveal segmented (design 1g/1a) ===== */
@@ -1404,6 +1435,15 @@ body {
 }
 .pile-reveal-seg:first-child {
   border-left: none;
+}
+/* Non-interactive chip naming the control (phone 1a). Reads "REVEAL | Off …". */
+.pile-reveal-seg--label {
+  color: #6b7280;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  cursor: default;
+  padding: 0 10px;
 }
 .pile-reveal-seg[data-active="true"] {
   background-color: rgba(59, 130, 246, 0.16);
@@ -1461,6 +1501,22 @@ body {
   /* The destination bar owns the bottom safe-area inset on phone. */
   .pile-destination-bar {
     padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  }
+
+  /* Compact the segments so the reveal control shares a row with the sort
+     dropdown without truncating "Top to Bottom". */
+  .pile-reveal-seg {
+    padding: 0 10px;
+  }
+  .pile-reveal-seg--top {
+    padding-right: 6px;
+  }
+  /* font-size must be >= 16px or iOS Safari zooms the page in on focus. */
+  .pile-reveal-count {
+    width: 44px;
+    height: 30px;
+    padding: 0 4px;
+    font-size: 16px;
   }
 }
 

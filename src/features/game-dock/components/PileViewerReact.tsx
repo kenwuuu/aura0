@@ -102,6 +102,11 @@ type RevealMode = 'none' | 'top' | 'all';
  * The deck reveal control (design 1g): one segmented None / Top [N] / All
  * control, replacing the old checkbox-vs-number-field pair. State still flows
  * through the parent's revealAll/revealCount + Yjs writes — this is chrome only.
+ *
+ * `showLabel` prepends a non-interactive "REVEAL" chip so the control is
+ * self-labelling when it isn't already sitting under a cluster label — used on
+ * phone (1a), where it shares a row with the sort dropdown; desktop (1g) keeps
+ * its own "Reveal" cluster label and leaves this off.
  */
 function RevealSegmented({
   mode,
@@ -109,15 +114,22 @@ function RevealSegmented({
   max,
   onMode,
   onCount,
+  showLabel = false,
 }: {
   mode: RevealMode;
   count: number;
   max: number;
   onMode: (mode: RevealMode) => void;
   onCount: (value: string) => void;
+  showLabel?: boolean;
 }) {
   return (
     <div className="pile-reveal-segmented" data-testid="reveal-control" role="group" aria-label="Reveal">
+      {showLabel && (
+        <span className="pile-reveal-seg pile-reveal-seg--label" aria-hidden="true">
+          REVEAL
+        </span>
+      )}
       <button
         type="button"
         className="pile-reveal-seg"
@@ -130,11 +142,15 @@ function RevealSegmented({
         <button type="button" onClick={() => onMode('top')}>Top</button>
         {mode === 'top' && (
           <input
-            type="number"
-            min={0}
-            max={max}
+            // type=text (not number) so iOS Safari honors the select-all on
+            // focus below; inputMode+pattern still bring up the numeric keypad.
+            // The count is clamped to [0, deck size] in handleRevealCountChange.
+            type="text"
+            inputMode="numeric"
+            pattern="[0-9]*"
             value={count > 0 ? count : ''}
             placeholder="0"
+            onFocus={(e) => e.currentTarget.select()}
             onChange={(e) => onCount(e.target.value)}
             className="pile-reveal-count reveal-count-input"
             aria-label="Reveal top N cards"
@@ -530,6 +546,7 @@ export function PileViewerReact({
       max={cards.length}
       onMode={handleRevealMode}
       onCount={handleRevealCountChange}
+      showLabel={isPhone}
     />
   ) : null;
 
@@ -598,11 +615,14 @@ export function PileViewerReact({
         }}
       >
 
-        {/* HEADER — phone (1a): title + count. Desktop (1g): title + key legend. */}
+        {/* HEADER — phone (1a): pile action + title + count. Desktop (1g): title + key legend. */}
         {isPhone ? (
-          <DialogHeader className="px-5 pt-4 pb-3 border-b">
-            <DialogTitle className="text-xl font-bold">{getTitle()}</DialogTitle>
-            <div className="deck-pile-viewer-subtitle">{cards.length} CARDS</div>
+          <DialogHeader className="pile-header-phone px-5 pt-4 pb-3 border-b">
+            {primaryAction && <div className="pile-header-phone-action">{primaryAction}</div>}
+            <div className="pile-header-phone-titles">
+              <DialogTitle className="text-xl font-bold">{getTitle()}</DialogTitle>
+              <div className="deck-pile-viewer-subtitle">{cards.length} CARDS</div>
+            </div>
           </DialogHeader>
         ) : (
           <DialogHeader className="px-6 pt-6 pb-4 border-b">
@@ -627,11 +647,11 @@ export function PileViewerReact({
         {isPhone ? (
           <div className="deck-pile-viewer-controls pile-controls-phone">
             {searchInput}
+            {/* Sort + reveal share one row; the pile action moved up into the header. */}
             <div className="pile-controls-phone-row">
-              <div className="flex-1">{sortSelect}</div>
-              {primaryAction}
+              <div className="pile-controls-phone-sort">{sortSelect}</div>
+              {revealControl && <div className="pile-controls-phone-reveal">{revealControl}</div>}
             </div>
-            {revealControl && <div className="pile-controls-phone-reveal">{revealControl}</div>}
           </div>
         ) : (
           <div className="deck-pile-viewer-controls pile-controls-desktop">

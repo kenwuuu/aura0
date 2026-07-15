@@ -54,7 +54,11 @@ function CardPreviewPopup() {
     right: showOnLeft ? 'auto' : '20px',
     width: `${width}px`,
     height: `${height}px`,
-    zIndex: 10000,
+    // Above the modal layer (dialogs/overlays are z-10000): the preview is
+    // triggered from inside the full-screen pile viewer on touch long-press and
+    // must sit on top of it, not behind. CardPreview is a body-level fixed
+    // element (App root has no stacking context), so a higher z wins.
+    zIndex: 10001,
     borderRadius: `${24 * zoom}px`,
     boxShadow: '0 8px 16px rgba(0, 0, 0, 0.6)',
     border: '2px solid #4a4a4a',

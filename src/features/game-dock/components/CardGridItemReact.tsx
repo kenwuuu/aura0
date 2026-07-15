@@ -152,6 +152,13 @@ export const CardGridItemReact = React.memo(function CardGridItemReact({
   const handlePointerUp = (e: React.PointerEvent) => {
     if (e.pointerType !== 'touch') return;
     clearLongPress();
+    // Long-press = hold-to-preview: lifting the finger dismisses the preview it
+    // opened (the mouse path does this on mouseleave; touch has no leave event).
+    // Keep `longPressed` set so the trailing click is still swallowed below.
+    if (touch.current.longPressed) {
+      onHover(null);
+      useCardPreviewStore.getState().hide();
+    }
   };
 
   // Click fires for both mouse clicks and the tap that ends a touch. A tap that
@@ -199,6 +206,7 @@ export const CardGridItemReact = React.memo(function CardGridItemReact({
               <img
                 src={frontImageUrl}
                 alt={card.name || `Card #${card.cardNumber}`}
+                draggable={false}
                 className={`${styles.cardGridItemImg} ${styles.cardFrontImage} ${
                   frontImageLoaded ? styles.loaded : ''
                 } ${showFaceDown ? styles.hidden : ''}`}
@@ -213,6 +221,7 @@ export const CardGridItemReact = React.memo(function CardGridItemReact({
               <img
                 src={backImageUrl}
                 alt="Card Back"
+                draggable={false}
                 className={`${styles.cardGridItemImg} ${styles.cardBackImage} ${
                   backImageLoaded ? styles.loaded : ''
                 } ${!showFaceDown ? styles.hidden : ''}`}
@@ -227,17 +236,21 @@ export const CardGridItemReact = React.memo(function CardGridItemReact({
         )}
       </div>
 
-      {/* Card Name */}
+      {/* Card Name — overlaid on the bottom of the art, left-aligned, clamped. */}
       {card.name && !showFaceDown && (
         <div className={styles.cardGridItemName}>{card.name}</div>
       )}
 
-      {/* Position Label */}
+      {/* Position label ("Top N") disabled: it's meant to show each card's order
+          so reordering (scry) stays legible, but the number doesn't track a
+          reorder — it just reflects the render index — so it's misleading as-is.
+          Re-enable (showPosition/position/positionPrefix are still wired through)
+          once the label reflects the live card order.
       {showPosition && (
         <div className={styles.cardGridItemPosition}>
           {positionPrefix} {position + 1}
         </div>
-      )}
+      )} */}
     </div>
   );
 });
