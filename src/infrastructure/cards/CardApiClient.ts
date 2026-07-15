@@ -257,53 +257,49 @@ export class CardApiClient {
 
     const uniqueKeys = [...keyToEntries.keys()];
     const matchedKeys = new Set<string>();
+    // Reason a key failed at the chunk level (request threw). Keys that simply
+    // weren't in a successful response default to `not_found` in the pass below.
+    const chunkFailure = new Map<string, { reason: LookupFailureReason; status?: number }>();
     let processed = 0;
 
     for (let i = 0; i < uniqueKeys.length; i += BULK_CHUNK_SIZE) {
       const chunk = uniqueKeys.slice(i, i + BULK_CHUNK_SIZE);
-      let response: BulkLookupResponse;
       try {
-        response = await this.postJson<BulkLookupResponse>(
+        const response = await this.postJson<BulkLookupResponse>(
           buildEndpoint!(),
           { card_ids: chunk },
           `bulk lookup (${chunk.length} cards)`,
         );
-      } catch (err) {
-        // The whole chunk is unresolved — surface every entry to the fallback.
-        const reason = classifyError(err);
-        const status = statusOf(err);
-        for (const key of chunk) {
-          for (const entry of keyToEntries.get(key) ?? []) {
-            failedItems.push(entry);
-            failures.push({ item: entry, reason, status });
+        for (const card of response.results) {
+          const key = normalizeCardKey(card.set ?? '', card.collector_number ?? '');
+          const bucket = keyToEntries.get(key);
+          if (!bucket) continue; // unmappable — handled as a miss below
+          matchedKeys.add(key);
+          for (const entry of bucket) {
+            results.push(toCardDataResult(card, entry.count, entry.commander, entry.section));
           }
         }
-        processed += chunk.length;
-        onProgress?.(processed, uniqueKeys.length);
-        continue;
-      }
-
-      for (const card of response.results) {
-        const key = normalizeCardKey(card.set ?? '', card.collector_number ?? '');
-        const bucket = keyToEntries.get(key);
-        if (!bucket) continue; // unmappable — handled as a miss below
-        matchedKeys.add(key);
-        for (const entry of bucket) {
-          results.push(toCardDataResult(card, entry.count, entry.commander, entry.section));
-        }
+      } catch (err) {
+        // The whole chunk is unresolved — record why so the pass below surfaces
+        // each entry once (with the real reason, not a bare not_found).
+        const reason = classifyError(err);
+        const status = statusOf(err);
+        for (const key of chunk) chunkFailure.set(key, { reason, status });
       }
 
       processed += chunk.length;
       onProgress?.(processed, uniqueKeys.length);
     }
 
-    // Any requested key we didn't match (in `not_found`, or a card we couldn't map
-    // back) becomes a fallback candidate.
+    // Single pass for every requested key we didn't resolve: a chunk-level failure
+    // (with its reason) or a card the response didn't return (not_found). Each
+    // entry lands in `failedItems` exactly once for the caller's fallback.
     for (const key of uniqueKeys) {
       if (matchedKeys.has(key)) continue;
+      const failure = chunkFailure.get(key) ?? { reason: 'not_found' as LookupFailureReason };
       for (const entry of keyToEntries.get(key) ?? []) {
         failedItems.push(entry);
-        failures.push({ item: entry, reason: 'not_found' });
+        failures.push({ item: entry, reason: failure.reason, status: failure.status });
       }
     }
 

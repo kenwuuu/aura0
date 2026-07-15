@@ -22,15 +22,11 @@ import { join, basename } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parse } from 'csv-parse/sync';
 
-const ROOT = fileURLToPath(new URL('..', import.meta.url));
-const SRC_DIR = join(ROOT, 'precons_new');
-const OUT_DIR = join(ROOT, 'public', 'precons');
-
 const DECK_BOARDS = new Set(['mainboard', 'commanders']);
 const COLOR_ORDER = ['W', 'U', 'B', 'R', 'G'];
 
 /** Kebab-case slug: accent-fold, `&`→`and`, collapse non-alphanumerics to `-`. */
-function slugify(s) {
+export function slugify(s) {
   return s
     .normalize('NFKD')
     .replace(/[\u0300-\u036f]/g, '')
@@ -41,7 +37,7 @@ function slugify(s) {
 }
 
 /** Filename is `<DeckName> (<Set> Precon Decklist).csv`. Split on the paren group. */
-function parseFileName(file) {
+export function parseFileName(file) {
   const stem = basename(file, '.csv').trim();
   const m = stem.match(/^(.*?)\s*\((.*)\)\s*$/);
   if (!m) return { name: stem, set: '' };
@@ -52,7 +48,7 @@ function parseFileName(file) {
 }
 
 /** Color identity comes as a Python-list string, e.g. "['B', 'G', 'W']". */
-function extractColors(raw) {
+export function extractColors(raw) {
   const found = new Set((raw || '').match(/[WUBRG]/g) || []);
   return COLOR_ORDER.filter((c) => found.has(c));
 }
@@ -61,16 +57,21 @@ function cell(row, key) {
   return (row[key] ?? '').trim();
 }
 
-function buildDeck(file) {
-  const raw = readFileSync(join(SRC_DIR, file), 'utf8');
-  const rows = parse(raw, {
+/** Parse the CSV text of one deck into the same rows `deckFromRows` expects. */
+export function parseCsvRows(raw) {
+  return parse(raw, {
     columns: true,
     skip_empty_lines: true,
     relax_column_count: true,
     bom: true,
   });
+}
 
-  const { name, set } = parseFileName(file);
+/**
+ * Pure mapping from parsed CSV rows → {list, summary} (id filled in later).
+ * Keeps only mainboard + commander rows; commander flag drives the auto-draw.
+ */
+export function deckFromRows(rows, name, set) {
   const deckRows = rows.filter((r) => DECK_BOARDS.has(cell(r, 'boardType')));
   const commanderRows = deckRows.filter((r) => cell(r, 'boardType') === 'commanders');
 
@@ -102,7 +103,19 @@ function buildDeck(file) {
   };
 }
 
+function buildDeck(file, srcDir) {
+  const raw = readFileSync(join(srcDir, file), 'utf8');
+  const { name, set } = parseFileName(file);
+  return deckFromRows(parseCsvRows(raw), name, set);
+}
+
 function main() {
+  // Resolved here (not at module scope) so importing this file for tests never
+  // touches import.meta.url — Vitest's transform doesn't give it a file:// URL.
+  const root = fileURLToPath(new URL('..', import.meta.url));
+  const SRC_DIR = join(root, 'precons_new');
+  const OUT_DIR = join(root, 'public', 'precons');
+
   if (!existsSync(SRC_DIR)) {
     console.error(`Source directory not found: ${SRC_DIR}`);
     process.exit(1);
@@ -118,7 +131,7 @@ function main() {
   const problems = [];
 
   for (const file of files) {
-    const { list, summary } = buildDeck(file);
+    const { list, summary } = buildDeck(file, SRC_DIR);
 
     // `<name>-<set>` already disambiguates the 12 cross-set name collisions;
     // the counter is a last-resort guard so an id is never silently reused.
@@ -156,4 +169,7 @@ function main() {
   }
 }
 
-main();
+// Only build when run directly (`npm run build:precons`), not when imported by tests.
+if (process.argv[1] && import.meta.url === `file://${process.argv[1]}`) {
+  main();
+}
