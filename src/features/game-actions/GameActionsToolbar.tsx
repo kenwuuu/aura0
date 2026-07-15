@@ -209,7 +209,7 @@ export function GameActionsContent({ style }: { style?: React.CSSProperties } = 
         <DropdownMenuContent align="start" side="bottom" onInteractOutside={keepTriggerInteractionsInside(createTriggerRef)}>
           {createDropdown.map((action) => {
             if (action.id === 'create-token') {
-              return <CreateTokenGridItem key={action.id} />;
+              return <CreateTokenGridItem key={action.id} columns={7} />;
             }
             return (
               <DropdownMenuItem
