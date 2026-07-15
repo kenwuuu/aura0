@@ -1,13 +1,11 @@
 /**
  * Toolbar — the top menu bar.
  *
- * Composes deck import, secondary actions (Hotkeys/Help/Discord), connection
+ * Composes deck import, secondary actions (Discord/Ko-fi), connection
  * status, and the new-game/room-link buttons into one responsive row. Below
  * the `sm` breakpoint (640px — see `src/shared/hooks/breakpoints.ts`, which
  * mirrors Tailwind's default scale):
- *   - Hotkeys disappears entirely (it's a keyboard-shortcut reference, not
- *     useful without a keyboard) rather than moving into the overflow menu.
- *   - Help, Discord, and Ko-fi move into a "⋯ More" overflow menu.
+ *   - Discord and Ko-fi move into a "⋯ More" overflow menu.
  *   - The deck-import label shortens, the connection status collapses to a
  *     dot (see RoomConnectionStatus), and the new-game/copy-link buttons go
  *     icon-only (see NewGameButton/RoomLinkButton).
@@ -25,11 +23,9 @@
  * remains the sanctioned primitive for the rest of the responsive project,
  * for cases that need a real JS branch rather than pure show/hide.
  */
-import React, { useState } from 'react';
+import React from 'react';
 import { MoreHorizontal } from 'lucide-react';
 import { DeckManager } from '@/features/deck-manager';
-import { HotkeysModal } from '@/features/hotkeys/HotkeysModal';
-import { HelpModal } from '@/app/HelpModal';
 import { RoomConnectionStatus } from '@/features/room/RoomConnectionStatus';
 import { RoomLinkButton } from '@/features/room/RoomLinkButton';
 import { NewGameButton } from '@/features/room/NewGameButton';
@@ -51,13 +47,8 @@ interface ToolbarProps {
 }
 
 export function Toolbar({ yjsNetworkProvider, onDeckSelected }: ToolbarProps) {
-  const [isHotkeysOpen, setHotkeysOpen] = useState(false);
-  const [isHelpOpen, setHelpOpen] = useState(false);
-
-  // Items that collapse into the "⋯ More" menu below `sm`. Hotkeys isn't
-  // here — see the file header for why it just disappears instead.
+  // Items that collapse into the "⋯ More" menu below `sm`.
   const overflowActions = [
-    { id: 'help', label: 'Help', onSelect: () => setHelpOpen(true) },
     { id: 'discord', label: 'Discord', onSelect: () => window.open(DISCORD_URL, '_blank') },
     { id: 'kofi', label: 'Support me on Ko-fi', onSelect: () => window.open(KOFI_URL, '_blank') },
   ];
@@ -65,16 +56,6 @@ export function Toolbar({ yjsNetworkProvider, onDeckSelected }: ToolbarProps) {
   return (
     <div id="toolbar" data-testid="toolbar">
       <DeckManager onDeckSelected={onDeckSelected} />
-
-      <button className="toolbar-button toolbar-hotkeys" onClick={() => setHotkeysOpen(true)}>
-        Hotkeys
-      </button>
-      <HotkeysModal isOpen={isHotkeysOpen} onClose={() => setHotkeysOpen(false)} />
-
-      <button className="toolbar-button toolbar-collapsible" onClick={() => setHelpOpen(true)}>
-        Help
-      </button>
-      <HelpModal isOpen={isHelpOpen} onClose={() => setHelpOpen(false)} />
 
       <button
         className="toolbar-button discord toolbar-collapsible"
@@ -102,13 +83,9 @@ export function Toolbar({ yjsNetworkProvider, onDeckSelected }: ToolbarProps) {
       <NewGameButton />
       <RoomLinkButton />
 
-      {/* modal={false}: the "Help" item opens a Radix Dialog from onSelect.
-          A modal DropdownMenu and a modal Dialog both lock document.body's
-          pointer-events and restore it on unmount — if the Dialog mounts
-          while the menu is still closing, it captures "none" as the value to
-          restore, leaving the whole app unclickable after the Dialog closes.
-          Non-modal avoids the overlap (same reasoning as GameActionsToolbar's
-          Actions/Create dropdowns). */}
+      {/* modal={false} keeps the dropdown from locking document.body's
+          pointer-events while open, matching GameActionsToolbar's
+          Actions/Create dropdowns. */}
       <DropdownMenu modal={false}>
         <DropdownMenuTrigger asChild>
           <button

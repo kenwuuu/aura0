@@ -941,7 +941,6 @@ body {
       calc(12px + env(safe-area-inset-left, 0px));
   }
 
-  .toolbar-hotkeys,
   .toolbar-collapsible,
   .toolbar-collapsible-text,
   .toolbar-deck-label-full,

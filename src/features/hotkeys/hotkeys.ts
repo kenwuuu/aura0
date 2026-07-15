@@ -288,16 +288,6 @@ export function getHotkeysForContext(context: HotkeyContext): Hotkey[] {
 }
 
 /**
- * Get all hotkeys with their long descriptions (for the modal)
- */
-export function getAllHotkeysWithLongDescriptions(): Array<{ key: string; action: string }> {
-  return HOTKEYS.map(hotkey => ({
-    key: hotkey.key,
-    action: hotkey.longDescription,
-  }));
-}
-
-/**
  * Get key bindings for a specific action (for react-hotkeys-hook)
  */
 export function getKeyBindingsForAction(action: string): string[] {

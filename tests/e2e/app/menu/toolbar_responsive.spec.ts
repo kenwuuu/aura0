@@ -1,17 +1,15 @@
 /**
  * Advisory coverage for the top menu bar's responsive collapse
- * (src/app/Toolbar.tsx). Below the 640px `sm` breakpoint: Hotkeys
- * disappears, Help/Discord move into the "⋯ More" overflow menu, the
- * connection status collapses to its dot, and the new-game/copy-link buttons
- * go icon-only. Untagged (not @smoke) per docs/testing/e2e.md — responsive
- * layout isn't a load-bearing subsystem.
+ * (src/app/Toolbar.tsx). Below the 640px `sm` breakpoint: Discord and Ko-fi
+ * move into the "⋯ More" overflow menu, the connection status collapses to
+ * its dot, and the new-game/copy-link buttons go icon-only. Untagged (not
+ * @smoke) per docs/testing/e2e.md — responsive layout isn't a load-bearing
+ * subsystem.
  */
 import { test, expect } from '../../fixtures';
 import {
   toolbar,
   toolbarMoreButton,
-  hotkeysButton,
-  helpButton,
   discordButton,
   kofiButton,
   connectionStatus,
@@ -27,8 +25,6 @@ test.describe('toolbar responsive collapse', () => {
     await page.setViewportSize(DESKTOP_VIEWPORT);
 
     await expect(deckImportOpenButton(page)).toBeVisible();
-    await expect(hotkeysButton(page)).toBeVisible();
-    await expect(helpButton(page)).toBeVisible();
     await expect(discordButton(page)).toBeVisible();
     await expect(kofiButton(page)).toBeVisible();
     await expect(connectionStatus(page)).toBeVisible();
@@ -37,12 +33,10 @@ test.describe('toolbar responsive collapse', () => {
     await expect(toolbarMoreButton(page)).not.toBeVisible();
   });
 
-  test('phone width hides Hotkeys and collapses Help/Discord/Ko-fi into the overflow menu', async ({ page }) => {
+  test('phone width collapses Discord/Ko-fi into the overflow menu', async ({ page }) => {
     await page.setViewportSize(PHONE_VIEWPORT);
 
     await expect(deckImportOpenButton(page)).toBeVisible();
-    await expect(hotkeysButton(page)).not.toBeVisible();
-    await expect(helpButton(page)).not.toBeVisible();
     await expect(discordButton(page)).not.toBeVisible();
     await expect(kofiButton(page)).not.toBeVisible();
     await expect(connectionStatus(page)).toBeVisible();
@@ -52,7 +46,6 @@ test.describe('toolbar responsive collapse', () => {
     const moreButton = toolbarMoreButton(page);
     await expect(moreButton).toBeVisible();
     await moreButton.click();
-    await expect(page.getByRole('menuitem', { name: 'Help' })).toBeVisible();
     await expect(page.getByRole('menuitem', { name: 'Discord' })).toBeVisible();
     await expect(page.getByRole('menuitem', { name: 'Support me on Ko-fi' })).toBeVisible();
   });

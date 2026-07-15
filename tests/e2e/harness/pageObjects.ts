@@ -179,16 +179,6 @@ export function toolbarMoreButton(page: Page): Locator {
   return page.getByTestId(TESTID.toolbarMore);
 }
 
-/** The "Hotkeys" button in the top bar. Hidden below the `sm` collapse breakpoint. */
-export function hotkeysButton(page: Page): Locator {
-  return toolbar(page).getByRole('button', { name: 'Hotkeys' });
-}
-
-/** The "Help" button in the top bar (desktop row; moves into the overflow menu on phone). */
-export function helpButton(page: Page): Locator {
-  return toolbar(page).getByRole('button', { name: 'Help' });
-}
-
 /** The Discord button in the top bar (desktop row; moves into the overflow menu on phone). */
 export function discordButton(page: Page): Locator {
   return toolbar(page).getByRole('button', { name: 'Join Discord Server' });
