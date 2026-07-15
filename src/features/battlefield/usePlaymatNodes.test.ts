@@ -23,6 +23,7 @@ import {
   YSTATE_HAND,
   YSTATE_EXILE_PILE,
   YSTATE_DISCARD_PILE,
+  YSTATE_SIDEBOARD,
   YSTATE_CUSTOM_COUNTERS,
   YSTATE_CAN_VIEW_HAND,
   YDOC_PLAYER,
@@ -36,6 +37,7 @@ function writePlayer(yDoc: Y.Doc, playerId: string, options: {
   hand?: unknown[];
   exile?: unknown[];
   discard?: unknown[];
+  sideboard?: unknown[];
   allowViewHand?: boolean;
 } = {}) {
   const map = yDoc.getMap(YDOC_PLAYER(playerId));
@@ -46,12 +48,13 @@ function writePlayer(yDoc: Y.Doc, playerId: string, options: {
   map.set(YSTATE_HAND, options.hand ?? []);
   map.set(YSTATE_EXILE_PILE, options.exile ?? []);
   map.set(YSTATE_DISCARD_PILE, options.discard ?? []);
+  map.set(YSTATE_SIDEBOARD, options.sideboard ?? []);
   map.set(YSTATE_CUSTOM_COUNTERS, []);
   map.set(YSTATE_CAN_VIEW_HAND, options.allowViewHand ?? false);
 }
 
 describe('buildPlaymatNodes', () => {
-  it('emits 6 nodes per player (playmat, health, deck, discard, exile, sideboard)', () => {
+  it('emits 5 nodes per player when the sideboard is empty (playmat, health, deck, discard, exile — no sideboard tile)', () => {
     const yDoc = new Y.Doc();
     writePlayer(yDoc, 'local-p1', { joinedAt: 100 });
 
@@ -60,16 +63,31 @@ describe('buildPlaymatNodes', () => {
     const types = nodes.map((n) => n.type);
     expect(types).toContain('playmat');
     expect(types).toContain('health');
-    expect(types.filter((t) => t === 'pile')).toHaveLength(4); // deck, discard, exile, sideboard
-    expect(nodes).toHaveLength(6);
+    expect(types.filter((t) => t === 'pile')).toHaveLength(3); // deck, discard, exile
+    expect(nodes.find((n) => n.id === 'pile-sideboard-local-p1')).toBeUndefined();
+    expect(nodes).toHaveLength(5);
   });
 
-  it('emits a sideboard pile for every player, including opponents', () => {
+  it('emits a sideboard tile only when the deck imported with sideboard cards', () => {
+    // The tile is clutter for the common no-sideboard deck, so it is hidden until
+    // the zone actually holds cards. See buildPlaymatNodes for the rationale.
+    const yDoc = new Y.Doc();
+    writePlayer(yDoc, 'local-p1', { joinedAt: 100, sideboard: [{}, {}] });
+
+    const nodes = buildPlaymatNodes(yDoc, 'local-p1');
+
+    const sideboard = nodes.find((n) => n.id === 'pile-sideboard-local-p1');
+    expect(sideboard).toBeDefined();
+    expect((sideboard!.data as any).count).toBe(2);
+    expect(nodes.filter((n) => n.type === 'pile')).toHaveLength(4); // deck, discard, exile, sideboard
+  });
+
+  it('emits a sideboard pile for every player who has one, including opponents', () => {
     // Opponents get one too: the count is public in paper Magic even though the
     // contents never are. PileNode is what gates opening it (pileNodeLogic).
     const yDoc = new Y.Doc();
-    writePlayer(yDoc, 'local-p1', { joinedAt: 100 });
-    writePlayer(yDoc, 'opp-p2', { joinedAt: 200 });
+    writePlayer(yDoc, 'local-p1', { joinedAt: 100, sideboard: [{}] });
+    writePlayer(yDoc, 'opp-p2', { joinedAt: 200, sideboard: [{}] });
 
     const nodes = buildPlaymatNodes(yDoc, 'local-p1');
 
@@ -77,12 +95,23 @@ describe('buildPlaymatNodes', () => {
     expect(sideboardIds.sort()).toEqual(['pile-sideboard-local-p1', 'pile-sideboard-opp-p2']);
   });
 
+  it('hides the sideboard tile for a player whose sideboard is empty while showing it for one who has cards', () => {
+    const yDoc = new Y.Doc();
+    writePlayer(yDoc, 'local-p1', { joinedAt: 100, sideboard: [{}] });
+    writePlayer(yDoc, 'opp-p2', { joinedAt: 200 }); // imported without a sideboard
+
+    const nodes = buildPlaymatNodes(yDoc, 'local-p1');
+
+    expect(nodes.find((n) => n.id === 'pile-sideboard-local-p1')).toBeDefined();
+    expect(nodes.find((n) => n.id === 'pile-sideboard-opp-p2')).toBeUndefined();
+  });
+
   it('places the sideboard left of the deck, clear of discard and exile', () => {
     // The pile column is full at four, so the sideboard opens a second column —
     // but only beside the deck. If it ever shared a row with discard or exile it
     // would be fencing off battlefield space those piles do not need.
     const yDoc = new Y.Doc();
-    writePlayer(yDoc, 'local-p1', { joinedAt: 100 });
+    writePlayer(yDoc, 'local-p1', { joinedAt: 100, sideboard: [{}] });
 
     const nodes = buildPlaymatNodes(yDoc, 'local-p1');
     const at = (id: string) => nodes.find((n) => n.id === id)!.position;
@@ -309,6 +338,22 @@ describe('usePlaymatNodes hook', () => {
     });
     const health = result.current.nodes.find((n) => n.id === 'health-local-p1');
     expect((health!.data as any).health).toBe(10);
+  });
+
+  it('adds the sideboard tile on the next rebuild once a card lands in an empty sideboard', async () => {
+    const yDoc = new Y.Doc();
+    writePlayer(yDoc, 'local-p1', { joinedAt: 100 }); // starts with no sideboard
+
+    const { result } = renderHook(() => usePlaymatNodes(yDoc, 'local-p1'));
+    expect(result.current.nodes.find((n) => n.id === 'pile-sideboard-local-p1')).toBeUndefined();
+
+    act(() => {
+      yDoc.getMap(YDOC_PLAYER('local-p1')).set(YSTATE_SIDEBOARD, [{}]);
+    });
+
+    await waitFor(() => {
+      expect(result.current.nodes.find((n) => n.id === 'pile-sideboard-local-p1')).toBeDefined();
+    });
   });
 
   it('rebuilds when the tab becomes visible again', async () => {
