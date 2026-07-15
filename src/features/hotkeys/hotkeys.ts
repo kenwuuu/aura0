@@ -59,6 +59,19 @@ export interface Hotkey {
 }
 
 export const HOTKEYS: Hotkey[] = [
+  // Pointer-only (no key binding): opens the pile's card viewer. Left-click
+  // already opens it on desktop; this surfaces the same thing as a menu row so
+  // the viewer stays reachable on touch, where a tap opens the menu instead of
+  // opening the viewer directly. Kept at the top of the catalog so "View" is
+  // the first row on every pile's context menu (above "Draw" on the deck).
+  {
+    key: '',
+    keys: [],
+    context: ['deck', 'exile', 'discard', 'sideboard'],
+    shortDescription: 'View',
+    longDescription: 'View pile contents',
+    action: 'viewPile',
+  },
   // Global shortcuts (work anywhere)
   {
     key: 'C',
@@ -89,24 +102,17 @@ export const HOTKEYS: Hotkey[] = [
     action: 'mulligan',
   },
   {
+    // Not in 'deck' context: "Add any card" pulls a card from outside the game,
+    // which isn't a deck-pile action, so it stays off the deck menu. It remains
+    // on the empty-board (Global) menu, and the 'a' key still works — that
+    // binding is registered directly in useAllGameHotkeys, independent of this
+    // context list.
     key: 'A',
     keys: ['a'],
-    context: ['global', 'deck'],
+    context: ['global'],
     shortDescription: 'Add any card',
     longDescription: 'Add a card from outside of game',
     action: 'addCard',
-  },
-  // Pointer-only (no key binding): opens the pile's card viewer. Left-click
-  // already opens it on desktop; this surfaces the same thing as a menu row so
-  // the viewer stays reachable on touch, where a tap opens the menu instead of
-  // opening the viewer directly.
-  {
-    key: '',
-    keys: [],
-    context: ['deck', 'exile', 'discard', 'sideboard'],
-    shortDescription: 'View',
-    longDescription: 'View pile contents',
-    action: 'viewPile',
   },
   // Not in 'global' context: +1/-1 life belong to a player's health node, not
   // the empty-board menu, so they stay off it (they remain on the health-node
