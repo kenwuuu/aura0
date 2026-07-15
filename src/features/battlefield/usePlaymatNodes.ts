@@ -138,20 +138,28 @@ export function buildPlaymatNodes(yDoc: Y.Doc, localPlayerId: string): Node[] {
       height: CARD_HEIGHT,
     });
 
-    // Sideboard pile — emitted for everyone, but only its owner can open it.
-    // An opponent sees the count and nothing else, which is what a sideboard is
-    // in paper Magic: you may know it holds 15 cards, never which 15. The
-    // contents gate lives in PileNode, alongside the hand's.
-    nodes.push({
-      id: `pile-sideboard-${playerId}`,
-      type: 'pile',
-      position: positions.sideboard,
-      data: { ownerId: playerId, isLocal, pileKind: 'sideboard', count: sideboard.length, allowViewHand: false, yDoc },
-      zIndex: 10,
-      draggable: false,
-      width: CARD_WIDTH,
-      height: CARD_HEIGHT,
-    });
+    // Sideboard pile — only emitted when the sideboard actually holds cards.
+    // Most decks import without one, and an empty sideboard tile is just clutter
+    // that also fences off battlefield space. The zone still exists in Yjs, so
+    // moving a card in (the `B` hotkey works from an empty sideboard) brings the
+    // tile back on the next rebuild; emptying it hides the tile again.
+    //
+    // Emitted for everyone, but only its owner can open it: an opponent sees the
+    // count and nothing else, which is what a sideboard is in paper Magic — you
+    // may know it holds 15 cards, never which 15. The contents gate lives in
+    // PileNode, alongside the hand's.
+    if (sideboard.length > 0) {
+      nodes.push({
+        id: `pile-sideboard-${playerId}`,
+        type: 'pile',
+        position: positions.sideboard,
+        data: { ownerId: playerId, isLocal, pileKind: 'sideboard', count: sideboard.length, allowViewHand: false, yDoc },
+        zIndex: 10,
+        draggable: false,
+        width: CARD_WIDTH,
+        height: CARD_HEIGHT,
+      });
+    }
 
     // Opponent hand pile — always emitted for opponents; gating is handled in PileNode
     if (!isLocal) {

@@ -30,6 +30,19 @@ SIDEBOARD:
 1 Pyroblast
 1 Drill Too Deep`;
 
+/** The same deck, but with no sideboard section — the common case. */
+const DECK_WITHOUT_SIDEBOARD = `10 Lightning Bolt
+10 Mountain`;
+
+test('testNoSideboardTileWhenDeckImportsWithoutOne', async ({ page }) => {
+  // Most decks have no sideboard, so an empty sideboard tile is just clutter that
+  // fences off battlefield space — it must not be rendered at all.
+  await importDeck(page, 'Plain Deck', DECK_WITHOUT_SIDEBOARD);
+
+  await expectPileCount(page, 'deck', 20 - OPENING_HAND); // import settled
+  await expect(pileTile(page, 'sideboard')).toHaveCount(0);
+});
+
 test('testSideboardImportsIntoItsOwnPile', async ({ page }) => {
   await importDeck(page, 'Sideboard Deck', DECK_WITH_SIDEBOARD);
 
@@ -83,7 +96,11 @@ test('testDeckCardMovesToSideboard', async ({ page }) => {
 
 test('testSideboardPileSitsLeftOfTheDeck', async ({ page }) => {
   // The layout promise: beside the deck, and clear of discard/exile so the space
-  // next to them stays usable battlefield.
+  // next to them stays usable battlefield. Import a deck with a sideboard first —
+  // the tile only exists once the sideboard holds cards.
+  await importDeck(page, 'Sideboard Deck', DECK_WITH_SIDEBOARD);
+  await expectPileCount(page, 'sideboard', 2);
+
   const sideboard = await pileTile(page, 'sideboard').boundingBox();
   const deck = await pileTile(page, 'deck').boundingBox();
   const discard = await pileTile(page, 'discard').boundingBox();
