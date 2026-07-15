@@ -531,3 +531,34 @@ test('testDeckViewerHotkeyTwiceWithoutMouseMove', async ({ page }) => {
 
   await expectPileCount(page, 'discard', 2);
 });
+
+// Reorder is enabled on every local pile now (not just scry). Unlike the scry
+// case above — which only checks in-viewer order — this proves the drag
+// *persists* to the pile's Yjs state: it survives closing (without shuffling)
+// and reopening the viewer.
+test('testDeckViewerReorderPersistsAcrossReopen', async ({ page }) => {
+  const cardIdOrder = () =>
+    pileViewerCards(page).evaluateAll((els) => els.map((e) => e.getAttribute('data-card-id')));
+
+  await openPileViewer(page, 'deck');
+  await waitForPileViewerReady(page);
+
+  const gridItems = pileViewerGrid(page).locator('> div');
+  const first = await gridItems.nth(0).boundingBox();
+  const third = await gridItems.nth(2).boundingBox();
+  if (!first || !third) throw new Error('Could not get card bounding boxes');
+  await mouseDrag(
+    page,
+    { x: first.x + first.width / 2, y: first.y + first.height / 2 },
+    { x: third.x + third.width / 2, y: third.y + third.height / 2 },
+  );
+  const orderAfterDrag = await cardIdOrder();
+
+  // Close without shuffling (Escape, not "Close & Shuffle"), then reopen.
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('dialog', { name: 'Search Deck' })).toBeHidden();
+  await openPileViewer(page, 'deck');
+  await waitForPileViewerReady(page);
+
+  expect(await cardIdOrder()).toEqual(orderAfterDrag);
+});

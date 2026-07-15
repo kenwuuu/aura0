@@ -16,9 +16,13 @@ import {HotkeyContext} from '@/features/hotkeys/hotkeys';
 import {DEFAULT_CARD_BACK, YSTATE_HAND, YSTATE_DECK, YSTATE_EXILE_PILE, YSTATE_DISCARD_PILE, YSTATE_SCRY, YSTATE_SIDEBOARD} from '@/constants';
 import styles from './CardGridItemReact.module.css';
 import {useContextMenuStore} from "@/features/hotkeys/contextMenuStore";
-import {useContextMenuTap} from "@/features/hotkeys/useContextMenuTap";
 import {useCardPreviewStore} from "@/features/card-preview/cardPreviewStore";
 import {wasLastInputTouch} from "@/shared/pointerInput";
+
+/** Hold duration (ms) before a touch turns into a card preview instead of a tap. */
+const LONG_PRESS_MS = 450;
+/** Finger travel (px) that cancels a pending long-press (treated as a scroll). */
+const LONG_PRESS_MOVE_CANCEL_PX = 10;
 
 const PILE_YSTATE_KEY: Record<PileType, string> = {
   hand: YSTATE_HAND,
@@ -39,6 +43,12 @@ export interface CardGridItemReactProps {
   hotkeyContext: HotkeyContext;
   pileType: PileType;
   yPlayerState: Y.Map<any> | null;
+  /** Whether tapping/clicking this card toggles selection (false = read-only viewer). */
+  selectable: boolean;
+  /** Whether this card is currently in the selection. */
+  selected: boolean;
+  /** Toggle this card's membership in the selection. */
+  onToggleSelect: (cardId: string) => void;
 }
 
 export const CardGridItemReact = React.memo(function CardGridItemReact({
@@ -51,6 +61,9 @@ export const CardGridItemReact = React.memo(function CardGridItemReact({
   hotkeyContext,
   pileType,
   yPlayerState,
+  selectable,
+  selected,
+  onToggleSelect,
 }: CardGridItemReactProps) {
   const [frontImageLoaded, setFrontImageLoaded] = React.useState(false);
   const [backImageLoaded, setBackImageLoaded] = React.useState(false);
@@ -101,13 +114,63 @@ export const CardGridItemReact = React.memo(function CardGridItemReact({
     });
   };
 
-  // On touch, a face-up card previews on first tap and opens its menu on the
-  // second (two-tap machine). Face-down cards can't be previewed, so they pass
-  // no showPreview and keep the single-tap → menu behaviour.
-  const tapMenu = useContextMenuTap(
-    { kind: 'pileViewerCard', id: card.id, context: hotkeyContext },
-    showFaceDown ? undefined : { showPreview },
-  );
+  // Touch gesture state. In the pile viewer a tap = select (drives the
+  // destination bar); a long-press = preview. Desktop keeps hover-preview +
+  // right-click menu, so this machinery only engages for `pointerType: touch`.
+  const touch = React.useRef({ x: 0, y: 0, longPressed: false, timer: null as number | null });
+  const clearLongPress = () => {
+    if (touch.current.timer !== null) {
+      window.clearTimeout(touch.current.timer);
+      touch.current.timer = null;
+    }
+  };
+
+  const handlePointerDown = (e: React.PointerEvent) => {
+    if (e.pointerType !== 'touch') return;
+    touch.current.longPressed = false;
+    touch.current.x = e.clientX;
+    touch.current.y = e.clientY;
+    clearLongPress();
+    touch.current.timer = window.setTimeout(() => {
+      touch.current.timer = null;
+      touch.current.longPressed = true;
+      // Face-down cards (deck/scry, reveal off) can't be previewed.
+      if (!showFaceDown) showPreview(touch.current.x, touch.current.y);
+    }, LONG_PRESS_MS);
+  };
+
+  const handlePointerMove = (e: React.PointerEvent) => {
+    if (e.pointerType !== 'touch' || touch.current.timer === null) return;
+    if (
+      Math.abs(e.clientX - touch.current.x) > LONG_PRESS_MOVE_CANCEL_PX ||
+      Math.abs(e.clientY - touch.current.y) > LONG_PRESS_MOVE_CANCEL_PX
+    ) {
+      clearLongPress(); // treat as a scroll, not a press
+    }
+  };
+
+  const handlePointerUp = (e: React.PointerEvent) => {
+    if (e.pointerType !== 'touch') return;
+    clearLongPress();
+    // Long-press = hold-to-preview: lifting the finger dismisses the preview it
+    // opened (the mouse path does this on mouseleave; touch has no leave event).
+    // Keep `longPressed` set so the trailing click is still swallowed below.
+    if (touch.current.longPressed) {
+      onHover(null);
+      useCardPreviewStore.getState().hide();
+    }
+  };
+
+  // Click fires for both mouse clicks and the tap that ends a touch. A tap that
+  // became a long-press already showed the preview, so swallow its trailing
+  // click instead of toggling selection.
+  const handleClick = () => {
+    if (touch.current.longPressed) {
+      touch.current.longPressed = false;
+      return;
+    }
+    if (selectable) onToggleSelect(card.id);
+  };
 
   const hasFrontImage = frontImageUrl && !frontImageError;
   const hasBackImage = backImageUrl && !backImageError;
@@ -116,15 +179,24 @@ export const CardGridItemReact = React.memo(function CardGridItemReact({
   return (
     <div
       ref={cardRef}
-      className={styles.cardGridItem}
+      className={`${styles.cardGridItem} ${selected ? styles.selected : ''}`}
       data-testid="pile-viewer-card"
       data-card-id={card.id}
+      data-selected={selected}
       tabIndex={0}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
       onContextMenu={handleContextMenu}
-      {...tapMenu}
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerUp}
+      onPointerCancel={handlePointerUp}
+      onClick={handleClick}
     >
+      {/* Selection check badge */}
+      {selected && (
+        <div className={styles.selectCheck} data-testid="pile-viewer-card-check">✓</div>
+      )}
       {/* Card Image */}
       <div className={styles.cardGridItemImage}>
         {hasAnyImage ? (
@@ -134,6 +206,7 @@ export const CardGridItemReact = React.memo(function CardGridItemReact({
               <img
                 src={frontImageUrl}
                 alt={card.name || `Card #${card.cardNumber}`}
+                draggable={false}
                 className={`${styles.cardGridItemImg} ${styles.cardFrontImage} ${
                   frontImageLoaded ? styles.loaded : ''
                 } ${showFaceDown ? styles.hidden : ''}`}
@@ -148,6 +221,7 @@ export const CardGridItemReact = React.memo(function CardGridItemReact({
               <img
                 src={backImageUrl}
                 alt="Card Back"
+                draggable={false}
                 className={`${styles.cardGridItemImg} ${styles.cardBackImage} ${
                   backImageLoaded ? styles.loaded : ''
                 } ${!showFaceDown ? styles.hidden : ''}`}
@@ -162,17 +236,21 @@ export const CardGridItemReact = React.memo(function CardGridItemReact({
         )}
       </div>
 
-      {/* Card Name */}
+      {/* Card Name — overlaid on the bottom of the art, left-aligned, clamped. */}
       {card.name && !showFaceDown && (
         <div className={styles.cardGridItemName}>{card.name}</div>
       )}
 
-      {/* Position Label */}
+      {/* Position label ("Top N") disabled: it's meant to show each card's order
+          so reordering (scry) stays legible, but the number doesn't track a
+          reorder — it just reflects the render index — so it's misleading as-is.
+          Re-enable (showPosition/position/positionPrefix are still wired through)
+          once the label reflects the live card order.
       {showPosition && (
         <div className={styles.cardGridItemPosition}>
           {positionPrefix} {position + 1}
         </div>
-      )}
+      )} */}
     </div>
   );
 });

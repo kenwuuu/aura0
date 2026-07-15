@@ -1220,6 +1220,306 @@ body {
   background: #4d4d4d;
 }
 
+/* Grid scroll region fills the space between controls and the destination bar
+   (flex:1 + min-height:0 so it can shrink and scroll inside the fixed-height
+   modal on desktop, and pin the bar to the bottom edge on phone). */
+.deck-pile-viewer-grid-container {
+  flex: 1;
+  min-height: 0;
+}
+
+/* ===== Pile Viewer — destination bar (design 1a) ===== */
+.pile-destination-bar {
+  flex: none;
+  border-top: 1px solid #3b82f6;
+  background-color: #0f0f14;
+  padding: 12px 16px;
+  box-shadow: 0 -8px 30px rgba(59, 130, 246, 0.18);
+}
+
+.pile-destination-bar-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.pile-destination-bar-count {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: #60a5fa;
+}
+
+.pile-destination-bar-hint {
+  font-size: 11px;
+  letter-spacing: 1px;
+  color: #6b7280;
+}
+
+.pile-destination-bar-clear {
+  font-size: 11px;
+  letter-spacing: 1px;
+  color: #9ca3af;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px 6px;
+}
+.pile-destination-bar-clear:hover {
+  color: #ffffff;
+}
+
+.pile-destination-bar-targets {
+  display: flex;
+  gap: 8px;
+}
+
+.pile-destination-target {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 2px;
+  border: 1px solid #3d3d3d;
+  border-radius: 9px;
+  background-color: #2d2d2d;
+  color: #ffffff;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.pile-destination-target:hover {
+  border-color: #3b82f6;
+  background-color: #1e293b;
+}
+.pile-destination-target-key {
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1;
+}
+.pile-destination-target-label {
+  font-size: 9px;
+  color: #9ca3af;
+}
+
+/* ===== Pile Viewer — desktop key legend (design 1g) ===== */
+.pile-key-legend {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.pile-key-legend-hint {
+  font-size: 10px;
+  letter-spacing: 1.5px;
+  color: #6b7280;
+  margin-right: 2px;
+}
+.pile-key-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: #9ca3af;
+  background-color: #2d2d2d;
+  border: 1px solid #3d3d3d;
+  border-radius: 5px;
+  padding: 4px 9px;
+}
+.pile-key-chip b {
+  color: #ffffff;
+  font-weight: 700;
+}
+
+/* ===== Pile Viewer — desktop control clusters (design 1g) ===== */
+.pile-controls-desktop {
+  align-items: flex-end;
+}
+.pile-cluster {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.pile-cluster-label {
+  font-size: 9px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: #6b7280;
+}
+.pile-cluster-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+.pile-cluster-divider {
+  width: 1px;
+  align-self: stretch;
+  background-color: #3d3d3d;
+  margin: 0 4px;
+}
+.pile-controls-spacer {
+  flex: 1;
+}
+.pile-cluster--action {
+  justify-content: flex-end;
+}
+
+/* ===== Pile Viewer — phone header (design 1a): pile action left of the title ===== */
+/* Overrides DialogHeader's flex-col/text-center so the bulk action (Close &
+   Shuffle / Exile All) sits to the left of the title, freeing the controls row
+   below for sort + reveal. */
+.pile-header-phone {
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+  text-align: left;
+}
+.pile-header-phone-action {
+  flex: 0 0 auto;
+}
+.pile-header-phone-titles {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+/* ===== Pile Viewer — phone control stack (design 1a) ===== */
+.pile-controls-phone {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 12px;
+}
+.pile-controls-phone-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+/* Sort flexes to fill the row; the reveal control keeps its natural (compact)
+   width beside it. Override the trigger's desktop w-[170px] so it can shrink. */
+.pile-controls-phone-sort {
+  flex: 1 1 0;
+  min-width: 0;
+}
+/* Fill the flex track; override the trigger's desktop w-[170px] so it can shrink. */
+.pile-controls-phone-sort [data-slot="select-trigger"] {
+  width: 100%;
+}
+.pile-controls-phone-reveal {
+  display: flex;
+  flex: 0 0 auto;
+}
+
+/* ===== Pile Viewer — reveal segmented (design 1g/1a) ===== */
+.pile-reveal-segmented {
+  display: flex;
+  height: 40px;
+  border: 1px solid #3d3d3d;
+  border-radius: 8px;
+  overflow: hidden;
+  background-color: #2d2d2d;
+}
+.pile-reveal-seg {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 14px;
+  border: none;
+  border-left: 1px solid #3d3d3d;
+  background: transparent;
+  color: #9ca3af;
+  font-size: 13px;
+  cursor: pointer;
+}
+.pile-reveal-seg:first-child {
+  border-left: none;
+}
+/* Non-interactive chip naming the control (phone 1a). Reads "REVEAL | Off …". */
+.pile-reveal-seg--label {
+  color: #6b7280;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  cursor: default;
+  padding: 0 10px;
+}
+.pile-reveal-seg[data-active="true"] {
+  background-color: rgba(59, 130, 246, 0.16);
+  color: #60a5fa;
+  box-shadow: inset 0 0 0 1px rgba(59, 130, 246, 0.45);
+}
+.pile-reveal-seg--top {
+  padding-right: 8px;
+}
+.pile-reveal-seg--top > button {
+  border: none;
+  background: transparent;
+  color: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  padding: 0;
+}
+.pile-reveal-count {
+  width: 52px;
+  height: 26px;
+  text-align: center;
+  border-radius: 5px;
+  border: 1px solid #4b5563;
+  background-color: #1a1a1a;
+  color: #ffffff;
+  font-size: 13px;
+}
+
+/* ===== Pile Viewer — phone full-screen shell (design 1a) — see docs/responsive.md ===== */
+@media (max-width: 639px) {
+  .deck-pile-viewer-content {
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    max-width: none;
+    /* dvh pair (vh fallback first) — never a lone 100dvh. */
+    height: 100vh;
+    height: 100dvh;
+    /* The desktop viewer centers via Tailwind's translate-x/y-[-50%], which in
+       Tailwind v4 compile to the CSS `translate` property (not `transform`).
+       Reset `translate`, not just `transform`, or the shell renders shifted by
+       (-50%, -50%) off the top-left. */
+    transform: none;
+    translate: none;
+    border: 0;
+    border-radius: 0;
+  }
+
+  .deck-pile-viewer-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    padding: 16px;
+  }
+
+  /* The destination bar owns the bottom safe-area inset on phone. */
+  .pile-destination-bar {
+    padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  }
+
+  /* Compact the segments so the reveal control shares a row with the sort
+     dropdown without truncating "Top to Bottom". */
+  .pile-reveal-seg {
+    padding: 0 10px;
+  }
+  .pile-reveal-seg--top {
+    padding-right: 6px;
+  }
+  /* font-size must be >= 16px or iOS Safari zooms the page in on focus. */
+  .pile-reveal-count {
+    width: 44px;
+    height: 30px;
+    padding: 0 4px;
+    font-size: 16px;
+  }
+}
+
 @theme inline {
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);

@@ -13,6 +13,8 @@ export const TESTID = {
   handCardsContainer: 'hand-cards-container',
   pileViewer: 'pile-viewer',
   pileViewerCard: 'pile-viewer-card',
+  pileDestinationBar: 'pile-destination-bar',
+  pileDestinationCount: 'pile-destination-count',
   deckImportOpen: 'deck-import-open',
   deckImportModal: 'deck-import-modal',
   toolbar: 'toolbar',
@@ -34,3 +36,11 @@ export const TESTID = {
 } as const;
 
 export type PileKind = 'deck' | 'discard' | 'exile' | 'hand' | 'sideboard';
+
+/** The destination-bar move actions, matching the `pile-destination-<action>` testids. */
+export type PileMoveAction =
+  | 'moveToHand'
+  | 'moveToDiscard'
+  | 'moveToExile'
+  | 'moveToDeckTop'
+  | 'moveToDeckBottom';

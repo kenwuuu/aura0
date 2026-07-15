@@ -8,6 +8,7 @@
  */
 
 import { useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { DEFAULT_CARD_BACK } from '@/constants';
 import type { Card } from '@/features/player/types';
 import { useCardPreviewStore } from './cardPreviewStore';
@@ -54,7 +55,12 @@ function CardPreviewPopup() {
     right: showOnLeft ? 'auto' : '20px',
     width: `${width}px`,
     height: `${height}px`,
-    zIndex: 10000,
+    // Above the modal layer (dialogs/overlays are z-10000): the preview can be
+    // triggered from inside the full-screen pile viewer (touch long-press) and
+    // must sit on top of it. Portaled to <body> below so it's a direct sibling
+    // of Radix's dialog portal — a clean z-index comparison, not one across the
+    // app-root/portal tree boundary.
+    zIndex: 10001,
     borderRadius: `${24 * zoom}px`,
     boxShadow: '0 8px 16px rgba(0, 0, 0, 0.6)',
     border: '2px solid #4a4a4a',
@@ -62,10 +68,11 @@ function CardPreviewPopup() {
     pointerEvents: 'none',
   };
 
-  return (
+  return createPortal(
     <div className="card-preview-popup" style={popupStyle}>
       <img src={src} alt={alt} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-    </div>
+    </div>,
+    document.body,
   );
 }
 
