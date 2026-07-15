@@ -29,13 +29,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/shared/ui/select';
-import { Checkbox } from '@/shared/ui/checkbox';
 import { CardGrid } from './CardGrid';
+import { PileDestinationBar, getAvailableDestinations } from './PileDestinationBar';
 import { usePlayerStore } from '@/app/stores/playerStore';
 import { useHotkeyStore } from '@/app/stores/hotkeyStore';
 import { useContextMenuStore } from '@/features/hotkeys/contextMenuStore';
 import { usePileViewerHotkeyStore } from '@/features/game-dock/pileViewerHotkeyStore';
 import { useGameInstance } from '@/app/stores/gameInstanceStore';
+import { usePhoneLayout } from '@/shared/hooks';
 import { logAction } from '@/features/action-log/actionLog';
 
 export interface PileViewerCallbacks {
@@ -95,6 +96,63 @@ function pileTypeToHotkeyContext(pileType: PileType): HotkeyContext {
   }
 }
 
+type RevealMode = 'none' | 'top' | 'all';
+
+/**
+ * The deck reveal control (design 1g): one segmented None / Top [N] / All
+ * control, replacing the old checkbox-vs-number-field pair. State still flows
+ * through the parent's revealAll/revealCount + Yjs writes — this is chrome only.
+ */
+function RevealSegmented({
+  mode,
+  count,
+  max,
+  onMode,
+  onCount,
+}: {
+  mode: RevealMode;
+  count: number;
+  max: number;
+  onMode: (mode: RevealMode) => void;
+  onCount: (value: string) => void;
+}) {
+  return (
+    <div className="pile-reveal-segmented" data-testid="reveal-control" role="group" aria-label="Reveal">
+      <button
+        type="button"
+        className="pile-reveal-seg"
+        data-active={mode === 'none'}
+        onClick={() => onMode('none')}
+      >
+        None
+      </button>
+      <div className="pile-reveal-seg pile-reveal-seg--top" data-active={mode === 'top'}>
+        <button type="button" onClick={() => onMode('top')}>Top</button>
+        {mode === 'top' && (
+          <input
+            type="number"
+            min={0}
+            max={max}
+            value={count > 0 ? count : ''}
+            placeholder="0"
+            onChange={(e) => onCount(e.target.value)}
+            className="pile-reveal-count reveal-count-input"
+            aria-label="Reveal top N cards"
+          />
+        )}
+      </div>
+      <button
+        type="button"
+        className="pile-reveal-seg"
+        data-active={mode === 'all'}
+        onClick={() => onMode('all')}
+      >
+        All
+      </button>
+    </div>
+  );
+}
+
 export function PileViewerReact({
   isOpen,
   onClose,
@@ -113,6 +171,29 @@ export function PileViewerReact({
   const [revealAll, setRevealAll] = React.useState(false);
   const [revealCount, setRevealCount] = React.useState(0);
   const [visibleCardCount, setVisibleCardCount] = React.useState(0);
+
+  const isPhone = usePhoneLayout();
+
+  // Ephemeral UI selection (not shared game state). Tapping/clicking a card
+  // toggles it; when non-empty the destination bar rises and the H/D/S/T/Y
+  // hotkeys act on the whole batch instead of the single hovered card.
+  const [selectedIds, setSelectedIds] = React.useState<Set<string>>(new Set());
+  const clearSelection = React.useCallback(() => setSelectedIds(new Set()), []);
+  const toggleSelected = React.useCallback((cardId: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(cardId)) next.delete(cardId);
+      else next.add(cardId);
+      return next;
+    });
+  }, []);
+
+  // Destinations this viewer can move to — drives the destination bar, the
+  // desktop key legend, and whether cards are selectable at all. A read-only
+  // viewer (e.g. an opponent's pile) is given no move callbacks, so this is
+  // empty and selection is disabled.
+  const availableDestinations = getAvailableDestinations(callbacks);
+  const selectable = availableDestinations.length > 0;
 
   const [sortOrder, setSortOrderState] = React.useState<SortOrder>('top-to-bottom');
   // Changing sort order invalidates the previous "reveal top N" indices.
@@ -192,6 +273,7 @@ export function PileViewerReact({
 
   // Reset state when dialog opens or closes
   React.useEffect(() => {
+    setSelectedIds(new Set());
     if (isOpen) {
       setSearchQuery('');
       setSortOrder('top-to-bottom');
@@ -227,6 +309,23 @@ export function PileViewerReact({
     }
   }, [isOpen, pileType, yPlayerState]);
 
+  // Drop selected ids for cards that have left the pile (moved out by a batch
+  // action or a hotkey). Search filtering doesn't remove cards from `cards`, so
+  // only real moves shrink the selection — keeps the "N selected" count honest.
+  React.useEffect(() => {
+    setSelectedIds((prev) => {
+      if (prev.size === 0) return prev;
+      const present = new Set(cards.map((c) => c.id));
+      let changed = false;
+      const next = new Set<string>();
+      prev.forEach((id) => {
+        if (present.has(id)) next.add(id);
+        else changed = true;
+      });
+      return changed ? next : prev;
+    });
+  }, [cards]);
+
   // Single source of truth for pile-card moves. Validity is determined entirely
   // by which callback this pile-viewer instance was given — e.g. the deck viewer
   // wires onMoveToDeckTop/onMoveToDeckBottom to reorder within the deck itself,
@@ -240,21 +339,49 @@ export function PileViewerReact({
     (callbacks[callbackKey] as ((card: Card) => void) | undefined)?.(card);
   }, [cards, callbacks]);
 
+  // Batch variant: move every id through the same per-card callback. Each
+  // callback reads fresh pile state, so looping synchronously is safe.
+  const dispatchPileMoveBatch = React.useCallback((action: string, ids: string[]) => {
+    ids.forEach((id) => dispatchPileMove(action, id));
+  }, [dispatchPileMove]);
+
+  // A destination-bar tap: move the whole selection, then clear it.
+  const handleDestination = React.useCallback((action: string) => {
+    const ids = Array.from(selectedIds);
+    if (ids.length === 0) return;
+    dispatchPileMoveBatch(action, ids);
+    clearSelection();
+  }, [selectedIds, dispatchPileMoveBatch, clearSelection]);
+
+  // The registered hotkey handler reads selection through a ref so it doesn't
+  // re-register on every toggle (and never captures a stale selection).
+  const selectedIdsRef = React.useRef(selectedIds);
+  React.useEffect(() => {
+    selectedIdsRef.current = selectedIds;
+  }, [selectedIds]);
+
   // Register this viewer's move handler so the global hotkey layer AND the
   // right-click context menu (GameContextMenu, via dispatchGameAction's
   // 'pileViewerCard' case) can route pile-viewer moves to it (replaces the
-  // old window 'pileViewerCardAction' bus).
+  // old window 'pileViewerCardAction' bus). When a selection exists, an H/D/S/T/Y
+  // press moves the whole batch; otherwise it acts on the single hovered card.
   React.useEffect(() => {
     if (!isOpen) return;
 
     const handlePileViewerAction = (action: string, cardId: string) => {
       useContextMenuStore.getState().close();
-      dispatchPileMove(action, cardId);
+      const selected = selectedIdsRef.current;
+      if (selected.size > 0) {
+        dispatchPileMoveBatch(action, Array.from(selected));
+        clearSelection();
+      } else {
+        dispatchPileMove(action, cardId);
+      }
     };
 
     usePileViewerHotkeyStore.getState().setActionHandler(handlePileViewerAction);
     return () => usePileViewerHotkeyStore.getState().setActionHandler(null);
-  }, [isOpen, dispatchPileMove]);
+  }, [isOpen, dispatchPileMove, dispatchPileMoveBatch, clearSelection]);
 
   // Debounced search
   const handleSearchChange = (value: string) => {
@@ -334,6 +461,21 @@ export function PileViewerReact({
     }, 1000);
   };
 
+  // Segmented reveal control (1g/1a) — derive the active mode and route each
+  // choice through the existing reveal handlers (which own the Yjs writes + logs).
+  const revealMode: RevealMode = revealAll ? 'all' : revealCount > 0 ? 'top' : 'none';
+  const handleRevealMode = (mode: RevealMode) => {
+    if (mode === 'all') {
+      handleRevealAllChange(true);
+    } else if (mode === 'none') {
+      handleRevealAllChange(false);
+      setRevealCount(0);
+    } else {
+      // 'top' — default to revealing the top card if no count is set yet.
+      handleRevealCountChange(String(revealCount > 0 ? revealCount : 1));
+    }
+  };
+
   // Micro-batch card mounting to prevent blocking the main thread. Opens modal
   // instantly, then progressively renders cards in small batches. Only ramps
   // *up* to the new total — a card leaving the pile (hotkey/drag move) or a
@@ -380,13 +522,59 @@ export function PileViewerReact({
     }
   };
 
-  // Get subtitle text
-  const getSubtitle = () => {
-    if (pileType === 'scry') {
-      return 'Hover card and move to... D: Graveyard • T: Deck Top • Y: Deck Bottom';
-    }
-    return 'Hover card and move to... H: Hand • D: Graveyard • S: Exile • T: Deck Top • Y: Deck Bottom';
-  };
+  // Deck-only reveal segmented control, shared by both layouts.
+  const revealControl = pileType === 'deck' ? (
+    <RevealSegmented
+      mode={revealMode}
+      count={revealCount}
+      max={cards.length}
+      onMode={handleRevealMode}
+      onCount={handleRevealCountChange}
+    />
+  ) : null;
+
+  // Deck "Close & Shuffle" / discard "Exile All" primary action, shared by both
+  // layouts (the destination bar covers per-card moves; this is the pile-level
+  // bulk action).
+  const primaryAction =
+    pileType === 'deck' && callbacks.onShuffleDeck ? (
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={() => {
+          callbacks.onShuffleDeck!();
+          onClose();
+        }}
+      >
+        Close &amp; Shuffle
+      </Button>
+    ) : pileType === 'discard' && callbacks.onExileAll ? (
+      <Button variant="outline" size="sm" onClick={() => callbacks.onExileAll!()}>
+        Exile All
+      </Button>
+    ) : null;
+
+  const searchInput = (
+    <Input
+      type="text"
+      placeholder="Search cards..."
+      onChange={(e) => handleSearchChange(e.target.value)}
+      className="w-full"
+    />
+  );
+
+  const sortSelect = (
+    <Select value={sortOrder} onValueChange={(value: string): void => setSortOrder(value as SortOrder)}>
+      <SelectTrigger className="w-[170px]">
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value="top-to-bottom">Top to Bottom</SelectItem>
+        <SelectItem value="bottom-to-top">Bottom to Top</SelectItem>
+        <SelectItem value="alphabetical">Alphabetical</SelectItem>
+      </SelectContent>
+    </Select>
+  );
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -394,6 +582,7 @@ export function PileViewerReact({
         className="deck-pile-viewer-content w-[80vw] h-[70vh] p-0"
         data-testid="pile-viewer"
         data-pile-type={pileType}
+        data-phone={isPhone}
         onPointerDownOutside={(e) => {
           // The GameContextMenu renders in a separate React root (App's), so
           // Radix sees clicks on its rows as "outside" this Dialog and would
@@ -409,95 +598,63 @@ export function PileViewerReact({
         }}
       >
 
-        <DialogHeader className="px-6 pt-6 pb-4 border-b">
-          <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-4">
-            <DialogTitle className="text-2xl font-bold">{getTitle()}</DialogTitle>
-            <p className="text-sm text-muted-foreground text-center">
-              {getSubtitle()}
-            </p>
-            <div></div>
-          </div>
-        </DialogHeader>
+        {/* HEADER — phone (1a): title + count. Desktop (1g): title + key legend. */}
+        {isPhone ? (
+          <DialogHeader className="px-5 pt-4 pb-3 border-b">
+            <DialogTitle className="text-xl font-bold">{getTitle()}</DialogTitle>
+            <div className="deck-pile-viewer-subtitle">{cards.length} CARDS</div>
+          </DialogHeader>
+        ) : (
+          <DialogHeader className="px-6 pt-6 pb-4 border-b">
+            <div className="flex items-center justify-between gap-4">
+              <DialogTitle className="text-2xl font-bold">{getTitle()}</DialogTitle>
+              {selectable && (
+                <div className="pile-key-legend" aria-hidden="true">
+                  <span className="pile-key-legend-hint">HOVER + KEY →</span>
+                  {availableDestinations.map((d) => (
+                    <span key={d.key} className="pile-key-chip">
+                      <b>{d.key}</b>
+                      {d.label}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          </DialogHeader>
+        )}
 
-        {/* Controls */}
-        <div className="px-6 pb-4 border-b flex flex-wrap gap-4 items-center">
-          {/* Search */}
-          <div className="flex-1 min-w-[200px]">
-            <Input
-              type="text"
-              placeholder="Search cards..."
-              onChange={(e) => handleSearchChange(e.target.value)}
-              className="w-full"
-            />
+        {/* CONTROLS — phone (1a): stacked. Desktop (1g): Find / Reveal clusters. */}
+        {isPhone ? (
+          <div className="deck-pile-viewer-controls pile-controls-phone">
+            {searchInput}
+            <div className="pile-controls-phone-row">
+              <div className="flex-1">{sortSelect}</div>
+              {primaryAction}
+            </div>
+            {revealControl && <div className="pile-controls-phone-reveal">{revealControl}</div>}
           </div>
-
-          {/* Sort */}
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-medium">Sort:</span>
-            <Select value={sortOrder} onValueChange={(value: string): void => setSortOrder(value as SortOrder)}>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="top-to-bottom">Top to Bottom</SelectItem>
-                <SelectItem value="bottom-to-top">Bottom to Top</SelectItem>
-                <SelectItem value="alphabetical">Alphabetical</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Reveal controls (deck only) */}
-          {pileType === 'deck' && (
-            <div className="deck-pile-viewer-reveal-controls flex items-center gap-4">
-              <label className="reveal-all-label flex items-center gap-2 cursor-pointer">
-                <Checkbox
-                  checked={revealAll}
-                  onCheckedChange={handleRevealAllChange}
-                />
-                <span className="text-sm">Reveal All</span>
-              </label>
-              <div className="reveal-count-container flex items-center gap-2">
-                <span className="text-sm">Reveal top:</span>
-                <Input
-                  type="number"
-                  min="0"
-                  max={cards.length}
-                  placeholder="0"
-                  value={revealCount > 0 ? revealCount : ''}
-                  onChange={(e) => handleRevealCountChange(e.target.value)}
-                  className="reveal-count-input w-[80px]"
-                />
+        ) : (
+          <div className="deck-pile-viewer-controls pile-controls-desktop">
+            <div className="pile-cluster">
+              <span className="pile-cluster-label">Find</span>
+              <div className="pile-cluster-row">
+                <div className="w-[260px]">{searchInput}</div>
+                {sortSelect}
               </div>
             </div>
-          )}
-
-          {/* Close & Shuffle (deck only) */}
-          {pileType === 'deck' && callbacks.onShuffleDeck && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                callbacks.onShuffleDeck!();
-                onClose();
-              }}
-              className="ml-auto"
-            >
-              Close &amp; Shuffle
-            </Button>
-          )}
-
-          {/* Exile all (discard only) */}
-          {pileType === 'discard' && callbacks.onExileAll && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => callbacks.onExileAll!()}
-              className="ml-auto"
-            >
-              Exile All
-            </Button>
-          )}
-        </div>
+            {revealControl && (
+              <>
+                <div className="pile-cluster-divider" />
+                <div className="pile-cluster">
+                  <span className="pile-cluster-label">Reveal</span>
+                  {revealControl}
+                </div>
+              </>
+            )}
+            <div className="pile-controls-spacer" />
+            {primaryAction && <div className="pile-cluster pile-cluster--action">{primaryAction}</div>}
+          </div>
+        )}
 
         {/* Card Grid */}
         <div className="deck-pile-viewer-grid-container overflow-auto">
@@ -516,9 +673,20 @@ export function PileViewerReact({
               onHover={handleCardHover}
               hotkeyContext={hotkeyContext}
               enableReordering={pileType === 'scry'}
+              selectable={selectable}
+              selectedIds={selectedIds}
+              onToggleSelect={toggleSelected}
             />
           )}
         </div>
+
+        {/* Destination bar (1a) — selection-gated; targets flex per pile. */}
+        <PileDestinationBar
+          selectedCount={selectedIds.size}
+          callbacks={callbacks}
+          onDestination={handleDestination}
+          onClear={clearSelection}
+        />
       </DialogContent>
     </Dialog>
   );

@@ -46,6 +46,11 @@ export interface CardGridProps {
   onHover: (card: Card | null) => void;
   hotkeyContext: HotkeyContext;
   enableReordering?: boolean;
+  /** Whether tapping a card toggles selection (false for read-only viewers). */
+  selectable: boolean;
+  /** Currently-selected card ids. */
+  selectedIds: Set<string>;
+  onToggleSelect: (cardId: string) => void;
 }
 
 /**
@@ -69,6 +74,9 @@ export const CardGrid = React.memo(function CardGrid({
   onHover,
   hotkeyContext,
   enableReordering = false,
+  selectable,
+  selectedIds,
+  onToggleSelect,
 }: CardGridProps) {
   const [localCards, setLocalCards] = React.useState(cards);
 
@@ -155,6 +163,9 @@ export const CardGrid = React.memo(function CardGrid({
                 hotkeyContext={hotkeyContext}
                 pileType={pileType}
                 yPlayerState={yPlayerState}
+                selectable={selectable}
+                selected={selectedIds.has(card.id)}
+                onToggleSelect={onToggleSelect}
               />
             );
           }
@@ -208,6 +219,9 @@ export const CardGrid = React.memo(function CardGrid({
                   hotkeyContext={hotkeyContext}
                   pileType={pileType}
                   yPlayerState={yPlayerState}
+                  selectable={selectable}
+                  selected={selectedIds.has(card.id)}
+                  onToggleSelect={onToggleSelect}
                 />
               );
             }
