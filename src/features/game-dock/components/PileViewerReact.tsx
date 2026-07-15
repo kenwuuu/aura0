@@ -181,6 +181,7 @@ export function PileViewerReact({
   const setHoveredPileViewerCard = useHotkeyStore((state) => state.setHoveredPileViewerCard);
   const yDoc = useGameInstance((s) => s.yDoc);
   const playerId = useGameInstance((s) => s.playerId);
+  const player = useGameInstance((s) => s.player);
 
   // State
   const [searchQuery, setSearchQuery] = React.useState('');
@@ -226,6 +227,20 @@ export function PileViewerReact({
   const revealCountTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
 
   const hotkeyContext = pileTypeToHotkeyContext(pileType);
+
+  // Drag-to-reorder is available on the local, editable piles (selectable) as
+  // long as the grid shows the pile in a positional order — a search filter or
+  // the alphabetical sort makes a drop position ambiguous, so it's disabled
+  // there. Opponent (read-only) viewers aren't selectable, so never reorder.
+  const canReorder = selectable && searchQuery.trim() === '' && sortOrder !== 'alphabetical';
+  const handleReorder = React.useCallback((reorderedView: Card[]) => {
+    if (!player) return;
+    // The grid renders a *view*: top-to-bottom shows the pile reversed,
+    // bottom-to-top shows it as stored. Map the dragged view back to stored
+    // order so the persisted result matches what the user sees.
+    const storedOrder = sortOrder === 'top-to-bottom' ? [...reorderedView].reverse() : reorderedView;
+    player.reorderPile(pileType, storedOrder);
+  }, [player, pileType, sortOrder]);
 
   // Filter and sort cards
   const filteredAndSortedCards: Card[] = React.useMemo(() => {
@@ -692,7 +707,8 @@ export function PileViewerReact({
               revealCount={revealCount}
               onHover={handleCardHover}
               hotkeyContext={hotkeyContext}
-              enableReordering={pileType === 'scry'}
+              enableReordering={canReorder}
+              onCardReorder={handleReorder}
               selectable={selectable}
               selectedIds={selectedIds}
               onToggleSelect={toggleSelected}
