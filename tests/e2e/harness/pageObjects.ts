@@ -1,5 +1,5 @@
 import { Page, Locator } from '@playwright/test';
-import { TESTID, PileKind } from './selectors';
+import { TESTID, PileKind, PileMoveAction } from './selectors';
 
 /** All battlefield card nodes. */
 export function boardCards(page: Page): Locator {
@@ -104,6 +104,21 @@ export function pileViewerCard(page: Page, id: string): Locator {
 /** The pile-viewer's card grid (carries the `data-rendering-complete` batch-render signal). */
 export function pileViewerGrid(page: Page): Locator {
   return page.locator('.deck-pile-viewer-grid');
+}
+
+/** The selection-gated "move to…" destination bar (only present once ≥1 card is selected). */
+export function pileDestinationBar(page: Page): Locator {
+  return page.getByTestId(TESTID.pileDestinationBar);
+}
+
+/** The "N SELECTED" count inside the destination bar. */
+export function pileDestinationCount(page: Page): Locator {
+  return page.getByTestId(TESTID.pileDestinationCount);
+}
+
+/** A destination-bar target button, e.g. `pileDestinationTarget(page, 'moveToHand')`. */
+export function pileDestinationTarget(page: Page, action: PileMoveAction): Locator {
+  return page.getByTestId(`pile-destination-${action}`);
 }
 
 /** The "Choose Deck" trigger button. */
