@@ -98,9 +98,14 @@ export const HOTKEYS: Hotkey[] = [
     action: 'mulligan',
   },
   {
+    // Not in 'deck' context: "Add any card" pulls a card from outside the game,
+    // which isn't a deck-pile action, so it stays off the deck menu. It remains
+    // on the empty-board (Global) menu, and the 'a' key still works — that
+    // binding is registered directly in useAllGameHotkeys, independent of this
+    // context list.
     key: 'A',
     keys: ['a'],
-    context: ['global', 'deck'],
+    context: ['global'],
     shortDescription: 'Add any card',
     longDescription: 'Add a card from outside of game',
     action: 'addCard',
