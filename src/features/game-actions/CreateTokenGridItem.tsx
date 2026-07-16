@@ -71,6 +71,14 @@ export function CreateTokenGridItem({
         // paths are untouched).
         onOpenAutoFocus={(e) => e.preventDefault()}
         onFocusOutside={(e) => e.preventDefault()}
+        // The board context menu (GameContextMenu) preventDefaults mousedown on
+        // its content to keep focus on the right-clicked item. React portals
+        // bubble synthetic events through the React tree, so a mousedown on a
+        // grid token — rendered in this portaled popover but a React descendant
+        // of that menu — reaches the menu's handler and gets preventDefaulted,
+        // which stops the browser from ever starting the native HTML5 drag.
+        // Keep the grid's mousedowns inside the popover so the drag can begin.
+        onMouseDown={(e) => e.stopPropagation()}
       >
         <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', marginBottom: 6, paddingLeft: 4 }}>
           Drag a token onto the board
