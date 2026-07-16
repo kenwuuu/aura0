@@ -2,10 +2,11 @@ import { expect, test } from '../../fixtures';
 import { PHONE_VIEWPORT, boardTokens, whiteboard } from '../../harness';
 
 /**
- * On desktop, "Create token" opens a side popover you drag tokens out of. Touch
- * can't do HTML5 drag and the ~7-column grid doesn't fit beside a menu on a
- * 390px screen (it used to clip ~140px off the right edge). On phone it's
- * instead a bottom-sheet "token tray" over the hand, with tap-to-add tokens.
+ * On desktop, "Create counter" opens a side popover you drag tokens out of.
+ * Touch can't do HTML5 drag and the ~7-column grid doesn't fit beside a menu on
+ * a 390px screen (it used to clip ~140px off the right edge). On phone it's
+ * instead a bottom-sheet tray over the hand, with tap-to-add tokens (a fluid
+ * 3×7 grid that shrinks to fit the width).
  *
  * Layout, so it runs on the normal harness at a phone viewport.
  */
@@ -21,7 +22,7 @@ async function emptyBoardPoint(page: Parameters<typeof whiteboard>[0]) {
 async function openTokenTray(page: Parameters<typeof whiteboard>[0]) {
   const { x, y } = await emptyBoardPoint(page);
   await page.touchscreen.tap(x, y);
-  const createToken = page.getByRole('menuitem', { name: /^Create token\b/ });
+  const createToken = page.getByRole('menuitem', { name: /^Create counter\b/ });
   await expect(createToken).toBeVisible();
   await createToken.tap();
   await expect(page.getByTestId('mobile-token-tray')).toBeVisible();
@@ -42,7 +43,7 @@ test('the token tray stays within the screen on a phone', async ({ page }) => {
   // Anchored to the bottom edge.
   expect(box.y + box.height).toBeGreaterThanOrEqual(PHONE_VIEWPORT.height - 2);
 
-  await expect(page.getByText('Tap to add a token')).toBeVisible();
+  await expect(page.getByText('Tap to add a counter')).toBeVisible();
 });
 
 test('tapping a token in the tray adds it to the board and closes the tray', async ({ page }) => {

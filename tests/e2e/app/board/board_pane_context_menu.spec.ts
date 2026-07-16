@@ -27,21 +27,22 @@ test('right-clicking empty board opens the global actions menu', async ({ page }
   await expect(page.getByRole('menuitem', { name: /^-1 life\b/ })).toHaveCount(0);
 });
 
-test('board pane menu offers Create token in place of "-1/-1 counter"', async ({ page }) => {
+test('board pane menu offers Create counter in place of "-1/-1 counter"', async ({ page }) => {
   const { x, y } = await emptyBoardPoint(page);
 
   await page.mouse.click(x, y, { button: 'right' });
 
-  // The drag-to-board token grid took the "-1/-1 counter" slot; the "+1/+1"
-  // ("Counter") row is untouched.
+  // The drag-to-board grid took the "-1/-1 counter" slot; the "+1/+1"
+  // ("Counter") row is untouched. `/^Counter\b/` matches only that row, not the
+  // "Create counter" grid item below (which starts with "Create").
   await expect(page.getByRole('menuitem', { name: /^Counter\b/ })).toBeVisible();
   await expect(page.getByRole('menuitem', { name: /-1\/-1 counter/ })).toHaveCount(0);
 
-  // "Create token" hosts the same drag-to-board grid as the toolbar's Create ▾
+  // "Create counter" hosts the same drag-to-board grid as the toolbar's Create ▾
   // menu — clicking it opens the popover (real-browser check of the nested
   // Popover-in-DropdownMenu, which happy-dom can't faithfully reproduce).
-  await page.getByRole('menuitem', { name: /^Create token\b/ }).click();
-  await expect(page.getByText(/drag a token onto the board/i)).toBeVisible();
+  await page.getByRole('menuitem', { name: /^Create counter\b/ }).click();
+  await expect(page.getByText(/drag a counter onto the board/i)).toBeVisible();
 });
 
 test('Draw from the board pane menu draws a card', async ({ page }) => {

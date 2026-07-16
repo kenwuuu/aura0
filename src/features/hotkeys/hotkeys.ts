@@ -170,7 +170,7 @@ export const HOTKEYS: Hotkey[] = [
   },
   {
     // Not in 'global' context: the empty-board (Global) menu shows the
-    // drag-to-board "Create token" grid in this slot instead (see
+    // drag-to-board "Create counter" grid in this slot instead (see
     // GameContextMenu). The 'i' key still spawns a -1/-1 counter at the cursor —
     // that binding is registered directly in useAllGameHotkeys, independent of
     // this context list — and the row still appears on the battlefield-card menu.

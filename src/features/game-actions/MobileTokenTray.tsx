@@ -62,13 +62,16 @@ export function MobileTokenTray() {
         }}
       >
         <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', margin: '0 0 8px' }}>
-          Tap to add a token
+          Tap to add a counter
         </p>
+        {/* 3×7 like desktop, but fluid so the 7 columns shrink to fit the phone
+            width (capped at 44px) instead of overflowing. */}
         <KeywordTokenGrid
           templates={DEFAULT_TOKEN_TEMPLATES}
-          columns={5}
-          size={52}
-          gap={10}
+          columns={7}
+          size={44}
+          fluid
+          gap={8}
           onSelect={(template) => {
             createKeywordTokenAtBoardCenter(template);
             close();

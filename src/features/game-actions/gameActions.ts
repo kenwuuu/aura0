@@ -196,7 +196,7 @@ const resetDeck: GameAction = {
 
 const createToken: GameAction = {
   id: 'create-token',
-  label: 'Token',
+  label: 'Counter',
   surface: 'create',
   // Handled inline in GameActionsToolbar via a sub-popover for the grid.
   // perform is a no-op; the toolbar renders a special sub-menu for this item.

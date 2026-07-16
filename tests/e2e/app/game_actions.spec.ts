@@ -212,13 +212,13 @@ test('Actions > Reveal Hand toggles back off — the menu reopens immediately af
   await expect(page.locator('text=stopped revealing their hand')).toBeVisible({ timeout: 3000 });
 });
 
-// ── Create: Token ─────────────────────────────────────────────────────────────
+// ── Create: Counter ───────────────────────────────────────────────────────────
 
-test('Create > Token opens the ability-token grid', async ({ page }) => {
+test('Create > Counter opens the ability-token grid', async ({ page }) => {
   await toolbar(page).getByText('Create').click();
-  await page.getByRole('menuitem', { name: 'Token', exact: true }).click();
+  await page.getByRole('menuitem', { name: 'Counter', exact: true }).click();
   // Keyword token grid should appear in a popover
-  await expect(page.locator('text=Drag a token onto the board')).toBeVisible({ timeout: 3000 });
+  await expect(page.locator('text=Drag a counter onto the board')).toBeVisible({ timeout: 3000 });
 });
 
 // ── Create: Token Card ────────────────────────────────────────────────────────

@@ -36,8 +36,8 @@ test('testDragTokenToBoard', async ({ page }) => {
   await expect(boardToken(page)).toBeVisible();
 });
 
-// Regression: the Token grid used to vanish the instant the mouse crossed the
-// "Token" menu item on its way to the grid. The popover's anchor is that menu
+// Regression: the token grid used to vanish the instant the mouse crossed the
+// "Counter" menu item on its way to the grid. The popover's anchor is that menu
 // item; Radix Menu focuses the item on pointermove, which pulled focus out of
 // the just-opened popover and its non-modal dismissable layer closed the grid.
 // Reproduce the real pointer travel — over the item, then into the grid — and
@@ -46,7 +46,7 @@ test('testDragTokenToBoard', async ({ page }) => {
 test('testTokenGridSurvivesPointerTravel', async ({ page }) => {
   await openTokenGrid(page);
   const grid = tokenGrid(page);
-  const item = page.getByRole('menuitem', { name: 'Token', exact: true });
+  const item = page.getByRole('menuitem', { name: 'Counter', exact: true });
 
   // Settle on the menu item (this is what re-focuses it and used to dismiss).
   const ib = (await item.boundingBox())!;

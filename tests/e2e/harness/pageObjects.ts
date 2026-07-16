@@ -159,9 +159,9 @@ export function cardPreview(page: Page): Locator {
   return page.locator('.card-preview-popup');
 }
 
-/** The Create ▾ > Token popover hosting the draggable KeywordTokenGrid. */
+/** The Create ▾ > Counter popover hosting the draggable KeywordTokenGrid. */
 export function tokenGrid(page: Page): Locator {
-  return page.locator('[data-slot="popover-content"]').filter({ hasText: 'Drag a token onto the board' });
+  return page.locator('[data-slot="popover-content"]').filter({ hasText: 'Drag a counter onto the board' });
 }
 
 /** Draggable token templates inside the {@link tokenGrid} drawer. */

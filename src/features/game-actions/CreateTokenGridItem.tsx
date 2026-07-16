@@ -21,7 +21,7 @@ import { DEFAULT_TOKEN_TEMPLATES } from './defaultTokenTemplates';
 import { useTokenTrayStore } from './tokenTrayStore';
 
 export function CreateTokenGridItem({
-  label = 'Token',
+  label = 'Counter',
   columns = 5,
   align = 'start',
   contentClassName,
@@ -88,7 +88,7 @@ export function CreateTokenGridItem({
         onFocusOutside={(e) => e.preventDefault()}
       >
         <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', marginBottom: 6, paddingLeft: 4 }}>
-          Drag a token onto the board
+          Drag a counter onto the board
         </p>
         <KeywordTokenGrid templates={DEFAULT_TOKEN_TEMPLATES} columns={columns} gap={8} />
       </PopoverContent>
