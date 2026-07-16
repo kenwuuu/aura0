@@ -7,6 +7,7 @@ import { CardDataResult, ScryfallCard } from './types';
 function makeClient(overrides: Partial<CardApiClient> = {}): CardApiClient {
   return {
     fetchImagesForList: vi.fn(),
+    bulkLookup: vi.fn(),
     fetchByName: vi.fn(),
     fetchById: vi.fn(),
     ...overrides,
@@ -139,6 +140,81 @@ describe('CardLookupService — Aura -> Scryfall fallback policy', () => {
     });
   });
 
+  describe('resolveDeckListBulk', () => {
+    it('resolves the primary via bulkLookup (not per-card fetch) and returns it untouched when nothing failed', async () => {
+      const primaryRun = makeRun([makeResult('Sol Ring')]);
+      const primary = makeClient({ bulkLookup: vi.fn().mockResolvedValue(primaryRun) });
+      const fallback = makeClient();
+      const service = new CardLookupService(primary, fallback);
+
+      const result = await service.resolveDeckListBulk([makeEntry('Sol Ring')]);
+
+      expect(primary.bulkLookup).toHaveBeenCalledWith([makeEntry('Sol Ring')], undefined);
+      expect(primary.fetchImagesForList).not.toHaveBeenCalled();
+      expect(result).toEqual({
+        ...primaryRun,
+        fallbackTriggeredCount: 0,
+        fallbackRecoveredCount: 0,
+        fallbackFailedCount: 0,
+        auraFailures: [],
+      });
+      expect(fallback.fetchImagesForList).not.toHaveBeenCalled();
+    });
+
+    it('hands the bulk misses to the Scryfall fallback and merges successes from both', async () => {
+      const primaryRun = makeRun(
+        [makeResult('Sol Ring'), makeResult('Obscure Card', 'not found')],
+        [makeEntry('Obscure Card')],
+      );
+      const fallbackRun = makeRun([makeResult('Obscure Card')]);
+      const primary = makeClient({ bulkLookup: vi.fn().mockResolvedValue(primaryRun) });
+      const fallback = makeClient({ fetchImagesForList: vi.fn().mockResolvedValue(fallbackRun) });
+      const service = new CardLookupService(primary, fallback);
+
+      const result = await service.resolveDeckListBulk([
+        makeEntry('Sol Ring'),
+        makeEntry('Obscure Card'),
+      ]);
+
+      expect(fallback.fetchImagesForList).toHaveBeenCalledWith(
+        primaryRun.failedItems,
+        undefined,
+      );
+      expect(result.fallbackTriggeredCount).toBe(1);
+      expect(result.failedItems).toEqual(fallbackRun.failedItems);
+      expect(result.results).toEqual([...fallbackRun.results, makeResult('Sol Ring')]);
+      expect(result.auraFailures).toEqual(primaryRun.failures);
+    });
+
+    it('splits the fallback outcome into cards it recovered and cards nothing could resolve', async () => {
+      const primaryRun = makeRun(
+        [
+          makeResult('Sol Ring'),
+          makeResult('Recovered Card', 'not found'),
+          makeResult('Doomed Card', 'not found'),
+        ],
+        [makeEntry('Recovered Card'), makeEntry('Doomed Card')],
+      );
+      const fallbackRun = makeRun(
+        [makeResult('Recovered Card'), makeResult('Doomed Card', 'still not found')],
+        [makeEntry('Doomed Card')],
+      );
+      const primary = makeClient({ bulkLookup: vi.fn().mockResolvedValue(primaryRun) });
+      const fallback = makeClient({ fetchImagesForList: vi.fn().mockResolvedValue(fallbackRun) });
+      const service = new CardLookupService(primary, fallback);
+
+      const result = await service.resolveDeckListBulk([
+        makeEntry('Sol Ring'),
+        makeEntry('Recovered Card'),
+        makeEntry('Doomed Card'),
+      ]);
+
+      expect(result.fallbackTriggeredCount).toBe(2);
+      expect(result.fallbackRecoveredCount).toBe(1);
+      expect(result.fallbackFailedCount).toBe(1);
+    });
+  });
+
   describe('fetchCardByName', () => {
     it('returns the primary card without touching the fallback when the primary resolves', async () => {
       const card = makeCard('Lightning Bolt');
@@ -189,6 +265,16 @@ describe('CardLookupService — Aura -> Scryfall fallback policy', () => {
     it('returns an empty array when the card has no all_parts', () => {
       const service = new CardLookupService(makeClient(), makeClient());
       expect(service.extractTokenIds(makeCard('Sol Ring'))).toEqual([]);
+    });
+
+    it('returns an empty array when all_parts is absent or not an array', () => {
+      const service = new CardLookupService(makeClient(), makeClient());
+      // Scryfall omits `all_parts` entirely for cards with no related parts;
+      // a malformed payload could also hand us a non-array. Both hit the guard.
+      const noParts = { id: 'id-x', name: 'No Parts' } as unknown as ScryfallCard;
+      const badParts = { id: 'id-y', name: 'Bad Parts', all_parts: 'nope' } as unknown as ScryfallCard;
+      expect(service.extractTokenIds(noParts)).toEqual([]);
+      expect(service.extractTokenIds(badParts)).toEqual([]);
     });
   });
 
