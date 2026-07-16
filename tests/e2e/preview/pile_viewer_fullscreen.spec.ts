@@ -13,9 +13,11 @@ import { openPileViewer, pileViewer, waitForPileViewerReady } from '../harness';
  * (only its bottom-right corner visible). If the reset is ever lost again this
  * fails, because the shell no longer sits at the top-left origin.
  */
+// No @smoke tag: this spec is exclusive to playwright.preview.config.ts (whose
+// testDir is this folder). The main config both `testIgnore`s this folder and
+// runs at a desktop viewport, where these phone-only assertions don't hold.
 test(
   'deck pile viewer fills the phone viewport on the production build',
-  { tag: '@smoke' },
   async ({ page }) => {
     await openPileViewer(page, 'deck');
     await expect(pileViewer(page, 'deck')).toBeVisible();

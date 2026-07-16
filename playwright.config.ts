@@ -21,6 +21,12 @@ const RELAY_URL = `ws://${RELAY_HOST}:${RELAY_PORT}`;
  */
 export default defineConfig({
   testDir: './tests/e2e',
+  /* The preview lane (production build, phone viewport) has its own config —
+     `playwright.preview.config.ts`. Its specs assert phone-only, minified-CSS
+     layout, so they must NEVER be collected here: this config serves the dev
+     bundle at a desktop viewport, where the phone media query doesn't apply and
+     those assertions rightly fail. Keep them exclusive to the preview config. */
+  testIgnore: '**/preview/**',
   /* Run tests in files in parallel */
   fullyParallel: true,
   /* Fail the build on CI if you accidentally left test.only in the source code. */
