@@ -114,7 +114,7 @@ describe('GameContextMenu', () => {
     expect(screen.getByRole('menuitem', { name: /^Delete token\b/ })).toBeInTheDocument();
   });
 
-  it('board menu replaces "-1/-1 counter" with a "Create counter" grid item', async () => {
+  it('board menu replaces "-1/-1 counter" with a "Keyword counters" grid item', async () => {
     const user = userEvent.setup();
     renderWithGame(<GameContextMenu />);
 
@@ -128,8 +128,8 @@ describe('GameContextMenu', () => {
 
     // The drag-to-board grid took the "-1/-1 counter" slot on the empty board
     // menu; the "+1/+1" ("Counter") row is untouched. `/^Counter\b/` matches
-    // only that row, not "Create counter" (which starts with "Create").
-    const createToken = await screen.findByRole('menuitem', { name: /^Create counter\b/ });
+    // only that row, not "Keyword counters" (which starts with "Keyword").
+    const createToken = await screen.findByRole('menuitem', { name: /^Keyword counters\b/ });
     expect(screen.getByRole('menuitem', { name: /^Counter\b/ })).toBeInTheDocument();
     expect(screen.queryByRole('menuitem', { name: /-1\/-1 counter/ })).not.toBeInTheDocument();
 

@@ -139,7 +139,7 @@ export function GameContextMenu() {
             than in the HOTKEYS catalog and carries no keyboard shortcut. */}
         {target?.kind === 'board' && (
           <CreateTokenGridItem
-            label="Create counter"
+            label="Keyword counters"
             columns={7}
             // Bottom-align the grid with this (last) item so its bottom edge
             // lines up with the long menu's bottom edge, and lift it to the
