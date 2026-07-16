@@ -91,14 +91,14 @@ describe('GameActionsToolbar', () => {
    * "never opens". It is now a `PopoverAnchor` (position only, no click
    * behavior). Assert the grid is actually reachable.
    */
-  it('Create dropdown: Token opens the keyword-token popover and keeps the menu open', async () => {
+  it('Create dropdown: Counter opens the keyword-token popover and keeps the menu open', async () => {
     const user = userEvent.setup();
     renderWithGame(<GameActionsToolbar />);
 
     await user.click(screen.getByRole('button', { name: /Create/ }));
-    await user.click(await screen.findByRole('menuitem', { name: 'Token' }));
+    await user.click(await screen.findByRole('menuitem', { name: 'Counter' }));
 
-    expect(await screen.findByText(/drag a token onto the board/i)).toBeInTheDocument();
+    expect(await screen.findByText(/drag a counter onto the board/i)).toBeInTheDocument();
     // The item `preventDefault`s its own select so the dropdown survives —
     // otherwise the popover would open and its anchor would vanish underneath it.
     expect(screen.getByRole('menuitem', { name: 'Token Card' })).toBeInTheDocument();

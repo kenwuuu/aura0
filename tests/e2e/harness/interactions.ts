@@ -308,7 +308,7 @@ export async function cloneBoardCard(page: Page, card: Locator): Promise<Locator
 const COUNTED_TOKEN_TITLES = ['COLORLESS', 'WHITE', 'BLUE', 'RED', 'GREEN', 'BLACK'];
 
 /**
- * Open the toolbar's Create ▾ menu and click the "Token" item to reveal the
+ * Open the toolbar's Create ▾ menu and click the "Counter" item to reveal the
  * `KeywordTokenGrid` popover. Resolves once the grid is visible.
  *
  * The popover's anchor IS the menu item, so the Popover and the Radix Menu
@@ -321,8 +321,8 @@ const COUNTED_TOKEN_TITLES = ['COLORLESS', 'WHITE', 'BLUE', 'RED', 'GREEN', 'BLA
  */
 export async function openTokenGrid(page: Page): Promise<void> {
   await page.getByTestId('game-actions-toolbar').getByText('Create').click();
-  await page.getByRole('menuitem', { name: 'Token', exact: true }).click();
-  await page.getByText('Drag a token onto the board').waitFor({ state: 'visible' });
+  await page.getByRole('menuitem', { name: 'Counter', exact: true }).click();
+  await page.getByText('Drag a counter onto the board').waitFor({ state: 'visible' });
 }
 
 /**

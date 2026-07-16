@@ -6,10 +6,17 @@ const TOKEN_SIZE = 40;
 
 interface TokenGridItemProps {
   template: KeywordTokenTemplate;
+  size: number;
+  /** Fluid: fill the (fractional) grid cell and stay square, capped at `size`.
+   *  Lets a fixed column count shrink to fit narrow screens (the phone tray). */
+  fluid?: boolean;
   onDragStart?: (template: KeywordTokenTemplate) => void;
+  /** Tap-to-create (touch): clicking the item creates the token. When set, the
+   *  item is also a real button so it's keyboard- and screen-reader-operable. */
+  onSelect?: (template: KeywordTokenTemplate) => void;
 }
 
-function TokenGridItem({ template, onDragStart }: TokenGridItemProps) {
+function TokenGridItem({ template, size, fluid, onDragStart, onSelect }: TokenGridItemProps) {
   const handleDragStart = useCallback((e: React.DragEvent<HTMLDivElement>) => {
     e.stopPropagation();
     setElementDragPoint(e.target as HTMLDivElement, e.nativeEvent, 'kwToken');
@@ -27,14 +34,30 @@ function TokenGridItem({ template, onDragStart }: TokenGridItemProps) {
       draggable
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
+      // Tap-to-create surface (touch). onClick, not onSelect-on-drag, so the
+      // desktop drag path is untouched — desktop callers pass no onSelect.
+      role={onSelect ? 'button' : undefined}
+      tabIndex={onSelect ? 0 : undefined}
+      onClick={onSelect ? () => onSelect(template) : undefined}
+      onKeyDown={onSelect ? (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onSelect(template);
+        }
+      } : undefined}
       // Native tooltip: the only remaining way to see a token's name on
       // hover, now that the hotkey hint (which doubled as a name label) is
       // gone — the picker doesn't have per-item actions to hint at anyway.
       title={template.title}
+      aria-label={onSelect ? template.title : undefined}
       style={{
-        width: TOKEN_SIZE,
-        height: TOKEN_SIZE,
-        cursor: 'grab',
+        // Fluid items ride their `1fr` cell (square, capped at `size`); fixed
+        // items are exactly `size`. The circular bg/overlay are %-based, so both
+        // scale with whatever box this resolves to.
+        ...(fluid
+          ? { width: '100%', maxWidth: size, aspectRatio: '1 / 1' }
+          : { width: size, height: size }),
+        cursor: onSelect ? 'pointer' : 'grab',
         userSelect: 'none',
         position: 'relative',
       }}
@@ -87,7 +110,15 @@ interface KeywordTokenGridProps {
   columns?: number;
   rows?: number;
   gap?: number;
+  /** Per-item size in px. Fixed mode: the exact size. Fluid mode: the max size
+   *  (items shrink below it to fit). Defaults to 40. */
+  size?: number;
+  /** Fluid: columns are `1fr` and items shrink to fit, so a fixed column count
+   *  (e.g. 7) stays on one row per group on narrow screens. Default fixed-px. */
+  fluid?: boolean;
   onDragStart?: (template: KeywordTokenTemplate) => void;
+  /** When set, items are tap-to-create (touch) instead of drag-only. */
+  onSelect?: (template: KeywordTokenTemplate) => void;
 }
 
 export const KeywordTokenGrid: React.FC<KeywordTokenGridProps> = ({
@@ -95,14 +126,19 @@ export const KeywordTokenGrid: React.FC<KeywordTokenGridProps> = ({
   columns = 7,
   rows,
   gap = 12,
+  size = TOKEN_SIZE,
+  fluid = false,
   onDragStart,
+  onSelect,
 }) => {
-  const gridTemplateRows = rows ? `repeat(${rows}, ${TOKEN_SIZE}px)` : undefined;
+  const cell = fluid ? 'minmax(0, 1fr)' : `${size}px`;
+  const gridTemplateRows = rows ? `repeat(${rows}, ${fluid ? 'auto' : `${size}px`})` : undefined;
 
   return (
     <div style={{
       display: 'grid',
-      gridTemplateColumns: `repeat(${columns}, ${TOKEN_SIZE}px)`,
+      width: fluid ? '100%' : undefined,
+      gridTemplateColumns: `repeat(${columns}, ${cell})`,
       gridTemplateRows,
       gap: `${gap}px`,
       padding: '8px',
@@ -111,7 +147,10 @@ export const KeywordTokenGrid: React.FC<KeywordTokenGridProps> = ({
         <TokenGridItem
           key={template.title}
           template={template}
+          size={size}
+          fluid={fluid}
           onDragStart={onDragStart}
+          onSelect={onSelect}
         />
       ))}
     </div>
