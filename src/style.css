@@ -1484,10 +1484,15 @@ body {
     height: 100dvh;
     /* The desktop viewer centers via Tailwind's translate-x/y-[-50%], which in
        Tailwind v4 compile to the CSS `translate` property (not `transform`).
-       Reset `translate`, not just `transform`, or the shell renders shifted by
-       (-50%, -50%) off the top-left. */
-    transform: none;
-    translate: none;
+       Reset `translate` so the full-screen shell sits at inset:0 instead of
+       shifted by (-50%, -50%) off the top-left.
+
+       Do NOT also add `transform: none` here: the production minifier
+       (Lightning CSS) folds a sibling `transform: none` + `translate: none`
+       into a single `transform: translate(0)` and drops the `translate` reset
+       entirely — so it works in dev but breaks the deployed build. `!important`
+       keeps the reset from being folded away and outranks the utility. */
+    translate: none !important;
     border: 0;
     border-radius: 0;
   }

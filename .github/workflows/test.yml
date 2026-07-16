@@ -72,6 +72,41 @@ jobs:
           path: playwright-report/
           retention-days: 7
 
+  # Drives the *production* bundle (vite build → vite preview) at a phone
+  # viewport, so layout regressions the minifier introduces are caught here
+  # instead of on the deployed site. The dev-server lanes above serve the
+  # unminified CSS and can't see them. Self-contained: the preview config
+  # builds + serves the app itself and the spec is single-player, so no relay.
+  e2e-preview:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Run production-build preview E2E suite
+        run: npm run test:e2e:preview
+
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-preview
+          path: playwright-report-preview/
+          retention-days: 7
+
   e2e-full:
     runs-on: ubuntu-latest
     # Advisory tier: rehabbed but not yet proven flake-free over time. Promote
