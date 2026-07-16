@@ -16,7 +16,9 @@ import { ChevronDown } from 'lucide-react';
 import { DropdownMenuItem } from '@/shared/ui/dropdown-menu';
 import { Popover, PopoverAnchor, PopoverContent } from '@/shared/ui/popover';
 import { KeywordTokenGrid } from '@/features/keyword-tokens/KeywordTokenGrid';
+import { usePhoneLayout } from '@/shared/hooks';
 import { DEFAULT_TOKEN_TEMPLATES } from './defaultTokenTemplates';
+import { useTokenTrayStore } from './tokenTrayStore';
 
 export function CreateTokenGridItem({
   label = 'Token',
@@ -35,6 +37,19 @@ export function CreateTokenGridItem({
   contentClassName?: string;
 }) {
   const [open, setOpen] = useState(false);
+  const isPhone = usePhoneLayout();
+
+  // Phone: no drag (touch can't do HTML5 DnD) and no room for a side popover,
+  // so this is a plain menu item that hands off to the bottom-sheet token tray
+  // (MobileTokenTray). Let the menu close normally — the tray lives at the app
+  // root and survives it.
+  if (isPhone) {
+    return (
+      <DropdownMenuItem onSelect={() => useTokenTrayStore.getState().open()}>
+        {label}
+      </DropdownMenuItem>
+    );
+  }
 
   return (
     <Popover open={open} onOpenChange={setOpen}>

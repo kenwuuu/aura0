@@ -6,10 +6,14 @@ const TOKEN_SIZE = 40;
 
 interface TokenGridItemProps {
   template: KeywordTokenTemplate;
+  size: number;
   onDragStart?: (template: KeywordTokenTemplate) => void;
+  /** Tap-to-create (touch): clicking the item creates the token. When set, the
+   *  item is also a real button so it's keyboard- and screen-reader-operable. */
+  onSelect?: (template: KeywordTokenTemplate) => void;
 }
 
-function TokenGridItem({ template, onDragStart }: TokenGridItemProps) {
+function TokenGridItem({ template, size, onDragStart, onSelect }: TokenGridItemProps) {
   const handleDragStart = useCallback((e: React.DragEvent<HTMLDivElement>) => {
     e.stopPropagation();
     setElementDragPoint(e.target as HTMLDivElement, e.nativeEvent, 'kwToken');
@@ -27,14 +31,26 @@ function TokenGridItem({ template, onDragStart }: TokenGridItemProps) {
       draggable
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
+      // Tap-to-create surface (touch). onClick, not onSelect-on-drag, so the
+      // desktop drag path is untouched — desktop callers pass no onSelect.
+      role={onSelect ? 'button' : undefined}
+      tabIndex={onSelect ? 0 : undefined}
+      onClick={onSelect ? () => onSelect(template) : undefined}
+      onKeyDown={onSelect ? (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onSelect(template);
+        }
+      } : undefined}
       // Native tooltip: the only remaining way to see a token's name on
       // hover, now that the hotkey hint (which doubled as a name label) is
       // gone — the picker doesn't have per-item actions to hint at anyway.
       title={template.title}
+      aria-label={onSelect ? template.title : undefined}
       style={{
-        width: TOKEN_SIZE,
-        height: TOKEN_SIZE,
-        cursor: 'grab',
+        width: size,
+        height: size,
+        cursor: onSelect ? 'pointer' : 'grab',
         userSelect: 'none',
         position: 'relative',
       }}
@@ -87,7 +103,12 @@ interface KeywordTokenGridProps {
   columns?: number;
   rows?: number;
   gap?: number;
+  /** Per-item size in px. Defaults to 40; the touch tray bumps it up for a
+   *  comfortable tap target. */
+  size?: number;
   onDragStart?: (template: KeywordTokenTemplate) => void;
+  /** When set, items are tap-to-create (touch) instead of drag-only. */
+  onSelect?: (template: KeywordTokenTemplate) => void;
 }
 
 export const KeywordTokenGrid: React.FC<KeywordTokenGridProps> = ({
@@ -95,14 +116,16 @@ export const KeywordTokenGrid: React.FC<KeywordTokenGridProps> = ({
   columns = 7,
   rows,
   gap = 12,
+  size = TOKEN_SIZE,
   onDragStart,
+  onSelect,
 }) => {
-  const gridTemplateRows = rows ? `repeat(${rows}, ${TOKEN_SIZE}px)` : undefined;
+  const gridTemplateRows = rows ? `repeat(${rows}, ${size}px)` : undefined;
 
   return (
     <div style={{
       display: 'grid',
-      gridTemplateColumns: `repeat(${columns}, ${TOKEN_SIZE}px)`,
+      gridTemplateColumns: `repeat(${columns}, ${size}px)`,
       gridTemplateRows,
       gap: `${gap}px`,
       padding: '8px',
@@ -111,7 +134,9 @@ export const KeywordTokenGrid: React.FC<KeywordTokenGridProps> = ({
         <TokenGridItem
           key={template.title}
           template={template}
+          size={size}
           onDragStart={onDragStart}
+          onSelect={onSelect}
         />
       ))}
     </div>
