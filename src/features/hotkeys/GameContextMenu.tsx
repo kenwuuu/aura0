@@ -58,7 +58,13 @@ export function GameContextMenu() {
     // treats as the cursor "leaving"), clearing hoverTarget and breaking the
     // keyboard hotkeys that read it — hover a card, right-click it, then
     // press a hotkey key must still act on that card while the menu is open.
-    <DropdownMenu open={open} onOpenChange={(next) => !next && close()} modal={false}>
+    // key on the cursor point: once Radix has positioned an open menu against
+    // the fixed trigger span, moving that span (a second right-click elsewhere
+    // while the menu is still open) doesn't re-anchor it — Popper only recomputes
+    // on scroll/resize, not a style change. Remounting on a new point forces a
+    // fresh position, so the menu follows the cursor instead of reopening at the
+    // first spot.
+    <DropdownMenu key={`${x},${y}`} open={open} onOpenChange={(next) => !next && close()} modal={false}>
       {/* Radix's DropdownMenu has no `Anchor` primitive, so the Trigger doubles
           as one. For a mouse right-click it's a zero-size point at the cursor.
           For a tap it's the tapped item's own box (`anchorRect`), so Popper
