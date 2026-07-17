@@ -800,6 +800,28 @@ describe('Player.loadNewDeck()', () => {
     expect(player.getHand().getCards().some((c) => c.id === 'new-card-3')).toBe(true);
   });
 
+  it('should NOT auto-draw a commander on a standard 60-card deck', async () => {
+    // A spurious `commander` flag on a 60-card constructed deck (e.g. a stray
+    // "Commander" header leaking into the import) must not deal an 8-card hand.
+    const newDeckCards: Card[] = Array.from({ length: 60 }, (_, i) => ({
+      id: `new-card-${i}`,
+      cardNumber: i + 1,
+      x: 0,
+      y: 0,
+      rotation: 0,
+      isTapped: false,
+      isFlipped: false,
+      counters: [],
+      commander: i === 3, // an errant flag that must be ignored at this size
+    }));
+
+    await player.loadNewDeck(makeNewDeck(newDeckCards));
+
+    // Standard size: a normal 7-card opening hand, 53 left in deck.
+    expect(player.getHand().getCardCount()).toBe(7);
+    expect(player.getDeck().getCardCount()).toBe(53);
+  });
+
   it('should auto-draw the commander from the default (Krenko) deck', async () => {
     // Guards the bundled default deck against losing its commander flag: the
     // opening hand must be 8 (Krenko + 7), matching the e2e boot assertion.

@@ -31,6 +31,14 @@ import { makeCounterId } from '@/shared/utils/ids';
 import { toBaseCard } from './toBaseCard';
 import { resolvePlayerName } from '@/shared/utils/resolvePlayerName';
 
+/**
+ * A standard constructed deck (Standard, Modern, Pioneer, Pauper, …) is exactly
+ * 60 cards and has no commander. Decks of this size never auto-draw a commander,
+ * even if a card slipped through import carrying a `commander` flag — see
+ * {@link Player.loadNewDeck}.
+ */
+const STANDARD_DECK_SIZE = 60;
+
 export class Player {
   private playerId: string;
   private yDoc: Y.Doc;
@@ -244,11 +252,23 @@ export class Player {
       return;
     }
 
-    // Auto-draw the commander(s) into the opening hand. Commanders are flagged
-    // at import time from a COMMANDER section header (see DeckListParser); a
-    // deck with none — a standard deck, or a list pasted without headers —
-    // just gets a normal 7-card opening hand.
-    const commanders = deckCards.filter((card) => card.commander);
+    // Auto-draw the commander(s) into the opening hand — but never for a
+    // standard 60-card deck. Commanders are flagged at import time from a
+    // COMMANDER section header (see DeckListParser); a deck with none — a
+    // standard deck, or a list pasted without headers — just gets a normal
+    // 7-card opening hand.
+    //
+    // The size gate exists because that flag can be spurious on a constructed
+    // deck: a stray "Commander"/"[Commander]" header leaking into a 60-card list
+    // tags a card the player never meant as a commander, and drawing it deals an
+    // illegal 8-card opening hand (the reported bug). A real Commander deck is
+    // 100 cards, so gating on the standard size leaves it untouched. The one
+    // deliberate trade-off is 60-card Brawl: its real commander is not
+    // auto-drawn, and the player draws it themselves.
+    const commanders =
+      deckCards.length === STANDARD_DECK_SIZE
+        ? []
+        : deckCards.filter((card) => card.commander);
     for (const commander of commanders) {
       this.deck.removeCardById(commander.id);
       this.deck.addCardToTop(commander);
