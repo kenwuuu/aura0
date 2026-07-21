@@ -1,0 +1,2703 @@
+[
+  {
+    "id": "abzan-armor-tarkir-dragonstorm-commander",
+    "name": "Abzan Armor",
+    "set": "Tarkir Dragonstorm Commander",
+    "setCode": "tdc",
+    "colors": [
+      "W",
+      "B",
+      "G"
+    ],
+    "commanderNames": [
+      "Felothar the Steadfast"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "adaptive-enchantment-commander-2018",
+    "name": "Adaptive Enchantment",
+    "set": "Commander 2018",
+    "setCode": "c18",
+    "colors": [
+      "W",
+      "U",
+      "G"
+    ],
+    "commanderNames": [
+      "Estrid, the Masked"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "ahoy-mateys-the-lost-caverns-of-ixalan-commander",
+    "name": "Ahoy Mateys",
+    "set": "The Lost Caverns of Ixalan Commander",
+    "setCode": "lcc",
+    "colors": [
+      "U",
+      "B",
+      "R"
+    ],
+    "commanderNames": [
+      "Admiral Brass, Unsinkable"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "angels-they-re-just-like-us-but-cooler-and-with-wings-secret-lair-commander-2023",
+    "name": "Angels They're Just Like Us, but Cooler and with Wings",
+    "set": "Secret Lair Commander 2023",
+    "setCode": "sld",
+    "colors": [
+      "W"
+    ],
+    "commanderNames": [
+      "Bruna, the Fading Light"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "animated-army-bloomburrow-commander",
+    "name": "Animated Army",
+    "set": "Bloomburrow Commander",
+    "setCode": "blc",
+    "colors": [
+      "R",
+      "G"
+    ],
+    "commanderNames": [
+      "Bello, Bard of the Brambles"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "arcane-maelstrom-commander-2020",
+    "name": "Arcane Maelstrom",
+    "set": "Commander 2020",
+    "setCode": "c20",
+    "colors": [
+      "U",
+      "R",
+      "G"
+    ],
+    "commanderNames": [
+      "Kalamax, the Stormsire"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "arcane-wizardry-commander-2017",
+    "name": "Arcane Wizardry",
+    "set": "Commander 2017",
+    "setCode": "c17",
+    "colors": [
+      "U",
+      "B",
+      "R"
+    ],
+    "commanderNames": [
+      "Inalla, Archmage Ritualist"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "arm-for-battle-commander-legends",
+    "name": "Arm for Battle",
+    "set": "Commander Legends",
+    "setCode": "cmr",
+    "colors": [
+      "W",
+      "R"
+    ],
+    "commanderNames": [
+      "Wyleth, Soul of Steel"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "aura-of-courage-adventures-in-the-forgotten-realms-commander",
+    "name": "Aura of Courage",
+    "set": "Adventures in the Forgotten Realms Commander",
+    "setCode": "afc",
+    "colors": [
+      "W",
+      "U",
+      "G"
+    ],
+    "commanderNames": [
+      "Galea, Kindler of Hope"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "avengers-assemble-marvel-super-heroes-commander",
+    "name": "Avengers Assemble",
+    "set": "Marvel Super Heroes Commander",
+    "setCode": "msc",
+    "colors": [
+      "W",
+      "U",
+      "R"
+    ],
+    "commanderNames": [
+      "Captain America, Team Leader"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "bedecked-brokers-streets-of-new-capenna-commander",
+    "name": "Bedecked Brokers",
+    "set": "Streets of New Capenna Commander",
+    "setCode": "ncc",
+    "colors": [
+      "W",
+      "U",
+      "G"
+    ],
+    "commanderNames": [
+      "Perrie, the Pulverizer"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "blame-game-murders-at-karlov-manor-commander",
+    "name": "Blame Game",
+    "set": "Murders at Karlov Manor Commander",
+    "setCode": "mkc",
+    "colors": [
+      "W",
+      "R"
+    ],
+    "commanderNames": [
+      "Nelly Borca, Impulsive Accuser"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "blast-from-the-past-doctor-who-commander",
+    "name": "Blast from the Past",
+    "set": "Doctor Who Commander",
+    "setCode": "who",
+    "colors": [
+      "W",
+      "U",
+      "G"
+    ],
+    "commanderNames": [
+      "The Fourth Doctor",
+      "Sarah Jane Smith"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "blight-curse-lorwyn-eclipsed-commander",
+    "name": "Blight Curse",
+    "set": "Lorwyn Eclipsed Commander",
+    "setCode": "ecc",
+    "colors": [
+      "B",
+      "R",
+      "G"
+    ],
+    "commanderNames": [
+      "Auntie Ool, Cursewretch"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "blood-rites-the-lost-caverns-of-ixalan-commander",
+    "name": "Blood Rites",
+    "set": "The Lost Caverns of Ixalan Commander",
+    "setCode": "lcc",
+    "colors": [
+      "W",
+      "B"
+    ],
+    "commanderNames": [
+      "Clavileño, First of the Blessed"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "breed-lethality-commander-2016",
+    "name": "Breed Lethality",
+    "set": "Commander 2016",
+    "setCode": "c16",
+    "colors": [
+      "W",
+      "U",
+      "B",
+      "G"
+    ],
+    "commanderNames": [
+      "Atraxa, Praetors' Voice"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "breed-lethality-commander-anthology-2",
+    "name": "Breed Lethality",
+    "set": "Commander Anthology 2",
+    "setCode": "cm2",
+    "colors": [
+      "W",
+      "U",
+      "B",
+      "G"
+    ],
+    "commanderNames": [
+      "Atraxa, Praetors' Voice"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "buckle-up-kamigawa-neon-dynasty-commander",
+    "name": "Buckle Up",
+    "set": "Kamigawa Neon Dynasty Commander",
+    "setCode": "nec",
+    "colors": [
+      "W",
+      "U"
+    ],
+    "commanderNames": [
+      "Kotori, Pilot Prodigy"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "built-from-scratch-commander-2014",
+    "name": "Built from Scratch",
+    "set": "Commander 2014",
+    "setCode": "c14",
+    "colors": [
+      "R"
+    ],
+    "commanderNames": [
+      "Daretti, Scrap Savant"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "built-from-scratch-commander-anthology-2",
+    "name": "Built from Scratch",
+    "set": "Commander Anthology 2",
+    "setCode": "cm2",
+    "colors": [
+      "R"
+    ],
+    "commanderNames": [
+      "Daretti, Scrap Savant"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "cabaretti-cacophony-streets-of-new-capenna-commander",
+    "name": "Cabaretti Cacophony",
+    "set": "Streets of New Capenna Commander",
+    "setCode": "ncc",
+    "colors": [
+      "W",
+      "R",
+      "G"
+    ],
+    "commanderNames": [
+      "Kitt Kanto, Mayhem Diva"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "call-for-backup-march-of-the-machine-commander",
+    "name": "Call for Backup",
+    "set": "March of the Machine Commander",
+    "setCode": "moc",
+    "colors": [
+      "W",
+      "R",
+      "G"
+    ],
+    "commanderNames": [
+      "Bright-Palm, Soul Awakener"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "call-the-spirits-commander-2015",
+    "name": "Call the Spirits",
+    "set": "Commander 2015",
+    "setCode": "c15",
+    "colors": [
+      "W",
+      "B"
+    ],
+    "commanderNames": [
+      "Daxos the Returned"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "cavalry-charge-march-of-the-machine-commander",
+    "name": "Cavalry Charge",
+    "set": "March of the Machine Commander",
+    "setCode": "moc",
+    "colors": [
+      "W",
+      "U",
+      "B"
+    ],
+    "commanderNames": [
+      "Sidar Jabari of Zhalfir"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "chaos-incarnate-starter-commander-decks",
+    "name": "Chaos Incarnate",
+    "set": "Starter Commander Decks",
+    "setCode": "scd",
+    "colors": [
+      "B",
+      "R"
+    ],
+    "commanderNames": [
+      "Kardur, Doomscourge"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "corrupting-influence-phyrexia-all-will-be-one-commander",
+    "name": "Corrupting Influence",
+    "set": "Phyrexia All Will Be One Commander",
+    "setCode": "onc",
+    "colors": [
+      "W",
+      "B",
+      "G"
+    ],
+    "commanderNames": [
+      "Ixhel, Scion of Atraxa"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "counter-blitz-final-fantasy-commander",
+    "name": "Counter Blitz",
+    "set": "Final Fantasy Commander",
+    "setCode": "fic",
+    "colors": [
+      "W",
+      "U",
+      "G"
+    ],
+    "commanderNames": [
+      "Tidus, Yuna's Guardian"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "counter-blitz-collector-s-edition-final-fantasy-commander",
+    "name": "Counter Blitz Collector's Edition",
+    "set": "Final Fantasy Commander",
+    "setCode": "fic",
+    "colors": [
+      "W",
+      "U",
+      "G"
+    ],
+    "commanderNames": [
+      "Tidus, Yuna's Guardian"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "counter-intelligence-edge-of-eternities-commander",
+    "name": "Counter Intelligence",
+    "set": "Edge of Eternities Commander",
+    "setCode": "eoc",
+    "colors": [
+      "W",
+      "U",
+      "R"
+    ],
+    "commanderNames": [
+      "Inspirit, Flagship Vessel"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "counterpunch-commander-2011",
+    "name": "Counterpunch",
+    "set": "Commander 2011",
+    "setCode": "cmd",
+    "colors": [
+      "W",
+      "B",
+      "G"
+    ],
+    "commanderNames": [
+      "Ghave, Guru of Spores"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "coven-counters-innistrad-midnight-hunt-commander-2021",
+    "name": "Coven Counters",
+    "set": "Innistrad Midnight Hunt Commander 2021",
+    "setCode": "mic",
+    "colors": [
+      "W",
+      "G"
+    ],
+    "commanderNames": [
+      "Leinore, Autumn Sovereign"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "creative-energy-modern-horizons-3-commander",
+    "name": "Creative Energy",
+    "set": "Modern Horizons 3 Commander",
+    "setCode": "m3c",
+    "colors": [
+      "W",
+      "U",
+      "R"
+    ],
+    "commanderNames": [
+      "Satya, Aetherflux Genius"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "creative-energy-collector-s-edition-modern-horizons-3-commander",
+    "name": "Creative Energy Collector's Edition",
+    "set": "Modern Horizons 3 Commander",
+    "setCode": "m3c",
+    "colors": [
+      "W",
+      "U",
+      "R"
+    ],
+    "commanderNames": [
+      "Satya, Aetherflux Genius"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "dance-of-the-elements-lorwyn-eclipsed-commander",
+    "name": "Dance of the Elements",
+    "set": "Lorwyn Eclipsed Commander",
+    "setCode": "ecc",
+    "colors": [
+      "W",
+      "U",
+      "B",
+      "R",
+      "G"
+    ],
+    "commanderNames": [
+      "Ashling, the Limitless"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "deadly-disguise-murders-at-karlov-manor-commander",
+    "name": "Deadly Disguise",
+    "set": "Murders at Karlov Manor Commander",
+    "setCode": "mkc",
+    "colors": [
+      "W",
+      "R",
+      "G"
+    ],
+    "commanderNames": [
+      "Kaust, Eyes of the Glade"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "death-toll-duskmourn-commander",
+    "name": "Death Toll",
+    "set": "Duskmourn Commander",
+    "setCode": "dsc",
+    "colors": [
+      "B",
+      "G"
+    ],
+    "commanderNames": [
+      "Winter, Cynical Opportunist"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "deathdancer-xira-magic-online-theme-deck",
+    "name": "Deathdancer Xira",
+    "set": "Magic Online Theme Deck",
+    "setCode": "td0",
+    "colors": [
+      "B",
+      "R",
+      "G"
+    ],
+    "commanderNames": [
+      "Xira Arien"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "deep-clue-sea-murders-at-karlov-manor-commander",
+    "name": "Deep Clue Sea",
+    "set": "Murders at Karlov Manor Commander",
+    "setCode": "mkc",
+    "colors": [
+      "W",
+      "U",
+      "G"
+    ],
+    "commanderNames": [
+      "Morska, Undersea Sleuth"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "desert-bloom-outlaws-of-thunder-junction-commander",
+    "name": "Desert Bloom",
+    "set": "Outlaws of Thunder Junction Commander",
+    "setCode": "otc",
+    "colors": [
+      "W",
+      "R",
+      "G"
+    ],
+    "commanderNames": [
+      "Yuma, Proud Protector"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "devour-for-power-commander-2011",
+    "name": "Devour for Power",
+    "set": "Commander 2011",
+    "setCode": "cmd",
+    "colors": [
+      "U",
+      "B",
+      "G"
+    ],
+    "commanderNames": [
+      "The Mimeoplasm"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "devour-for-power-commander-anthology-2",
+    "name": "Devour for Power",
+    "set": "Commander Anthology 2",
+    "setCode": "cm2",
+    "colors": [
+      "U",
+      "B",
+      "G"
+    ],
+    "commanderNames": [
+      "The Mimeoplasm"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "divine-convocation-march-of-the-machine-commander",
+    "name": "Divine Convocation",
+    "set": "March of the Machine Commander",
+    "setCode": "moc",
+    "colors": [
+      "W",
+      "U",
+      "R"
+    ],
+    "commanderNames": [
+      "Kasla, the Broken Halo"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "doom-prevails-marvel-super-heroes-commander",
+    "name": "Doom Prevails",
+    "set": "Marvel Super Heroes Commander",
+    "setCode": "msc",
+    "colors": [
+      "U",
+      "B",
+      "R"
+    ],
+    "commanderNames": [
+      "Doctor Doom, King of Latveria"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "draconic-destruction-starter-commander",
+    "name": "Draconic Destruction",
+    "set": "Starter Commander",
+    "setCode": "scd",
+    "colors": [
+      "R",
+      "G"
+    ],
+    "commanderNames": [
+      "Atarka, World Render"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "draconic-dissent-battle-for-baldur-s-gate-commander",
+    "name": "Draconic Dissent",
+    "set": "Battle for Baldur's Gate Commander",
+    "setCode": "clb",
+    "colors": [
+      "U",
+      "R"
+    ],
+    "commanderNames": [
+      "Firkraag, Cunning Instigator"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "draconic-domination-commander-2017",
+    "name": "Draconic Domination",
+    "set": "Commander 2017",
+    "setCode": "c17",
+    "colors": [
+      "W",
+      "U",
+      "B",
+      "R",
+      "G"
+    ],
+    "commanderNames": [
+      "The Ur-Dragon"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "draconic-rage-adventures-in-the-forgotten-realms-commander",
+    "name": "Draconic Rage",
+    "set": "Adventures in the Forgotten Realms Commander",
+    "setCode": "afc",
+    "colors": [
+      "R",
+      "G"
+    ],
+    "commanderNames": [
+      "Vrondiss, Rage of Ancients"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "dungeons-of-death-adventures-in-the-forgotten-realms-commander",
+    "name": "Dungeons of Death",
+    "set": "Adventures in the Forgotten Realms Commander",
+    "setCode": "afc",
+    "colors": [
+      "W",
+      "U",
+      "B"
+    ],
+    "commanderNames": [
+      "Sefris of the Hidden Ways"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "eldrazi-incursion-modern-horizons-3-commander",
+    "name": "Eldrazi Incursion",
+    "set": "Modern Horizons 3 Commander",
+    "setCode": "m3c",
+    "colors": [
+      "W",
+      "U",
+      "B",
+      "R",
+      "G"
+    ],
+    "commanderNames": [
+      "Ulalek, Fused Atrocity"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "eldrazi-incursion-collector-s-edition-modern-horizons-3-commander",
+    "name": "Eldrazi Incursion Collector's Edition",
+    "set": "Modern Horizons 3 Commander",
+    "setCode": "m3c",
+    "colors": [
+      "W",
+      "U",
+      "B",
+      "R",
+      "G"
+    ],
+    "commanderNames": [
+      "Ulalek, Fused Atrocity"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "eldrazi-unbound-commander-masters",
+    "name": "Eldrazi Unbound",
+    "set": "Commander Masters",
+    "setCode": "cmm",
+    "colors": [],
+    "commanderNames": [
+      "Zhulodok, Void Gorger"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "elven-council-the-lord-of-the-rings-commander",
+    "name": "Elven Council",
+    "set": "The Lord of the Rings Commander",
+    "setCode": "ltc",
+    "colors": [
+      "U",
+      "G"
+    ],
+    "commanderNames": [
+      "Galadriel, Elven-Queen"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "elven-empire-kaldheim-commander",
+    "name": "Elven Empire",
+    "set": "Kaldheim Commander",
+    "setCode": "khc",
+    "colors": [
+      "B",
+      "G"
+    ],
+    "commanderNames": [
+      "Lathril, Blade of the Elves"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "enchantress-rubinia-magic-online-theme-deck",
+    "name": "Enchantress Rubinia",
+    "set": "Magic Online Theme Deck",
+    "setCode": "td0",
+    "colors": [
+      "W",
+      "U",
+      "G"
+    ],
+    "commanderNames": [
+      "Rubinia Soulsinger"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "endless-punishment-duskmourn-commander",
+    "name": "Endless Punishment",
+    "set": "Duskmourn Commander",
+    "setCode": "dsc",
+    "colors": [
+      "B",
+      "R"
+    ],
+    "commanderNames": [
+      "Valgavoth, Harrower of Souls"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "enduring-enchantments-commander-masters",
+    "name": "Enduring Enchantments",
+    "set": "Commander Masters",
+    "setCode": "cmm",
+    "colors": [
+      "W",
+      "B",
+      "G"
+    ],
+    "commanderNames": [
+      "Anikthea, Hand of Erebos"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "enhanced-evolution-commander-2020",
+    "name": "Enhanced Evolution",
+    "set": "Commander 2020",
+    "setCode": "c20",
+    "colors": [
+      "U",
+      "B",
+      "G"
+    ],
+    "commanderNames": [
+      "Otrimi, the Ever-Playful"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "entropic-uprising-commander-2016",
+    "name": "Entropic Uprising",
+    "set": "Commander 2016",
+    "setCode": "c16",
+    "colors": [
+      "U",
+      "B",
+      "R",
+      "G"
+    ],
+    "commanderNames": [
+      "Yidris, Maelstrom Wielder"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "eternal-bargain-commander-2013",
+    "name": "Eternal Bargain",
+    "set": "Commander 2013",
+    "setCode": "c13",
+    "colors": [
+      "W",
+      "U",
+      "B"
+    ],
+    "commanderNames": [
+      "Oloro, Ageless Ascetic"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "eternal-might-aetherdrift-commander",
+    "name": "Eternal Might",
+    "set": "Aetherdrift Commander",
+    "setCode": "drc",
+    "colors": [
+      "W",
+      "U",
+      "B"
+    ],
+    "commanderNames": [
+      "Temmet, Naktamun's Will"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "evasive-maneuvers-commander-2013",
+    "name": "Evasive Maneuvers",
+    "set": "Commander 2013",
+    "setCode": "c13",
+    "colors": [
+      "W",
+      "U",
+      "G"
+    ],
+    "commanderNames": [
+      "Derevi, Empyrial Tactician"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "evasive-maneuvers-commander-anthology",
+    "name": "Evasive Maneuvers",
+    "set": "Commander Anthology",
+    "setCode": "cma",
+    "colors": [
+      "W",
+      "U",
+      "G"
+    ],
+    "commanderNames": [
+      "Derevi, Empyrial Tactician"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "exit-from-exile-battle-for-baldur-s-gate-commander",
+    "name": "Exit from Exile",
+    "set": "Battle for Baldur's Gate Commander",
+    "setCode": "clb",
+    "colors": [
+      "R",
+      "G"
+    ],
+    "commanderNames": [
+      "Faldorn, Dread Wolf Herald"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "explorers-of-the-deep-the-lost-caverns-of-ixalan-commander",
+    "name": "Explorers of the Deep",
+    "set": "The Lost Caverns of Ixalan Commander",
+    "setCode": "lcc",
+    "colors": [
+      "U",
+      "G"
+    ],
+    "commanderNames": [
+      "Hakbal of the Surging Soul"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "exquisite-invention-commander-2018",
+    "name": "Exquisite Invention",
+    "set": "Commander 2018",
+    "setCode": "c18",
+    "colors": [
+      "U",
+      "R"
+    ],
+    "commanderNames": [
+      "Saheeli, the Gifted"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "faceless-menace-commander-2019",
+    "name": "Faceless Menace",
+    "set": "Commander 2019",
+    "setCode": "c19",
+    "colors": [
+      "U",
+      "B",
+      "G"
+    ],
+    "commanderNames": [
+      "Kadena, Slinking Sorcerer"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "fae-dominion-wilds-of-eldraine-commander",
+    "name": "Fae Dominion",
+    "set": "Wilds of Eldraine Commander",
+    "setCode": "woc",
+    "colors": [
+      "U",
+      "B"
+    ],
+    "commanderNames": [
+      "Tegwyll, Duke of Splendor"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "family-matters-bloomburrow-commander",
+    "name": "Family Matters",
+    "set": "Bloomburrow Commander",
+    "setCode": "blc",
+    "colors": [
+      "W",
+      "U",
+      "R"
+    ],
+    "commanderNames": [
+      "Zinnia, Valley's Voice"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "feline-ferocity-commander-2017",
+    "name": "Feline Ferocity",
+    "set": "Commander 2017",
+    "setCode": "c17",
+    "colors": [
+      "W",
+      "G"
+    ],
+    "commanderNames": [
+      "Arahbo, Roar of the World"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "first-flight-starter-commander",
+    "name": "First Flight",
+    "set": "Starter Commander",
+    "setCode": "scd",
+    "colors": [
+      "W",
+      "U"
+    ],
+    "commanderNames": [
+      "Isperia, Supreme Judge"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "food-and-fellowship-the-lord-of-the-rings-commander",
+    "name": "Food and Fellowship",
+    "set": "The Lord of the Rings Commander",
+    "setCode": "ltc",
+    "colors": [
+      "W",
+      "B",
+      "G"
+    ],
+    "commanderNames": [
+      "Frodo, Adventurous Hobbit",
+      "Sam, Loyal Attendant"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "forces-of-the-imperium-warhammer-40-000-commander-collector-s-edition",
+    "name": "Forces of the Imperium",
+    "set": "Warhammer 40,000 Commander Collector's Edition",
+    "setCode": "40k",
+    "colors": [
+      "W",
+      "U",
+      "B"
+    ],
+    "commanderNames": [
+      "Inquisitor Greyfax"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "forces-of-the-imperium-warhammer-40-000-commander",
+    "name": "Forces of the Imperium",
+    "set": "Warhammer 40,000 Commander",
+    "setCode": "40k",
+    "colors": [
+      "W",
+      "U",
+      "B"
+    ],
+    "commanderNames": [
+      "Inquisitor Greyfax"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "forged-in-stone-commander-2014",
+    "name": "Forged in Stone",
+    "set": "Commander 2014",
+    "setCode": "c14",
+    "colors": [
+      "W"
+    ],
+    "commanderNames": [
+      "Nahiri, the Lithomancer"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "from-cute-to-brute-secret-lair-commander-2023",
+    "name": "From Cute to Brute",
+    "set": "Secret Lair Commander 2023",
+    "setCode": "sld",
+    "colors": [
+      "W",
+      "U",
+      "B",
+      "R",
+      "G"
+    ],
+    "commanderNames": [
+      "Esika, God of the Tree // The Prismatic Bridge"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "grand-larceny-outlaws-of-thunder-junction-commander",
+    "name": "Grand Larceny",
+    "set": "Outlaws of Thunder Junction Commander",
+    "setCode": "otc",
+    "colors": [
+      "U",
+      "B",
+      "G"
+    ],
+    "commanderNames": [
+      "Gonti, Canny Acquisitor"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "grave-danger-starter-commander",
+    "name": "Grave Danger",
+    "set": "Starter Commander",
+    "setCode": "scd",
+    "colors": [
+      "U",
+      "B"
+    ],
+    "commanderNames": [
+      "Gisa and Geralf"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "graveyard-overdrive-modern-horizons-3-commander",
+    "name": "Graveyard Overdrive",
+    "set": "Modern Horizons 3 Commander",
+    "setCode": "m3c",
+    "colors": [
+      "B",
+      "R",
+      "G"
+    ],
+    "commanderNames": [
+      "Disa the Restless"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "graveyard-overdrive-collector-s-edition-modern-horizons-3-commander",
+    "name": "Graveyard Overdrive Collector's Edition",
+    "set": "Modern Horizons 3 Commander",
+    "setCode": "m3c",
+    "colors": [
+      "B",
+      "R",
+      "G"
+    ],
+    "commanderNames": [
+      "Disa the Restless"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "growing-threat-march-of-the-machine-commander",
+    "name": "Growing Threat",
+    "set": "March of the Machine Commander",
+    "setCode": "moc",
+    "colors": [
+      "W",
+      "B"
+    ],
+    "commanderNames": [
+      "Brimaz, Blight of Oreskos"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "guided-by-nature-commander-2014",
+    "name": "Guided by Nature",
+    "set": "Commander 2014",
+    "setCode": "c14",
+    "colors": [
+      "G"
+    ],
+    "commanderNames": [
+      "Freyalise, Llanowar's Fury"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "guided-by-nature-commander-anthology",
+    "name": "Guided by Nature",
+    "set": "Commander Anthology",
+    "setCode": "cma",
+    "colors": [
+      "G"
+    ],
+    "commanderNames": [
+      "Freyalise, Llanowar's Fury"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "hail-caesar-fallout-commander",
+    "name": "Hail, Caesar",
+    "set": "Fallout Commander",
+    "setCode": "pip",
+    "colors": [
+      "W",
+      "B",
+      "R"
+    ],
+    "commanderNames": [
+      "Caesar, Legion's Emperor"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "heads-i-win-tails-you-lose-secret-lair-commander-2021",
+    "name": "Heads I Win, Tails You Lose",
+    "set": "Secret Lair Commander 2021",
+    "setCode": "sld",
+    "colors": [
+      "U",
+      "R"
+    ],
+    "commanderNames": [
+      "Zndrsplt, Eye of Wisdom",
+      "Okaun, Eye of Chaos"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "heavenly-inferno-commander-2011",
+    "name": "Heavenly Inferno",
+    "set": "Commander 2011",
+    "setCode": "cmd",
+    "colors": [
+      "W",
+      "B",
+      "R"
+    ],
+    "commanderNames": [
+      "Kaalia of the Vast"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "heavenly-inferno-commander-anthology",
+    "name": "Heavenly Inferno",
+    "set": "Commander Anthology",
+    "setCode": "cma",
+    "colors": [
+      "W",
+      "B",
+      "R"
+    ],
+    "commanderNames": [
+      "Kaalia of the Vast"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "invent-superiority-commander-2016",
+    "name": "Invent Superiority",
+    "set": "Commander 2016",
+    "setCode": "c16",
+    "colors": [
+      "W",
+      "U",
+      "B",
+      "R"
+    ],
+    "commanderNames": [
+      "Breya, Etherium Shaper"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "jeskai-striker-tarkir-dragonstorm-commander",
+    "name": "Jeskai Striker",
+    "set": "Tarkir Dragonstorm Commander",
+    "setCode": "tdc",
+    "colors": [
+      "W",
+      "U",
+      "R"
+    ],
+    "commanderNames": [
+      "Shiko and Narset, Unified"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "jump-scare-duskmourn-commander",
+    "name": "Jump Scare!",
+    "set": "Duskmourn Commander",
+    "setCode": "dsc",
+    "colors": [
+      "U",
+      "G"
+    ],
+    "commanderNames": [
+      "Zimone, Mystery Unraveler"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "land-s-wrath-zendikar-rising-commander",
+    "name": "Land's Wrath",
+    "set": "Zendikar Rising Commander",
+    "setCode": "znc",
+    "colors": [
+      "W",
+      "R",
+      "G"
+    ],
+    "commanderNames": [
+      "Obuun, Mul Daya Ancestor"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "legends-legacy-dominaria-united-commander",
+    "name": "Legends' Legacy",
+    "set": "Dominaria United Commander",
+    "setCode": "dmc",
+    "colors": [
+      "W",
+      "B",
+      "R"
+    ],
+    "commanderNames": [
+      "Dihada, Binder of Wills"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "limit-break-final-fantasy-commander",
+    "name": "Limit Break",
+    "set": "Final Fantasy Commander",
+    "setCode": "fic",
+    "colors": [
+      "W",
+      "R",
+      "G"
+    ],
+    "commanderNames": [
+      "Cloud, Ex-SOLDIER"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "limit-break-collector-s-edition-final-fantasy-commander",
+    "name": "Limit Break Collector's Edition",
+    "set": "Final Fantasy Commander",
+    "setCode": "fic",
+    "colors": [
+      "W",
+      "R",
+      "G"
+    ],
+    "commanderNames": [
+      "Cloud, Ex-SOLDIER"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "living-energy-aetherdrift-commander",
+    "name": "Living Energy",
+    "set": "Aetherdrift Commander",
+    "setCode": "drc",
+    "colors": [
+      "U",
+      "R",
+      "G"
+    ],
+    "commanderNames": [
+      "Saheeli, Radiant Creator"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "lorehold-legacies-commander-2021",
+    "name": "Lorehold Legacies",
+    "set": "Commander 2021",
+    "setCode": "c21",
+    "colors": [
+      "W",
+      "R"
+    ],
+    "commanderNames": [
+      "Osgir, the Reconstructor"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "lorehold-spirit-secrets-of-strixhaven-commander",
+    "name": "Lorehold Spirit",
+    "set": "Secrets of Strixhaven Commander",
+    "setCode": "soc",
+    "colors": [
+      "W",
+      "R"
+    ],
+    "commanderNames": [
+      "Quintorius, History Chaser"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "maestros-massacre-streets-of-new-capenna-commander",
+    "name": "Maestros Massacre",
+    "set": "Streets of New Capenna Commander",
+    "setCode": "ncc",
+    "colors": [
+      "U",
+      "B",
+      "R"
+    ],
+    "commanderNames": [
+      "Anhelo, the Painter"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "mardu-surge-tarkir-dragonstorm-commander",
+    "name": "Mardu Surge",
+    "set": "Tarkir Dragonstorm Commander",
+    "setCode": "tdc",
+    "colors": [
+      "W",
+      "B",
+      "R"
+    ],
+    "commanderNames": [
+      "Zurgo Stormrender"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "masters-of-evil-doctor-who-commander",
+    "name": "Masters of Evil",
+    "set": "Doctor Who Commander",
+    "setCode": "who",
+    "colors": [
+      "U",
+      "B",
+      "R"
+    ],
+    "commanderNames": [
+      "Davros, Dalek Creator"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "merciless-rage-commander-2019",
+    "name": "Merciless Rage",
+    "set": "Commander 2019",
+    "setCode": "c19",
+    "colors": [
+      "B",
+      "R"
+    ],
+    "commanderNames": [
+      "Anje Falkenrath"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "mind-flayarrrs-battle-for-baldur-s-gate-commander",
+    "name": "Mind Flayarrrs",
+    "set": "Battle for Baldur's Gate Commander",
+    "setCode": "clb",
+    "colors": [
+      "U",
+      "B"
+    ],
+    "commanderNames": [
+      "Captain N'ghathrod"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "mind-seize-commander-2013",
+    "name": "Mind Seize",
+    "set": "Commander 2013",
+    "setCode": "c13",
+    "colors": [
+      "U",
+      "B",
+      "R"
+    ],
+    "commanderNames": [
+      "Jeleva, Nephalia's Scourge"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "miracle-worker-duskmourn-commander",
+    "name": "Miracle Worker",
+    "set": "Duskmourn Commander",
+    "setCode": "dsc",
+    "colors": [
+      "W",
+      "U",
+      "B"
+    ],
+    "commanderNames": [
+      "Aminatou, Veil Piercer"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "mirror-mastery-commander-2011",
+    "name": "Mirror Mastery",
+    "set": "Commander 2011",
+    "setCode": "cmd",
+    "colors": [
+      "U",
+      "R",
+      "G"
+    ],
+    "commanderNames": [
+      "Riku of Two Reflections"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "mishra-s-burnished-banner-the-brothers-war-commander",
+    "name": "Mishra's Burnished Banner",
+    "set": "The Brothers' War Commander",
+    "setCode": "brc",
+    "colors": [
+      "U",
+      "B",
+      "R"
+    ],
+    "commanderNames": [
+      "Mishra, Eminent One"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "most-wanted-outlaws-of-thunder-junction-commander",
+    "name": "Most Wanted",
+    "set": "Outlaws of Thunder Junction Commander",
+    "setCode": "otc",
+    "colors": [
+      "W",
+      "B",
+      "R"
+    ],
+    "commanderNames": [
+      "Olivia, Opulent Outlaw"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "mutant-menace-fallout-commander",
+    "name": "Mutant Menace",
+    "set": "Fallout Commander",
+    "setCode": "pip",
+    "colors": [
+      "U",
+      "B",
+      "G"
+    ],
+    "commanderNames": [
+      "The Wise Mothman"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "mystic-intellect-commander-2019",
+    "name": "Mystic Intellect",
+    "set": "Commander 2019",
+    "setCode": "c19",
+    "colors": [
+      "W",
+      "U",
+      "R"
+    ],
+    "commanderNames": [
+      "Sevinne, the Chronoclasm"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "nature-of-the-beast-commander-2013",
+    "name": "Nature of the Beast",
+    "set": "Commander 2013",
+    "setCode": "c13",
+    "colors": [
+      "W",
+      "R",
+      "G"
+    ],
+    "commanderNames": [
+      "Marath, Will of the Wild"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "nature-s-vengeance-commander-2018",
+    "name": "Nature's Vengeance",
+    "set": "Commander 2018",
+    "setCode": "c18",
+    "colors": [
+      "B",
+      "R",
+      "G"
+    ],
+    "commanderNames": [
+      "Lord Windgrace"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "necron-dynasties-warhammer-40-000-commander-collector-s-edition",
+    "name": "Necron Dynasties",
+    "set": "Warhammer 40,000 Commander Collector's Edition",
+    "setCode": "40k",
+    "colors": [
+      "B"
+    ],
+    "commanderNames": [
+      "Szarekh, the Silent King"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "necron-dynasties-warhammer-40-000-commander",
+    "name": "Necron Dynasties",
+    "set": "Warhammer 40,000 Commander",
+    "setCode": "40k",
+    "colors": [
+      "B"
+    ],
+    "commanderNames": [
+      "Szarekh, the Silent King"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "obscura-operation-streets-of-new-capenna-commander",
+    "name": "Obscura Operation",
+    "set": "Streets of New Capenna Commander",
+    "setCode": "ncc",
+    "colors": [
+      "W",
+      "U",
+      "B"
+    ],
+    "commanderNames": [
+      "Kamiz, Obscura Oculus"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "open-hostility-commander-2016",
+    "name": "Open Hostility",
+    "set": "Commander 2016",
+    "setCode": "c16",
+    "colors": [
+      "W",
+      "B",
+      "R",
+      "G"
+    ],
+    "commanderNames": [
+      "Saskia the Unyielding"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "painbow-dominaria-united-commander",
+    "name": "Painbow",
+    "set": "Dominaria United Commander",
+    "setCode": "dmc",
+    "colors": [
+      "W",
+      "U",
+      "B",
+      "R",
+      "G"
+    ],
+    "commanderNames": [
+      "Jared Carthalion"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "paradox-power-doctor-who-commander",
+    "name": "Paradox Power",
+    "set": "Doctor Who Commander",
+    "setCode": "who",
+    "colors": [
+      "U",
+      "R",
+      "G"
+    ],
+    "commanderNames": [
+      "The Thirteenth Doctor",
+      "Yasmin Khan"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "party-time-battle-for-baldur-s-gate-commander",
+    "name": "Party Time",
+    "set": "Battle for Baldur's Gate Commander",
+    "setCode": "clb",
+    "colors": [
+      "W",
+      "B"
+    ],
+    "commanderNames": [
+      "Nalia de'Arnise"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "peace-offering-bloomburrow-commander",
+    "name": "Peace Offering",
+    "set": "Bloomburrow Commander",
+    "setCode": "blc",
+    "colors": [
+      "W",
+      "U",
+      "G"
+    ],
+    "commanderNames": [
+      "Ms. Bumbleflower"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "peer-through-time-commander-2014",
+    "name": "Peer Through Time",
+    "set": "Commander 2014",
+    "setCode": "c14",
+    "colors": [
+      "U"
+    ],
+    "commanderNames": [
+      "Teferi, Temporal Archmage"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "phantom-premonition-kaldheim-commander",
+    "name": "Phantom Premonition",
+    "set": "Kaldheim Commander",
+    "setCode": "khc",
+    "colors": [
+      "W",
+      "U"
+    ],
+    "commanderNames": [
+      "Ranar the Ever-Watchful"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "planar-portal-adventures-in-the-forgotten-realms-commander",
+    "name": "Planar Portal",
+    "set": "Adventures in the Forgotten Realms Commander",
+    "setCode": "afc",
+    "colors": [
+      "B",
+      "R"
+    ],
+    "commanderNames": [
+      "Prosper, Tome-Bound"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "planeswalker-party-commander-masters",
+    "name": "Planeswalker Party",
+    "set": "Commander Masters",
+    "setCode": "cmm",
+    "colors": [
+      "W",
+      "U",
+      "R"
+    ],
+    "commanderNames": [
+      "Commodore Guff"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "plunder-the-graves-commander-2015",
+    "name": "Plunder the Graves",
+    "set": "Commander 2015",
+    "setCode": "c15",
+    "colors": [
+      "B",
+      "G"
+    ],
+    "commanderNames": [
+      "Meren of Clan Nel Toth"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "plunder-the-graves-commander-anthology",
+    "name": "Plunder the Graves",
+    "set": "Commander Anthology",
+    "setCode": "cma",
+    "colors": [
+      "B",
+      "G"
+    ],
+    "commanderNames": [
+      "Meren of Clan Nel Toth"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "political-puppets-commander-2011",
+    "name": "Political Puppets",
+    "set": "Commander 2011",
+    "setCode": "cmd",
+    "colors": [
+      "W",
+      "U",
+      "R"
+    ],
+    "commanderNames": [
+      "Zedruu the Greathearted"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "power-hungry-commander-2013",
+    "name": "Power Hungry",
+    "set": "Commander 2013",
+    "setCode": "c13",
+    "colors": [
+      "B",
+      "R",
+      "G"
+    ],
+    "commanderNames": [
+      "Prossh, Skyraider of Kher"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "primal-genesis-commander-2019",
+    "name": "Primal Genesis",
+    "set": "Commander 2019",
+    "setCode": "c19",
+    "colors": [
+      "W",
+      "R",
+      "G"
+    ],
+    "commanderNames": [
+      "Ghired, Conclave Exile"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "prismari-artistry-secrets-of-strixhaven-commander",
+    "name": "Prismari Artistry",
+    "set": "Secrets of Strixhaven Commander",
+    "setCode": "soc",
+    "colors": [
+      "U",
+      "R"
+    ],
+    "commanderNames": [
+      "Rootha, Mastering the Moment"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "prismari-performance-commander-2021",
+    "name": "Prismari Performance",
+    "set": "Commander 2021",
+    "setCode": "c21",
+    "colors": [
+      "U",
+      "R"
+    ],
+    "commanderNames": [
+      "Zaffai, Thunder Conductor"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "quandrix-unlimited-secrets-of-strixhaven-commander",
+    "name": "Quandrix Unlimited",
+    "set": "Secrets of Strixhaven Commander",
+    "setCode": "soc",
+    "colors": [
+      "U",
+      "G"
+    ],
+    "commanderNames": [
+      "Zimone, Infinite Analyst"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "quantum-quandrix-commander-2021",
+    "name": "Quantum Quandrix",
+    "set": "Commander 2021",
+    "setCode": "c21",
+    "colors": [
+      "U",
+      "G"
+    ],
+    "commanderNames": [
+      "Adrix and Nev, Twincasters"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "quick-draw-outlaws-of-thunder-junction-commander",
+    "name": "Quick Draw",
+    "set": "Outlaws of Thunder Junction Commander",
+    "setCode": "otc",
+    "colors": [
+      "U",
+      "R"
+    ],
+    "commanderNames": [
+      "Stella Lee, Wild Card"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "raining-cats-and-dogs-secret-lair-commander-2024",
+    "name": "Raining Cats and Dogs",
+    "set": "Secret Lair Commander 2024",
+    "setCode": "sld",
+    "colors": [
+      "W",
+      "R",
+      "G"
+    ],
+    "commanderNames": [
+      "Rin and Seri, Inseparable"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "reap-the-tides-commander-legends",
+    "name": "Reap the Tides",
+    "set": "Commander Legends",
+    "setCode": "cmr",
+    "colors": [
+      "U",
+      "G"
+    ],
+    "commanderNames": [
+      "Aesi, Tyrant of Gyre Strait"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "rebellion-rising-phyrexia-all-will-be-one-commander",
+    "name": "Rebellion Rising",
+    "set": "Phyrexia All Will Be One Commander",
+    "setCode": "onc",
+    "colors": [
+      "W",
+      "R"
+    ],
+    "commanderNames": [
+      "Neyali, Suns' Vanguard"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "revenant-recon-murders-at-karlov-manor-commander",
+    "name": "Revenant Recon",
+    "set": "Murders at Karlov Manor Commander",
+    "setCode": "mkc",
+    "colors": [
+      "U",
+      "B"
+    ],
+    "commanderNames": [
+      "Mirko, Obsessive Theorist"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "revival-trance-final-fantasy-commander",
+    "name": "Revival Trance",
+    "set": "Final Fantasy Commander",
+    "setCode": "fic",
+    "colors": [
+      "W",
+      "B",
+      "R"
+    ],
+    "commanderNames": [
+      "Terra, Herald of Hope"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "revival-trance-collector-s-edition-final-fantasy-commander",
+    "name": "Revival Trance Collector's Edition",
+    "set": "Final Fantasy Commander",
+    "setCode": "fic",
+    "colors": [
+      "W",
+      "B",
+      "R"
+    ],
+    "commanderNames": [
+      "Terra, Herald of Hope"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "riders-of-rohan-the-lord-of-the-rings-commander",
+    "name": "Riders of Rohan",
+    "set": "The Lord of the Rings Commander",
+    "setCode": "ltc",
+    "colors": [
+      "W",
+      "U",
+      "R"
+    ],
+    "commanderNames": [
+      "Éowyn, Shieldmaiden"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "riveteers-rampage-streets-of-new-capenna-commander",
+    "name": "Riveteers Rampage",
+    "set": "Streets of New Capenna Commander",
+    "setCode": "ncc",
+    "colors": [
+      "B",
+      "R",
+      "G"
+    ],
+    "commanderNames": [
+      "Henzie \"Toolbox\" Torre"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "ruthless-regiment-commander-2020",
+    "name": "Ruthless Regiment",
+    "set": "Commander 2020",
+    "setCode": "c20",
+    "colors": [
+      "W",
+      "B",
+      "R"
+    ],
+    "commanderNames": [
+      "Jirina Kudro"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "science-fallout-commander",
+    "name": "Science!",
+    "set": "Fallout Commander",
+    "setCode": "pip",
+    "colors": [
+      "W",
+      "U",
+      "R"
+    ],
+    "commanderNames": [
+      "Dr. Madison Li"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "scions-and-spellcraft-final-fantasy-commander",
+    "name": "Scions & Spellcraft",
+    "set": "Final Fantasy Commander",
+    "setCode": "fic",
+    "colors": [
+      "W",
+      "U",
+      "B"
+    ],
+    "commanderNames": [
+      "Y'shtola, Night's Blessed"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "scions-and-spellcraft-collector-s-edition-final-fantasy-commander",
+    "name": "Scions & Spellcraft Collector's Edition",
+    "set": "Final Fantasy Commander",
+    "setCode": "fic",
+    "colors": [
+      "W",
+      "U",
+      "B"
+    ],
+    "commanderNames": [
+      "Y'shtola, Night's Blessed"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "scrappy-survivors-fallout-commander",
+    "name": "Scrappy Survivors",
+    "set": "Fallout Commander",
+    "setCode": "pip",
+    "colors": [
+      "W",
+      "R",
+      "G"
+    ],
+    "commanderNames": [
+      "Dogmeat, Ever Loyal"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "seize-control-commander-2015",
+    "name": "Seize Control",
+    "set": "Commander 2015",
+    "setCode": "c15",
+    "colors": [
+      "U",
+      "R"
+    ],
+    "commanderNames": [
+      "Mizzix of the Izmagnus"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "silverquill-influence-secrets-of-strixhaven-commander",
+    "name": "Silverquill Influence",
+    "set": "Secrets of Strixhaven Commander",
+    "setCode": "soc",
+    "colors": [
+      "W",
+      "B"
+    ],
+    "commanderNames": [
+      "Killian, Decisive Mentor"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "silverquill-statement-commander-2021",
+    "name": "Silverquill Statement",
+    "set": "Commander 2021",
+    "setCode": "c21",
+    "colors": [
+      "W",
+      "B"
+    ],
+    "commanderNames": [
+      "Breena, the Demagogue"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "sliver-swarm-commander-masters",
+    "name": "Sliver Swarm",
+    "set": "Commander Masters",
+    "setCode": "cmm",
+    "colors": [
+      "W",
+      "U",
+      "B",
+      "R",
+      "G"
+    ],
+    "commanderNames": [
+      "Sliver Gravemother"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "sneak-attack-zendikar-rising-commander",
+    "name": "Sneak Attack",
+    "set": "Zendikar Rising Commander",
+    "setCode": "znc",
+    "colors": [
+      "U",
+      "B"
+    ],
+    "commanderNames": [
+      "Anowon, the Ruin Thief"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "spirit-squadron-innistrad-crimson-vow-commander",
+    "name": "Spirit Squadron",
+    "set": "Innistrad Crimson Vow Commander",
+    "setCode": "voc",
+    "colors": [
+      "W",
+      "U"
+    ],
+    "commanderNames": [
+      "Millicent, Restless Revenant"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "squirreled-away-bloomburrow-commander",
+    "name": "Squirreled Away",
+    "set": "Bloomburrow Commander",
+    "setCode": "blc",
+    "colors": [
+      "B",
+      "G"
+    ],
+    "commanderNames": [
+      "Hazel of the Rootbloom"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "stalwart-unity-commander-2016",
+    "name": "Stalwart Unity",
+    "set": "Commander 2016",
+    "setCode": "c16",
+    "colors": [
+      "W",
+      "U",
+      "R",
+      "G"
+    ],
+    "commanderNames": [
+      "Kynaios and Tiro of Meletis"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "subjective-reality-commander-2018",
+    "name": "Subjective Reality",
+    "set": "Commander 2018",
+    "setCode": "c18",
+    "colors": [
+      "W",
+      "U",
+      "B"
+    ],
+    "commanderNames": [
+      "Aminatou, the Fateshifter"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "sultai-arisen-tarkir-dragonstorm-commander",
+    "name": "Sultai Arisen",
+    "set": "Tarkir Dragonstorm Commander",
+    "setCode": "tdc",
+    "colors": [
+      "U",
+      "B",
+      "G"
+    ],
+    "commanderNames": [
+      "Kotis, Sibsig Champion"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "swell-the-host-commander-2015",
+    "name": "Swell the Host",
+    "set": "Commander 2015",
+    "setCode": "c15",
+    "colors": [
+      "U",
+      "G"
+    ],
+    "commanderNames": [
+      "Ezuri, Claw of Progress"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "sworn-to-darkness-commander-2014",
+    "name": "Sworn to Darkness",
+    "set": "Commander 2014",
+    "setCode": "c14",
+    "colors": [
+      "B"
+    ],
+    "commanderNames": [
+      "Ob Nixilis of the Black Oath"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "symbiotic-swarm-commander-2020",
+    "name": "Symbiotic Swarm",
+    "set": "Commander 2020",
+    "setCode": "c20",
+    "colors": [
+      "W",
+      "B",
+      "G"
+    ],
+    "commanderNames": [
+      "Kathril, Aspect Warper"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "temur-roar-tarkir-dragonstorm-commander",
+    "name": "Temur Roar",
+    "set": "Tarkir Dragonstorm Commander",
+    "setCode": "tdc",
+    "colors": [
+      "U",
+      "R",
+      "G"
+    ],
+    "commanderNames": [
+      "Eshki, Temur's Roar"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "the-fantastic-four-marvel-super-heroes-commander",
+    "name": "The Fantastic Four",
+    "set": "Marvel Super Heroes Commander",
+    "setCode": "msc",
+    "colors": [
+      "W",
+      "U",
+      "R",
+      "G"
+    ],
+    "commanderNames": [
+      "Invisible Woman"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "the-hosts-of-mordor-the-lord-of-the-rings-commander",
+    "name": "The Hosts of Mordor",
+    "set": "The Lord of the Rings Commander",
+    "setCode": "ltc",
+    "colors": [
+      "U",
+      "B",
+      "R"
+    ],
+    "commanderNames": [
+      "Sauron, Lord of the Rings"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "the-ruinous-powers-warhammer-40-000-commander-collector-s-edition",
+    "name": "The Ruinous Powers",
+    "set": "Warhammer 40,000 Commander Collector's Edition",
+    "setCode": "40k",
+    "colors": [
+      "U",
+      "B",
+      "R"
+    ],
+    "commanderNames": [
+      "Abaddon the Despoiler"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "the-ruinous-powers-warhammer-40-000-commander",
+    "name": "The Ruinous Powers",
+    "set": "Warhammer 40,000 Commander",
+    "setCode": "40k",
+    "colors": [
+      "U",
+      "B",
+      "R"
+    ],
+    "commanderNames": [
+      "Abaddon the Despoiler"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "timeless-wisdom-commander-2020",
+    "name": "Timeless Wisdom",
+    "set": "Commander 2020",
+    "setCode": "c20",
+    "colors": [
+      "W",
+      "U",
+      "R"
+    ],
+    "commanderNames": [
+      "Gavi, Nest Warden"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "timey-wimey-doctor-who-commander",
+    "name": "Timey-Wimey",
+    "set": "Doctor Who Commander",
+    "setCode": "who",
+    "colors": [
+      "W",
+      "U",
+      "R"
+    ],
+    "commanderNames": [
+      "The Tenth Doctor",
+      "Rose Tyler"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "tinker-time-march-of-the-machine-commander",
+    "name": "Tinker Time",
+    "set": "March of the Machine Commander",
+    "setCode": "moc",
+    "colors": [
+      "U",
+      "R",
+      "G"
+    ],
+    "commanderNames": [
+      "Gimbal, Gremlin Prodigy"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "token-triumph-starter-commander",
+    "name": "Token Triumph",
+    "set": "Starter Commander",
+    "setCode": "scd",
+    "colors": [
+      "W",
+      "G"
+    ],
+    "commanderNames": [
+      "Emmara, Soul of the Accord"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "tricky-terrain-modern-horizons-3-commander",
+    "name": "Tricky Terrain",
+    "set": "Modern Horizons 3 Commander",
+    "setCode": "m3c",
+    "colors": [
+      "U",
+      "G"
+    ],
+    "commanderNames": [
+      "Omo, Queen of Vesuva"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "tricky-terrain-collector-s-edition-modern-horizons-3-commander",
+    "name": "Tricky Terrain Collector's Edition",
+    "set": "Modern Horizons 3 Commander",
+    "setCode": "m3c",
+    "colors": [
+      "U",
+      "G"
+    ],
+    "commanderNames": [
+      "Omo, Queen of Vesuva"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "tyranid-swarm-warhammer-40-000-commander-collector-s-edition",
+    "name": "Tyranid Swarm",
+    "set": "Warhammer 40,000 Commander Collector's Edition",
+    "setCode": "40k",
+    "colors": [
+      "U",
+      "R",
+      "G"
+    ],
+    "commanderNames": [
+      "The Swarmlord"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "tyranid-swarm-warhammer-40-000-commander",
+    "name": "Tyranid Swarm",
+    "set": "Warhammer 40,000 Commander",
+    "setCode": "40k",
+    "colors": [
+      "U",
+      "R",
+      "G"
+    ],
+    "commanderNames": [
+      "The Swarmlord"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "undead-unleashed-innistrad-midnight-hunt-commander-2021",
+    "name": "Undead Unleashed",
+    "set": "Innistrad Midnight Hunt Commander 2021",
+    "setCode": "mic",
+    "colors": [
+      "U",
+      "B"
+    ],
+    "commanderNames": [
+      "Wilhelt, the Rotcleaver"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "upgrades-unleashed-kamigawa-neon-dynasty-commander",
+    "name": "Upgrades Unleashed",
+    "set": "Kamigawa Neon Dynasty Commander",
+    "setCode": "nec",
+    "colors": [
+      "R",
+      "G"
+    ],
+    "commanderNames": [
+      "Chishiro, the Shattered Blade"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "urza-s-iron-alliance-the-brothers-war-commander",
+    "name": "Urza's Iron Alliance",
+    "set": "The Brothers' War Commander",
+    "setCode": "brc",
+    "colors": [
+      "W",
+      "U",
+      "B"
+    ],
+    "commanderNames": [
+      "Urza, Chief Artificer"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "vampiric-bloodline-innistrad-crimson-vow-commander",
+    "name": "Vampiric Bloodline",
+    "set": "Innistrad Crimson Vow Commander",
+    "setCode": "voc",
+    "colors": [
+      "B",
+      "R"
+    ],
+    "commanderNames": [
+      "Strefan, Maurer Progenitor"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "vampiric-bloodlust-commander-2017",
+    "name": "Vampiric Bloodlust",
+    "set": "Commander 2017",
+    "setCode": "c17",
+    "colors": [
+      "W",
+      "B",
+      "R"
+    ],
+    "commanderNames": [
+      "Edgar Markov"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "veloci-ramp-tor-the-lost-caverns-of-ixalan-commander",
+    "name": "Veloci-Ramp-Tor",
+    "set": "The Lost Caverns of Ixalan Commander",
+    "setCode": "lcc",
+    "colors": [
+      "W",
+      "R",
+      "G"
+    ],
+    "commanderNames": [
+      "Pantlaza, Sun-Favored"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "virtue-and-valor-wilds-of-eldraine-commander",
+    "name": "Virtue and Valor",
+    "set": "Wilds of Eldraine Commander",
+    "setCode": "woc",
+    "colors": [
+      "W",
+      "G"
+    ],
+    "commanderNames": [
+      "Ellivere of the Wild Court"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "wade-into-battle-commander-2015",
+    "name": "Wade Into Battle",
+    "set": "Commander 2015",
+    "setCode": "c15",
+    "colors": [
+      "W",
+      "R"
+    ],
+    "commanderNames": [
+      "Kalemne, Disciple of Iroas"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "wade-into-battle-commander-anthology-2",
+    "name": "Wade Into Battle",
+    "set": "Commander Anthology 2",
+    "setCode": "cm2",
+    "colors": [
+      "W",
+      "R"
+    ],
+    "commanderNames": [
+      "Kalemne, Disciple of Iroas"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "wakanda-forever-marvel-super-heroes-commander",
+    "name": "Wakanda Forever",
+    "set": "Marvel Super Heroes Commander",
+    "setCode": "msc",
+    "colors": [
+      "W",
+      "G"
+    ],
+    "commanderNames": [
+      "T'Challa, the Black Panther"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "witherbloom-pestilence-secrets-of-strixhaven-commander",
+    "name": "Witherbloom Pestilence",
+    "set": "Secrets of Strixhaven Commander",
+    "setCode": "soc",
+    "colors": [
+      "B",
+      "G"
+    ],
+    "commanderNames": [
+      "Dina, Essence Brewer"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "witherbloom-witchcraft-commander-2021",
+    "name": "Witherbloom Witchcraft",
+    "set": "Commander 2021",
+    "setCode": "c21",
+    "colors": [
+      "B",
+      "G"
+    ],
+    "commanderNames": [
+      "Willowdusk, Essence Seer"
+    ],
+    "cardCount": 100
+  },
+  {
+    "id": "world-shaper-edge-of-eternities-commander",
+    "name": "World Shaper",
+    "set": "Edge of Eternities Commander",
+    "setCode": "eoc",
+    "colors": [
+      "B",
+      "R",
+      "G"
+    ],
+    "commanderNames": [
+      "Hearthhull, the Worldseed"
+    ],
+    "cardCount": 100
+  }
+]

@@ -4,6 +4,7 @@ import { DeckStorageService } from '@/infrastructure/persistence';
 import { DeckMetadata, SavedDeck } from '@/features/player/types';
 import { Alert, AlertDescription } from '@/shared/ui/alert';
 import { Button } from '@/shared/ui/button';
+import { PreconPicker } from './PreconPicker';
 import {
   Dialog,
   DialogContent,
@@ -112,7 +113,7 @@ export function DeckSelectionModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
-      <DialogContent className="w-[90%] xl:min-w-[700px] data-[state=open]:animate-none data-[state=closed]:animate-none">
+      <DialogContent className="w-[90%] xl:min-w-[700px] max-h-[85vh] overflow-y-auto data-[state=open]:animate-none data-[state=closed]:animate-none">
         <DialogHeader>
           <DialogTitle>Select a Deck</DialogTitle>
           <DialogDescription>
@@ -163,6 +164,14 @@ export function DeckSelectionModal({
               ))}
             </div>
           )}
+        </div>
+
+        <div className="mt-4 pt-4 px-6 border-t border-[#3d3d3d]">
+          <h3 className="text-white font-semibold mb-1">Preconstructed decks</h3>
+          <p className="text-sm text-gray-400 mb-3">
+            Jump straight in with a ready-made Commander deck.
+          </p>
+          <PreconPicker onDeckSelected={onDeckSelected} />
         </div>
 
         <DialogFooter className="px-6 pb-6">

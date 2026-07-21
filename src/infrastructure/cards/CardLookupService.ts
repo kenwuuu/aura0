@@ -89,6 +89,49 @@ export class CardLookupService {
     };
   }
 
+  /**
+   * Like `fetchImagesForList`, but resolves the primary lookup in one batch
+   * request instead of one GET per card — used for precons, whose entries all
+   * carry set+collector. The Aura miss handling is identical: anything the bulk
+   * endpoint can't resolve is handed to the Scryfall fallback (which re-fetches
+   * by set+collector), so all downstream code sees the same `LookupListResult`.
+   */
+  async resolveDeckListBulk(
+    entries: DeckLineItem[],
+    onProgress?: (current: number, total: number) => void,
+  ): Promise<LookupListResult> {
+    const primaryRun = await this.primary.bulkLookup(entries, onProgress);
+
+    if (primaryRun.failedItems.length === 0) {
+      return {
+        ...primaryRun,
+        fallbackTriggeredCount: 0,
+        fallbackRecoveredCount: 0,
+        fallbackFailedCount: 0,
+        auraFailures: [],
+      };
+    }
+
+    const fallbackTriggeredCount = primaryRun.failedItems.length;
+    const fallbackRun = await this.fallback.fetchImagesForList(
+      primaryRun.failedItems,
+      onProgress,
+    );
+
+    const primarySuccesses = primaryRun.results.filter((r) => !r.error);
+    const fallbackFailedCount = fallbackRun.failedItems.length;
+
+    return {
+      results: [...fallbackRun.results, ...primarySuccesses],
+      failedItems: fallbackRun.failedItems,
+      failures: fallbackRun.failures,
+      fallbackTriggeredCount,
+      fallbackRecoveredCount: fallbackTriggeredCount - fallbackFailedCount,
+      fallbackFailedCount,
+      auraFailures: primaryRun.failures,
+    };
+  }
+
   async fetchCardByName(name: string): Promise<ScryfallCard> {
     try {
       return await this.primary.fetchByName(name);

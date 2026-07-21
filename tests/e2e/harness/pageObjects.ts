@@ -147,6 +147,26 @@ export function deckImportModal(page: Page): Locator {
   return page.getByTestId(TESTID.deckImportModal);
 }
 
+/** The preconstructed-deck section inside the deck selection modal. */
+export function preconPicker(page: Page): Locator {
+  return page.getByTestId(TESTID.preconPicker);
+}
+
+/** All rendered precon rows (respects the search filter). */
+export function preconRows(page: Page): Locator {
+  return page.getByTestId(TESTID.preconRow);
+}
+
+/** One precon row by its catalog id (e.g. `abzan-armor-tarkir-dragonstorm-commander`). */
+export function preconRow(page: Page, id: string): Locator {
+  return preconRows(page).and(page.locator(`[data-precon-id="${id}"]`));
+}
+
+/** The precon search box. */
+export function preconSearch(page: Page): Locator {
+  return page.getByTestId(TESTID.preconSearch);
+}
+
 /** The react-flow whiteboard surface (drop target for drags). */
 export function whiteboard(page: Page): Locator {
   return page.locator('#whiteboard');

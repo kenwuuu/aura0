@@ -1,5 +1,5 @@
 import { Page, Locator, expect } from '@playwright/test';
-import { boardCard, boardCardIds, boardCardNode, cardPreview, pileTile, whiteboard, deckImportOpenButton, deckImportModal, boardTokens, transformPosition } from './pageObjects';
+import { boardCard, boardCardIds, boardCardNode, cardPreview, pileTile, whiteboard, deckImportOpenButton, deckImportModal, boardTokens, transformPosition, preconPicker, preconRow } from './pageObjects';
 import { TESTID, PileKind } from './selectors';
 
 export async function centerOf(locator: Locator): Promise<{ x: number; y: number }> {
@@ -409,4 +409,26 @@ export async function importDeck(page: Page, name: string, decklist: string): Pr
   }
 
   await deckImportModal(page).waitFor({ state: 'hidden', timeout: 15000 });
+}
+
+/**
+ * Open the deck selection modal (the "Choose Deck" toolbar button) and wait for
+ * the preconstructed-deck section to render.
+ */
+export async function openDeckSelection(page: Page): Promise<void> {
+  await deckImportOpenButton(page).click();
+  await preconPicker(page).waitFor();
+}
+
+/**
+ * Pick a precon from the catalog and wait for it to load into the game. Opens the
+ * selection modal, clicks the row by catalog id, and waits for the picker to
+ * detach — the modal closes only once the deck has hydrated and loaded. Card data
+ * resolves against the live card API (as the text-import specs do).
+ */
+export async function selectPrecon(page: Page, id: string): Promise<void> {
+  await openDeckSelection(page);
+  await preconRow(page, id).click();
+  // Hydration (one bulk request) then load closes the modal; give the network room.
+  await preconPicker(page).waitFor({ state: 'hidden', timeout: 20000 });
 }

@@ -16,6 +16,9 @@ const AURA_CONFIG: CardApiClientConfig = {
     byName: (name) => `${AURA_BASE_URL}/cards/${encodeURIComponent(name)}`,
     bySet: (setCode, collectorNumber) =>
       `${AURA_BASE_URL}/cards/${encodeURIComponent(setCode)}${encodeURIComponent(collectorNumber)}`,
+    // Batch endpoint: POST { card_ids } → { results, not_found }. Keyed by the
+    // same set+collector index as bySet, so a whole precon resolves in one request.
+    bulk: () => `${AURA_BASE_URL}/cards/bulk/lookup`,
   },
 };
 
