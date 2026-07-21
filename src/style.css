@@ -1310,6 +1310,10 @@ body {
   gap: 6px;
   flex-wrap: wrap;
   justify-content: flex-end;
+  /* DialogContent's close button is absolutely positioned at top-4 right-4,
+     floating on top of (not pushing) the header's flex layout — without this
+     the last chip underlaps it. */
+  margin-right: 48px;
 }
 .pile-key-legend-hint {
   font-size: 10px;
