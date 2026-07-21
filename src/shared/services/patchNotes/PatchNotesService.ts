@@ -9,7 +9,7 @@ export class PatchNotesService {
 
   // Update this version whenever you add new patch notes
   // Format: YYYYMMDD for easy comparison
-  private static readonly CURRENT_VERSION = 20251205;
+  private static readonly CURRENT_VERSION = 20260716;
 
   /**
    * Check if the user should see the patch notes modal
@@ -18,9 +18,13 @@ export class PatchNotesService {
   static shouldShowPatchNotes(): boolean {
     const lastSeenVersion = parseFloat(<string>localStorage.getItem(this.STORAGE_KEY));
 
-    // !!lastSeenVersion prevents new users from seeing patch notes because we have a lot of popups, don't want to inundate
-    // second comparison returns true if new version is available
-    return !!lastSeenVersion || lastSeenVersion < this.CURRENT_VERSION;
+    // A brand-new user has no stored version, so lastSeenVersion is NaN — every
+    // comparison against NaN is false, which already keeps new users from
+    // seeing patch notes without a separate check. (A prior version of this
+    // check was `!!lastSeenVersion || lastSeenVersion < CURRENT_VERSION`,
+    // which shows the modal to every returning player on every load forever,
+    // since any non-zero lastSeenVersion short-circuits the OR to true.)
+    return lastSeenVersion < this.CURRENT_VERSION;
   }
 
   /**

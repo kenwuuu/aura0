@@ -32,6 +32,8 @@ import { YjsNetworkProvider } from '@/infrastructure/networking/YjsNetworkFactor
 import { AddCardManager } from '@/features/deck-manager/AddCardManager';
 import { OnboardingTour } from '@/features/onboarding';
 import { AnnouncementModal } from '@/app/AnnouncementModal';
+import { PatchNotesModal } from '@/app/PatchNotesModal';
+import { PatchNotesService } from '@/shared/services/patchNotes';
 import { SettingsModal } from '@/features/settings/SettingsModal';
 import { ActionLogPanel } from '@/features/action-log/ActionLogPanel';
 import { logAction } from '@/features/action-log/actionLog';
@@ -216,6 +218,9 @@ export function App({ yDoc, yjsNetworkProvider, player, roomManager, playerId, c
       <OnboardingTour />
       {AnnouncementsService.shouldShowAnnouncement() && (
         <AnnouncementModal onClose={() => AnnouncementsService.markAnnouncementAsSeen()} />
+      )}
+      {PatchNotesService.shouldShowPatchNotes() && (
+        <PatchNotesModal onClose={() => PatchNotesService.markPatchNotesAsSeen()} />
       )}
       <AddCardManager cardLookup={cardLookup} onAddCard={handleAddCard} />
 
