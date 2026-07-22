@@ -14,18 +14,22 @@
 	"$schema": "node_modules/wrangler/config-schema.json",
 	"name": "aura0",
 	"compatibility_date": "2026-07-07",
-	// Serves `/api/*` only (deck-URL imports, which deck sites block browsers
-	// from fetching directly). `main` is an inheritable key, so staging picks
-	// this up without repeating it — unlike `assets` below.
+	// Serves `/api/*` only: the Sentry tunnel, so ad-blocked players (who block
+	// `*.sentry.io`, and who are the ones hitting the strangest bugs) are not
+	// invisible, and deck-URL imports, which deck sites refuse to serve to a
+	// browser cross-origin. `main` is an inheritable key, so staging picks this
+	// up without repeating it — unlike `assets` below.
 	"main": "./src/worker/index.ts",
 	"assets": {
 		"directory": "./dist",
 		"not_found_handling": "single-page-application",
 		"binding": "ASSETS",
-		// Without this, `not_found_handling` would answer /api/* with index.html
-		// and the Worker would never run. Listing the routes explicitly also opts
-		// out of wrangler's Sec-Fetch-Mode heuristic, so routing does not depend
-		// on what headers a browser happens to send.
+		// Load-bearing. Without it, `not_found_handling` answers /api/* with
+		// index.html and a 200 and the Worker never runs at all — Sentry would
+		// read that as a successful send and drop the event, and a deck import
+		// would get HTML where it expected JSON. Listing routes explicitly also
+		// opts out of wrangler's Sec-Fetch-Mode heuristic, so routing never
+		// depends on which headers a browser happens to send.
 		"run_worker_first": ["/api/*"]
 	},
 	"env": {

@@ -35,5 +35,6 @@ node_modules/
 /playwright/.cache/
 /playwright/.auth/
 
-# Wrangler local dev state (miniflare cache//storage)
+# Local wrangler dev state (miniflare cache, bundled dev entrypoints).
+# Regenerated on every `wrangler dev`; nothing here belongs in the repo.
 .wrangler/
