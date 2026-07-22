@@ -1,4 +1,4 @@
-import { ImportedCard, ImportedDeck, ImportedSection } from './importedDeck';
+import { ImportedCard, ImportedDeck, ImportedSection, printing } from './importedDeck';
 
 /**
  * Adapter for Archidekt's deck API (`archidekt.com/api/decks/<id>/`).
@@ -23,6 +23,19 @@ type ArchidektCardEntry = {
   quantity?: number | null;
   categories?: string[] | null;
   card?: {
+    /**
+     * Collector number, as a string — they are not all numeric ("259p").
+     *
+     * Note which level this sits at: `card` is the *printing*, `card.oracleCard`
+     * is the card. The name has to come from the oracle card and the printing
+     * from here, and taking either from the other level silently yields the
+     * wrong thing rather than nothing.
+     */
+    collectorNumber?: string | null;
+    edition?: {
+      /** Set code, lowercased ("clb"). */
+      editioncode?: string | null;
+    } | null;
     oracleCard?: {
       /** Double-faced cards arrive as the full "A // B" name, which is what we want. */
       name?: string | null;
@@ -86,6 +99,7 @@ export function extractArchidektDeck(response: ArchidektDeckResponse): ImportedD
       name: name.trim(),
       quantity: Math.floor(quantity),
       section: sectionFor(entry?.categories ?? [], excluded),
+      ...printing(entry?.card?.edition?.editioncode, entry?.card?.collectorNumber),
     });
   }
 

@@ -210,4 +210,51 @@ describe('extractMoxfieldDeck', () => {
 
     expect(result.name).toBe('Moxfield deck');
   });
+
+  describe('printings', () => {
+    function printed(name: string, set: unknown, cn: unknown): MoxfieldDeckResponse {
+      return deck({
+        mainboard: { cards: { entry0: { quantity: 1, card: { name, set, cn } } } },
+      } as MoxfieldDeckResponse['boards']);
+    }
+
+    it('carries the set code and collector number the deck names', () => {
+      expect(extractMoxfieldDeck(printed('Deafening Silence', 'eld', '10')).cards).toEqual([
+        {
+          name: 'Deafening Silence',
+          quantity: 1,
+          section: 'main',
+          setCode: 'eld',
+          collectorNumber: '10',
+        },
+      ]);
+    });
+
+    it('carries a non-numeric collector number through unchanged', () => {
+      expect(extractMoxfieldDeck(printed('Command Beacon', 'plst', 'C15-56')).cards[0]).toEqual(
+        expect.objectContaining({ setCode: 'plst', collectorNumber: 'C15-56' }),
+      );
+    });
+
+    // Absent, null and empty all mean the same thing upstream, and none of them
+    // may reach `toDecklistText` as a set code: an empty one would be written as
+    // "1 Sol Ring ()" and read back as part of the card's name.
+    it.each([
+      ['an absent', undefined],
+      ['a null', null],
+      ['a blank', '   '],
+    ])('treats %s set code as no printing at all', (_label, value) => {
+      const card = extractMoxfieldDeck(printed('Sol Ring', value, '10')).cards[0];
+
+      expect(card.setCode).toBeUndefined();
+      expect(card.collectorNumber).toBeUndefined();
+    });
+
+    it('keeps the set code when the deck names no collector number', () => {
+      const card = extractMoxfieldDeck(printed('Spider-Punk', 'spm', null)).cards[0];
+
+      expect(card.setCode).toBe('spm');
+      expect(card.collectorNumber).toBeUndefined();
+    });
+  });
 });

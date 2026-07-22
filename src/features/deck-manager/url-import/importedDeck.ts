@@ -1,3 +1,4 @@
+import { isRoundTrippablePrinting } from '../DeckListParser';
 import { DeckSource } from './deckUrls';
 
 /**
@@ -15,6 +16,25 @@ export type ImportedCard = {
   name: string;
   quantity: number;
   section: ImportedSection;
+  /**
+   * The exact printing this deck names, when the source says which one.
+   *
+   * Worth carrying because the lookup prefers it: a set code and collector number
+   * ask the card API for one specific card, where a name has to be *resolved* —
+   * and resolving is where cards get lost (a name the index spells differently, a
+   * double-faced card written as "A // B", a name that needs escaping).
+   *
+   * Absent for sources that publish a plain text export and so never say which
+   * printing they mean; a collector number can also be absent on its own, for a
+   * source that names only the set.
+   *
+   * Adapters pass on whatever the source said and do not vet it. Deciding what
+   * is safe to write belongs to `toDecklistText`, which is the only code that
+   * knows what the text format can carry — putting the check there means a new
+   * adapter cannot forget it.
+   */
+  setCode?: string;
+  collectorNumber?: string;
 };
 
 /** A decklist retrieved from a deck-hosting site, before any card lookup. */
@@ -45,6 +65,38 @@ export type ImportedDeck = {
 /** Total physical cards in an imported deck — the sum of quantities, not entries. */
 export function totalCardCount(deck: ImportedDeck): number {
   return deck.cards.reduce((sum, card) => sum + card.quantity, 0);
+}
+
+/**
+ * The printing fields of an `ImportedCard`, built from whatever a source gave.
+ *
+ * Every deck site types these loosely — a field can be missing, null, or an empty
+ * string, and all three mean "this deck doesn't say" — so normalizing in one
+ * place keeps each adapter from inventing its own idea of absent, and keeps an
+ * empty string from reaching `toDecklistText` as a set code.
+ *
+ * A collector number with no set code is dropped: it identifies nothing on its
+ * own, and the `bySet` lookup needs both.
+ */
+export function printing(
+  setCode: unknown,
+  collectorNumber: unknown,
+): Pick<ImportedCard, 'setCode' | 'collectorNumber'> {
+  const code = nonEmpty(setCode);
+  if (code === undefined) {
+    return {};
+  }
+
+  const number = nonEmpty(collectorNumber);
+  return number === undefined ? { setCode: code } : { setCode: code, collectorNumber: number };
+}
+
+function nonEmpty(value: unknown): string | undefined {
+  if (typeof value !== 'string') {
+    return undefined;
+  }
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : undefined;
 }
 
 // The order sections are emitted in. `commander` must lead: the text parser ends
@@ -89,9 +141,32 @@ export function toDecklistText(deck: ImportedDeck): string {
     if (cards.length === 0) {
       continue;
     }
-    const lines = cards.map((card) => `${card.quantity} ${card.name}`);
+    const lines = cards.map(cardLine);
     blocks.push([SECTION_HEADERS[section], ...lines].join('\n'));
   }
 
   return blocks.join('\n\n');
+}
+
+/**
+ * One card line: `1 Sol Ring (ELD) 10`, or `1 Sol Ring` when the source named no
+ * printing.
+ *
+ * `(SET) CN` is the shape every major exporter writes and the parser already
+ * reads, so this adds nothing to the format — it stops throwing away what the
+ * source told us. The player sees the printing they linked, and the lookup can
+ * ask for that exact card instead of resolving its name.
+ *
+ * A printing the parser could not read back is dropped rather than written,
+ * because an unreadable suffix does not come back as a missing set code — it
+ * comes back welded to the card's name, and takes the name lookup down with it.
+ */
+function cardLine(card: ImportedCard): string {
+  if (card.setCode === undefined
+    || !isRoundTrippablePrinting(card.setCode, card.collectorNumber)) {
+    return `${card.quantity} ${card.name}`;
+  }
+
+  const collectorNumber = card.collectorNumber === undefined ? '' : ` ${card.collectorNumber}`;
+  return `${card.quantity} ${card.name} (${card.setCode})${collectorNumber}`;
 }

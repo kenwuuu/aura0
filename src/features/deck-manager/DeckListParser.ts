@@ -389,21 +389,96 @@ function parseCount(firstPart: string): number {
   return parseInt(firstPart, 10);
 }
 
-function extractSetInfo(line: string): { setCode: string; collectorNumber: string } | null {
-  const startIndex = line.indexOf('(');
-  const endIndex = line.indexOf(')');
+/**
+ * The printing a line names, when it names one: `1 Sol Ring (ELD) 10`.
+ *
+ * Nearly half the lines in the import corpus carry one of these, so this is the
+ * common path rather than an exotic one — and it is what lets a lookup ask for an
+ * exact printing instead of resolving a name.
+ */
+type PrintingSuffix = {
+  /** Where the suffix starts — everything between the count and here is the name. */
+  index: number;
+  setCode: string;
+  /** Absent when a line names a set but no printing in it ("1 Spider-Punk (SPM)"). */
+  collectorNumber?: string;
+};
 
-  if (startIndex < 0 || endIndex <= startIndex) {
+/**
+ * Two to six alphanumerics in parentheses.
+ *
+ * Matching the *shape* of a set code, rather than the first parenthesis on the
+ * line, is what keeps a card's own parentheses out of this. 45 real cards carry
+ * one — `B.F.M. (Big Furry Monster)`, `Erase (Not the Urza's Legacy One)`, the
+ * `(cont'd)` halves — and reading the first `(` turned the second of those into a
+ * card called "Erase" from a set called "Not the Urza's Legacy One". That then
+ * resolved *by name* to the wrong Erase, silently: nothing on that path errors,
+ * the player just gets a different card.
+ *
+ * Real codes run three to five characters ("eld", "plst", "ptdm"); the bound is
+ * loosened by one on each side rather than fitted to today's sets.
+ */
+const SET_CODE_BODY = '[A-Za-z0-9]{2,6}';
+
+/** A set code sitting where a printing suffix would: `(ELD)`. */
+const SET_CODE_PATTERN = new RegExp(`\\((${SET_CODE_BODY})\\)`, 'g');
+
+/** The same shape, applied to a code on its own. See {@link isRoundTrippablePrinting}. */
+const SET_CODE_SHAPE = new RegExp(`^${SET_CODE_BODY}$`);
+
+/**
+ * Whether the token after a set code is a collector number or one of the
+ * annotations exporters append.
+ *
+ * Archidekt writes `[Finisher]` and `^Drawn,#1b1686^`; MTGO-style exports write
+ * `*F*` for foil. All of those used to land in `collectorNumber` under the old
+ * take-the-next-token rule, which bought a guaranteed-404 `bySet` request for
+ * every such line before the name lookup rescued it. A collector number always
+ * carries a digit ("63", "259p", "2017EU", "C15-56") and is never built from the
+ * punctuation those annotations are made of.
+ */
+function isCollectorNumber(token: string): boolean {
+  return /\d/.test(token) && /^[A-Za-z0-9★-]+$/.test(token);
+}
+
+/**
+ * Whether a printing can survive a round trip through the text format — that is,
+ * whether writing `(setCode) collectorNumber` onto a line would parse back into
+ * the same two values.
+ *
+ * Callers that *write* decklist text must ask before writing, because an
+ * unreadable printing suffix is not merely dropped on the way back: it stays
+ * glued to the card's name. `1 Sol Ring (longsetcode) 10` returns a card called
+ * "Sol Ring (longsetcode) 10", which resolves to nothing at all. Emitting a
+ * printing we cannot read is strictly worse than emitting none — the name lookup
+ * would at least have worked — so this exists to keep the two ends of the format
+ * from drifting apart.
+ */
+export function isRoundTrippablePrinting(setCode: string, collectorNumber?: string): boolean {
+  return (
+    SET_CODE_SHAPE.test(setCode)
+    && (collectorNumber === undefined || isCollectorNumber(collectorNumber))
+  );
+}
+
+function extractPrinting(line: string): PrintingSuffix | null {
+  // The rightmost match wins: the suffix trails the name, and the name is the
+  // part that may hold parentheses of its own.
+  const matches = [...line.matchAll(SET_CODE_PATTERN)];
+  const last = matches.length > 0 ? matches[matches.length - 1] : undefined;
+
+  // At index 0 there would be no room for a count, let alone a name.
+  if (last === undefined || last.index === undefined || last.index === 0) {
     return null;
   }
 
-  const setCode = line.substring(startIndex + 1, endIndex);
+  const token = line.slice(last.index + last[0].length).trim().split(/\s+/)[0] ?? '';
 
-  // Extract collector number - it's after the closing paren
-  const afterParen = line.substring(endIndex + 1).trim();
-  const collectorNumber = afterParen.split(/\s+/)[0];
-
-  return { setCode, collectorNumber };
+  return {
+    index: last.index,
+    setCode: last[1],
+    ...(isCollectorNumber(token) ? { collectorNumber: token } : {}),
+  };
 }
 
 /**
@@ -423,32 +498,25 @@ function stripBackFace(name: string): string {
   return separator === -1 ? name : words.slice(0, separator).join(' ');
 }
 
-function extractCardName(line: string, parts: string[]): string {
-  const setInfo = extractSetInfo(line);
-
-  if (setInfo) {
-    // With set info, the name sits between the count and the opening paren. This
-    // reads the raw line, so it has to strip the back face itself — slicing
-    // `parts` would not reach it.
-    const startIndex = line.indexOf('(');
-    const countLength = parts[0].length;
-    return stripBackFace(line.substring(countLength, startIndex).trim());
-  }
-
-  // No set info - just join all parts after the count
-  return stripBackFace(parts.slice(1).join(' '));
-}
-
 function parseLine(line: string): DeckLineItem {
-  line = line.trim()
-  const parts = line.trim().split(/\s+/);
+  line = line.trim();
+  const parts = line.split(/\s+/);
   const count = parseCount(parts[0]);
-  const name = extractCardName(line, parts);
-  const setInfo = extractSetInfo(line);
+  const printing = extractPrinting(line);
 
-  if (setInfo) {
-    return { count, name, setCode: setInfo.setCode, collectorNumber: setInfo.collectorNumber };
+  if (printing === null) {
+    return { count, name: stripBackFace(parts.slice(1).join(' ')) };
   }
 
-  return { count, name };
+  // The name sits between the count and the printing suffix. This reads the raw
+  // line rather than the tokenised parts, so it has to strip the back face
+  // itself — slicing `parts` would not reach it.
+  return {
+    count,
+    name: stripBackFace(line.slice(parts[0].length, printing.index).trim()),
+    setCode: printing.setCode,
+    ...(printing.collectorNumber !== undefined
+      ? { collectorNumber: printing.collectorNumber }
+      : {}),
+  };
 }

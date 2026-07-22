@@ -130,6 +130,10 @@
         "Commander"
       ],
       "card": {
+        "collectorNumber": "275",
+        "edition": {
+          "editioncode": "clb"
+        },
         "oracleCard": {
           "name": "Gluntch, the Bestower"
         }
@@ -141,6 +145,10 @@
         "Ramp"
       ],
       "card": {
+        "collectorNumber": "211",
+        "edition": {
+          "editioncode": "msc"
+        },
         "oracleCard": {
           "name": "Sol Ring"
         }
@@ -152,6 +160,10 @@
         "Recursion"
       ],
       "card": {
+        "collectorNumber": "ZNR-180",
+        "edition": {
+          "editioncode": "plst"
+        },
         "oracleCard": {
           "name": "Bala Ged Recovery // Bala Ged Sanctuary"
         }
@@ -163,6 +175,10 @@
         "Land"
       ],
       "card": {
+        "collectorNumber": "ZNR-258",
+        "edition": {
+          "editioncode": "plst"
+        },
         "oracleCard": {
           "name": "Branchloft Pathway // Boulderloft Pathway"
         }
@@ -174,6 +190,10 @@
         "Draw"
       ],
       "card": {
+        "collectorNumber": "127",
+        "edition": {
+          "editioncode": "msc"
+        },
         "oracleCard": {
           "name": "Cut a Deal"
         }
@@ -185,6 +205,10 @@
         "Draw"
       ],
       "card": {
+        "collectorNumber": "15",
+        "edition": {
+          "editioncode": "afr"
+        },
         "oracleCard": {
           "name": "Flumph"
         }
@@ -196,6 +220,10 @@
         "Ramp"
       ],
       "card": {
+        "collectorNumber": "122",
+        "edition": {
+          "editioncode": "blc"
+        },
         "oracleCard": {
           "name": "Rites of Flourishing"
         }

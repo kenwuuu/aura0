@@ -145,13 +145,38 @@ describe('extractArchidektDeck on a real API response', () => {
   it('finds the commander', () => {
     const commanders = deck().cards.filter((card) => card.section === 'commander');
     expect(commanders).toEqual([
-      { name: 'Gluntch, the Bestower', quantity: 1, section: 'commander' },
+      {
+        name: 'Gluntch, the Bestower',
+        quantity: 1,
+        section: 'commander',
+        setCode: 'clb',
+        collectorNumber: '275',
+      },
     ]);
   });
 
   it('keeps the full "A // B" name for double-faced cards', () => {
     expect(deck().cards.map((card) => card.name)).toContain(
       'Bala Ged Recovery // Bala Ged Sanctuary',
+    );
+  });
+
+  // The name lives on `card.oracleCard`; the printing lives on `card` itself.
+  // Reading either from the other level yields a plausible-looking wrong answer
+  // rather than an error, so this pins down which is which.
+  it('takes the printing from the card rather than from the oracle card', () => {
+    expect(deck().cards).toContainEqual(
+      expect.objectContaining({ name: 'Flumph', setCode: 'afr', collectorNumber: '15' }),
+    );
+  });
+
+  it('carries a non-numeric collector number through unchanged', () => {
+    expect(deck().cards).toContainEqual(
+      expect.objectContaining({
+        name: 'Bala Ged Recovery // Bala Ged Sanctuary',
+        setCode: 'plst',
+        collectorNumber: 'ZNR-180',
+      }),
     );
   });
 });

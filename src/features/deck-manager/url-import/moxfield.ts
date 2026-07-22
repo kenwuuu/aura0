@@ -1,4 +1,4 @@
-import { ImportedCard, ImportedDeck, ImportedSection } from './importedDeck';
+import { ImportedCard, ImportedDeck, ImportedSection, printing } from './importedDeck';
 
 /**
  * Adapter for Moxfield's deck API (`api.moxfield.com/v3/decks/all/<publicId>`).
@@ -20,6 +20,10 @@ type MoxfieldCardEntry = {
   card?: {
     /** Double-faced cards arrive as the full "A // B" name, which is what we want. */
     name?: string | null;
+    /** Set code, lowercased ("eld"). Carried by every card of every deck sampled. */
+    set?: string | null;
+    /** Collector number. A string because they are not all numeric: "259p", "C15-56". */
+    cn?: string | null;
   } | null;
 };
 
@@ -113,7 +117,12 @@ export function extractMoxfieldDeck(response: MoxfieldDeckResponse): ImportedDec
         continue;
       }
 
-      cards.push({ name: name.trim(), quantity: Math.floor(quantity), section });
+      cards.push({
+        name: name.trim(),
+        quantity: Math.floor(quantity),
+        section,
+        ...printing(entry?.card?.set, entry?.card?.cn),
+      });
     }
   }
 
