@@ -14,9 +14,21 @@
 	"$schema": "node_modules/wrangler/config-schema.json",
 	"name": "aura0",
 	"compatibility_date": "2026-07-07",
+	// Serves `/api/*` only — currently the Sentry tunnel, which exists so that
+	// ad-blocked players (who block `*.sentry.io`, and who are the ones hitting
+	// the strangest bugs) are not invisible. `main` is an inheritable key, so
+	// staging picks this up without repeating it — unlike `assets` below.
+	"main": "./src/worker/index.ts",
 	"assets": {
 		"directory": "./dist",
-		"not_found_handling": "single-page-application"
+		"not_found_handling": "single-page-application",
+		"binding": "ASSETS",
+		// Load-bearing. Without it, `not_found_handling` answers /api/* with
+		// index.html and a 200 and the Worker never runs at all — the SDK would
+		// read that as a successful send and drop the event. Listing routes
+		// explicitly also opts out of wrangler's Sec-Fetch-Mode heuristic, so
+		// routing never depends on which headers a browser happens to send.
+		"run_worker_first": ["/api/*"]
 	},
 	"env": {
 		// `assets` is repeated here on purpose: wrangler does NOT inherit
@@ -29,7 +41,9 @@
 			"name": "aura0-staging",
 			"assets": {
 				"directory": "./dist",
-				"not_found_handling": "single-page-application"
+				"not_found_handling": "single-page-application",
+				"binding": "ASSETS",
+				"run_worker_first": ["/api/*"]
 			}
 		}
 	}

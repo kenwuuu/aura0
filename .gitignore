@@ -34,3 +34,7 @@ node_modules/
 /blob-report/
 /playwright/.cache/
 /playwright/.auth/
+
+# Local wrangler dev state (miniflare cache, bundled dev entrypoints).
+# Regenerated on every `wrangler dev`; nothing here belongs in the repo.
+.wrangler/
