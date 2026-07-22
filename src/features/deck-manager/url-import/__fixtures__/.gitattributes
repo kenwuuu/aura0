@@ -1,0 +1,5 @@
+# These are captured verbatim from the sites they name, and line endings are
+# part of what they capture: MTGGoldfish serves CRLF, and the sideboard split
+# depends on reading it. Letting git normalize them would quietly turn the
+# fixture into something the real response is not.
+* -text

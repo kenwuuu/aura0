@@ -35,6 +35,16 @@ describe('splitOnBlankLine', () => {
       sideboard: '',
     });
   });
+
+  // MTGGoldfish really does serve CRLF. A split that only looked for "\n\n"
+  // would see "\r" as content, never find a blank line, and fold the whole
+  // sideboard into the deck.
+  it('splits a CRLF export, which is what the site actually sends', () => {
+    expect(splitOnBlankLine('4 Sol Ring\r\n\r\n2 Pithing Needle')).toEqual({
+      main: '4 Sol Ring',
+      sideboard: '2 Pithing Needle',
+    });
+  });
 });
 
 describe('extractMtgGoldfishDeck', () => {
