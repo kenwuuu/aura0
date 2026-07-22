@@ -1,6 +1,6 @@
 import { trackDeckUrlImport } from '@/infrastructure/analytics/PosthogFunctions';
 import { DeckUrlRef, sourceLabel } from './deckUrls';
-import { ImportedDeck } from './importedDeck';
+import { ImportedDeck, totalCardCount } from './importedDeck';
 
 /**
  * How long we'll honour a `Retry-After` before giving up and telling the player.
@@ -73,12 +73,17 @@ export async function fetchImportedDeck(
   // measured without having to remember to be — the repeat rate this feeds is
   // only meaningful if it counts *all* upstream requests. An abort is excluded
   // throughout: it never reached the network, so it spent no rate budget.
-  const report = (outcome: 'succeeded' | 'failed') =>
+  const report = (outcome: 'succeeded' | 'failed', deck?: ImportedDeck) =>
     trackDeckUrlImport({
       source: ref.source,
       deckId: ref.deckId,
       outcome,
       durationMs: Date.now() - startedAt,
+      sourceCardCount: deck?.sourceCardCount,
+      // Measured from the deck we are about to hand back, so the comparison is
+      // against what the player actually receives rather than what we intended
+      // to build.
+      extractedCardCount: deck === undefined ? undefined : totalCardCount(deck),
     });
 
   const endpoint = `/api/deck-import?url=${encodeURIComponent(deckPageUrl(ref))}`;
@@ -125,7 +130,7 @@ export async function fetchImportedDeck(
     throw new Error("Aura returned a deck we couldn't read. Please try again.");
   }
 
-  report('succeeded');
+  report('succeeded', payload);
   return payload;
 }
 

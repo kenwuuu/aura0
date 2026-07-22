@@ -513,12 +513,36 @@ export function trackDeckUrlImport(props: {
   deckId: string;
   outcome: 'succeeded' | 'failed';
   durationMs: number;
+  /** What the source site says the deck holds. Absent for sources that don't say. */
+  sourceCardCount?: number;
+  /** What our adapter actually produced from it, as a sum of quantities. */
+  extractedCardCount?: number;
 }): void {
+  const { sourceCardCount, extractedCardCount } = props;
+
+  // Only meaningful when the source published a total. Comparing against an
+  // absent one would manufacture a shortfall equal to the whole deck.
+  const comparable = typeof sourceCardCount === 'number' && typeof extractedCardCount === 'number';
+
   posthog.capture('deck_url_import', {
     source: props.source,
     deck_id: props.deckId,
     outcome: props.outcome,
     duration_ms: props.durationMs,
+
+    ...(typeof sourceCardCount === 'number' ? { source_card_count: sourceCardCount } : {}),
+    ...(typeof extractedCardCount === 'number' ? { extracted_card_count: extractedCardCount } : {}),
+
+    ...(comparable
+      ? {
+          // The number to alert on. Positive means *we* lost cards between the
+          // site's deck and ours — an adapter bug, not a bad decklist. Negative
+          // means we invented some, which is just as wrong and would otherwise
+          // hide inside an absolute-difference metric.
+          cards_lost_in_extraction: sourceCardCount - extractedCardCount,
+          extraction_is_lossless: sourceCardCount === extractedCardCount,
+        }
+      : {}),
   });
 }
 

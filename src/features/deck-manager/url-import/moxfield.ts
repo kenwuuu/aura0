@@ -29,6 +29,13 @@ type MoxfieldBoard = {
    * in two printings, which is two entries. Only the values matter here.
    */
   cards?: Record<string, MoxfieldCardEntry> | null;
+  /**
+   * Moxfield's own total for this board — a **sum of quantities, not a count of
+   * entries**. A board with 97 entries reports 99 when two of them are
+   * two-copy. Comparing it against `Object.keys(cards).length` will look like
+   * missing cards and isn't; compare against summed quantities.
+   */
+  count?: number | null;
 };
 
 export type MoxfieldDeckResponse = {
@@ -79,10 +86,18 @@ const IGNORED_BOARDS = new Set(['tokens']);
  */
 export function extractMoxfieldDeck(response: MoxfieldDeckResponse): ImportedDeck {
   const cards: ImportedCard[] = [];
+  // What Moxfield says these boards hold, accumulated alongside what we build
+  // from them. Only the boards we actually import count toward it — including
+  // the token board would guarantee a permanent phantom shortfall.
+  let sourceCardCount = 0;
 
   for (const [boardName, board] of Object.entries(response?.boards ?? {})) {
     if (IGNORED_BOARDS.has(boardName)) {
       continue;
+    }
+
+    if (typeof board?.count === 'number' && Number.isFinite(board.count) && board.count > 0) {
+      sourceCardCount += board.count;
     }
 
     const section = BOARD_SECTIONS[boardName] ?? 'maybeboard';
@@ -112,5 +127,9 @@ export function extractMoxfieldDeck(response: MoxfieldDeckResponse): ImportedDec
     name: name.length > 0 ? name : 'Moxfield deck',
     source: 'moxfield',
     cards,
+    // Omitted rather than reported as 0 when no board declared a total — a zero
+    // would read downstream as "the source says this deck is empty", which is a
+    // different and much louder claim than "the source didn't say".
+    ...(sourceCardCount > 0 ? { sourceCardCount } : {}),
   };
 }

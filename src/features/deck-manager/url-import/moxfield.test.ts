@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { extractMoxfieldDeck, MoxfieldDeckResponse } from './moxfield';
-import { toDecklistText } from './importedDeck';
+import { toDecklistText, totalCardCount } from './importedDeck';
 
 /**
  * Shapes here mirror a real `api.moxfield.com/v3/decks/all/<id>` response:
@@ -131,6 +131,78 @@ describe('extractMoxfieldDeck', () => {
     // A private or deleted deck arrives looking exactly like this. Returning an
     // empty deck would import silently and leave the player with nothing.
     expect(() => extractMoxfieldDeck(response)).toThrow(/no cards we can import/i);
+  });
+
+  /**
+   * The check that catches an adapter losing cards. Every count downstream of
+   * this function is measured *after* it runs, so a card dropped here shrinks
+   * the decklist and the shortfall never shows up anywhere else.
+   */
+  describe('sourceCardCount', () => {
+    function boardWithCount(count: number, ...cards: Array<[string, number]>) {
+      return { ...board(...cards), count };
+    }
+
+    it("reports the site's own total alongside what we extracted", () => {
+      const result = extractMoxfieldDeck(
+        deck({
+          mainboard: boardWithCount(99, ['Sol Ring', 1], ['Forest', 20]),
+          commanders: boardWithCount(1, ['Winota, Joiner of Forces', 1]),
+        }),
+      );
+
+      expect(result.sourceCardCount).toBe(100);
+    });
+
+    /** Moxfield's `count` sums quantities; ours must too, or every multi-copy deck looks lossy. */
+    it('counts quantities, not entries', () => {
+      const result = extractMoxfieldDeck(
+        deck({ mainboard: boardWithCount(21, ['Sol Ring', 1], ['Forest', 20]) }),
+      );
+
+      expect(result.sourceCardCount).toBe(21);
+      expect(totalCardCount(result)).toBe(21);
+    });
+
+    /** A dropped card must move the two numbers apart — that is the whole point. */
+    it('diverges from the extracted total when a card is dropped', () => {
+      const result = extractMoxfieldDeck(
+        deck({
+          mainboard: {
+            count: 3,
+            cards: {
+              a: { quantity: 1, card: { name: 'Sol Ring' } },
+              b: { quantity: 1, card: { name: 'Mana Crypt' } },
+              // No name — silently unimportable, and invisible without this check.
+              c: { quantity: 1, card: {} },
+            },
+          },
+        }),
+      );
+
+      expect(result.sourceCardCount).toBe(3);
+      expect(totalCardCount(result)).toBe(2);
+    });
+
+    /** Counting a board we never import would show a permanent phantom shortfall. */
+    it('excludes boards we deliberately do not import', () => {
+      const result = extractMoxfieldDeck(
+        deck({
+          mainboard: boardWithCount(1, ['Sol Ring', 1]),
+          tokens: boardWithCount(3, ['Treasure', 3]),
+        }),
+      );
+
+      expect(result.sourceCardCount).toBe(1);
+      expect(totalCardCount(result)).toBe(1);
+    });
+
+    /** "The source didn't say" is a different claim from "the source says zero". */
+    it('is omitted entirely when no board declares a total', () => {
+      const result = extractMoxfieldDeck(deck({ mainboard: board(['Sol Ring', 1]) }));
+
+      expect(result.sourceCardCount).toBeUndefined();
+    });
   });
 
   it('falls back to a generic name when the deck has none', () => {
