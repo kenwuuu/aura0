@@ -30,6 +30,28 @@ function opponentOwnerName(yDoc: Y.Doc, card: WhiteboardCard, actorId: string): 
   return card.ownerId === actorId ? null : resolvePlayerName(yDoc, card.ownerId);
 }
 
+// Copies cascade down-right from the card they came from, solitaire-style. A
+// fixed offset would drop every copy after the first on the same spot (copying
+// the same card twice reads the same source position), so walk the diagonal
+// until reaching a slot no card already occupies. The Nth copy of a card lands
+// N steps down the cascade, and copying a copy continues the same run.
+const CASCADE_OFFSET = 20;
+const CASCADE_MAX_STEPS = 100;
+
+function nextCascadePosition(card: WhiteboardCard, yCards: Y.Map<WhiteboardCard>) {
+  const cards = Array.from(yCards.values());
+  const isOccupied = (x: number, y: number) =>
+    cards.some((c) => Math.abs(c.x - x) < 1 && Math.abs(c.y - y) < 1);
+
+  let { x, y } = card;
+  for (let step = 0; step < CASCADE_MAX_STEPS; step++) {
+    x += CASCADE_OFFSET;
+    y += CASCADE_OFFSET;
+    if (!isOccupied(x, y)) break;
+  }
+  return { x, y };
+}
+
 export function executeBattlefieldCardAction(
   action: string,
   cardId: string,
@@ -89,12 +111,13 @@ export function executeBattlefieldCardAction(
     }
     case 'copy': {
       const maxZIndex = getMaxZIndex(yCards, yTokens);
+      const { x, y } = nextCascadePosition(card, yCards);
       const newCard: WhiteboardCard = {
         ...card,
         id: makeCardId(),
         ownerId: playerId,
-        x: card.x + 20,
-        y: card.y + 20,
+        x,
+        y,
         zIndex: maxZIndex + 1,
         counters: [...card.counters],
       };
