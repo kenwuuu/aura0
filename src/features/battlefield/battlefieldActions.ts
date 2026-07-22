@@ -30,17 +30,23 @@ async function placeCardOnBattlefield(
   card: Card,
   position: { x: number; y: number },
   ctx: { yDoc: Y.Doc; playerId: string; player: Player; tokenService: TokenService | null },
+  // Cascade off the target when something already sits there, instead of landing
+  // exactly on top of it. Only for callers with no drag gesture behind them
+  // (plays from a pile, which all aim at the same viewport centre and would
+  // otherwise bury each card under the last). A hand drag must NOT set this: the
+  // drop point is the player's explicit choice, and deliberately stacking cards —
+  // an aura onto a creature, overlapping lands — is a thing people do.
+  // `hand_drag_position.spec.ts` guards that a repeated drag to one point always
+  // lands on that point.
+  { cascade = false }: { cascade?: boolean } = {},
 ): Promise<void> {
   const { yDoc, playerId, player, tokenService } = ctx;
   const yCards = yDoc.getMap<WhiteboardCard>(YDOC_CARDS_ON_BOARD);
-  // Land on the requested spot when it's free, and cascade off it when it isn't:
-  // every play from a pile targets the same viewport centre, so without this a
-  // run of plays (the deck's "Play to board" pressed repeatedly, a series of
-  // pile-viewer plays) would bury each card under the last.
-  const { x: cardX, y: cardY } = firstFreeCascadeSlot(yCards, {
+  const target = {
     x: position.x - CARD_WIDTH / 2,
     y: position.y - CARD_HEIGHT / 2,
-  });
+  };
+  const { x: cardX, y: cardY } = cascade ? firstFreeCascadeSlot(yCards, target) : target;
 
   const yTokens = yDoc.getMap<KeywordToken>(YDOC_KEYWORD_TOKENS);
   const maxZ = getMaxZIndex(yCards, yTokens);
@@ -176,9 +182,10 @@ export async function playCardFromPile(card: Card): Promise<void> {
   if (!yDoc || !player || !playerId) return;
 
   // No drag gesture to anchor to when playing from a pile-viewer button, so
-  // land the card at the center of the visible board.
+  // land the card at the center of the visible board — and cascade off that
+  // center, since every play from a pile aims at the same spot.
   const position = screenToFlowPosition
     ? screenToFlowPosition({ x: window.innerWidth / 2, y: window.innerHeight / 2 })
     : { x: 300, y: 300 };
-  await placeCardOnBattlefield(card, position, { yDoc, playerId, player, tokenService });
+  await placeCardOnBattlefield(card, position, { yDoc, playerId, player, tokenService }, { cascade: true });
 }

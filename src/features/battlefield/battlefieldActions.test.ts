@@ -71,6 +71,29 @@ describe('battlefieldActions.playCardFromHand', () => {
     expect(placed!.ownerId).toBe(playerId);
   });
 
+  it('never cascades a hand drop — the drop point is deliberate', async () => {
+    const first = makeCard({ id: 'drop-1' });
+    const second = makeCard({ id: 'drop-2' });
+    const { yDoc, player, playerId } = seedGame({ hand: [first, second] });
+    useGameInstance.getState().setYDoc(yDoc);
+    useGameInstance.getState().setPlayer(player);
+    useGameInstance.getState().setPlayerId(playerId);
+    useGameInstance.getState().setTokenService(fakeTokenService());
+    useGameInstance.getState().setScreenToFlowPosition(({ x, y }) => ({ x, y }));
+
+    // Two drags to the exact same point: both cards land there, stacked. The
+    // pile-play cascade must not leak into this path — stacking cards by hand
+    // (an aura onto a creature, overlapping lands) is deliberate, and
+    // `hand_drag_position.spec.ts` guards the same invariant end-to-end.
+    await playCardFromHand(first.id, 200, 300);
+    await playCardFromHand(second.id, 200, 300);
+
+    const yCards = yDoc.getMap<WhiteboardCard>(YDOC_CARDS_ON_BOARD);
+    const a = yCards.get('drop-1')!;
+    const b = yCards.get('drop-2')!;
+    expect([b.x, b.y]).toEqual([a.x, a.y]);
+  });
+
   it('does nothing if the card is not in hand', async () => {
     const { yDoc, player, playerId } = seedGame();
     useGameInstance.getState().setYDoc(yDoc);
