@@ -1,0 +1,35 @@
+/**
+ * The Moxfield rate gate — a Worker whose only job is to host one Durable
+ * Object. See ./index.ts for why it is separate from `aura0`.
+ *
+ * Deploy by hand (there is no Workers Builds trigger for this, on purpose —
+ * a DO migration cannot be applied by the `wrangler versions upload` that every
+ * non-`master` branch uses):
+ *
+ *   npx wrangler deploy --config workers/moxfield-gate/wrangler.jsonc
+ *
+ * Deploy this BEFORE any `aura0` deploy that binds to it: a cross-script
+ * Durable Object binding requires the target script to already exist.
+ *
+ * There is deliberately no `env.staging` variant. Both `aura0` and
+ * `aura0-staging` bind to *this one* Worker, because Moxfield's one-request-
+ * per-second cap applies to Aura as a whole — the credential cannot tell our
+ * environments apart, so neither should the gate. Staging traffic is manual
+ * testing, and sharing the gate is what makes the cap honest rather than
+ * approximately honest.
+ */
+{
+	"$schema": "../../node_modules/wrangler/config-schema.json",
+	"name": "aura0-moxfield-gate",
+	"main": "./index.ts",
+	"compatibility_date": "2026-07-07",
+	"durable_objects": {
+		"bindings": [{ "name": "MOXFIELD_GATE", "class_name": "MoxfieldGate" }]
+	},
+	// The migration lives here and only here. `new_sqlite_classes` is the
+	// supported option for new Durable Objects; the gate keeps its clock in
+	// memory (see the class), so this only registers the class.
+	"migrations": [{ "tag": "v1", "new_sqlite_classes": ["MoxfieldGate"] }],
+	// Not intended to serve traffic — nothing should route to it directly.
+	"workers_dev": false
+}

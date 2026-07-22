@@ -191,12 +191,22 @@ function sleep(ms: number): Promise<void> {
 /**
  * Reject requests that didn't come from Aura's own pages.
  *
- * This is friction, not a security boundary — `Sec-Fetch-Site` is a header, and
- * anything that isn't a browser can claim whatever it likes. It is here because
- * the Moxfield credential makes this endpoint worth pointing a script at: abuse
- * would spend a rate limit that belongs to Aura as a whole, and the penalty is
- * the credential being revoked for every player. Turning away the casual case is
- * worth a few lines even though the determined case walks through it.
+ * `Sec-Fetch-Site` is a **forbidden header name**: the Fetch spec bars scripts
+ * from setting any `Sec-*` header, and only the user agent may attach it. That
+ * makes this stronger than it looks in one direction and useless in another, and
+ * the difference is worth being precise about:
+ *
+ *  - **Browser-based abuse cannot get past it.** No amount of JavaScript on
+ *    another origin can forge `same-origin` here, because the browser writes
+ *    this header itself and refuses to let script touch it.
+ *  - **Non-browser clients walk straight through.** curl, or anything
+ *    server-side, simply sets whatever it likes. This stops none of that.
+ *
+ * It is here because the Moxfield credential makes this endpoint worth pointing
+ * a script at — abuse spends a rate limit belonging to Aura as a whole, and the
+ * penalty is the credential being revoked for every player. Closing the browser
+ * case completely is worth a few lines; the rest is what the rate gate and a
+ * Cloudflare rate-limiting rule are for.
  *
  * Browsers send `same-origin` on a same-origin fetch, which is the only way the
  * app calls this (see `fetchImportedDeck.ts`). A 404 rather than a 403 keeps the
@@ -253,11 +263,41 @@ async function reserveUpstreamSlot(
     return { granted: false, retryAfterMs: 1000 };
   }
 
-  const gate = env.MOXFIELD_GATE.get(env.MOXFIELD_GATE.idFromName(GATE_NAME));
-  // The URL is required by the Durable Object fetch API but carries no meaning —
-  // the object has exactly one operation.
-  const response = await gate.fetch('https://moxfield-gate/reserve');
-  return (await response.json()) as SlotReservation;
+  // Everything below fails *closed*. The gate lives in a separate Worker
+  // (workers/moxfield-gate/), so it can be missing in ways a binding in this one
+  // could not be: not yet deployed, deleted, or simply not running alongside
+  // `wrangler dev`. In every one of those cases we cannot show we are under
+  // Moxfield's cap, and sending anyway risks the credential for every player —
+  // so an unreachable gate has to mean "don't send", never "send freely".
+  try {
+    const gate = env.MOXFIELD_GATE.get(env.MOXFIELD_GATE.idFromName(GATE_NAME));
+    // The URL is required by the Durable Object fetch API but carries no meaning —
+    // the object has exactly one operation.
+    const response = await gate.fetch('https://moxfield-gate/reserve');
+    const reservation: unknown = await response.json();
+
+    // Validated rather than cast. An unreachable gate answers with a plain-text
+    // error, and a bare `as SlotReservation` turned that into an unhandled
+    // SyntaxError — a 500 with a stack trace where the player should have seen
+    // one sentence.
+    if (isSlotReservation(reservation)) {
+      return reservation;
+    }
+    return { granted: false, retryAfterMs: 1000 };
+  } catch {
+    return { granted: false, retryAfterMs: 1000 };
+  }
+}
+
+/** Narrow an unknown payload to a reservation, so a malformed one can't pass as granted. */
+function isSlotReservation(value: unknown): value is SlotReservation {
+  if (typeof value !== 'object' || value === null || !('granted' in value)) {
+    return false;
+  }
+  const candidate = value as { granted: unknown; waitMs?: unknown; retryAfterMs?: unknown };
+  return candidate.granted === true
+    ? typeof candidate.waitMs === 'number'
+    : candidate.granted === false && typeof candidate.retryAfterMs === 'number';
 }
 
 /**

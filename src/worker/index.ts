@@ -1,9 +1,11 @@
 import { DeckImportEnv, errorResponse, handleDeckImport } from './deckImport';
 import { handleSentryTunnel, isSentryTunnelRequest } from './sentryTunnel';
 
-// A Durable Object class has to be exported from the Worker's entry module for
-// wrangler to bind it — see the `durable_objects` block in wrangler.jsonc.
-export { MoxfieldGate } from './moxfieldGate';
+// The MoxfieldGate Durable Object is deliberately NOT exported here. It lives in
+// its own Worker (workers/moxfield-gate/) and is reached through a cross-script
+// binding, because a DO migration cannot be applied by the `versions upload`
+// this repo's branch builds use, and because a DO lifecycle change would
+// permanently foreclose rolling this Worker back past it. See wrangler.jsonc.
 
 /**
  * The Worker in front of Aura's static assets.

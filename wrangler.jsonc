@@ -35,21 +35,31 @@
 	// Moxfield caps Aura's approved User-Agent at one request per second, across
 	// all of Aura rather than per player or per colo. A Worker holds no state
 	// between colos, so that cap can only be enforced by routing every Moxfield
-	// request through one Durable Object. See src/worker/moxfieldGate.ts.
+	// request through one Durable Object.
 	//
-	// A binding is non-inheritable, so it is repeated under env.staging below.
-	// That gives staging its *own* gate instance rather than sharing production's
-	// — deliberate (staging must not be able to exhaust production's budget), but
-	// it does mean the two together can briefly exceed 1/s. Staging traffic is
-	// manual testing only, so this is accepted rather than solved.
+	// That object lives in a **separate** Worker — note `script_name`, and note
+	// that there is no `migrations` key anywhere in this file. Both are
+	// load-bearing:
+	//   - A DO migration cannot be applied by `wrangler versions upload`, which
+	//     is how every non-`master` branch here deploys. A `migrations` key in
+	//     this file fails every branch preview build (error 10211).
+	//   - Rollbacks cannot cross a DO lifecycle change. Hosting the class here
+	//     would permanently cost *the whole app* the ability to roll back past
+	//     it.
+	// See workers/moxfield-gate/ — deploy that Worker before this one.
+	//
+	// A binding is non-inheritable, so it is repeated under env.staging below —
+	// pointing at the *same* gate Worker on purpose. The credential cannot tell
+	// our environments apart, so a shared cap is the honest reading of it.
 	"durable_objects": {
-		"bindings": [{ "name": "MOXFIELD_GATE", "class_name": "MoxfieldGate" }]
+		"bindings": [
+			{
+				"name": "MOXFIELD_GATE",
+				"class_name": "MoxfieldGate",
+				"script_name": "aura0-moxfield-gate"
+			}
+		]
 	},
-	// `migrations` IS inheritable, so it is declared once. `new_sqlite_classes`
-	// rather than `new_classes`: the gate keeps its state in memory (see the
-	// class), so this only registers the class — but SQLite-backed is the
-	// supported option for new Durable Objects.
-	"migrations": [{ "tag": "v1", "new_sqlite_classes": ["MoxfieldGate"] }],
 	"env": {
 		// `assets` is repeated here on purpose: wrangler does NOT inherit
 		// non-inheritable keys (assets, vars, routes, bindings…) into named
@@ -66,7 +76,13 @@
 				"run_worker_first": ["/api/*"]
 			},
 			"durable_objects": {
-				"bindings": [{ "name": "MOXFIELD_GATE", "class_name": "MoxfieldGate" }]
+				"bindings": [
+					{
+						"name": "MOXFIELD_GATE",
+						"class_name": "MoxfieldGate",
+						"script_name": "aura0-moxfield-gate"
+					}
+				]
 			}
 		}
 	}
