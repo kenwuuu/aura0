@@ -26,7 +26,7 @@ export function FloatingHand() {
       data-pile-owner={playerId}
       style={
         // The hand owns the bottom edge: absorb the home-bar safe-area inset.
-        // Phone: edge-to-edge (docs/responsive.md); desktop: centered.
+        // Phone: edge-to-edge (docs/architecture/responsive.md); desktop: centered.
         isPhone
           ? {
               position: 'fixed',

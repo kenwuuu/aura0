@@ -7,7 +7,7 @@
  * mutating the stored setting (the desktop preference must survive a visit
  * at phone width).
  *
- * Hand zoom flows only through the `zoomLevel` prop (docs/responsive.md):
+ * Hand zoom flows only through the `zoomLevel` prop (docs/architecture/responsive.md):
  * the clamped value must feed HandCardsContainer — which derives both the
  * JS-computed container height and the CSS `--card-zoom` var from it — and
  * the dnd-kit drag overlay, so all three can never disagree.
