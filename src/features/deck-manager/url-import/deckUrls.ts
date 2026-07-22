@@ -11,7 +11,7 @@
  */
 
 /** A deck-hosting site we know how to import from. */
-export type DeckSource = 'archidekt' | 'tappedout';
+export type DeckSource = 'archidekt' | 'tappedout' | 'mtggoldfish';
 
 /** A deck identified on a known host — enough to rebuild the upstream API URL. */
 export type DeckUrlRef = {
@@ -44,6 +44,13 @@ const DECK_PATHS: ReadonlyArray<{ source: DeckSource; domain: string; path: RegE
     // `/mtg-decks/<slug>/`, where the slug *is* the identifier — unlike
     // Archidekt there is no numeric id behind it.
     path: /^\/mtg-decks\/([a-zA-Z0-9][a-zA-Z0-9_-]*)\/?/,
+  },
+  {
+    source: 'mtggoldfish',
+    domain: 'mtggoldfish.com',
+    // `/deck/<id>`; `/deck/download/<id>` is the export URL, accepted so a
+    // player who pasted that gets the same deck.
+    path: /^\/deck\/(?:download\/)?(\d+)\b/,
   },
 ];
 
@@ -104,6 +111,10 @@ export function upstreamApiUrl(ref: DeckUrlRef): string {
       // TappedOut will hand back the decklist as plain text, which is already
       // the format Aura parses — no JSON document to pick apart.
       return `https://tappedout.net/mtg-decks/${ref.deckId}/?fmt=txt`;
+    case 'mtggoldfish':
+      // The download endpoint returns text/plain plus the deck's name in a
+      // Content-Disposition filename. The deck *page* is ~75KB of HTML.
+      return `https://www.mtggoldfish.com/deck/download/${ref.deckId}`;
   }
 }
 
@@ -114,5 +125,7 @@ export function sourceLabel(source: DeckSource): string {
       return 'Archidekt';
     case 'tappedout':
       return 'TappedOut';
+    case 'mtggoldfish':
+      return 'MTGGoldfish';
   }
 }

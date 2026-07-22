@@ -390,7 +390,7 @@ export function DeckImportModal({ isOpen, onClose, onDeckImported }: DeckImportM
               id="deck-list"
               value={deckText}
               onChange={(e) => setDeckText(e.target.value)}
-              placeholder={`Paste an Archidekt or TappedOut deck link, or enter your deck list (one card per line):
+              placeholder={`Paste an Archidekt, TappedOut or MTGGoldfish deck link, or enter your deck list (one card per line):
               \nhttps://archidekt.com/decks/24569510\n\n1 Rhystic Study (WOT) 71\n4 Lightning Bolt\n20 Mountain`}
               rows={15}
               disabled={isImporting || resolvingUrlFrom !== null}

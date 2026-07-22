@@ -49,6 +49,23 @@ describe('parseDeckUrl', () => {
     });
   });
 
+  it.each([
+    ['a deck page', 'https://www.mtggoldfish.com/deck/5778970'],
+    ['the download URL', 'https://www.mtggoldfish.com/deck/download/5778970'],
+    ['no www', 'https://mtggoldfish.com/deck/5778970'],
+    ['a trailing slug', 'https://www.mtggoldfish.com/deck/5778970#paper'],
+  ])('recognizes an MTGGoldfish deck link (%s)', (_label, input) => {
+    expect(parseDeckUrl(input)).toEqual({ source: 'mtggoldfish', deckId: '5778970' });
+  });
+
+  it.each([
+    ['an MTGGoldfish page that is not a deck', 'https://www.mtggoldfish.com/metagame/standard'],
+    ['an MTGGoldfish archetype', 'https://www.mtggoldfish.com/archetype/standard-mono-red'],
+    ['an MTGGoldfish lookalike', 'https://notmtggoldfish.com/deck/5778970'],
+  ])('rejects %s', (_label, input) => {
+    expect(parseDeckUrl(input)).toBeNull();
+  });
+
   // The slug becomes part of a URL we then request, so it must not be able to
   // carry path separators or traversal out of /mtg-decks/.
   it('does not let a slug escape its path', () => {
@@ -71,6 +88,12 @@ describe('upstreamApiUrl', () => {
   it('builds the Archidekt API URL from the deck id', () => {
     expect(upstreamApiUrl({ source: 'archidekt', deckId: '24569510' })).toBe(
       'https://archidekt.com/api/decks/24569510/',
+    );
+  });
+
+  it('builds the MTGGoldfish download URL from the deck id', () => {
+    expect(upstreamApiUrl({ source: 'mtggoldfish', deckId: '5778970' })).toBe(
+      'https://www.mtggoldfish.com/deck/download/5778970',
     );
   });
 

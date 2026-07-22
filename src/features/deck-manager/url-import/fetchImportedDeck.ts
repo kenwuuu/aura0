@@ -52,5 +52,7 @@ function deckPageUrl(ref: DeckUrlRef): string {
       return `https://archidekt.com/decks/${ref.deckId}`;
     case 'tappedout':
       return `https://tappedout.net/mtg-decks/${ref.deckId}/`;
+    case 'mtggoldfish':
+      return `https://www.mtggoldfish.com/deck/${ref.deckId}`;
   }
 }

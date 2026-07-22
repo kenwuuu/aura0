@@ -116,22 +116,24 @@ export function DeckImportHelpDialog({ isOpen, onClose }: DeckImportHelpDialogPr
           <div style={styles.section}>
             <div style={styles.sectionTitle}>Import from a link</div>
             <p style={styles.text}>
-              Paste an <strong style={{ color: '#fff' }}>Archidekt</strong> or{' '}
-              <strong style={{ color: '#fff' }}>TappedOut</strong> deck link and we'll fetch the
-              list for you:
+              Paste an <strong style={{ color: '#fff' }}>Archidekt</strong>,{' '}
+              <strong style={{ color: '#fff' }}>TappedOut</strong> or{' '}
+              <strong style={{ color: '#fff' }}>MTGGoldfish</strong> deck link and we'll fetch
+              the list for you:
             </p>
             <div style={styles.code}>
               {`https://archidekt.com/decks/24569510
-https://tappedout.net/mtg-decks/your-deck/`}
+https://tappedout.net/mtg-decks/your-deck/
+https://www.mtggoldfish.com/deck/5778970`}
             </div>
             <p style={styles.text}>
               The deck needs to be public or unlisted. The list drops into the box below, so you
               can still edit it before importing.
             </p>
             <p style={styles.text}>
-              Archidekt links carry your commander across automatically. TappedOut's export
-              doesn't say which card is the commander, so put it under a "Commander" header
-              yourself.
+              Archidekt links carry your commander across automatically. TappedOut and
+              MTGGoldfish exports don't say which card is the commander, so put it under a
+              "Commander" header yourself.
             </p>
           </div>
 

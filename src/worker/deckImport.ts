@@ -1,5 +1,9 @@
 import { extractArchidektDeck } from '../features/deck-manager/url-import/archidekt';
 import { extractTappedOutDeck } from '../features/deck-manager/url-import/tappedout';
+import {
+  deckNameFromContentDisposition,
+  extractMtgGoldfishDeck,
+} from '../features/deck-manager/url-import/mtggoldfish';
 import { ImportedDeck } from '../features/deck-manager/url-import/importedDeck';
 import {
   DeckUrlRef,
@@ -63,7 +67,7 @@ export async function handleDeckImport(request: Request): Promise<Response> {
   const ref = parseDeckUrl(requested);
   if (ref === null) {
     return errorResponse(
-      "That doesn't look like a deck link we support. Paste an Archidekt or TappedOut deck link, e.g. https://archidekt.com/decks/24569510/my-deck",
+      "That doesn't look like a deck link we support. Paste an Archidekt, TappedOut or MTGGoldfish deck link, e.g. https://archidekt.com/decks/24569510/my-deck",
       400,
     );
   }
@@ -72,8 +76,8 @@ export async function handleDeckImport(request: Request): Promise<Response> {
   try {
     upstream = await fetch(upstreamApiUrl(ref), {
       headers: {
-        // TappedOut answers with a decklist as plain text; Archidekt with JSON.
-        accept: ref.source === 'tappedout' ? 'text/plain, */*' : 'application/json',
+        // Archidekt answers with JSON; the other two with a plain-text decklist.
+        accept: ref.source === 'archidekt' ? 'application/json' : 'text/plain, */*',
         // Identify ourselves rather than arriving as an anonymous scraper.
         'user-agent': 'Aura/1.0 (+https://aura0.app) deck import',
       },
@@ -107,10 +111,12 @@ export async function handleDeckImport(request: Request): Promise<Response> {
 /**
  * Turn a site's response into a deck.
  *
- * The two sources differ in kind, not just in shape: Archidekt returns a JSON
- * document to be mapped, while TappedOut returns a decklist as text. Keeping
- * that difference here means everything on either side of this function — the
- * proxying, the error handling, the client — deals in one `ImportedDeck`.
+ * The sources differ in kind, not just in shape: Archidekt returns a JSON
+ * document to be mapped, while TappedOut and MTGGoldfish return decklists as
+ * text — and those two don't agree either, since MTGGoldfish marks its sideboard
+ * with a bare blank line. Keeping every one of those differences here means
+ * everything on either side of this function — the proxying, the error handling,
+ * the client — deals in one `ImportedDeck`.
  */
 async function readDeck(ref: DeckUrlRef, upstream: Response): Promise<ImportedDeck> {
   switch (ref.source) {
@@ -125,6 +131,12 @@ async function readDeck(ref: DeckUrlRef, upstream: Response): Promise<ImportedDe
     }
     case 'tappedout':
       return extractTappedOutDeck(ref.deckId, await upstream.text());
+    case 'mtggoldfish':
+      return extractMtgGoldfishDeck(
+        await upstream.text(),
+        // The only place the deck's real name appears in this response.
+        deckNameFromContentDisposition(upstream.headers.get('content-disposition')),
+      );
   }
 }
 
