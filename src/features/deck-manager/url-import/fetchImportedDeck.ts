@@ -3,11 +3,66 @@ import { DeckUrlRef, sourceLabel } from './deckUrls';
 import { ImportedDeck } from './importedDeck';
 
 /**
+ * How long we'll honour a `Retry-After` before giving up and telling the player.
+ *
+ * The endpoint sheds a Moxfield request rather than queueing it past ~3s (see
+ * `moxfieldGate.ts`), so anything it asks us to wait should be a few seconds.
+ * Capped anyway: a `Retry-After` is a number from a server, and a wait longer
+ * than a player will sit for is worse than an honest error.
+ */
+const MAX_RETRY_AFTER_MS = 6000;
+
+/** Resolve after `ms`, or reject the moment the caller loses interest. */
+function delay(ms: number, signal?: AbortSignal): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (signal?.aborted) {
+      reject(new DOMException('Aborted', 'AbortError'));
+      return;
+    }
+    const timer = setTimeout(() => {
+      signal?.removeEventListener('abort', onAbort);
+      resolve();
+    }, ms);
+    function onAbort() {
+      clearTimeout(timer);
+      reject(new DOMException('Aborted', 'AbortError'));
+    }
+    signal?.addEventListener('abort', onAbort, { once: true });
+  });
+}
+
+/**
+ * How long the endpoint asked us to wait, in milliseconds.
+ *
+ * `Retry-After` is seconds. Returns null when the header is missing or isn't a
+ * number, which means "don't retry" — retrying on a guess would spend a slot we
+ * were never promised.
+ */
+function retryAfterMs(response: Response): number | null {
+  const header = response.headers.get('retry-after');
+  if (header === null) {
+    return null;
+  }
+  const seconds = Number(header);
+  if (!Number.isFinite(seconds) || seconds < 0) {
+    return null;
+  }
+  return Math.min(seconds * 1000, MAX_RETRY_AFTER_MS);
+}
+
+/**
  * Fetch a deck through Aura's own `/api/deck-import`.
  *
  * The request is same-origin and deliberately so — deck sites answer browsers
  * with CORS headers that make a direct fetch impossible, so the endpoint on the
  * other end of this call is what actually talks to them. See `src/worker/`.
+ *
+ * A 429 is retried once. Moxfield imports share a one-per-second budget across
+ * every player (`src/worker/moxfieldGate.ts`), so two people importing different
+ * decks in the same second is ordinary traffic rather than a real failure — and
+ * the endpoint tells us exactly how long to wait. Waiting it out here keeps that
+ * contention invisible instead of handing the player an error they can only fix
+ * by doing the same thing again themselves.
  */
 export async function fetchImportedDeck(
   ref: DeckUrlRef,
@@ -31,6 +86,17 @@ export async function fetchImportedDeck(
   let response: Response;
   try {
     response = await fetch(endpoint, { signal });
+
+    // Shed for contention, not broken. One retry only: a second 429 means the
+    // queue is genuinely saturated, and retrying into it would make that worse
+    // for everyone waiting.
+    if (response.status === 429) {
+      const wait = retryAfterMs(response);
+      if (wait !== null) {
+        await delay(wait, signal);
+        response = await fetch(endpoint, { signal });
+      }
+    }
   } catch (error) {
     // An aborted request is the caller withdrawing interest, not a failure —
     // it must not be reported to the player as one.
