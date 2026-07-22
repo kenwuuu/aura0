@@ -78,6 +78,27 @@ never need to invent a selector or a drag recipe from scratch.
    `tests/e2e/app/` as advisory (untagged) coverage. Don't tag a test `@smoke`
    just because it passes reliably; tag it because its failure should block
    merges.
+9. **Never import from Moxfield in a test.** Not in e2e, not in a script, not
+   in a one-off you plan to delete. Moxfield issued Aura a single approved
+   User-Agent capped at **one request per second for all of Aura** — the same
+   budget real players are spending, and the penalty for breaching it is the
+   credential being revoked for everyone, not a rate-limited response. A
+   Playwright suite is exactly the wrong shape for that: it fans out across
+   browsers and workers and would burn a day's goodwill in one run. Note also
+   that `aura0` and `aura0-staging` share one gate, so a test pointed at
+   staging spends *production's* budget.
+
+   The gate (`src/worker/moxfieldGate.ts`) only guards `/api/deck-import`;
+   anything calling `api.moxfield.com` directly bypasses it completely. This is
+   not hypothetical — six probes in a few seconds tripped Cloudflare's 1015
+   limiter on the credential while this feature was being built.
+
+   **Use Archidekt instead.** It's uncapped, needs no credential, and exercises
+   the identical URL-import path (`parseDeckUrl` → `/api/deck-import` →
+   adapter → decklist text), so coverage loses nothing. Moxfield's own adapter
+   is covered by unit tests against fixtures
+   (`src/features/deck-manager/url-import/moxfield.test.ts`) — that's where a
+   parsing change belongs, not in a test that hits the network.
 
 ## Directory layout
 
