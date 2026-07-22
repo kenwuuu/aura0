@@ -54,9 +54,6 @@ One holdout: `shared/utils/confirmation.tsx` still mounts a throwaway `createRoo
 1. **Yjs** — source of truth for all shared game state. Access via `yDoc.getMap(YDOC_*)` constants from `src/constants.ts`. Key maps: `YDOC_CARDS_ON_BOARD` (battlefield cards), `YDOC_KEYWORD_TOKENS` (board tokens), `YDOC_PLAYER(id)` (per-player state: hand, deck, health, etc.).
 2. **Zustand** — UI-only state (`src/app/stores/`). `gameInstanceStore` holds `yDoc`, `player`, `playerId`, `roomManager` so hotkeys and components don't need prop-drilling. `hotkeyStore` tracks what's hovered (`hoverTarget`) and modal state. Never put game mutations in Zustand — they belong in Yjs.
 
-### Hotkey system
-`useAllGameHotkeys` (mounted in `<GameHotkeysManager>`) reads `hoverTarget` from `hotkeyStore` to route contextual actions to the right surface (battlefield card, hand card, pile, token). Modal state switches between `HotkeyScope.Board` and `HotkeyScope.PileViewer` via `react-hotkeys-hook`'s `<HotkeysProvider>`. The context menu (`GameContextMenu`) is a Radix Popover opened imperatively via `useContextMenuStore.getState().openMenu(...)`.
-
 ### Path aliases
 `@/` maps to `src/`. Use it everywhere — no relative `../../` imports across features.
 
