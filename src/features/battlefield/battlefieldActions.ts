@@ -19,34 +19,7 @@ import type { WhiteboardCard } from './types';
 import type { KeywordToken } from '@/features/keyword-tokens/types';
 import { logAction, cardLogName } from '@/features/action-log/actionLog';
 import { getMaxZIndex, detachTokens } from './spawnToken';
-
-// A card played onto a spot another card already occupies is stepped down-right
-// instead, by the same offset a K-hotkey copy lands at (see the 'copy' case in
-// battlefieldCardActions). Anything that plays several cards to one fixed spot —
-// the deck's "Play to board" pressed repeatedly, a run of pile-viewer plays —
-// therefore fans them out into a readable cascade rather than burying each new
-// card under the last.
-const CASCADE_OFFSET = 20;
-/** Stop stepping after this many collisions, so a pathological board can never
- * spin here — the card just lands on the last offset tried. */
-const CASCADE_MAX_STEPS = 50;
-
-function cascadeFreePosition(
-  yCards: Y.Map<WhiteboardCard>,
-  x: number,
-  y: number,
-): { x: number; y: number } {
-  let next = { x, y };
-  for (let step = 0; step < CASCADE_MAX_STEPS; step++) {
-    let occupied = false;
-    yCards.forEach((c) => {
-      if (Math.abs(c.x - next.x) < 1 && Math.abs(c.y - next.y) < 1) occupied = true;
-    });
-    if (!occupied) return next;
-    next = { x: next.x + CASCADE_OFFSET, y: next.y + CASCADE_OFFSET };
-  }
-  return next;
-}
+import { firstFreeCascadeSlot } from './cascade';
 
 // Shared by playCardFromHand and playCardFromPile: places a card at a flow
 // position, logs the play, and spawns any related tokens. Playing a card has
@@ -60,11 +33,14 @@ async function placeCardOnBattlefield(
 ): Promise<void> {
   const { yDoc, playerId, player, tokenService } = ctx;
   const yCards = yDoc.getMap<WhiteboardCard>(YDOC_CARDS_ON_BOARD);
-  const { x: cardX, y: cardY } = cascadeFreePosition(
-    yCards,
-    position.x - CARD_WIDTH / 2,
-    position.y - CARD_HEIGHT / 2,
-  );
+  // Land on the requested spot when it's free, and cascade off it when it isn't:
+  // every play from a pile targets the same viewport centre, so without this a
+  // run of plays (the deck's "Play to board" pressed repeatedly, a series of
+  // pile-viewer plays) would bury each card under the last.
+  const { x: cardX, y: cardY } = firstFreeCascadeSlot(yCards, {
+    x: position.x - CARD_WIDTH / 2,
+    y: position.y - CARD_HEIGHT / 2,
+  });
 
   const yTokens = yDoc.getMap<KeywordToken>(YDOC_KEYWORD_TOKENS);
   const maxZ = getMaxZIndex(yCards, yTokens);
