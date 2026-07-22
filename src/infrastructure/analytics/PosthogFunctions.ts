@@ -1,6 +1,7 @@
 import posthog from 'posthog-js';
 import {YSTATE_HEALTH} from "@/constants";
 import type { DeckLineItem } from '@/features/deck-manager/DeckListParser';
+import type { BugReportContext } from '@/features/bug-report/bugReportContext';
 import type { LookupFailure, LookupFailureReason } from '@/infrastructure/cards/CardApiClient';
 
 // HEALTH
@@ -723,4 +724,32 @@ export function trackTourSkipped(ctx: TourEventContext): void {
     elapsed_ms: pending ? Date.now() - pending.startedAt : 0,
     steps_completed: pending?.stepsCompleted ?? 0,
   });
+}
+// BUG REPORTS
+
+/**
+ * Sentry owns the report itself — the replay, the breadcrumbs, what the player
+ * typed. These events answer the question Sentry can't: how often, from which
+ * surface, and whether that changed after a deploy. `bug_report_opened` and
+ * `bug_report_submitted` together also give the abandonment rate, which is the
+ * honest read on whether the form is worth its space.
+ *
+ * The context object is spread flat so every field is filterable in PostHog;
+ * see `features/bug-report/bugReportContext.ts` for what's in it.
+ */
+export function trackBugReportOpened(context: BugReportContext): void {
+  posthog.capture('bug_report_opened', { ...context });
+}
+
+export function trackBugReportSubmitted(context: BugReportContext): void {
+  posthog.capture('bug_report_submitted', { ...context });
+}
+
+/**
+ * The send failed — almost always an ad blocker eating Sentry ingest. Note the
+ * irony this event has to live with: the same blocker usually eats PostHog too,
+ * so this undercounts by design. It is a floor, not a rate.
+ */
+export function trackBugReportFailed(context: BugReportContext, reason: string): void {
+  posthog.capture('bug_report_failed', { ...context, reason });
 }

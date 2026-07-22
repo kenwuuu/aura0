@@ -34,6 +34,13 @@ interface HotkeyStore {
   isModalOpen: boolean;
   addCardModalOpen: boolean;
 
+  /**
+   * A surface outside React's tree (currently: Sentry's bug-report form, which
+   * lives in a shadow DOM) owns the keyboard. Outranks `isModalOpen` — while
+   * set, no game hotkey fires at all. See `HotkeyScope.Captured`.
+   */
+  isKeyboardCaptured: boolean;
+
   // Actions
   setHoveredBattlefieldCard: (cardId: string | null) => void;
   setHoveredHandCard: (cardId: string | null) => void;
@@ -42,6 +49,7 @@ interface HotkeyStore {
   setHoveredPileViewerCard: (cardId: string | null, context: HotkeyContext | null) => void;
   setModalOpen: (isOpen: boolean) => void;
   setAddCardModalOpen: (isOpen: boolean) => void;
+  setKeyboardCaptured: (isCaptured: boolean) => void;
   reset: () => void;
 }
 
@@ -49,6 +57,7 @@ export const useHotkeyStore = create<HotkeyStore>((set) => ({
   hoverTarget: null,
   isModalOpen: false,
   addCardModalOpen: false,
+  isKeyboardCaptured: false,
 
   setHoveredBattlefieldCard: (cardId) =>
     set({ hoverTarget: cardId ? { kind: 'battlefield', id: cardId } : null }),
@@ -71,6 +80,8 @@ export const useHotkeyStore = create<HotkeyStore>((set) => ({
   setModalOpen: (isOpen) => set({ isModalOpen: isOpen }),
 
   setAddCardModalOpen: (isOpen) => set({ addCardModalOpen: isOpen }),
+
+  setKeyboardCaptured: (isCaptured) => set({ isKeyboardCaptured: isCaptured }),
 
   reset: () => set({ hoverTarget: null }),
 }));

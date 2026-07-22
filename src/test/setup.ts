@@ -24,7 +24,12 @@ import { useConfirmStore } from '@/app/stores/confirmStore';
 afterEach(() => {
   useGameInstance.getState().reset();
   usePlayerStore.setState({ yPlayerState: null });
-  useHotkeyStore.setState({ hoverTarget: null, isModalOpen: false, addCardModalOpen: false });
+  useHotkeyStore.setState({
+    hoverTarget: null,
+    isModalOpen: false,
+    addCardModalOpen: false,
+    isKeyboardCaptured: false,
+  });
   useCardPreviewStore.setState({
     card: null,
     source: null,
