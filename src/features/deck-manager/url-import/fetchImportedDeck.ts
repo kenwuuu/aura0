@@ -73,12 +73,19 @@ export async function fetchImportedDeck(
   // measured without having to remember to be — the repeat rate this feeds is
   // only meaningful if it counts *all* upstream requests. An abort is excluded
   // throughout: it never reached the network, so it spent no rate budget.
+  // Whether the rate gate shed this request at least once. Recorded even when
+  // the retry then succeeds — otherwise contention is invisible, because a
+  // successful retry looks identical to a request that never waited. This is
+  // the number that says whether one request per second is actually enough.
+  let wasRateLimited = false;
+
   const report = (outcome: 'succeeded' | 'failed', deck?: ImportedDeck) =>
     trackDeckUrlImport({
       source: ref.source,
       deckId: ref.deckId,
       outcome,
       durationMs: Date.now() - startedAt,
+      wasRateLimited,
       sourceCardCount: deck?.sourceCardCount,
       // Measured from the deck we are about to hand back, so the comparison is
       // against what the player actually receives rather than what we intended
@@ -96,6 +103,7 @@ export async function fetchImportedDeck(
     // queue is genuinely saturated, and retrying into it would make that worse
     // for everyone waiting.
     if (response.status === 429) {
+      wasRateLimited = true;
       const wait = retryAfterMs(response);
       if (wait !== null) {
         await delay(wait, signal);

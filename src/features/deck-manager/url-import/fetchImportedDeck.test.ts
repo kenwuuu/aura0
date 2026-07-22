@@ -154,6 +154,37 @@ describe('fetchImportedDeck', () => {
       });
     });
 
+    /**
+     * A successful retry looks identical to a request that never waited, so
+     * without this flag the gate could be shedding constantly and nothing would
+     * show it. This is what says whether one request per second is enough.
+     */
+    it('records that a retried import was rate limited, even though it succeeded', async () => {
+      vi.stubGlobal(
+        'fetch',
+        vi.fn().mockResolvedValueOnce(shed('1')).mockResolvedValueOnce(ok()),
+      );
+
+      const promise = fetchImportedDeck(REF);
+      await vi.advanceTimersByTimeAsync(1000);
+      await promise;
+
+      expect(captures().find(([name]) => name === 'deck_url_import')![1]).toMatchObject({
+        outcome: 'succeeded',
+        was_rate_limited: true,
+      });
+    });
+
+    it('records an unimpeded import as not rate limited', async () => {
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue(ok()));
+
+      await fetchImportedDeck(REF);
+
+      expect(captures().find(([name]) => name === 'deck_url_import')![1]).toMatchObject({
+        was_rate_limited: false,
+      });
+    });
+
     /** An abort never reached the network, so it spent no rate budget to record. */
     it('reports nothing when the caller aborts', async () => {
       vi.stubGlobal(

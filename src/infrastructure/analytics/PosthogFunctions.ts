@@ -517,6 +517,15 @@ export function trackDeckUrlImport(props: {
   sourceCardCount?: number;
   /** What our adapter actually produced from it, as a sum of quantities. */
   extractedCardCount?: number;
+  /**
+   * Whether the shared rate gate shed this request before it went through.
+   *
+   * True even when the retry then succeeded. Without it, contention is
+   * unmeasurable — a request that waited a second looks exactly like one that
+   * sailed through, and we would only ever learn the cap was too tight from
+   * players complaining.
+   */
+  wasRateLimited?: boolean;
 }): void {
   const { sourceCardCount, extractedCardCount } = props;
 
@@ -529,6 +538,7 @@ export function trackDeckUrlImport(props: {
     deck_id: props.deckId,
     outcome: props.outcome,
     duration_ms: props.durationMs,
+    was_rate_limited: props.wasRateLimited === true,
 
     ...(typeof sourceCardCount === 'number' ? { source_card_count: sourceCardCount } : {}),
     ...(typeof extractedCardCount === 'number' ? { extracted_card_count: extractedCardCount } : {}),
