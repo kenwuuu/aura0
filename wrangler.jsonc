@@ -14,9 +14,19 @@
 	"$schema": "node_modules/wrangler/config-schema.json",
 	"name": "aura0",
 	"compatibility_date": "2026-07-07",
+	// Serves `/api/*` only (deck-URL imports, which deck sites block browsers
+	// from fetching directly). `main` is an inheritable key, so staging picks
+	// this up without repeating it — unlike `assets` below.
+	"main": "./src/worker/index.ts",
 	"assets": {
 		"directory": "./dist",
-		"not_found_handling": "single-page-application"
+		"not_found_handling": "single-page-application",
+		"binding": "ASSETS",
+		// Without this, `not_found_handling` would answer /api/* with index.html
+		// and the Worker would never run. Listing the routes explicitly also opts
+		// out of wrangler's Sec-Fetch-Mode heuristic, so routing does not depend
+		// on what headers a browser happens to send.
+		"run_worker_first": ["/api/*"]
 	},
 	"env": {
 		// `assets` is repeated here on purpose: wrangler does NOT inherit
@@ -29,7 +39,9 @@
 			"name": "aura0-staging",
 			"assets": {
 				"directory": "./dist",
-				"not_found_handling": "single-page-application"
+				"not_found_handling": "single-page-application",
+				"binding": "ASSETS",
+				"run_worker_first": ["/api/*"]
 			}
 		}
 	}
