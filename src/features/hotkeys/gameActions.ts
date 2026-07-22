@@ -19,6 +19,7 @@ import { useHotkeyStore } from '@/app/stores/hotkeyStore';
 import { useCardPreviewStore } from '@/features/card-preview/cardPreviewStore';
 import { executeBattlefieldCardAction } from '@/features/battlefield/battlefieldCardActions';
 import { spawnTokenAtPosition } from '@/features/battlefield/spawnToken';
+import { playCardFromPile } from '@/features/battlefield/battlefieldActions';
 import { applyTokenDelta } from '@/features/battlefield/nodes/tokenNodeLogic';
 import { usePileViewerHotkeyStore } from '@/features/game-dock/pileViewerHotkeyStore';
 import { usePileViewerOpenStore } from '@/features/game-dock/pileViewerOpenStore';
@@ -75,11 +76,36 @@ function executeHandCardAction(action: string, cardId: string): void {
   if (card) player.movePileCard(card, 'hand', move.dest, move.position);
 }
 
+/** Play the top card of a pile onto the battlefield. Removing the card here
+ * (rather than in playCardFromPile) matches the pile-viewer's play button,
+ * which also owns the removal from its own pile — playCardFromPile only ever
+ * places an already-detached card. */
+function executePlayTopOfPile(pileType: PileType): void {
+  const { player, roomManager } = useGameInstance.getState();
+  if (!player) return;
+
+  const card = player.drawCardFromPile(pileType);
+  if (!card) return;
+  // Not awaited: the card lands on the board synchronously; only its related
+  // tokens are fetched async (same as every other play path).
+  void playCardFromPile(card);
+  // Same persistence the 'draw' action does: the deck shrank, so the saved
+  // deck for this room has to shrink with it.
+  if (pileType === 'deck' && roomManager) {
+    DeckPersistenceService.saveDeckForRoom(roomManager.getRoomName(), player.getDeck());
+  }
+}
+
 /** Move the top card of a battlefield pile (deck/exile/discard) elsewhere.
  * A move into the same pile is a no-op. */
 function executePileAction(action: string, pileType: PileType): void {
   const { player } = useGameInstance.getState();
   if (!player) return;
+
+  if (action === 'playToBattlefield') {
+    executePlayTopOfPile(pileType);
+    return;
+  }
 
   const move = resolveMoveDestination(action);
   if (!move || move.dest === pileType) return;
