@@ -1,3 +1,17 @@
+`BattlefieldCanvas` wraps `<ReactFlow>` with controlled nodes built by `useBattlefieldNodes`.
+
+## Three ways things move on and off the board
+
+They look like one "drag" feature and are not — three separate mechanisms, only two of which live in this directory:
+
+**Hand → board is dnd-kit, and it isn't here.** `handleDragEnd` in `app/App.tsx` sees `over.id === 'battlefield'` and calls `battlefieldActions.playCardFromHand(cardId, x, y)`. The canvas exposes `screenToFlowPosition` through `gameInstanceStore` precisely so that handler can convert screen coords without importing the canvas.
+
+**Keyword tokens are HTML5 drag-and-drop.** `BattlefieldCanvas.onDrop` reads the `text/x-keyword-token-template` payload and bails immediately if it's absent — it handles *only* token templates. Don't add a second drop type here expecting it to work; hand cards never reach this handler.
+
+**Board → dock is react-flow's own node drag.** Dropping a node on a pile target calls `battlefieldActions.moveCardFromBattlefield(node.id, pileType)` on drag-stop.
+
+All three end in a `battlefieldActions` call rather than a direct Yjs write — that's the "complete semantic actions" rule from the root `CLAUDE.md`, and it's why a new play path gets token creation for free.
+
 ## Two sync channels
 
 **Yjs document** — durable shared game state. Card/token positions are written here on drag-stop and survive reload. Peers who join late get the full state. Use this for anything that should persist.
