@@ -23,9 +23,11 @@ npm run dev             # start dev server at localhost:5173
 npm run build           # production build
 npm run test:run        # run unit tests once (vitest)
 npm run test:coverage   # vitest run --coverage
-npm run test:e2e:smoke  # run smoke tests
-npm run test:e2e        # run e2e tests
-npm run verify          # single command for fast change verification 
+npm run test:e2e:smoke  # the 5 @smoke specs only
+npm run test:e2e        # the full e2e suite (what CI gates on)
+npm run verify          # fast gate: typecheck + unit + build + @smoke only.
+                        # NOT the full e2e suite — run test:e2e before pushing
+                        # anything touching a shared call site.
 npm test                # vitest watch mode
 npx vitest run src/path/to/file.test.ts   # single test file
 npx playwright test     # e2e tests (requires dev server running)
@@ -60,11 +62,15 @@ Cloudflare/GitHub setup are in [`docs/STAGING.md`](docs/STAGING.md).
 ### Entry point flow
 `src/app/main.ts` → `bootstrapGame()` (in `bootstrap.ts`) → mounts `<App>` into `#app-react-root`.
 
-`bootstrapGame()` is the imperative wiring layer: it creates `Y.Doc`, networking, `Player`, and services in dependency order, then populates Zustand stores before React renders. Everything returned from `bootstrapGame()` is passed as props to `<App>`. There are no more imperative UI classes — `PileViewer` (the last one, a detached `createRoot` wrapper in `features/game-dock/`) was retired in favor of `PileViewerReact` mounted normally in the tree.
+`bootstrapGame()` is the imperative wiring layer: it creates `Y.Doc`, networking, `Player`, and services in dependency order, then populates Zustand stores before React renders. Everything returned from `bootstrapGame()` is passed as props to `<App>`.
+
+Bootstrap is the *only* imperative layer, and UI is a single React tree — no imperative UI classes. Mount new surfaces normally in the tree rather than reaching for a detached root.
+
+One holdout: `shared/utils/confirmation.tsx` still mounts a throwaway `createRoot` per call, because `triggerConfirmation()` is promise-based and gets called from non-React code. Follow it only if you have that same constraint.
 
 ### State: two layers
 1. **Yjs** — source of truth for all shared game state. Access via `yDoc.getMap(YDOC_*)` constants from `src/constants.ts`. Key maps: `YDOC_CARDS_ON_BOARD` (battlefield cards), `YDOC_KEYWORD_TOKENS` (board tokens), `YDOC_PLAYER(id)` (per-player state: hand, deck, health, etc.).
-2. **Zustand** — UI-only state (`src/stores/`). `gameInstanceStore` holds `yDoc`, `player`, `playerId`, `roomManager` so hotkeys and components don't need prop-drilling. `hotkeyStore` tracks what's hovered (`hoverTarget`) and modal state. Never put game mutations in Zustand — they belong in Yjs.
+2. **Zustand** — UI-only state (`src/app/stores/`). `gameInstanceStore` holds `yDoc`, `player`, `playerId`, `roomManager` so hotkeys and components don't need prop-drilling. `hotkeyStore` tracks what's hovered (`hoverTarget`) and modal state. Never put game mutations in Zustand — they belong in Yjs.
 
 ### Feature directories (`src/features/`)
 Each feature owns its UI, business logic, and types.
@@ -73,7 +79,7 @@ Each feature owns its UI, business logic, and types.
 `BattlefieldCanvas` wraps `<ReactFlow>` with controlled nodes driven by `useBattlefieldNodes`. The bridge observes `yCards`/`yTokens` and calls `setNodes`; drag writes back to Yjs only on `onNodeDragStop`. Board-to-dock card moves go through `battlefieldActions.moveCardFromBattlefield`. Hand-to-board drops call `battlefieldActions.playCardFromHand`; keyword-token drops are handled inside `BattlefieldCanvas.onDrop` via `screenToFlowPosition`.
 
 ### Hotkey system
-`useAllGameHotkeys` (mounted in `<GameHotkeysManager>`) reads `hoverTarget` from `hotkeyStore` to route contextual actions to the right surface (battlefield card, hand card, pile, token). Modal state switches between `HotkeyScope.Board` and `HotkeyScope.PileViewer` via `react-hotkeys-hook`'s `<HotkeysProvider>`. The context menu (`HotkeyMenu`) is a Radix Popover opened imperatively via `useHotkeyMenuStore.getState().openMenu(...)`.
+`useAllGameHotkeys` (mounted in `<GameHotkeysManager>`) reads `hoverTarget` from `hotkeyStore` to route contextual actions to the right surface (battlefield card, hand card, pile, token). Modal state switches between `HotkeyScope.Board` and `HotkeyScope.PileViewer` via `react-hotkeys-hook`'s `<HotkeysProvider>`. The context menu (`GameContextMenu`) is a Radix Popover opened imperatively via `useContextMenuStore.getState().openMenu(...)`.
 
 ### Path aliases
 `@/` maps to `src/`. Use it everywhere — no relative `../../` imports across features.
@@ -88,9 +94,9 @@ Each feature owns its UI, business logic, and types.
 
 **Yjs mutations always go through `Player`** for player-state (hand, deck, health). For battlefield objects, write directly to `yDoc.getMap(YDOC_CARDS_ON_BOARD)`. Never use `player.yPlayerState` directly from outside `Player.ts`.
 
-**No more window events for cross-module communication.** Battlefield→dock card moves (`features/battlefield/battlefieldActions.ts`), pile-viewer open requests, and the scry viewer's close handling all go through Zustand stores, direct Yjs access, or plain component state.
+**No window events for cross-module communication.** Cross-module calls go through Zustand stores, direct Yjs access, or plain component state — never a `CustomEvent` on `window`.
 
-**`src/components/`** holds modals and cross-feature UI (used by more than one feature). Feature-specific UI belongs in `src/features/<feature>/`. Generic primitives and shadcn components belong in `src/shared/`.
+**Where UI goes.** Feature-specific UI belongs in `src/features/<feature>/`. Generic primitives and shadcn components belong in `src/shared/`. App-shell composition — the toolbar, root-mounted modals, the stores that wire features together — belongs in `src/app/`.
 
 ## Testing
 
