@@ -4,17 +4,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What This Is
 
-Aura is a **peer-to-peer Magic: The Gathering tabletop app** with a goal 
-of becoming a generic card-game platform with MTG specifics (command 
-zone, commander auto-draw) as plugins. Players share 
-a collaborative whiteboard via WebRTC/WebSockets — there is no backend for 
-game state. All real-time sync uses **Yjs CRDTs** over **y-webrtc**. The 
-only backend is a card-import API (Aura backend → Scryfall fallback). That
-backend lives in this repo at `mtg_card_search/` — a Python/FastAPI service
-with its own venv, tests (`pytest tests/` from its directory), and deployment
-docs (`mtg_card_search/SETUP.md`). See `mtg_card_search/CLAUDE.md` before
-working there (notably: never read files under `mtg_card_search/cards/` in
-full — they're multi-GB NDJSON).
+Aura is a **Magic: The Gathering tabletop app**. Game state is stored in **Yjs CRDTs**. The
+only backend is a card-import API (Aura backend → Scryfall fallback) and the
+WebSocket server that both live on the same DigitalOcean server. That
+backend lives in this repo at `mtg_card_search/`
 
 ## Commands
 
@@ -36,7 +29,8 @@ npx tsc --noEmit        # type-check
 
 ## Branch workflow
 
-**Branch off `staging`, open PRs into `staging`.** Never work off `master` or
+**Before starting any work, start a new worktree and brach off of `staging`. Open PRs into `staging`.** 
+Never work off `master` or
 target it directly. `staging` is the long-lived integration branch (and the
 repo default), so `git clone` / new branches start there by default:
 
@@ -44,18 +38,6 @@ repo default), so `git clone` / new branches start there by default:
 git switch staging && git pull
 git switch -c feature/x     # do the work, then open a PR into staging
 ```
-
-`master` is the **production/release** branch — Cloudflare Workers Builds
-deploys it to `aura0.app` on every push. It advances *only* via a single
-`staging → master` promotion PR once changes are verified on
-`staging.aura0.app`. Direct pushes to `master` are blocked by a local
-`pre-push` hook (`.husky/pre-push`); override an intentional one with
-`ALLOW_MASTER_PUSH=1 git push …`.
-
-The one exception is a **production hotfix** that can't wait for what's in
-staging: branch off `master`, PR into `master`, then back-merge
-`master → staging`. This is a human call — not a default. Full flow and the
-Cloudflare/GitHub setup are in [`docs/STAGING.md`](docs/STAGING.md).
 
 ## Architecture
 
@@ -71,12 +53,6 @@ One holdout: `shared/utils/confirmation.tsx` still mounts a throwaway `createRoo
 ### State: two layers
 1. **Yjs** — source of truth for all shared game state. Access via `yDoc.getMap(YDOC_*)` constants from `src/constants.ts`. Key maps: `YDOC_CARDS_ON_BOARD` (battlefield cards), `YDOC_KEYWORD_TOKENS` (board tokens), `YDOC_PLAYER(id)` (per-player state: hand, deck, health, etc.).
 2. **Zustand** — UI-only state (`src/app/stores/`). `gameInstanceStore` holds `yDoc`, `player`, `playerId`, `roomManager` so hotkeys and components don't need prop-drilling. `hotkeyStore` tracks what's hovered (`hoverTarget`) and modal state. Never put game mutations in Zustand — they belong in Yjs.
-
-### Feature directories (`src/features/`)
-Each feature owns its UI, business logic, and types.
-
-### Battlefield (react-flow)
-`BattlefieldCanvas` wraps `<ReactFlow>` with controlled nodes driven by `useBattlefieldNodes`. The bridge observes `yCards`/`yTokens` and calls `setNodes`; drag writes back to Yjs only on `onNodeDragStop`. Board-to-dock card moves go through `battlefieldActions.moveCardFromBattlefield`. Hand-to-board drops call `battlefieldActions.playCardFromHand`; keyword-token drops are handled inside `BattlefieldCanvas.onDrop` via `screenToFlowPosition`.
 
 ### Hotkey system
 `useAllGameHotkeys` (mounted in `<GameHotkeysManager>`) reads `hoverTarget` from `hotkeyStore` to route contextual actions to the right surface (battlefield card, hand card, pile, token). Modal state switches between `HotkeyScope.Board` and `HotkeyScope.PileViewer` via `react-hotkeys-hook`'s `<HotkeysProvider>`. The context menu (`GameContextMenu`) is a Radix Popover opened imperatively via `useContextMenuStore.getState().openMenu(...)`.
