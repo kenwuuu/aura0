@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
 import { MtgTextListDeckImporter } from '@/features/deck-manager';
 import { DeckStorageService } from '@/infrastructure/persistence';
@@ -192,6 +192,14 @@ export function DeckImportModal({ isOpen, onClose, onDeckImported }: DeckImportM
   const [deckPreview, setDeckPreview] = useState<DeckPreview | null>(null);
   // Set while a pasted deck link is being fetched and turned into a list.
   const [resolvingUrlFrom, setResolvingUrlFrom] = useState<DeckSource | null>(null);
+  /**
+   * Whether the player has typed in the name field themselves.
+   *
+   * A name we filled in from a deck link has to stay replaceable — otherwise
+   * pasting a second link leaves the first deck's name behind. "The field is
+   * non-empty" cannot tell those apart, so we track who put the text there.
+   */
+  const nameEditedByPlayer = useRef(false);
 
   /**
    * Turn a pasted deck link into a decklist, in place.
@@ -217,9 +225,13 @@ export function DeckImportModal({ isOpen, onClose, onDeckImported }: DeckImportM
     fetchImportedDeck(ref, controller.signal)
       .then((deck) => {
         setDeckText(toDecklistText(deck));
-        // The deck's own name is a default, never an override: a player who
-        // already named it meant it.
-        setDeckName((current) => (current.trim().length > 0 ? current : deck.name));
+        // The deck's own name is a default, never an override: a name the
+        // player typed is a decision and survives. A name we filled in from an
+        // earlier link is not, so a second link replaces it. Clearing the field
+        // hands it back to us.
+        setDeckName((current) =>
+          nameEditedByPlayer.current && current.trim().length > 0 ? current : deck.name,
+        );
       })
       .catch((error: unknown) => {
         if (error instanceof DOMException && error.name === 'AbortError') {
@@ -328,6 +340,7 @@ export function DeckImportModal({ isOpen, onClose, onDeckImported }: DeckImportM
   const handleClose = () => {
     setDeckText('');
     setDeckName('');
+    nameEditedByPlayer.current = false;
     setErrors([]);
     setSuccessMessage('');
     setProgress({ current: 0, total: 0 });
@@ -353,7 +366,10 @@ export function DeckImportModal({ isOpen, onClose, onDeckImported }: DeckImportM
               type="text"
               value={deckName}
               autoFocus={true}
-              onChange={(e) => setDeckName(e.target.value)}
+              onChange={(e) => {
+                nameEditedByPlayer.current = true;
+                setDeckName(e.target.value);
+              }}
               placeholder="Deck name"
               disabled={isImporting}
             />

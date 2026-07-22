@@ -119,6 +119,57 @@ describe('DeckImportModal — importing from a deck link', () => {
     expect(deckNameBox()).toHaveValue('My Pod Deck');
   });
 
+  // A name we filled in from an earlier link is not the player's choice, so a
+  // second link has to replace it — otherwise the new deck keeps the old name.
+  it('replaces a name it filled in itself when a second link is pasted', async () => {
+    const secondDeck: ImportedDeck = {
+      name: 'Landfall Pile',
+      source: 'archidekt',
+      cards: [{ name: 'Lotus Cobra', quantity: 1, section: 'main' }],
+    };
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify(importedDeck), {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        }),
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify(secondDeck), {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        }),
+      );
+    vi.stubGlobal('fetch', fetchMock);
+    renderModal();
+
+    const user = await pasteIntoDeckList(DECK_URL);
+    await waitFor(() => expect(deckNameBox()).toHaveValue('Group hugs'));
+
+    await user.clear(deckListBox());
+    await user.click(deckListBox());
+    await user.paste('https://archidekt.com/decks/99999999/landfall');
+
+    await waitFor(() => expect(deckNameBox()).toHaveValue('Landfall Pile'));
+  });
+
+  // Clearing the field is the player handing the name back to us.
+  it('fills the name again after the player clears it', async () => {
+    vi.stubGlobal('fetch', mockFetchResolving(importedDeck));
+    renderModal();
+
+    const user = userEvent.setup();
+    await user.click(deckNameBox());
+    await user.paste('Temporary');
+    await user.clear(deckNameBox());
+
+    await user.click(deckListBox());
+    await user.paste(DECK_URL);
+
+    await waitFor(() => expect(deckNameBox()).toHaveValue('Group hugs'));
+  });
+
   it('shows the reason the deck could not be read, and leaves the link in place to retry', async () => {
     vi.stubGlobal(
       'fetch',
