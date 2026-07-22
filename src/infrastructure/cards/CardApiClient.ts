@@ -115,11 +115,35 @@ export type CardApiClientConfig = {
   endpoints: CardApiEndpoints;
 };
 
+/**
+ * A line whose printing resolved to a card the line did not name.
+ *
+ * Worth reporting rather than just repairing. This is the one import fault that
+ * produces no error at any layer — the lookup succeeds, the deck is the right
+ * size, and the only evidence is a card the player did not choose. Counting them
+ * is how we find out whether decklists in the wild carry stale printings at a
+ * rate worth caring about, and which sources produce them.
+ */
+export type PrintingMismatch = {
+  /** The parsed line, carrying the set code and collector number that missed. */
+  item: DeckLineItem;
+  /** The card that printing actually is. */
+  returnedName: string;
+  /**
+   * Which lookup supplied the card in the end. `name` is the ordinary repair;
+   * `printing` means no card had that name and the mismatched one was kept —
+   * rarer, and the more suspicious of the two.
+   */
+  resolvedBy: 'name' | 'printing';
+};
+
 export type FetchListResult = {
   results: CardDataResult[];
   failedItems: DeckLineItem[];
   /** Parallel to `failedItems`, but carries why each one failed. */
   failures: LookupFailure[];
+  /** Lines whose printing named a different card. Empty on a clean import. */
+  printingMismatches: PrintingMismatch[];
 };
 
 /**
@@ -208,8 +232,12 @@ export class CardApiClient {
     const results: CardDataResult[] = [];
     const failedItems: DeckLineItem[] = [];
     const failures: LookupFailure[] = [];
+    const printingMismatches: PrintingMismatch[] = [];
 
     for (const { entry, outcome } of outcomes) {
+      if (outcome.mismatch !== undefined) {
+        printingMismatches.push(outcome.mismatch);
+      }
       if (outcome.card) {
         results.push(toCardDataResult(outcome.card, entry.count, entry.commander, entry.section));
       } else {
@@ -228,7 +256,7 @@ export class CardApiClient {
       }
     }
 
-    return { results, failedItems, failures };
+    return { results, failedItems, failures, printingMismatches };
   }
 
   getQueueSize(): number {
@@ -251,7 +279,12 @@ export class CardApiClient {
   private async lookupEntry(
     entry: DeckLineItem,
     retries: number,
-  ): Promise<{ card?: ScryfallCard; reason: LookupFailureReason; status?: number }> {
+  ): Promise<{
+    card?: ScryfallCard;
+    reason: LookupFailureReason;
+    status?: number;
+    mismatch?: PrintingMismatch;
+  }> {
     // Set when the printing resolved to a card that isn't the one the line named.
     let mismatched: ScryfallCard | undefined;
     let printingError: unknown;
@@ -281,7 +314,13 @@ export class CardApiClient {
     // it answered with a different card.
     try {
       const card = await this.fetchByName(entry.name, retries);
-      return { card, reason: 'unknown' };
+      return {
+        card,
+        reason: 'unknown',
+        ...(mismatched === undefined
+          ? {}
+          : { mismatch: { item: entry, returnedName: mismatched.name, resolvedBy: 'name' } }),
+      };
     } catch (err) {
       if (mismatched !== undefined) {
         // The name found nothing, so the printing is the only card we have. A card
@@ -291,7 +330,11 @@ export class CardApiClient {
           `[${this.config.name}] no card named "${entry.name}"; keeping `
           + `"${mismatched.name}" from ${entry.setCode}/${entry.collectorNumber}`,
         );
-        return { card: mismatched, reason: 'unknown' };
+        return {
+          card: mismatched,
+          reason: 'unknown',
+          mismatch: { item: entry, returnedName: mismatched.name, resolvedBy: 'printing' },
+        };
       }
 
       console.error(
