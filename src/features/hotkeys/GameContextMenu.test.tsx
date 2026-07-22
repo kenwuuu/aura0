@@ -113,4 +113,36 @@ describe('GameContextMenu', () => {
     expect(screen.getByRole('menuitem', { name: /^-1\b/ })).toBeInTheDocument();
     expect(screen.getByRole('menuitem', { name: /^Delete token\b/ })).toBeInTheDocument();
   });
+
+  it('board menu replaces "-1/-1 counter" with a "Keyword counters" grid item', async () => {
+    const user = userEvent.setup();
+    renderWithGame(<GameContextMenu />);
+
+    act(() => {
+      useContextMenuStore.getState().openMenu({
+        target: { kind: 'board', x: 10, y: 10 },
+        x: 10,
+        y: 10,
+      });
+    });
+
+    // The drag-to-board grid took the "-1/-1 counter" slot on the empty board
+    // menu; the "+1/+1" ("Counter") row is untouched. `/^Counter\b/` matches
+    // only that row, not "Keyword counters" (which starts with "Keyword").
+    const createToken = await screen.findByRole('menuitem', { name: /^Keyword counters\b/ });
+    expect(screen.getByRole('menuitem', { name: /^Counter\b/ })).toBeInTheDocument();
+    expect(screen.queryByRole('menuitem', { name: /-1\/-1 counter/ })).not.toBeInTheDocument();
+
+    // Deck-pile actions (Shuffle/Mulligan) and per-player health (+1/-1 life)
+    // aren't empty-board actions — they live on the deck and health-node menus,
+    // not here.
+    expect(screen.queryByRole('menuitem', { name: /^Shuffle\b/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('menuitem', { name: /^Mulligan\b/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('menuitem', { name: /^\+1 life\b/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('menuitem', { name: /^-1 life\b/ })).not.toBeInTheDocument();
+
+    // It hosts the same drag-to-board grid as the toolbar's Create ▾ menu.
+    await user.click(createToken);
+    expect(await screen.findByText(/drag a counter onto the board/i)).toBeInTheDocument();
+  });
 });

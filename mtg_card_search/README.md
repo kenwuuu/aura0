@@ -10,6 +10,9 @@ Requires Python 3.12+.
 For provisioning a new server, deploying updates, and the alerting wired
 around `data_updater.py`, see [SETUP.md](SETUP.md).
 
+## Healh Check Endpoint
+`https://digitalocean-ws-ipv4.aura0.app/v1/health`
+
 ## Running tests
 
 `pytest tests/` is the fast, hermetic, no-network suite — run it routinely (and

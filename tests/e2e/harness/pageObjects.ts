@@ -1,5 +1,5 @@
 import { Page, Locator } from '@playwright/test';
-import { TESTID, PileKind } from './selectors';
+import { TESTID, PileKind, PileMoveAction } from './selectors';
 
 /** All battlefield card nodes. */
 export function boardCards(page: Page): Locator {
@@ -10,6 +10,22 @@ export function boardCards(page: Page): Locator {
 export function boardCard(page: Page, id?: string): Locator {
   if (id) return page.locator(`[data-testid="${TESTID.battlefieldCard}"][data-card-id="${id}"]`);
   return boardCards(page).first();
+}
+
+/**
+ * The `data-card-id` of every battlefield card node currently on the board.
+ *
+ * Board cards must be addressed by id, never by DOM index: `boardCards().nth(n)`
+ * is unstable on two axes — playing a card can add *related token* card nodes
+ * (a Goblin, a Treasure — same `battlefield-card` testid, see
+ * `placeCardOnBattlefield`), and node order follows Y.Map iteration, not
+ * creation order. Diff this set before/after an action to find the card it
+ * added (e.g. the clone from Copy/clone).
+ */
+export async function boardCardIds(page: Page): Promise<string[]> {
+  return boardCards(page).evaluateAll((els) =>
+    els.map((el) => (el as HTMLElement).dataset.cardId ?? '').filter(Boolean),
+  );
 }
 
 /**
@@ -106,6 +122,21 @@ export function pileViewerGrid(page: Page): Locator {
   return page.locator('.deck-pile-viewer-grid');
 }
 
+/** The selection-gated "move to…" destination bar (only present once ≥1 card is selected). */
+export function pileDestinationBar(page: Page): Locator {
+  return page.getByTestId(TESTID.pileDestinationBar);
+}
+
+/** The "N SELECTED" count inside the destination bar. */
+export function pileDestinationCount(page: Page): Locator {
+  return page.getByTestId(TESTID.pileDestinationCount);
+}
+
+/** A destination-bar target button, e.g. `pileDestinationTarget(page, 'moveToHand')`. */
+export function pileDestinationTarget(page: Page, action: PileMoveAction): Locator {
+  return page.getByTestId(`pile-destination-${action}`);
+}
+
 /** The "Choose Deck" trigger button. */
 export function deckImportOpenButton(page: Page): Locator {
   return page.getByTestId(TESTID.deckImportOpen);
@@ -128,9 +159,9 @@ export function cardPreview(page: Page): Locator {
   return page.locator('.card-preview-popup');
 }
 
-/** The Create ▾ > Token popover hosting the draggable KeywordTokenGrid. */
+/** The Create ▾ > Counter popover hosting the draggable KeywordTokenGrid. */
 export function tokenGrid(page: Page): Locator {
-  return page.locator('[data-slot="popover-content"]').filter({ hasText: 'Drag a token onto the board' });
+  return page.locator('[data-slot="popover-content"]').filter({ hasText: 'Drag a counter onto the board' });
 }
 
 /** Draggable token templates inside the {@link tokenGrid} drawer. */

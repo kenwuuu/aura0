@@ -295,6 +295,28 @@ test.describe('onboarding tour', () => {
     }
   });
 
+  test('the tour does not follow a second player into the room', async ({ page }) => {
+    // Regression: the opt-out was a *page*-level init script, so it never reached the
+    // separate context `connectSecondPlayer` opens. That context is a fresh browser with
+    // empty localStorage — a brand-new player as far as the tour is concerned — so player
+    // two booted with a tour of its own. Nothing asserted on it, so nothing went red: it
+    // simply meant every two-player spec in the suite ran with an unasked-for overlay on
+    // the second client. `connectSecondPlayer` now opts its context out (harness/onboarding.ts).
+    await waitForTour(page);
+    const bob = await connectSecondPlayer(page);
+
+    try {
+      // Bob is fully seated by now — `connectSecondPlayer` waited on his 40 health, his
+      // opening hand, and both sides seeing two players — so a tour of his own has had
+      // every chance to mount.
+      await expect(tourOverlay(bob)).toBeHidden();
+      // ...while the player who *did* ask for one still has it.
+      await expect(tourOverlay(page)).toBeVisible();
+    } finally {
+      await bob.context().close();
+    }
+  });
+
   test('skip dismisses the tour, and it stays gone across a reload', async ({ page }) => {
     await waitForTour(page);
 

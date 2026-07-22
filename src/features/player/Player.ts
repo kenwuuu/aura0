@@ -354,6 +354,15 @@ export class Player {
   }
 
   /**
+   * Replace a pile's contents with a reordered copy of the same cards — the
+   * persistence path for pile-viewer drag-to-reorder (the sibling of
+   * reorderHand for the non-hand piles). Callers pass the new stored order.
+   */
+  public reorderPile(pileType: PileType, newOrder: Card[]): void {
+    this.piles[pileType].setCards(newOrder);
+  }
+
+  /**
    * Move a card from one pile to another as a single logged action.
    * Centralizes the remove+place+log sequence that pile-viewer callbacks and
    * hotkeys both need, so no caller can move a card without it being logged.

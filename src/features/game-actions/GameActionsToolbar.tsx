@@ -9,8 +9,10 @@
  *   - 'actions': items in an "Actions ▾" dropdown
  *   - 'create': items in a "Create ▾" dropdown
  *
- * The Token create item gets special treatment: clicking it opens a
- * sub-popover hosting the KeywordTokenGrid (drag-to-board ability tokens).
+ * The Token create item gets special treatment: it renders as a
+ * `CreateTokenGridItem`, which opens a sub-popover hosting the KeywordTokenGrid
+ * (drag-to-board ability tokens) — the same item the empty-board context menu
+ * reuses.
  *
  * All game state access goes through useGameInstance; actions call into the
  * registry's perform(ctx) — this component stays generic.
@@ -28,13 +30,11 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/shared/ui/dropdown-menu';
-import { Popover, PopoverAnchor, PopoverContent } from '@/shared/ui/popover';
 import { FloatingPanel } from '@/shared/ui/FloatingPanel';
 import { useGameInstance } from '@/app/stores/gameInstanceStore';
 import { YDOC_CARDS_ON_BOARD, YDOC_KEYWORD_TOKENS } from '@/constants';
 import type { WhiteboardCard } from '@/features/battlefield/types';
-import { KeywordTokenGrid } from '@/features/keyword-tokens/KeywordTokenGrid';
-import { DEFAULT_TOKEN_TEMPLATES } from './defaultTokenTemplates';
+import { CreateTokenGridItem } from './CreateTokenGridItem';
 
 // ── Toolbar button style ─────────────────────────────────────────────────────
 
@@ -209,7 +209,7 @@ export function GameActionsContent({ style }: { style?: React.CSSProperties } = 
         <DropdownMenuContent align="start" side="bottom" onInteractOutside={keepTriggerInteractionsInside(createTriggerRef)}>
           {createDropdown.map((action) => {
             if (action.id === 'create-token') {
-              return <TokenSubItem key={action.id} />;
+              return <CreateTokenGridItem key={action.id} columns={7} />;
             }
             return (
               <DropdownMenuItem
@@ -244,57 +244,5 @@ export function GameActionsToolbar() {
     <FloatingPanel persistKey="game-actions-toolbar" defaultPosition={{ x: 296, y: 60 }} title="Game Actions">
       <GameActionsContent />
     </FloatingPanel>
-  );
-}
-
-// ── Token sub-item ───────────────────────────────────────────────────────────
-// The "Token" create item opens a popover containing the ability/keyword
-// token grid instead of navigating somewhere — the grid is drag-to-board.
-
-function TokenSubItem() {
-  const [open, setOpen] = useState(false);
-
-  return (
-    <Popover open={open} onOpenChange={setOpen}>
-      {/* PopoverAnchor, not PopoverTrigger: we already control `open` explicitly
-          via onSelect below. A Trigger would compose its own click->onOpenChange
-          handler onto this same DropdownMenuItem, double-toggling `open` (once
-          from our onSelect, once from the Trigger's own click handling) and
-          netting out to "never opens." Anchor only supplies position, no
-          click behavior of its own. */}
-      <PopoverAnchor asChild>
-        <DropdownMenuItem
-          onSelect={(e) => {
-            // Prevent the dropdown from closing when the popover opens.
-            e.preventDefault();
-            setOpen((v) => !v);
-          }}
-        >
-          Token
-          <ChevronDown size={12} style={{ marginLeft: 'auto', opacity: 0.6, transform: open ? 'rotate(180deg)' : undefined }} />
-        </DropdownMenuItem>
-      </PopoverAnchor>
-      <PopoverContent
-        side="right"
-        align="start"
-        className="p-2 w-auto"
-        style={{ background: 'rgba(18,18,24,0.98)', border: '1px solid rgba(255,255,255,0.12)' }}
-        // The popover's anchor IS a DropdownMenuItem. Radix Menu focuses the
-        // item on pointermove; if the popover has grabbed focus on open, that
-        // focus-steal reads as "focus left the popover" and the non-modal
-        // DismissableLayer dismisses it the instant the user's mouse crosses
-        // the item on its way to the grid — the grid vanishes before it can be
-        // used. Never take focus on open, and don't treat focus leaving as a
-        // dismiss. Outside *clicks* and Escape still close it (pointer/escape
-        // paths are untouched).
-        onOpenAutoFocus={(e) => e.preventDefault()}
-        onFocusOutside={(e) => e.preventDefault()}
-      >
-        <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', marginBottom: 6, paddingLeft: 4 }}>
-          Drag a token onto the board
-        </p>
-        <KeywordTokenGrid templates={DEFAULT_TOKEN_TEMPLATES} columns={5} gap={8} />
-      </PopoverContent>
-    </Popover>
   );
 }

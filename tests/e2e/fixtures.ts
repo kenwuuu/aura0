@@ -1,5 +1,6 @@
 import {test as base, expect, Locator} from '@playwright/test';
 import { blockAnalytics } from './harness/network';
+import { markReturningPlayer } from './harness/onboarding';
 
 async function closeIfVisible(locator: Locator) {
   // Only try the click if the locator exists in the DOM
@@ -20,26 +21,22 @@ function generateRandomString(length: number): string {
   return result;
 }
 
-/** Enough prior visits that `isOnboardingAudience()` says no. */
-const RETURNING_PLAYER_VISIT_COUNT = '99';
-
 export const test = base.extend<{ onboardingTour: boolean }>({
   /**
    * Whether this spec wants the first-run tour. Off by default: a fresh context
    * has empty localStorage, which makes every test a brand-new player, and the
    * tour would otherwise appear in all of them. Opt in with
    * `test.use({ onboardingTour: true })` — see app/onboarding_tour.spec.ts.
+   *
+   * This governs *this* context only. A second player is a separate context and
+   * opts out on its own — see `connectSecondPlayer`.
    */
   onboardingTour: [false, { option: true }],
 
   page: async ({ page, onboardingTour }, use) => {
-    if (!onboardingTour) {
-      // Must be an init script, not a post-goto write: bootstrap reads the visit
-      // count before React mounts, and re-reads it on every reload.
-      await page.addInitScript((count) => {
-        localStorage.setItem('aura-visit-count', count);
-      }, RETURNING_PLAYER_VISIT_COUNT);
-    }
+    // The whole context, not just this page: `openDuplicateTab` opens a second page
+    // here, and a page-level script would leave that tab booting as a new player.
+    if (!onboardingTour) await markReturningPlayer(page.context());
 
     await blockAnalytics(page);
     await page.goto(`/?room=${generateRandomString(30)}`, { waitUntil: 'networkidle' });

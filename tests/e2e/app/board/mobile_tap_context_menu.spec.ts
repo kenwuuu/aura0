@@ -73,8 +73,8 @@ test('tapping the empty board opens the global-actions menu', async ({ page }) =
   await page.touchscreen.tap(x, y);
 
   await expect(page.getByRole('menuitem', { name: /^Draw\b/ })).toBeVisible();
-  await expect(page.getByRole('menuitem', { name: /^Shuffle\b/ })).toBeVisible();
   await expect(page.getByRole('menuitem', { name: /^Untap all\b/ })).toBeVisible();
+  await expect(page.getByRole('menuitem', { name: /^Counter\b/ })).toBeVisible();
 });
 
 test('tapping the empty board while a menu is open dismisses it (no re-open)', async ({ page }) => {
@@ -187,10 +187,10 @@ test.describe('tapping freshly-placed board nodes', () => {
     await expect(page.getByRole('menuitem', { name: /^Tap\b/ })).toBeVisible();
     await expect(page.getByRole('menuitem', { name: /^Flip\b/ })).toBeVisible();
     await expect(cardPreview(page)).toBeHidden();
-    // "Shuffle" is an empty-board row, absent from a card's menu — its absence
+    // "Draw" is an empty-board row, absent from a card's menu — its absence
     // proves the pane's tap listener didn't claim this node tap and summon the
     // board menu in the card's place, which is exactly what it used to do.
-    await expect(page.getByRole('menuitem', { name: /^Shuffle\b/ })).toBeHidden();
+    await expect(page.getByRole('menuitem', { name: /^Draw\b/ })).toBeHidden();
 
     // Second tap on the same card swaps the menu for its preview.
     await touchTap(page, card);

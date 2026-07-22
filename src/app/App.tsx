@@ -39,6 +39,7 @@ import { GameActionsToolbar } from '@/features/game-actions/GameActionsToolbar';
 import { NumberPromptManager } from '@/features/game-actions/NumberPromptManager';
 import { ConfirmDialogManager } from '@/app/ConfirmDialogManager';
 import { TokenCardSearchModal } from '@/features/game-actions/TokenCardSearchModal';
+import { MobileTokenTray } from '@/features/game-actions/MobileTokenTray';
 import { Toaster } from '@/shared/ui/sonner';
 import { AnnouncementsService } from '@/shared/services/announcements/AnnouncementsService';
 import { usePhoneLayout } from '@/shared/hooks';
@@ -203,6 +204,7 @@ export function App({ yDoc, yjsNetworkProvider, player, roomManager, playerId, c
       <NumberPromptManager />
       <ConfirmDialogManager />
       <TokenCardSearchModal cardLookup={cardLookup} />
+      <MobileTokenTray />
       <CardPreview />
       <GameContextMenu />
       <GameHotkeysManager />

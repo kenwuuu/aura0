@@ -26,6 +26,7 @@ import {
   DropdownMenuShortcut,
   DropdownMenuTrigger,
 } from '@/shared/ui/dropdown-menu';
+import { CreateTokenGridItem } from '@/features/game-actions/CreateTokenGridItem';
 
 export function GameContextMenu() {
   const isOpen = useContextMenuStore((s) => s.isOpen);
@@ -57,7 +58,13 @@ export function GameContextMenu() {
     // treats as the cursor "leaving"), clearing hoverTarget and breaking the
     // keyboard hotkeys that read it — hover a card, right-click it, then
     // press a hotkey key must still act on that card while the menu is open.
-    <DropdownMenu open={open} onOpenChange={(next) => !next && close()} modal={false}>
+    // key on the cursor point: once Radix has positioned an open menu against
+    // the fixed trigger span, moving that span (a second right-click elsewhere
+    // while the menu is still open) doesn't re-anchor it — Popper only recomputes
+    // on scroll/resize, not a style change. Remounting on a new point forces a
+    // fresh position, so the menu follows the cursor instead of reopening at the
+    // first spot.
+    <DropdownMenu key={`${x},${y}`} open={open} onOpenChange={(next) => !next && close()} modal={false}>
       {/* Radix's DropdownMenu has no `Anchor` primitive, so the Trigger doubles
           as one. For a mouse right-click it's a zero-size point at the cursor.
           For a tap it's the tapped item's own box (`anchorRect`), so Popper
@@ -132,6 +139,21 @@ export function GameContextMenu() {
             <DropdownMenuShortcut>{hotkey.key}</DropdownMenuShortcut>
           </DropdownMenuItem>
         ))}
+        {/* The empty-board menu offers token creation via the same drag-to-board
+            grid as the toolbar's Create ▾ menu (it took the "-1/-1 counter"
+            slot). It performs no dispatchable action, so it lives here rather
+            than in the HOTKEYS catalog and carries no keyboard shortcut. */}
+        {target?.kind === 'board' && (
+          <CreateTokenGridItem
+            label="Keyword counters"
+            columns={7}
+            // Bottom-align the grid with this (last) item so its bottom edge
+            // lines up with the long menu's bottom edge, and lift it to the
+            // menu's own z-index so it isn't layered behind it.
+            align="end"
+            contentClassName="z-[10001]"
+          />
+        )}
       </DropdownMenuContent>
     </DropdownMenu>
   );

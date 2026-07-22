@@ -5,6 +5,7 @@ import { importDeck, playHandCardToBoard, dragBoardCardToPile } from './interact
 import { waitForSync } from './waits';
 import { expectPileCount, expectHandCount } from './assertions';
 import { blockAnalytics } from './network';
+import { markReturningPlayer } from './onboarding';
 
 /**
  * Import a single-card deck and confirm it landed: one card in the opening
@@ -75,15 +76,35 @@ export async function openDuplicateTab(page: Page): Promise<Page> {
   return duplicate;
 }
 
+export interface SecondPlayerOptions {
+  /**
+   * Give the second player the first-run tour. Off by default, and deliberately
+   * independent of the `onboardingTour` fixture option: that option describes the
+   * context the *spec* runs in, and this is a different context entirely.
+   *
+   * A second player is a fresh browser — empty localStorage — which the tour reads
+   * as a brand-new player, so without opting out it gets a tour no spec asked for
+   * and an overlay lands on top of every two-player test. Turn it on only to test
+   * what the invited friend sees.
+   */
+  onboardingTour?: boolean;
+}
+
 /**
  * Open a second browser context in the same room (real WebRTC, not a mock
  * transport — that's what makes this tier catch sync-timing bugs). Waits for
  * both sides to see two seated players before returning.
  */
-export async function connectSecondPlayer(page: Page): Promise<Page> {
+export async function connectSecondPlayer(
+  page: Page,
+  { onboardingTour = false }: SecondPlayerOptions = {},
+): Promise<Page> {
   const browser = page.context().browser();
   if (!browser) throw new Error('No browser available to open a second context.');
   const context = await browser.newContext();
+  // Before the first page exists, so it is in place for that page's very first navigation.
+  if (!onboardingTour) await markReturningPlayer(context);
+
   const second = await context.newPage();
   await blockAnalytics(second);
   await second.goto(page.url(), { waitUntil: 'networkidle' });
