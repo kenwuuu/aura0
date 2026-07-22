@@ -192,7 +192,7 @@ export function App({ yDoc, yjsNetworkProvider, player, roomManager, playerId, c
       <LocalPileTiles />
       <OpponentPileViewers yDoc={yDoc} localPlayerId={playerId} />
       {/* HUD windows float and drag on desktop; on phone they collapse into
-          the fixed top-left toggle column (see docs/responsive.md). */}
+          the fixed top-left toggle column (see docs/architecture/responsive.md). */}
       {isPhone ? (
         <PhoneHudStack yDoc={yDoc} localPlayerId={playerId} />
       ) : (

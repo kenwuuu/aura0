@@ -23,4 +23,4 @@ The main purpose of this module is to provide immediate visual feedback for a ca
 
 3.  **Missing Features in React Version**: The new `CardPreview.tsx` is simpler and currently lacks the zoom functionality and dynamic positioning (it's fixed to the top-right) that the legacy `CardPreview.ts` implements. When the migration is complete, these features will need to be re-implemented in the React version, likely using React hooks for state management (`useState` for zoom level) and event handling.
 
-4.  **Global State/Coupling**: The legacy zoom controls are appended directly to `document.body` and positioned absolutely. A better, more modern approach (as suggested in `LIBRARY_RECOMMENDATIONS.md`) would be to use a state management library like Zustand to manage the zoom level globally, or to lift the state up to a shared parent component.
+4.  **Global State/Coupling**: The legacy zoom controls are appended directly to `document.body` and positioned absolutely. A better, more modern approach would be to use a state management library like Zustand to manage the zoom level globally, or to lift the state up to a shared parent component.

@@ -25,7 +25,7 @@ body {
   /* dvh tracks the *visible* viewport as mobile browser chrome collapses and
      expands; the vh declaration before it is the fallback for browsers
      without dvh support (Safari <15.4, Chrome <108). Keep the pair in this
-     order — see docs/responsive.md. */
+     order — see docs/architecture/responsive.md. */
   height: 100vh;
   height: 100dvh;
   display: flex;
@@ -964,7 +964,7 @@ body {
   }
 }
 
-/* ── Phone layout (below sm) — see docs/responsive.md ─────────────────────
+/* ── Phone layout (below sm) — see docs/architecture/responsive.md ─────────────────────
    Show/hide rules for the phone layout accumulate here, in one place, as
    plain unlayered CSS (same cascade rationale as the toolbar collapse
    above). Structural/behavioral phone branches live in JS via
@@ -1476,7 +1476,7 @@ body {
   font-size: 13px;
 }
 
-/* ===== Pile Viewer — phone full-screen shell (design 1a) — see docs/responsive.md ===== */
+/* ===== Pile Viewer — phone full-screen shell (design 1a) — see docs/architecture/responsive.md ===== */
 @media (max-width: 639px) {
   .deck-pile-viewer-content {
     position: fixed;

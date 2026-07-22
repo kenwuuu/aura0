@@ -79,6 +79,7 @@ E2e tests: Playwright under `tests/e2e/`. Write specs through `tests/e2e/harness
 
 ## Additional Reference
 
+- `docs/README.md` — index of project docs, grouped into `deployment/`, `networking/`, `architecture/`, `testing/`, `incidents/`
 - `@tests/testing-react.md` — unit/component test conventions: query ladder, real-Yjs rule, mocking policy, harness
 - `@docs/testing/e2e.md` — E2E testing contract: harness-first rules, banned patterns, CI wiring, deferred state-assertion design
 - `@tests/testing.md` — PileViewer selectors, dnd-kit drag-and-drop mechanics

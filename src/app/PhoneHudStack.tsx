@@ -5,7 +5,7 @@
  * column at the top-left of the screen and expands out of its button in
  * place: the open panel's top-left corner is the button itself, which stays
  * visible there — tapping it again collapses. Opening the top panel pushes
- * the unit below it down the column. See docs/responsive.md ("Phone screen
+ * the unit below it down the column. See docs/architecture/responsive.md ("Phone screen
  * map"); desktop keeps ActionLogPanel/GameActionsToolbar (see App.tsx).
  */
 import React, { useEffect, useState, type ReactNode } from 'react';

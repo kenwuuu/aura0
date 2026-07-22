@@ -4,7 +4,7 @@ Operating the Yjs WebSocket relay on the DigitalOcean droplet — health checks,
 rollback, and the rules that have each cost us an outage.
 
 The *why* behind the code (the eviction shim, the Yjs pin, the `main.js` split) lives in
-[`networking/websocket/README.md`](../networking/websocket/README.md). This is the ops side.
+[`networking/websocket/README.md`](../../networking/websocket/README.md). This is the ops side.
 
 ## 30-second triage
 
@@ -28,7 +28,7 @@ dead relay means players are **stuck**, not degraded. Treat it as a full outage.
 
 *How you find out before a player tells you:* the `sync_outcome` / `connection_outcome` PostHog
 signals and the DigitalOcean memory alerts — see
-[`DEPLOYMENT_RUNBOOK.md`](DEPLOYMENT_RUNBOOK.md#reading-the-health-metrics).
+[`DEPLOYMENT_RUNBOOK.md`](../deployment/DEPLOYMENT_RUNBOOK.md#reading-the-health-metrics).
 
 ## Relay is down
 
@@ -149,7 +149,7 @@ re-stage instead.
 range silently took `0.1.5`, a *patch* bump that moved to Yjs 14 and pulled two mutually
 incompatible prereleases into the tree. Sockets connected, rooms created and evicted,
 `/health` was green — and **every board in production was empty** for 15 minutes. See the
-[incident report](incidents/2026-07-13-relay-sync-outage.md).
+[incident report](../incidents/2026-07-13-relay-sync-outage.md).
 
 **Room accounting proves the relay is *alive*, not that it is *relaying*.** Never flip on
 `/health` alone. And in any multi-client test, **`disableBc: true` is mandatory** — y-websocket

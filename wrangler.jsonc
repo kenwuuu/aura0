@@ -2,7 +2,7 @@
  * For more details on how to configure Wrangler, refer to:
  * https://developers.cloudflare.com/workers/wrangler/configuration/
  *
- * Two deploy targets share this file (see docs/STAGING.md):
+ * Two deploy targets share this file (see docs/deployment/STAGING.md):
  *   - Production: top-level config → Worker `aura0`, built from `master`.
  *       Deploy command: `npx wrangler deploy`
  *   - Staging:    `env.staging`    → Worker `aura0-staging`, built from `staging`.
@@ -37,7 +37,7 @@
 		// non-inheritable keys (assets, vars, routes, bindings…) into named
 		// environments, so omitting it would ship a staging Worker with no
 		// static files. The custom domain (staging.aura0.app) is bound in the
-		// Cloudflare dashboard, not here — see docs/STAGING.md — so a missing
+		// Cloudflare dashboard, not here — see docs/deployment/STAGING.md — so a missing
 		// zone can never break the staging build.
 		"staging": {
 			"name": "aura0-staging",

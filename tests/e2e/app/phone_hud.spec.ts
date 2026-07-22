@@ -1,5 +1,5 @@
 /**
- * Advisory coverage for the phone HUD layout (docs/responsive.md): below the
+ * Advisory coverage for the phone HUD layout (docs/architecture/responsive.md): below the
  * `sm` breakpoint the draggable HUD windows are replaced by a fixed top-left
  * toggle column (PhoneHudStack), and the settings gear + zoom controls move
  * to the top-right. Desktop keeps the floating panels. Untagged (not @smoke),
