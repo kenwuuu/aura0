@@ -81,6 +81,17 @@ export const HOTKEYS: Hotkey[] = [
     longDescription: 'Draw',
     action: 'draw',
   },
+  {
+    // Deck-only: takes the top card of the deck straight onto the battlefield,
+    // skipping the hand. Not in 'global' — it's a deck-pile action, so it stays
+    // off the empty-board menu, and the key only fires while the deck is hovered.
+    key: 'P',
+    keys: ['p'],
+    context: ['deck'],
+    shortDescription: 'Play to board',
+    longDescription: 'Play the top card of your deck to the battlefield',
+    action: 'playToBattlefield',
+  },
   // Not in 'global' context: shuffle/mulligan are deck-pile actions, so they
   // stay off the empty-board menu (they remain on the deck menu). The v/m keys
   // still fire — those bindings are registered directly in useAllGameHotkeys,

@@ -172,6 +172,25 @@ describe('dispatchGameAction', () => {
       expect(player.getState().hand.some((c) => c.id === 'card-1')).toBe(true);
     });
 
+    it('playToBattlefield puts the top card of the deck on the board, skipping the hand', () => {
+      const { yDoc, player } = seed();
+      player.placeCardInPile(makeCard({ id: 'bottom' }), 'deck');
+      player.placeCardInPile(makeCard({ id: 'top' }), 'deck');
+
+      dispatchGameAction('playToBattlefield', { kind: 'pile', pileType: 'deck' });
+
+      expect(yDoc.getMap('cards-on-board').has('top')).toBe(true);
+      expect(player.getDeck().peekTop()!.id).toBe('bottom');
+      expect(player.getState().hand).toHaveLength(0);
+    });
+
+    it('playToBattlefield on an empty pile is a no-op', () => {
+      const { yDoc } = seed();
+
+      expect(() => dispatchGameAction('playToBattlefield', { kind: 'pile', pileType: 'deck' })).not.toThrow();
+      expect(yDoc.getMap('cards-on-board').size).toBe(0);
+    });
+
     it('viewPile requests the local pile viewer (the touch-tap "View" row)', () => {
       seed();
       usePileViewerOpenStore.getState().clear();

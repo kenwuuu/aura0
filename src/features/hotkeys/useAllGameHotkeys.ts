@@ -140,6 +140,14 @@ export function useAllGameHotkeys() {
     else if (isToken) dispatch('tokenDelete');
   }, { ...board, enabled: isBattlefield || isToken });
 
+  // Play-to-board (P) — top card of the deck straight onto the battlefield.
+  // Gated to the deck specifically (not every pile like the moveTo* keys) to
+  // match the catalog, which lists this row on the deck's menu only: exile and
+  // discard get played from by picking a card in the pile viewer, not blind off
+  // the top.
+  useHotkeys(getKeyBindingsForAction('playToBattlefield'), () => dispatch('playToBattlefield'),
+    { ...board, enabled: isPile && t?.pileType === 'deck' });
+
   // Move-to-hand (H) — battlefield card or pile top
   useHotkeys(getKeyBindingsForAction('moveToHand'), () => dispatch('moveToHand'),
     { ...board, enabled: isBattlefield || isPile });
