@@ -492,7 +492,7 @@ function extractPrinting(line: string): PrintingSuffix | null {
  * bare substring) keeps a slash *inside* a name from being mistaken for a
  * separator.
  */
-function stripBackFace(name: string): string {
+export function stripBackFace(name: string): string {
   const words = name.split(/\s+/);
   const separator = words.findIndex((word) => word === '/' || word === '//');
   return separator === -1 ? name : words.slice(0, separator).join(' ');

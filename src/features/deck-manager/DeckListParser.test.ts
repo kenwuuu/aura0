@@ -929,12 +929,12 @@ SIDEBOARD:
         });
 
         it('reads the printing from the right when the name has parentheses too', () => {
-          expect(parseDecklist("1 Erase (Not the Urza's Legacy One) (UNH) 45")).toEqual([
+          expect(parseDecklist("1 Erase (Not the Urza's Legacy One) (UNH) 10")).toEqual([
             {
               count: 1,
               name: "Erase (Not the Urza's Legacy One)",
               setCode: 'UNH',
-              collectorNumber: '45',
+              collectorNumber: '10',
             },
           ]);
         });
