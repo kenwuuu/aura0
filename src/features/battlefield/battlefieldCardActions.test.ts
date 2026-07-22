@@ -177,6 +177,33 @@ describe('executeBattlefieldCardAction', () => {
       expect(log.some((e) => e.type === 'copy')).toBe(true);
     });
 
+    it('keeps cascading when the same card is copied repeatedly', () => {
+      yCards.set('card-1', makeWhiteboardCard({ id: 'card-1', x: 10, y: 10, ownerId: 'p1' }));
+
+      executeBattlefieldCardAction('copy', 'card-1', yCards, yTokens, 'p1');
+      executeBattlefieldCardAction('copy', 'card-1', yCards, yTokens, 'p1');
+      executeBattlefieldCardAction('copy', 'card-1', yCards, yTokens, 'p1');
+
+      const copies = Array.from(yCards.values())
+        .filter((c) => c.id !== 'card-1')
+        .sort((a, b) => a.x - b.x);
+      expect(copies.map((c) => [c.x, c.y])).toEqual([
+        [30, 30],
+        [50, 50],
+        [70, 70],
+      ]);
+    });
+
+    it('continues the cascade past a card that already sits in the next slot', () => {
+      yCards.set('card-1', makeWhiteboardCard({ id: 'card-1', x: 10, y: 10, ownerId: 'p1' }));
+      yCards.set('blocker', makeWhiteboardCard({ id: 'blocker', x: 30, y: 30, ownerId: 'p1' }));
+
+      executeBattlefieldCardAction('copy', 'card-1', yCards, yTokens, 'p1');
+
+      const copy = Array.from(yCards.values()).find((c) => c.id !== 'card-1' && c.id !== 'blocker')!;
+      expect([copy.x, copy.y]).toEqual([50, 50]);
+    });
+
     it("names the owner when copying another player's card", () => {
       setPlayerName(boardDoc, 'p2', 'Alice');
       yCards.set('card-1', makeWhiteboardCard({ id: 'card-1', ownerId: 'p2', name: 'Lightning Bolt' }));
