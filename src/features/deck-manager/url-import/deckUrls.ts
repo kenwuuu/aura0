@@ -10,8 +10,15 @@
  * by validation, which is what keeps the proxy from becoming an open relay.
  */
 
-/** A deck-hosting site we know how to import from. */
-export type DeckSource = 'archidekt' | 'tappedout' | 'mtggoldfish';
+/**
+ * A deck-hosting site we know how to import from.
+ *
+ * EDHREC appears twice because it serves two different things at two different
+ * addresses: `edhrec` is somebody's real deck, `edhrec-average` is the average
+ * deck EDHREC synthesizes for a commander. They need different requests and
+ * different parsing, so they are different sources rather than one with a mode.
+ */
+export type DeckSource = 'archidekt' | 'tappedout' | 'mtggoldfish' | 'edhrec' | 'edhrec-average';
 
 /** A deck identified on a known host — enough to rebuild the upstream API URL. */
 export type DeckUrlRef = {
@@ -52,6 +59,21 @@ const DECK_PATHS: ReadonlyArray<{ source: DeckSource; domain: string; path: RegE
     // player who pasted that gets the same deck.
     path: /^\/deck\/(?:download\/)?(\d+)\b/,
   },
+  {
+    source: 'edhrec',
+    domain: 'edhrec.com',
+    // `/deckpreview/<hash>` — a real deck EDHREC has indexed. The hash is
+    // base64url, so it admits `-` and `_` but still no slash or dot.
+    path: /^\/deckpreview\/([A-Za-z0-9_-]+)\b/,
+  },
+  {
+    source: 'edhrec-average',
+    domain: 'edhrec.com',
+    // `/average-decks/<slug>` is the average deck itself; `/commanders/<slug>`
+    // is the page players actually browse, and the average deck is the only
+    // importable thing on it, so both resolve to the same list.
+    path: /^\/(?:average-decks|commanders)\/([a-z0-9-]+)\b/,
+  },
 ];
 
 function hostMatches(hostname: string, domain: string): boolean {
@@ -87,8 +109,12 @@ export function parseDeckUrl(raw: string): DeckUrlRef | null {
     if (!hostMatches(url.hostname, domain)) {
       continue;
     }
+    // Keep going rather than returning on the first host match: one site can
+    // have several kinds of deck page, and only one of its patterns will fit.
     const match = path.exec(url.pathname);
-    return match ? { source, deckId: match[1] } : null;
+    if (match) {
+      return { source, deckId: match[1] };
+    }
   }
 
   return null;
@@ -115,6 +141,14 @@ export function upstreamApiUrl(ref: DeckUrlRef): string {
       // The download endpoint returns text/plain plus the deck's name in a
       // Content-Disposition filename. The deck *page* is ~75KB of HTML.
       return `https://www.mtggoldfish.com/deck/download/${ref.deckId}`;
+    case 'edhrec':
+      // There is no JSON endpoint for a deck preview — the page carries its own
+      // data inline instead. A lighter `_next/data` route exists but is keyed to
+      // a build id that changes on every EDHREC deploy, so it would break
+      // silently; the page itself is the stable address.
+      return `https://edhrec.com/deckpreview/${ref.deckId}`;
+    case 'edhrec-average':
+      return `https://json.edhrec.com/pages/average-decks/${ref.deckId}.json`;
   }
 }
 
@@ -127,5 +161,8 @@ export function sourceLabel(source: DeckSource): string {
       return 'TappedOut';
     case 'mtggoldfish':
       return 'MTGGoldfish';
+    case 'edhrec':
+    case 'edhrec-average':
+      return 'EDHREC';
   }
 }

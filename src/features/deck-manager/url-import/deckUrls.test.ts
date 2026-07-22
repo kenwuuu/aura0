@@ -66,6 +66,40 @@ describe('parseDeckUrl', () => {
     expect(parseDeckUrl(input)).toBeNull();
   });
 
+  it('recognizes an EDHREC deck preview', () => {
+    expect(parseDeckUrl('https://edhrec.com/deckpreview/cwQ2LtjwVkLxbpcC8vWWHg')).toEqual({
+      source: 'edhrec',
+      deckId: 'cwQ2LtjwVkLxbpcC8vWWHg',
+    });
+  });
+
+  // The hash is base64url, so - and _ have to survive.
+  it('recognizes a deck preview hash containing - and _', () => {
+    expect(parseDeckUrl('https://edhrec.com/deckpreview/zUjqocRu97PGV2G-R73wAg')).toEqual({
+      source: 'edhrec',
+      deckId: 'zUjqocRu97PGV2G-R73wAg',
+    });
+  });
+
+  // Both the average-deck page and the commander page a player is more likely to
+  // be looking at resolve to the same average deck.
+  it.each([
+    ['the average-decks page', 'https://edhrec.com/average-decks/gluntch-the-bestower'],
+    ['the commander page', 'https://edhrec.com/commanders/gluntch-the-bestower'],
+  ])('recognizes %s as an EDHREC average deck', (_label, input) => {
+    expect(parseDeckUrl(input)).toEqual({
+      source: 'edhrec-average',
+      deckId: 'gluntch-the-bestower',
+    });
+  });
+
+  it.each([
+    ['an EDHREC page that is not a deck', 'https://edhrec.com/articles/some-article'],
+    ['an EDHREC lookalike', 'https://notedhrec.com/deckpreview/abc'],
+  ])('rejects %s', (_label, input) => {
+    expect(parseDeckUrl(input)).toBeNull();
+  });
+
   // The slug becomes part of a URL we then request, so it must not be able to
   // carry path separators or traversal out of /mtg-decks/.
   it('does not let a slug escape its path', () => {
@@ -88,6 +122,18 @@ describe('upstreamApiUrl', () => {
   it('builds the Archidekt API URL from the deck id', () => {
     expect(upstreamApiUrl({ source: 'archidekt', deckId: '24569510' })).toBe(
       'https://archidekt.com/api/decks/24569510/',
+    );
+  });
+
+  it('builds the EDHREC deck preview page URL from the hash', () => {
+    expect(upstreamApiUrl({ source: 'edhrec', deckId: 'cwQ2LtjwVkLxbpcC8vWWHg' })).toBe(
+      'https://edhrec.com/deckpreview/cwQ2LtjwVkLxbpcC8vWWHg',
+    );
+  });
+
+  it('builds the EDHREC average-deck JSON URL from the slug', () => {
+    expect(upstreamApiUrl({ source: 'edhrec-average', deckId: 'gluntch-the-bestower' })).toBe(
+      'https://json.edhrec.com/pages/average-decks/gluntch-the-bestower.json',
     );
   });
 

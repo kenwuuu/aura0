@@ -54,5 +54,9 @@ function deckPageUrl(ref: DeckUrlRef): string {
       return `https://tappedout.net/mtg-decks/${ref.deckId}/`;
     case 'mtggoldfish':
       return `https://www.mtggoldfish.com/deck/${ref.deckId}`;
+    case 'edhrec':
+      return `https://edhrec.com/deckpreview/${ref.deckId}`;
+    case 'edhrec-average':
+      return `https://edhrec.com/average-decks/${ref.deckId}`;
   }
 }

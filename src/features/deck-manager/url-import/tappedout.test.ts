@@ -51,14 +51,15 @@ describe('extractTappedOutDeck', () => {
 });
 
 describe('extractTappedOutDeck on a real export', () => {
-  const deck = extractTappedOutDeck('05-06-24-here-kitty-kitty', realExport);
+  // Per-test, so a throw reports as a failure rather than as an empty suite.
+  const deck = () => extractTappedOutDeck('05-06-24-here-kitty-kitty', realExport);
 
   it('imports the whole list', () => {
-    expect(deck.cards.length).toBeGreaterThan(80);
+    expect(deck().cards.length).toBeGreaterThan(80);
   });
 
   it('picks up the sideboard the export declares', () => {
-    expect(deck.cards).toContainEqual({
+    expect(deck().cards).toContainEqual({
       name: 'Kaheera, the Orphanguard',
       quantity: 1,
       section: 'sideboard',
@@ -66,8 +67,8 @@ describe('extractTappedOutDeck on a real export', () => {
   });
 
   it('round-trips back through the decklist parser', () => {
-    const parsed = parseDecklistWithStats(toDecklistText(deck));
-    const mainCount = deck.cards.filter((card) => card.section === 'main').length;
+    const parsed = parseDecklistWithStats(toDecklistText(deck()));
+    const mainCount = deck().cards.filter((card) => card.section === 'main').length;
 
     expect(parsed.items).toHaveLength(mainCount);
     expect(parsed.excluded.map((item) => item.name)).toEqual(['Kaheera, the Orphanguard']);

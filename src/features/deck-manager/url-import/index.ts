@@ -10,4 +10,5 @@ export {
   deckNameFromContentDisposition,
   splitOnBlankLine,
 } from './mtggoldfish';
+export { extractEdhrecDeckPreview, extractEdhrecAverageDeck } from './edhrec';
 export { fetchImportedDeck } from './fetchImportedDeck';

@@ -4,8 +4,13 @@ import {
   deckNameFromContentDisposition,
   extractMtgGoldfishDeck,
 } from '../features/deck-manager/url-import/mtggoldfish';
+import {
+  extractEdhrecAverageDeck,
+  extractEdhrecDeckPreview,
+} from '../features/deck-manager/url-import/edhrec';
 import { ImportedDeck } from '../features/deck-manager/url-import/importedDeck';
 import {
+  DeckSource,
   DeckUrlRef,
   parseDeckUrl,
   sourceLabel,
@@ -34,6 +39,18 @@ const UPSTREAM_TIMEOUT_MS = 10_000;
 
 /** Edge-cache upstream deck documents briefly — a shared link is often opened by a whole pod at once. */
 const UPSTREAM_CACHE_TTL_SECONDS = 300;
+
+/**
+ * What each source actually serves. A deck preview is an HTML page rather than
+ * an endpoint, so it has to ask for one.
+ */
+const ACCEPT_BY_SOURCE: Record<DeckSource, string> = {
+  archidekt: 'application/json',
+  'edhrec-average': 'application/json',
+  edhrec: 'text/html, */*',
+  tappedout: 'text/plain, */*',
+  mtggoldfish: 'text/plain, */*',
+};
 
 const JSON_HEADERS = { 'content-type': 'application/json; charset=utf-8' };
 
@@ -67,7 +84,7 @@ export async function handleDeckImport(request: Request): Promise<Response> {
   const ref = parseDeckUrl(requested);
   if (ref === null) {
     return errorResponse(
-      "That doesn't look like a deck link we support. Paste an Archidekt, TappedOut or MTGGoldfish deck link, e.g. https://archidekt.com/decks/24569510/my-deck",
+      "That doesn't look like a deck link we support. Paste an Archidekt, TappedOut, MTGGoldfish or EDHREC deck link, e.g. https://archidekt.com/decks/24569510/my-deck",
       400,
     );
   }
@@ -76,8 +93,7 @@ export async function handleDeckImport(request: Request): Promise<Response> {
   try {
     upstream = await fetch(upstreamApiUrl(ref), {
       headers: {
-        // Archidekt answers with JSON; the other two with a plain-text decklist.
-        accept: ref.source === 'archidekt' ? 'application/json' : 'text/plain, */*',
+        accept: ACCEPT_BY_SOURCE[ref.source],
         // Identify ourselves rather than arriving as an anonymous scraper.
         'user-agent': 'Aura/1.0 (+https://aura0.app) deck import',
       },
@@ -111,12 +127,12 @@ export async function handleDeckImport(request: Request): Promise<Response> {
 /**
  * Turn a site's response into a deck.
  *
- * The sources differ in kind, not just in shape: Archidekt returns a JSON
- * document to be mapped, while TappedOut and MTGGoldfish return decklists as
- * text — and those two don't agree either, since MTGGoldfish marks its sideboard
- * with a bare blank line. Keeping every one of those differences here means
- * everything on either side of this function — the proxying, the error handling,
- * the client — deals in one `ImportedDeck`.
+ * No two sources agree on what a deck looks like: Archidekt sends a JSON
+ * document, TappedOut and MTGGoldfish send text (and disagree about how a
+ * sideboard is marked), and an EDHREC deck preview is an HTML page with its data
+ * riding inside it. Keeping every one of those differences here means everything
+ * on either side of this function — the proxying, the error handling, the
+ * client — deals in one `ImportedDeck`.
  */
 async function readDeck(ref: DeckUrlRef, upstream: Response): Promise<ImportedDeck> {
   switch (ref.source) {
@@ -137,6 +153,18 @@ async function readDeck(ref: DeckUrlRef, upstream: Response): Promise<ImportedDe
         // The only place the deck's real name appears in this response.
         deckNameFromContentDisposition(upstream.headers.get('content-disposition')),
       );
+    case 'edhrec':
+      // A page, not an endpoint — the deck rides along inside it.
+      return extractEdhrecDeckPreview(await upstream.text());
+    case 'edhrec-average': {
+      let payload: unknown;
+      try {
+        payload = await upstream.json();
+      } catch {
+        throw new Error("EDHREC returned a response we couldn't read.");
+      }
+      return extractEdhrecAverageDeck(payload);
+    }
   }
 }
 

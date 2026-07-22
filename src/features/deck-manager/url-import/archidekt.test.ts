@@ -132,21 +132,25 @@ describe('extractArchidektDeck', () => {
 describe('extractArchidektDeck on a real API response', () => {
   // Captured from archidekt.com/api/decks/24569510/ and trimmed to seven cards.
   // Its job is to fail loudly if the undocumented response shape changes.
-  const deck = extractArchidektDeck(realDeck as ArchidektDeckResponse);
+  //
+  // Extracted per-test rather than in the describe body: an extractor that threw
+  // during collection would report as "no tests", and an empty suite reads as
+  // success at a glance.
+  const deck = () => extractArchidektDeck(realDeck as ArchidektDeckResponse);
 
   it('reads the deck name', () => {
-    expect(deck.name).toBe('Group hugs');
+    expect(deck().name).toBe('Group hugs');
   });
 
   it('finds the commander', () => {
-    const commanders = deck.cards.filter((card) => card.section === 'commander');
+    const commanders = deck().cards.filter((card) => card.section === 'commander');
     expect(commanders).toEqual([
       { name: 'Gluntch, the Bestower', quantity: 1, section: 'commander' },
     ]);
   });
 
   it('keeps the full "A // B" name for double-faced cards', () => {
-    expect(deck.cards.map((card) => card.name)).toContain(
+    expect(deck().cards.map((card) => card.name)).toContain(
       'Bala Ged Recovery // Bala Ged Sanctuary',
     );
   });

@@ -380,7 +380,7 @@ export function DeckImportModal({ isOpen, onClose, onDeckImported }: DeckImportM
             <AlertTitle>To automatically draw your commander...</AlertTitle>
             <AlertDescription>
               Put it under a "Commander" header in your list — or paste an
-              Archidekt deck link, which carries the commander across for you.
+              Archidekt or EDHREC link, which carries the commander across for you.
             </AlertDescription>
           </Alert>
 
@@ -390,7 +390,7 @@ export function DeckImportModal({ isOpen, onClose, onDeckImported }: DeckImportM
               id="deck-list"
               value={deckText}
               onChange={(e) => setDeckText(e.target.value)}
-              placeholder={`Paste an Archidekt, TappedOut or MTGGoldfish deck link, or enter your deck list (one card per line):
+              placeholder={`Paste a deck link (Archidekt, TappedOut, MTGGoldfish, EDHREC), or enter your deck list (one card per line):
               \nhttps://archidekt.com/decks/24569510\n\n1 Rhystic Study (WOT) 71\n4 Lightning Bolt\n20 Mountain`}
               rows={15}
               disabled={isImporting || resolvingUrlFrom !== null}
