@@ -26,9 +26,11 @@ describe('parseDeckUrl', () => {
   it.each([
     ['a lookalike domain', 'https://evilarchidekt.com/decks/24569510'],
     ['a lookalike of TappedOut', 'https://nottappedout.net/mtg-decks/my-deck/'],
-    ['a site we do not support', 'https://moxfield.com/decks/abc123'],
+    ['a site we do not support', 'https://deckstats.net/decks/12345/abc'],
+    ['a lookalike of Moxfield', 'https://notmoxfield.com/decks/abc123'],
     ['an Archidekt page that is not a deck', 'https://archidekt.com/search/decks'],
     ['a TappedOut page that is not a deck', 'https://tappedout.net/users/someone/'],
+    ['a Moxfield page that is not a deck', 'https://www.moxfield.com/users/someone'],
     ['a non-numeric Archidekt deck id', 'https://archidekt.com/decks/not-a-number'],
     ['empty input', ''],
     ['not a URL at all', 'Sol Ring'],
@@ -64,6 +66,20 @@ describe('parseDeckUrl', () => {
     ['an MTGGoldfish lookalike', 'https://notmtggoldfish.com/deck/5778970'],
   ])('rejects %s', (_label, input) => {
     expect(parseDeckUrl(input)).toBeNull();
+  });
+
+  it.each([
+    ['a deck page', 'https://www.moxfield.com/decks/j-0aJlxuOUm9FnKRvJcfZw'],
+    ['no www', 'https://moxfield.com/decks/j-0aJlxuOUm9FnKRvJcfZw'],
+    ['no scheme', 'moxfield.com/decks/j-0aJlxuOUm9FnKRvJcfZw'],
+    ['a trailing fragment', 'https://www.moxfield.com/decks/j-0aJlxuOUm9FnKRvJcfZw#paper'],
+  ])('recognizes a Moxfield deck link (%s)', (_label, input) => {
+    // The public id is base64url — this real one leads with a `-`, so the
+    // pattern has to admit `-` and `_` without admitting a slash or a dot.
+    expect(parseDeckUrl(input)).toEqual({
+      source: 'moxfield',
+      deckId: 'j-0aJlxuOUm9FnKRvJcfZw',
+    });
   });
 
   it('recognizes an EDHREC deck preview', () => {

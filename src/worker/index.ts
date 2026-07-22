@@ -1,5 +1,11 @@
-import { errorResponse, handleDeckImport } from './deckImport';
+import { DeckImportEnv, errorResponse, handleDeckImport } from './deckImport';
 import { handleSentryTunnel, isSentryTunnelRequest } from './sentryTunnel';
+
+// The MoxfieldGate Durable Object is deliberately NOT exported here. It lives in
+// its own Worker (workers/moxfield-gate/) and is reached through a cross-script
+// binding, because a DO migration cannot be applied by the `versions upload`
+// this repo's branch builds use, and because a DO lifecycle change would
+// permanently foreclose rolling this Worker back past it. See wrangler.jsonc.
 
 /**
  * The Worker in front of Aura's static assets.
@@ -27,7 +33,7 @@ import { handleSentryTunnel, isSentryTunnelRequest } from './sentryTunnel';
  * anywhere reports an error. The current `/api/*` glob already covers both.
  */
 
-type Env = {
+type Env = DeckImportEnv & {
   ASSETS: { fetch(request: Request): Promise<Response> };
 };
 
@@ -40,7 +46,7 @@ export default {
     }
 
     if (pathname === '/api/deck-import') {
-      return handleDeckImport(request);
+      return handleDeckImport(request, env);
     }
 
     // Anything else under /api/ is ours and does not exist. Answering in JSON

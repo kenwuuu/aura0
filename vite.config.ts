@@ -1,9 +1,44 @@
 import path from "path";
+import { readFileSync } from "fs";
 import { sentryVitePlugin } from "@sentry/vite-plugin";
 
 import { defineConfig, Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite'
+
+/**
+ * Read `.dev.vars` — the same file `wrangler dev` reads — so a Moxfield import
+ * works against the Vite dev server too.
+ *
+ * Vite has no notion of Worker secrets, and this deliberately isn't `.env`:
+ * anything Vite loads from `.env` with a `VITE_` prefix is inlined into the
+ * client bundle, which is the one place this value must never appear. Parsed by
+ * hand rather than with a dotenv dependency because the format here is one
+ * `KEY=value` line.
+ */
+function readDevVars(root: string): Record<string, string> {
+  let contents: string;
+  try {
+    contents = readFileSync(path.join(root, '.dev.vars'), 'utf8');
+  } catch {
+    // Absent is normal: only work on a credentialed source needs it, and the
+    // endpoint reports its own clear error when a credential is missing.
+    return {};
+  }
+
+  const vars: Record<string, string> = {};
+  for (const line of contents.split('\n')) {
+    const trimmed = line.trim();
+    if (trimmed.length === 0 || trimmed.startsWith('#')) {
+      continue;
+    }
+    const separator = trimmed.indexOf('=');
+    if (separator > 0) {
+      vars[trimmed.slice(0, separator).trim()] = trimmed.slice(separator + 1).trim();
+    }
+  }
+  return vars;
+}
 
 /**
  * Serve `/api/deck-import` from the dev server.
@@ -19,13 +54,40 @@ function deckImportApi(): Plugin {
     name: 'aura-deck-import-api',
     apply: 'serve',
     configureServer(server) {
+      const devVars = readDevVars(server.config.root);
+      // Built once per dev server, not per request: a gate that forgot its clock
+      // between requests would enforce nothing.
+      let localGate: { reserve(): unknown } | undefined;
+
       server.middlewares.use('/api/deck-import', async (req, res) => {
         // Loaded through Vite so the TypeScript is transformed on demand and
         // picks up edits without restarting the dev server.
         const { handleDeckImport } = await server.ssrLoadModule('/src/worker/deckImport.ts');
+        if (localGate === undefined) {
+          const { createLocalGate } = await server.ssrLoadModule('/src/worker/moxfieldGate.ts');
+          localGate = createLocalGate();
+        }
+
+        // Node models repeated headers as arrays; `Request` wants strings.
+        const headers: Record<string, string> = {};
+        for (const [key, value] of Object.entries(req.headers)) {
+          if (typeof value === 'string') {
+            headers[key] = value;
+          } else if (Array.isArray(value)) {
+            headers[key] = value.join(', ');
+          }
+        }
 
         const response: Response = await handleDeckImport(
-          new Request(new URL(req.url ?? '/', 'http://localhost'), { method: req.method }),
+          new Request(new URL(req.url ?? '/', 'http://localhost'), {
+            method: req.method,
+            // Forwarded, not dropped: the endpoint turns away requests that
+            // didn't come from Aura's own pages by reading `Sec-Fetch-Site`, so
+            // a handler given headerless requests would reject every one of them
+            // in dev and nowhere else.
+            headers,
+          }),
+          { MOXFIELD_USER_AGENT: devVars.MOXFIELD_USER_AGENT, localGate },
         );
 
         res.statusCode = response.status;

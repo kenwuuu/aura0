@@ -23,7 +23,29 @@ export type ImportedDeck = {
   name: string;
   source: DeckSource;
   cards: ImportedCard[];
+  /**
+   * How many cards the *source site itself* says this deck holds, when it says
+   * so at all. Omitted for sources that publish no total (a plain-text export
+   * has nothing to declare).
+   *
+   * This exists to catch a failure nothing else can see. The import counts in
+   * `PosthogFunctions` (`requestedCardCount` vs `importedCardCount`) are both
+   * measured *downstream of this adapter* — so if the adapter itself loses
+   * cards, the decklist text shrinks with it and the two numbers still agree.
+   * A board we don't map, a shape change upstream, an entry with a missing
+   * name: every one of those is silent, and the deck just quietly arrives
+   * smaller than the one the player linked.
+   *
+   * Comparing this against the quantities we actually emit is the only check
+   * that closes that gap. Treat a mismatch as *our* bug, not the player's.
+   */
+  sourceCardCount?: number;
 };
+
+/** Total physical cards in an imported deck — the sum of quantities, not entries. */
+export function totalCardCount(deck: ImportedDeck): number {
+  return deck.cards.reduce((sum, card) => sum + card.quantity, 0);
+}
 
 // The order sections are emitted in. `commander` must lead: the text parser ends
 // the command zone at the next header, so the commanders have to be written
