@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
 import { MtgTextListDeckImporter } from '@/features/deck-manager';
 import { DeckStorageService } from '@/infrastructure/persistence';
@@ -13,6 +13,13 @@ import {
   AlertTitle,
 } from "@/shared/ui/alert"
 import { randomIdSuffix } from '@/shared/utils/ids';
+import {
+  DeckSource,
+  fetchImportedDeck,
+  parseDeckUrl,
+  sourceLabel,
+  toDecklistText,
+} from './url-import';
 
 interface DeckImportModalProps {
   isOpen: boolean;
@@ -183,6 +190,59 @@ export function DeckImportModal({ isOpen, onClose, onDeckImported }: DeckImportM
   // What we make of the list as it stands, refreshed once the player stops
   // typing. `null` means we have not read this text yet.
   const [deckPreview, setDeckPreview] = useState<DeckPreview | null>(null);
+  // Set while a pasted deck link is being fetched and turned into a list.
+  const [resolvingUrlFrom, setResolvingUrlFrom] = useState<DeckSource | null>(null);
+  /**
+   * Whether the player has typed in the name field themselves.
+   *
+   * A name we filled in from a deck link has to stay replaceable — otherwise
+   * pasting a second link leaves the first deck's name behind. "The field is
+   * non-empty" cannot tell those apart, so we track who put the text there.
+   */
+  const nameEditedByPlayer = useRef(false);
+
+  /**
+   * Turn a pasted deck link into a decklist, in place.
+   *
+   * Resolving into the same textarea rather than behind a separate "import from
+   * URL" mode is what keeps this honest: the player sees the exact list that is
+   * about to be imported, and can edit it first. It also means everything
+   * downstream — the size warning, the preview, the import itself — keeps
+   * working on text and needs no knowledge of where the text came from.
+   */
+  useEffect(() => {
+    const ref = parseDeckUrl(deckText);
+    // Not a link — including the decklist we just replaced it with, which is
+    // what keeps this from looping.
+    if (ref === null || isImporting) {
+      return;
+    }
+
+    const controller = new AbortController();
+    setResolvingUrlFrom(ref.source);
+    setErrors([]);
+
+    fetchImportedDeck(ref, controller.signal)
+      .then((deck) => {
+        setDeckText(toDecklistText(deck));
+        // The deck's own name is a default, never an override: a name the
+        // player typed is a decision and survives. A name we filled in from an
+        // earlier link is not, so a second link replaces it. Clearing the field
+        // hands it back to us.
+        setDeckName((current) =>
+          nameEditedByPlayer.current && current.trim().length > 0 ? current : deck.name,
+        );
+      })
+      .catch((error: unknown) => {
+        if (error instanceof DOMException && error.name === 'AbortError') {
+          return;
+        }
+        setErrors([error instanceof Error ? error.message : 'Failed to load that deck.']);
+      })
+      .finally(() => setResolvingUrlFrom(null));
+
+    return () => controller.abort();
+  }, [deckText, isImporting]);
 
   // Re-read the list whenever it settles. Parsing is pure and cheap — no lookup,
   // no network — so this costs nothing but tells the player what we made of
@@ -280,6 +340,7 @@ export function DeckImportModal({ isOpen, onClose, onDeckImported }: DeckImportM
   const handleClose = () => {
     setDeckText('');
     setDeckName('');
+    nameEditedByPlayer.current = false;
     setErrors([]);
     setSuccessMessage('');
     setProgress({ current: 0, total: 0 });
@@ -305,7 +366,10 @@ export function DeckImportModal({ isOpen, onClose, onDeckImported }: DeckImportM
               type="text"
               value={deckName}
               autoFocus={true}
-              onChange={(e) => setDeckName(e.target.value)}
+              onChange={(e) => {
+                nameEditedByPlayer.current = true;
+                setDeckName(e.target.value);
+              }}
               placeholder="Deck name"
               disabled={isImporting}
             />
@@ -315,7 +379,8 @@ export function DeckImportModal({ isOpen, onClose, onDeckImported }: DeckImportM
             <InfoIcon />
             <AlertTitle>To automatically draw your commander...</AlertTitle>
             <AlertDescription>
-              Put it under a "Commander" header in your list.
+              Put it under a "Commander" header in your list — or paste an
+              Archidekt or EDHREC link, which carries the commander across for you.
             </AlertDescription>
           </Alert>
 
@@ -325,12 +390,18 @@ export function DeckImportModal({ isOpen, onClose, onDeckImported }: DeckImportM
               id="deck-list"
               value={deckText}
               onChange={(e) => setDeckText(e.target.value)}
-              placeholder={`Enter your deck list (one card per line):
-              \n1 Rhystic Study (WOT) 71\n4 Lightning Bolt\n20 Mountain`}
+              placeholder={`Paste a deck link (Archidekt, TappedOut, MTGGoldfish, EDHREC), or enter your deck list (one card per line):
+              \nhttps://archidekt.com/decks/24569510\n\n1 Rhystic Study (WOT) 71\n4 Lightning Bolt\n20 Mountain`}
               rows={15}
-              disabled={isImporting}
+              disabled={isImporting || resolvingUrlFrom !== null}
             />
           </div>
+
+          {resolvingUrlFrom !== null && (
+            <p className="progress-text" data-testid="deck-url-resolving">
+              Reading your deck from {sourceLabel(resolvingUrlFrom)}...
+            </p>
+          )}
 
           {isImporting && progress.total > 0 && (
             <div className="progress-container">

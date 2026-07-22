@@ -1,0 +1,95 @@
+1 Artisan of Kozilek
+1 Burnished Hart
+1 Cave of Temptation
+1 Crashing Drawbridge
+1 Crumbling Vestige
+1 Crystal Grotto
+1 Darksteel Ingot
+1 Dreamstone Hedron
+1 Duplicant
+1 Ebony Fly
+1 Encroaching Wastes
+1 Endbringer
+1 Everflowing Chalice
+1 Eye of Vecna
+1 Firemind Vessel
+1 Fireshrieker
+1 Forsaken Monument
+1 Foundry Inspector
+1 Geode Golem
+1 Ghirapur Orrery
+1 Guildless Commons
+1 Haunted Cloak
+1 Haunted Fengraf
+1 Hedron Archive
+1 Holdout Settlement
+1 Ichor Elixir
+1 Inquisitor's Flail
+1 Investigator's Journal
+1 Jhoira's Familiar
+1 Key to the City
+1 Kozilek, the Great Distortion
+1 Liquimetal Torque
+1 Mage-Ring Network
+1 Manifold Key
+1 Meteor Golem
+1 Mind Stone
+1 Mirage Mirror
+1 Mishra's Factory
+1 Mystic Forge
+1 Navigation Orb
+1 Ornithopter of Paradise
+1 Painted Bluffs
+1 Palladium Myr
+1 Perilous Vault
+1 Phial of Galadriel
+1 Phyrexia's Core
+1 Pilgrim's Eye
+1 Prismatic Lens
+1 Pyramid of the Pantheon
+1 Radiant Fountain
+1 Rogue's Passage
+1 Scrap Trawler
+1 Sea Gate Wreckage
+1 Semblance Anvil
+1 Sequestered Stash
+1 Shimmering Grotto
+1 Shire Terrace
+1 Shrine of the Forsaken Gods
+1 Sisay's Ring
+1 Skittering Surveyor
+1 Skyclave Relic
+1 Skyscanner
+1 Sol Ring
+1 Sol Talisman
+1 Solemn Simulacrum
+1 Soul of New Phyrexia
+1 Spatial Contortion
+1 Spawning Bed
+1 Steel Hellkite
+1 Stonespeaker Crystal
+1 Study Hall
+1 Temple of the False God
+1 Terminal Moraine
+1 The Grey Havens
+1 Thran Dynamo
+1 Thran Spider
+1 Titan's Presence
+1 Tocasia's Dig Site
+1 Transmogrifying Wand
+1 Ugin, the Ineffable
+1 Ulamog's Crusher
+1 Unknown Shores
+1 Unstable Obelisk
+1 Ur-Golem's Eye
+1 Urza's Factory
+1 Urza's Mine
+1 Urza's Power Plant
+1 Urza's Tower
+1 Warping Wail
+7 Wastes
+1 Wayfarer's Bauble
+1 Worn Powerstone
+1 Zhalfirin Void
+1 Zoetic Cavern
+
