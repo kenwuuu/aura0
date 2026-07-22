@@ -1,9 +1,40 @@
 import path from "path";
 import { sentryVitePlugin } from "@sentry/vite-plugin";
 
-import { defineConfig } from 'vite';
+import { defineConfig, Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite'
+
+/**
+ * Serve `/api/deck-import` from the dev server.
+ *
+ * In production that endpoint is the Cloudflare Worker (see wrangler.jsonc);
+ * Vite doesn't run it, so without this, deck-URL import would be the one feature
+ * that only works in a built deployment. The Worker's handler is imported
+ * directly rather than reimplemented — Node and workerd both provide the
+ * `fetch`/`Request`/`Response` it needs — so dev and production cannot drift.
+ */
+function deckImportApi(): Plugin {
+  return {
+    name: 'aura-deck-import-api',
+    apply: 'serve',
+    configureServer(server) {
+      server.middlewares.use('/api/deck-import', async (req, res) => {
+        // Loaded through Vite so the TypeScript is transformed on demand and
+        // picks up edits without restarting the dev server.
+        const { handleDeckImport } = await server.ssrLoadModule('/src/worker/deckImport.ts');
+
+        const response: Response = await handleDeckImport(
+          new Request(new URL(req.url ?? '/', 'http://localhost'), { method: req.method }),
+        );
+
+        res.statusCode = response.status;
+        response.headers.forEach((value, key) => res.setHeader(key, value));
+        res.end(await response.text());
+      });
+    },
+  };
+}
 
 // Deploys run through Cloudflare Workers Builds, which sets WORKERS_CI_COMMIT_SHA
 // natively; the build command also exports it as VITE_APP_VERSION so it reaches
@@ -30,6 +61,7 @@ export default defineConfig({
         })]
       : []),
     tailwindcss(),
+    deckImportApi(),
   ],
   server: {
     port: 5173,

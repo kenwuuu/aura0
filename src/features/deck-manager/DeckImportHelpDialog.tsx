@@ -114,6 +114,19 @@ export function DeckImportHelpDialog({ isOpen, onClose }: DeckImportHelpDialogPr
           <Dialog.Close style={styles.iconButton} onClick={(e) => { e.stopPropagation(); onClose(); }}>×</Dialog.Close>
 
           <div style={styles.section}>
+            <div style={styles.sectionTitle}>Import from a link</div>
+            <p style={styles.text}>
+              Paste an <strong style={{ color: '#fff' }}>Archidekt</strong> deck link and we'll
+              fetch the list for you — your commander comes across automatically:
+            </p>
+            <div style={styles.code}>https://archidekt.com/decks/24569510</div>
+            <p style={styles.text}>
+              The deck needs to be public or unlisted. The list drops into the box below, so you
+              can still edit it before importing.
+            </p>
+          </div>
+
+          <div style={styles.section}>
             <div style={styles.sectionTitle}>Recommended Format</div>
             <p style={styles.text}>
               For best results, use the <strong style={{ color: '#fff' }}>MTGO preset</strong> from Moxfield's download button:
