@@ -18,7 +18,26 @@
  * deck EDHREC synthesizes for a commander. They need different requests and
  * different parsing, so they are different sources rather than one with a mode.
  */
-export type DeckSource = 'archidekt' | 'tappedout' | 'mtggoldfish' | 'edhrec' | 'edhrec-average';
+export type DeckSource =
+  | 'archidekt'
+  | 'tappedout'
+  | 'mtggoldfish'
+  | 'edhrec'
+  | 'edhrec-average'
+  | 'moxfield';
+
+/**
+ * Sources whose upstream request must carry a credential.
+ *
+ * Moxfield refuses anonymous API traffic outright — without the approved
+ * User-Agent the reply is a Cloudflare 403 interstitial, not a JSON error. That
+ * User-Agent is a secret (`MOXFIELD_USER_AGENT`, held only by the Worker) and it
+ * identifies Aura as a whole rather than any one player, which is what makes its
+ * rate limit a shared budget — see `moxfieldGate.ts`.
+ */
+export function requiresCredential(source: DeckSource): boolean {
+  return source === 'moxfield';
+}
 
 /** A deck identified on a known host — enough to rebuild the upstream API URL. */
 export type DeckUrlRef = {
@@ -73,6 +92,15 @@ const DECK_PATHS: ReadonlyArray<{ source: DeckSource; domain: string; path: RegE
     // is the page players actually browse, and the average deck is the only
     // importable thing on it, so both resolve to the same list.
     path: /^\/(?:average-decks|commanders)\/([a-z0-9-]+)\b/,
+  },
+  {
+    source: 'moxfield',
+    domain: 'moxfield.com',
+    // `/decks/<publicId>`, where the id is base64url — so `-` and `_` are part
+    // of it (`j-0aJlxuOUm9FnKRvJcfZw`) but a slash or dot still is not. Anchored
+    // to `/decks/` so the many other things under this host (`/users/…`,
+    // `/bookmarks/…`) don't parse as decks and get sent upstream as 404s.
+    path: /^\/decks\/([A-Za-z0-9_-]+)\b/,
   },
 ];
 
@@ -149,6 +177,11 @@ export function upstreamApiUrl(ref: DeckUrlRef): string {
       return `https://edhrec.com/deckpreview/${ref.deckId}`;
     case 'edhrec-average':
       return `https://json.edhrec.com/pages/average-decks/${ref.deckId}.json`;
+    case 'moxfield':
+      // v3 is what moxfield.com's own front end calls. It returns every board
+      // keyed by name, including `commanders` — the only source besides EDHREC
+      // that tells us which card is the commander instead of making us guess.
+      return `https://api.moxfield.com/v3/decks/all/${ref.deckId}`;
   }
 }
 
@@ -164,5 +197,7 @@ export function sourceLabel(source: DeckSource): string {
     case 'edhrec':
     case 'edhrec-average':
       return 'EDHREC';
+    case 'moxfield':
+      return 'Moxfield';
   }
 }

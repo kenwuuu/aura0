@@ -487,6 +487,41 @@ function mostCommonReason(failures: LookupFailure[]): LookupFailureReason | unde
   return best;
 }
 
+/**
+ * A deck link was resolved through `/api/deck-import`.
+ *
+ * This fires once per upstream request — including failures, because a failed
+ * request costs the same rate budget a successful one does — and it exists to
+ * answer one question we deliberately did not guess at: **how often is the same
+ * deck fetched twice?**
+ *
+ * Moxfield caps Aura at one request per second across all players, and caching
+ * is the obvious way to stretch that. But a cache TTL trades staleness for
+ * headroom, and we have no idea yet whether the repeat rate justifies the trade
+ * — a pod all opening one shared link would, a hundred players each importing
+ * their own deck would not. So Moxfield runs uncached on purpose and this event
+ * measures the real repeat rate first. See `cacheHintFor` in
+ * `src/worker/deckImport.ts`.
+ *
+ * `deck_id` is the site's own public identifier — the same string that appears
+ * in a shareable URL — so it identifies a deck, never a player. It is what makes
+ * the repeat rate computable at all: group by `source` + `deck_id` and compare
+ * total events to distinct decks.
+ */
+export function trackDeckUrlImport(props: {
+  source: string;
+  deckId: string;
+  outcome: 'succeeded' | 'failed';
+  durationMs: number;
+}): void {
+  posthog.capture('deck_url_import', {
+    source: props.source,
+    deck_id: props.deckId,
+    outcome: props.outcome,
+    duration_ms: props.durationMs,
+  });
+}
+
 export function trackImportSucceeded(props: {
   counts: ImportCounts;
   durationMs: number;

@@ -32,6 +32,24 @@
 		// depends on which headers a browser happens to send.
 		"run_worker_first": ["/api/*"]
 	},
+	// Moxfield caps Aura's approved User-Agent at one request per second, across
+	// all of Aura rather than per player or per colo. A Worker holds no state
+	// between colos, so that cap can only be enforced by routing every Moxfield
+	// request through one Durable Object. See src/worker/moxfieldGate.ts.
+	//
+	// A binding is non-inheritable, so it is repeated under env.staging below.
+	// That gives staging its *own* gate instance rather than sharing production's
+	// — deliberate (staging must not be able to exhaust production's budget), but
+	// it does mean the two together can briefly exceed 1/s. Staging traffic is
+	// manual testing only, so this is accepted rather than solved.
+	"durable_objects": {
+		"bindings": [{ "name": "MOXFIELD_GATE", "class_name": "MoxfieldGate" }]
+	},
+	// `migrations` IS inheritable, so it is declared once. `new_sqlite_classes`
+	// rather than `new_classes`: the gate keeps its state in memory (see the
+	// class), so this only registers the class — but SQLite-backed is the
+	// supported option for new Durable Objects.
+	"migrations": [{ "tag": "v1", "new_sqlite_classes": ["MoxfieldGate"] }],
 	"env": {
 		// `assets` is repeated here on purpose: wrangler does NOT inherit
 		// non-inheritable keys (assets, vars, routes, bindings…) into named
@@ -46,6 +64,9 @@
 				"not_found_handling": "single-page-application",
 				"binding": "ASSETS",
 				"run_worker_first": ["/api/*"]
+			},
+			"durable_objects": {
+				"bindings": [{ "name": "MOXFIELD_GATE", "class_name": "MoxfieldGate" }]
 			}
 		}
 	}
