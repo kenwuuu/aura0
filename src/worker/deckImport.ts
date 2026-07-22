@@ -1,4 +1,5 @@
 import { extractArchidektDeck } from '../features/deck-manager/url-import/archidekt';
+import { extractTappedOutDeck } from '../features/deck-manager/url-import/tappedout';
 import { ImportedDeck } from '../features/deck-manager/url-import/importedDeck';
 import {
   DeckUrlRef,
@@ -62,7 +63,7 @@ export async function handleDeckImport(request: Request): Promise<Response> {
   const ref = parseDeckUrl(requested);
   if (ref === null) {
     return errorResponse(
-      "That doesn't look like a deck URL we support. Paste an Archidekt deck link, e.g. https://archidekt.com/decks/24569510/my-deck",
+      "That doesn't look like a deck link we support. Paste an Archidekt or TappedOut deck link, e.g. https://archidekt.com/decks/24569510/my-deck",
       400,
     );
   }
@@ -71,7 +72,8 @@ export async function handleDeckImport(request: Request): Promise<Response> {
   try {
     upstream = await fetch(upstreamApiUrl(ref), {
       headers: {
-        accept: 'application/json',
+        // TappedOut answers with a decklist as plain text; Archidekt with JSON.
+        accept: ref.source === 'tappedout' ? 'text/plain, */*' : 'application/json',
         // Identify ourselves rather than arriving as an anonymous scraper.
         'user-agent': 'Aura/1.0 (+https://aura0.app) deck import',
       },
@@ -88,25 +90,42 @@ export async function handleDeckImport(request: Request): Promise<Response> {
     return errorResponse(upstreamMessage(ref, upstream.status), upstream.status === 404 ? 404 : 502);
   }
 
-  let payload: unknown;
-  try {
-    payload = await upstream.json();
-  } catch {
-    return errorResponse(`${sourceLabel(ref.source)} returned a response we couldn't read.`, 502);
-  }
-
   let deck: ImportedDeck;
   try {
-    deck = extractArchidektDeck(payload as Parameters<typeof extractArchidektDeck>[0]);
+    deck = await readDeck(ref, upstream);
   } catch (error) {
-    // extractArchidektDeck throws only with player-facing text (empty or
-    // private deck, or a shape it no longer recognizes).
+    // The adapters throw only with player-facing text (an empty or private
+    // deck, or a shape they no longer recognize).
     const message =
       error instanceof Error ? error.message : `Couldn't read that ${sourceLabel(ref.source)} deck.`;
     return errorResponse(message, 422);
   }
 
   return jsonResponse(deck);
+}
+
+/**
+ * Turn a site's response into a deck.
+ *
+ * The two sources differ in kind, not just in shape: Archidekt returns a JSON
+ * document to be mapped, while TappedOut returns a decklist as text. Keeping
+ * that difference here means everything on either side of this function — the
+ * proxying, the error handling, the client — deals in one `ImportedDeck`.
+ */
+async function readDeck(ref: DeckUrlRef, upstream: Response): Promise<ImportedDeck> {
+  switch (ref.source) {
+    case 'archidekt': {
+      let payload: unknown;
+      try {
+        payload = await upstream.json();
+      } catch {
+        throw new Error("Archidekt returned a response we couldn't read.");
+      }
+      return extractArchidektDeck(payload as Parameters<typeof extractArchidektDeck>[0]);
+    }
+    case 'tappedout':
+      return extractTappedOutDeck(ref.deckId, await upstream.text());
+  }
 }
 
 /** Turn an upstream status into something a player can act on. */

@@ -4,4 +4,5 @@ export { toDecklistText } from './importedDeck';
 export type { ImportedCard, ImportedDeck, ImportedSection } from './importedDeck';
 export { extractArchidektDeck } from './archidekt';
 export type { ArchidektDeckResponse } from './archidekt';
+export { extractTappedOutDeck, deckNameFromSlug } from './tappedout';
 export { fetchImportedDeck } from './fetchImportedDeck';

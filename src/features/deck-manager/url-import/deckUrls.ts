@@ -11,7 +11,7 @@
  */
 
 /** A deck-hosting site we know how to import from. */
-export type DeckSource = 'archidekt';
+export type DeckSource = 'archidekt' | 'tappedout';
 
 /** A deck identified on a known host — enough to rebuild the upstream API URL. */
 export type DeckUrlRef = {
@@ -21,11 +21,31 @@ export type DeckUrlRef = {
 };
 
 /**
- * Archidekt deck pages are `/decks/<id>/<slug>`, where the slug is decoration —
- * the id alone identifies the deck. `/api/decks/<id>/` is accepted too, so a
- * player who pasted the API URL (or one we printed in an error) still works.
+ * How to recognize each site's deck pages.
+ *
+ * The capture group is the deck's identifier, and the pattern is the *only*
+ * thing that decides what characters can end up in it — everything downstream
+ * builds URLs from that capture, so a pattern that is too generous here is what
+ * would turn the proxy into an open relay. Both are anchored and neither admits
+ * a slash or a dot.
  */
-const ARCHIDEKT_DECK_PATH = /^\/(?:api\/)?decks\/(\d+)\b/;
+const DECK_PATHS: ReadonlyArray<{ source: DeckSource; domain: string; path: RegExp }> = [
+  {
+    source: 'archidekt',
+    domain: 'archidekt.com',
+    // `/decks/<id>/<slug>`, where the slug is decoration — the id alone
+    // identifies the deck. `/api/decks/<id>/` is accepted too, so a player who
+    // pasted the API URL (or one we printed in an error) still works.
+    path: /^\/(?:api\/)?decks\/(\d+)\b/,
+  },
+  {
+    source: 'tappedout',
+    domain: 'tappedout.net',
+    // `/mtg-decks/<slug>/`, where the slug *is* the identifier — unlike
+    // Archidekt there is no numeric id behind it.
+    path: /^\/mtg-decks\/([a-zA-Z0-9][a-zA-Z0-9_-]*)\/?/,
+  },
+];
 
 function hostMatches(hostname: string, domain: string): boolean {
   const host = hostname.toLowerCase();
@@ -56,19 +76,23 @@ export function parseDeckUrl(raw: string): DeckUrlRef | null {
     return null;
   }
 
-  if (hostMatches(url.hostname, 'archidekt.com')) {
-    const match = ARCHIDEKT_DECK_PATH.exec(url.pathname);
-    return match ? { source: 'archidekt', deckId: match[1] } : null;
+  for (const { source, domain, path } of DECK_PATHS) {
+    if (!hostMatches(url.hostname, domain)) {
+      continue;
+    }
+    const match = path.exec(url.pathname);
+    return match ? { source, deckId: match[1] } : null;
   }
 
   return null;
 }
 
 /**
- * The upstream API URL for a deck reference.
+ * The upstream URL for a deck reference.
  *
- * Built only from `source` and a `deckId` that `parseDeckUrl` already proved is
- * digits-only, so no caller-controlled string reaches the request.
+ * Built only from `source` and a `deckId` that `parseDeckUrl` already matched
+ * against that site's id pattern, so no caller-controlled string reaches the
+ * request.
  */
 export function upstreamApiUrl(ref: DeckUrlRef): string {
   switch (ref.source) {
@@ -76,6 +100,10 @@ export function upstreamApiUrl(ref: DeckUrlRef): string {
       // The `/small/` variant omits the card list entirely — it is deck metadata
       // only — so the full document is the only option here.
       return `https://archidekt.com/api/decks/${ref.deckId}/`;
+    case 'tappedout':
+      // TappedOut will hand back the decklist as plain text, which is already
+      // the format Aura parses — no JSON document to pick apart.
+      return `https://tappedout.net/mtg-decks/${ref.deckId}/?fmt=txt`;
   }
 }
 
@@ -84,5 +112,7 @@ export function sourceLabel(source: DeckSource): string {
   switch (source) {
     case 'archidekt':
       return 'Archidekt';
+    case 'tappedout':
+      return 'TappedOut';
   }
 }
