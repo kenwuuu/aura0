@@ -39,10 +39,11 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/shared/ui/dropdown-menu';
+import { BugReportButton, openBugReport } from '@/features/bug-report';
+import { DISCORD_URL } from '@/constants';
 import type { SavedDeck } from '@/features/player/types';
 import type { YjsNetworkProvider } from '@/infrastructure/networking/YjsNetworkFactory';
 
-const DISCORD_URL = 'https://discord.gg/PgH2gVZYKq';
 const KOFI_URL = 'https://ko-fi.com/Z8Z11OOHFX';
 
 interface ToolbarProps {
@@ -58,6 +59,7 @@ export function Toolbar({ yjsNetworkProvider, onDeckSelected }: ToolbarProps) {
   // here — see the file header for why it just disappears instead.
   const overflowActions = [
     { id: 'help', label: 'Help', onSelect: () => setHelpOpen(true) },
+    { id: 'bug-report', label: 'Report a bug', onSelect: () => void openBugReport('toolbar') },
     { id: 'discord', label: 'Discord', onSelect: () => window.open(DISCORD_URL, '_blank') },
     { id: 'kofi', label: 'Support me on Ko-fi', onSelect: () => window.open(KOFI_URL, '_blank') },
   ];
@@ -75,6 +77,11 @@ export function Toolbar({ yjsNetworkProvider, onDeckSelected }: ToolbarProps) {
         Help
       </button>
       <HelpModal isOpen={isHelpOpen} onClose={() => setHelpOpen(false)} />
+
+      {/* Icon-only, like Discord below it: the toolbar is already tight at the
+          `sm` breakpoint, and this is a rarely-clicked escape hatch rather than
+          a primary action. It still collapses into "⋯ More" on phones. */}
+      <BugReportButton surface="toolbar" iconOnly className="toolbar-button toolbar-collapsible" />
 
       <button
         className="toolbar-button discord toolbar-collapsible"

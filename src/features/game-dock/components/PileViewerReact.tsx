@@ -38,6 +38,7 @@ import { usePileViewerHotkeyStore } from '@/features/game-dock/pileViewerHotkeyS
 import { useGameInstance } from '@/app/stores/gameInstanceStore';
 import { usePhoneLayout } from '@/shared/hooks';
 import { logAction } from '@/features/action-log/actionLog';
+import { BugReportButton } from '@/features/bug-report';
 
 export interface PileViewerCallbacks {
   onPlayToBattlefield?: (card: Card) => void;
@@ -638,6 +639,11 @@ export function PileViewerReact({
               <DialogTitle className="text-xl font-bold">{getTitle()}</DialogTitle>
               <div className="deck-pile-viewer-subtitle">{cards.length} CARDS</div>
             </div>
+            {/* Icon-only and last in the row (`margin-left: auto` in
+                style.css). The phone pile viewer is where this project's
+                layout bugs actually surface, so it is the one place a report
+                button most needs to exist. */}
+            <BugReportButton surface="pile-viewer" iconOnly className="pile-header-bug-report" />
           </DialogHeader>
         ) : (
           <DialogHeader className="px-6 pt-6 pb-4 border-b">
@@ -688,6 +694,11 @@ export function PileViewerReact({
             )}
             <div className="pile-controls-spacer" />
             {primaryAction && <div className="pile-cluster pile-cluster--action">{primaryAction}</div>}
+            {/* Desktop puts this in the controls row rather than the header:
+                DialogContent's close button is absolutely positioned at
+                top-4/right-4, so anything at the header's right edge sits
+                underneath it. */}
+            <BugReportButton surface="pile-viewer" iconOnly className="pile-header-bug-report" />
           </div>
         )}
 

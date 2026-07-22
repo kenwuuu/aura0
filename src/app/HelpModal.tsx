@@ -2,6 +2,7 @@ import React from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import helpContent from './content/help.md?raw';
+import { BugReportButton } from '@/features/bug-report';
 import {
   Dialog,
   DialogContent,
@@ -19,7 +20,15 @@ export const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose }) => {
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="min-w-[45vw] max-h-[65vh] flex flex-col">
         <DialogHeader>
-          <DialogTitle>Help & Instructions</DialogTitle>
+          {/* Someone reading Help is already looking for a way out of a problem
+              the docs may not cover — that's the moment to offer the form. */}
+          <div className="flex items-center justify-between gap-4 pr-8">
+            <DialogTitle>Help &amp; Instructions</DialogTitle>
+            <BugReportButton
+              surface="help"
+              className="flex items-center gap-1.5 rounded-md border border-[#3d3d3d] bg-[#2d2d2d] px-3 py-1.5 text-xs font-semibold text-gray-200 transition-colors hover:bg-[#3d3d3d]"
+            />
+          </div>
         </DialogHeader>
         <div className="p-6 pt-0 flex-1 overflow-y-auto">
           <div className="text-sm leading-relaxed text-[#e5e7eb]">

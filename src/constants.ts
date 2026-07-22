@@ -47,3 +47,8 @@ export const YDOC_ACTION_LOG = 'action-log';
 // Soft cap: trim to this many entries whenever a new one is appended.
 // Bounds the per-peer doc download and IndexedDB size as rooms age.
 export const ACTION_LOG_MAX_ENTRIES = 500;
+
+// Community invite. Shared rather than per-component because the bug-report
+// flow falls back to it when Sentry ingest is unreachable — an ad blocker that
+// eats the report is exactly when the player needs somewhere else to go.
+export const DISCORD_URL = 'https://discord.gg/PgH2gVZYKq';

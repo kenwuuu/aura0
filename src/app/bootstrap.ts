@@ -7,6 +7,7 @@
  * Deck domain logic lives in features/deck-manager/deckLoading.ts.
  */
 import * as Y from 'yjs';
+import * as Sentry from '@sentry/react';
 import { Player } from '@/features/player';
 import { RoomManager } from '@/features/room';
 import { CardLookupService, TokenService } from '@/infrastructure/cards';
@@ -118,6 +119,12 @@ export async function bootstrapGame(options: BootstrapOptions = {}): Promise<Boo
   // ── 4. Networking ──────────────────────────────────────────────────────────
   const peerId = getOrCreatePeerId();
   const transport = await getEffectiveNetworkTransport();
+  // Tag the whole session, not just the connection monitors' own events. Which
+  // transport a client landed on is the first thing worth knowing about any
+  // sync complaint — an ad-blocked client silently alone on WebRTC looks
+  // identical, from the report text, to a genuine relay outage. Setting it
+  // here means every error and every bug report carries it for free.
+  Sentry.setTag('transport', transport);
   const yjsNetworkProvider = await yjsNetworkFactory.create(yDoc, {
     roomName,
     peerId,

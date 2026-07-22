@@ -30,10 +30,23 @@ export type HotkeyContext = typeof HotkeyContext[keyof typeof HotkeyContext];
  * set makes scoped bindings fall back to "always on" with a console warning):
  * - `Board`      — normal play; all battlefield / hand / pile / token hotkeys.
  * - `PileViewer` — a modal (pile viewer) is open; only its card hotkeys fire.
+ * - `Captured`   — something outside React's tree owns the keyboard; nothing
+ *   fires. Deliberately has zero bindings: it exists so there is always exactly
+ *   one active scope (an empty active set makes react-hotkeys-hook re-enable
+ *   every scoped binding with a warning — the opposite of what we want).
+ *
+ *   The case that forced it: Sentry's bug-report form renders into a shadow
+ *   DOM, so keydown events reaching `document` are retargeted to the shadow
+ *   *host* — a plain `<div>`. react-hotkeys-hook's "don't fire while the user
+ *   is typing in a field" check inspects the target's tag, sees a div, and
+ *   fires anyway. Typing "deck duplicated cards" into that form landed as
+ *   "dek dpl" and drew cards. Any future non-React overlay has the same
+ *   problem, hence a general scope rather than a bug-report-shaped flag.
  */
 export const HotkeyScope = {
   Board: 'board',
   PileViewer: 'pile-viewer',
+  Captured: 'captured',
 } as const;
 
 export type HotkeyScope = typeof HotkeyScope[keyof typeof HotkeyScope];

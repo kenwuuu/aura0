@@ -6,6 +6,7 @@ import { SavedDeck } from '@/features/player/types';
 import { DeckImportHelpDialog } from './DeckImportHelpDialog';
 import { isSideboardCard, parseDecklistWithStats } from './DeckListParser';
 import { ModalFooter } from '@/shared/components/ModalFooter';
+import { openBugReport } from '@/features/bug-report';
 import {InfoIcon} from "lucide-react"
 import {
   Alert,
@@ -386,6 +387,15 @@ export function DeckImportModal({ isOpen, onClose, onDeckImported }: DeckImportM
                 label: 'Help',
                 onClick: () => setIsHelpOpen(true),
                 disabled: isImporting,
+                align: 'left',
+              },
+              {
+                // Not disabled while importing, unlike its neighbours: an
+                // import that hangs is exactly the bug worth reporting, and
+                // greying this out would lock the player out at the only
+                // moment they want it.
+                label: 'Report a bug',
+                onClick: () => void openBugReport('deck-import'),
                 align: 'left',
               },
               {

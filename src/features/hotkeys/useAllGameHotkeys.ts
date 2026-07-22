@@ -27,6 +27,7 @@ import { dispatchGameAction } from '@/features/hotkeys/gameActions';
 export function useAllGameHotkeys() {
   const hoverTarget = useHotkeyStore((s) => s.hoverTarget);
   const isModalOpen = useHotkeyStore((s) => s.isModalOpen);
+  const isKeyboardCaptured = useHotkeyStore((s) => s.isKeyboardCaptured);
 
   const { enableScope, disableScope } = useHotkeysContext();
 
@@ -40,15 +41,25 @@ export function useAllGameHotkeys() {
   // Modal state → active scope. Keep exactly one scope active at all times
   // (an empty active-scope set re-enables scoped bindings with a warning), and
   // enable the new scope before disabling the old to avoid a transient gap.
+  //
+  // Capture outranks modal state: when a surface outside React's tree holds the
+  // keyboard, neither board nor pile-viewer keys may fire — swapping between
+  // those two would only change *which* set steals the user's typing.
   useEffect(() => {
-    if (isModalOpen) {
+    if (isKeyboardCaptured) {
+      enableScope(HotkeyScope.Captured);
+      disableScope(HotkeyScope.Board);
+      disableScope(HotkeyScope.PileViewer);
+    } else if (isModalOpen) {
       enableScope(HotkeyScope.PileViewer);
       disableScope(HotkeyScope.Board);
+      disableScope(HotkeyScope.Captured);
     } else {
       enableScope(HotkeyScope.Board);
       disableScope(HotkeyScope.PileViewer);
+      disableScope(HotkeyScope.Captured);
     }
-  }, [isModalOpen, enableScope, disableScope]);
+  }, [isKeyboardCaptured, isModalOpen, enableScope, disableScope]);
 
   // --- Shared option presets (per-binding `enabled` is spread in) ---
   const board = { scopes: HotkeyScope.Board, preventDefault: true } as const;

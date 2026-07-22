@@ -83,6 +83,25 @@ Sentry.init({
       maskAllText: false,
       blockAllMedia: false,
     }),
+    // The bug-report form (features/bug-report/). `autoInject: false` keeps
+    // Sentry's own floating actor button off the board — the app opens the
+    // form from its own buttons instead, which is also what lets each surface
+    // attach its game-state snapshot. Submitting flushes the replay buffer
+    // even when the session wasn't in the 10% sample below, so a report
+    // arrives with video of what the player just did.
+    Sentry.feedbackIntegration({
+      autoInject: false,
+      colorScheme: 'dark',
+      showBranding: false,
+      // Nothing here is required: a report from someone who won't leave an
+      // email is still worth strictly more than no report.
+      isNameRequired: false,
+      isEmailRequired: false,
+      formTitle: 'Report a bug',
+      messagePlaceholder:
+        'What went wrong? What were you doing right before it happened?',
+      submitButtonLabel: 'Send report',
+    }),
   ],
   // Tracing
   tracesSampleRate: isProd ? 0.2 : 1.0,
