@@ -46,24 +46,36 @@ export class TokenService {
 
     console.log(`Found ${tokenIds.length} token(s) for "${cardData.name}"`);
 
-    for (let i = 0; i < tokenIds.length; i++) {
-      try {
-        const tokenData = await this.lookup.fetchCardById(tokenIds[i]);
-        const tokenCardData = this.lookup.createCardDataResult(tokenData);
+    // Fetched concurrently — each lookup is independent, and CardApiClient's
+    // internal PQueue is what throttles actual requests to the backend.
+    const outcomes = await Promise.all(
+      tokenIds.map(async (tokenId, i) => {
+        try {
+          const tokenData = await this.lookup.fetchCardById(tokenId);
+          const tokenCardData = this.lookup.createCardDataResult(tokenData);
 
-        const token: Card = fromCardDataResult(tokenCardData, {
-          id: makeTokenId(),
-          cardNumber: this.tokenCardNumberCounter++,
-          x: position ? position.x + (i + 1) * CARD_WIDTH : 100,
-          y: position ? position.y : 100,
-        });
+          const token: Card = fromCardDataResult(tokenCardData, {
+            id: makeTokenId(),
+            cardNumber: this.tokenCardNumberCounter++,
+            x: position ? position.x + (i + 1) * CARD_WIDTH : 100,
+            y: position ? position.y : 100,
+          });
 
-        tokens.push(token);
-        console.log(`Created token: ${token.name}`);
-      } catch (err) {
-        const message = err instanceof Error ? err.message : 'Unknown error';
-        console.error(`Failed to create token ${tokenIds[i]}:`, message);
-        errors.push(`Token ${i + 1}: ${message}`);
+          return { token };
+        } catch (err) {
+          const message = err instanceof Error ? err.message : 'Unknown error';
+          console.error(`Failed to create token ${tokenId}:`, message);
+          return { error: `Token ${i + 1}: ${message}` };
+        }
+      }),
+    );
+
+    for (const outcome of outcomes) {
+      if (outcome.token) {
+        tokens.push(outcome.token);
+        console.log(`Created token: ${outcome.token.name}`);
+      } else if (outcome.error) {
+        errors.push(outcome.error);
       }
     }
 
