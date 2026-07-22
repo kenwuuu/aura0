@@ -130,7 +130,7 @@ function BattlefieldCanvasInner({ yDoc, localPlayerId }: BattlefieldCanvasProps)
   const awareness = useGameInstance((s) => s.awareness);
   // On phone the bottom-left corner belongs to nothing (the full-width hand
   // covers the bottom edge) and the top-left hosts the HUD toggle stack, so
-  // the settings gear + zoom controls move to the top-right. docs/responsive.md.
+  // the settings gear + zoom controls move to the top-right. docs/architecture/responsive.md.
   const isPhone = usePhoneLayout();
 
   const { nodes: cardTokenNodes, onNodesChange, elevateNodes, translateNodes, setDraggingNodeIds } = useBattlefieldNodes(yCards, yTokens, localPlayerId, awareness);
@@ -626,7 +626,7 @@ function BattlefieldCanvasInner({ yDoc, localPlayerId }: BattlefieldCanvasProps)
             top-right on phone), so without it they'd overlap. */}
         {/* Phone margins mirror the PhoneHudStack toggles across the screen:
             8px from the toolbar and screen edge plus the safe-area right inset
-            (the right edge's inset owner, per docs/responsive.md), and an 8px
+            (the right edge's inset owner, per docs/architecture/responsive.md), and an 8px
             gap below the 34px settings button (8 + 34 + 8 = 50). */}
         <Controls
           position={isPhone ? 'top-right' : 'bottom-left'}

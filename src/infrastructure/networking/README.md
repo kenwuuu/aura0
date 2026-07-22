@@ -364,7 +364,7 @@ localStorage.getItem('aura:peerId'); // Should return UUID
 - [y-webrtc GitHub](https://github.com/yjs/y-webrtc)
 - [y-indexeddb GitHub](https://github.com/yjs/y-indexeddb)
 - [WebRTC Specification](https://webrtc.org/)
-- [Aura WEBRTC_SETUP.md](../../../docs/WEBRTC_SETUP.md) - Detailed signaling server setup
+- [Aura WEBRTC_SETUP.md](../../../docs/networking/WEBRTC_SETUP.md) - Detailed signaling server setup
 
 ## Future Improvements
 

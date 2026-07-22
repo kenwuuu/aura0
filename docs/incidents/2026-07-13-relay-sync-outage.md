@@ -4,7 +4,7 @@
 nothing synced. Staging was hit too (it shares the relay).
 **Trigger:** deploying the relay memory-leak fix.
 **Resolution:** rolled back to the stock relay; recovered immediately.
-**Status:** fixed and redeployed 2026-07-14 (see [runbook](../RELAY_RUNBOOK.md)).
+**Status:** fixed and redeployed 2026-07-14 (see [runbook](../networking/RELAY_RUNBOOK.md)).
 
 ## What happened
 

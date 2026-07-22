@@ -53,7 +53,7 @@ deploys it to `aura0.app` on every push. It advances *only* via a single
 The one exception is a **production hotfix** that can't wait for what's in
 staging: branch off `master`, PR into `master`, then back-merge
 `master → staging`. This is a human call — not a default. Full flow and the
-Cloudflare/GitHub setup are in [`docs/STAGING.md`](docs/STAGING.md).
+Cloudflare/GitHub setup are in [`docs/deployment/STAGING.md`](docs/deployment/STAGING.md).
 
 ## Architecture
 
@@ -100,6 +100,7 @@ E2e tests: Playwright under `tests/e2e/`. Write specs through `tests/e2e/harness
 
 ## Additional Reference
 
+- `docs/README.md` — index of project docs, grouped into `deployment/`, `networking/`, `architecture/`, `testing/`, `incidents/`
 - `@tests/testing-react.md` — unit/component test conventions: query ladder, real-Yjs rule, mocking policy, harness
 - `@docs/testing/e2e.md` — E2E testing contract: harness-first rules, banned patterns, CI wiring, deferred state-assertion design
 - `@tests/testing.md` — PileViewer selectors, dnd-kit drag-and-drop mechanics

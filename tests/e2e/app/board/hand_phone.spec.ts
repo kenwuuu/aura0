@@ -1,5 +1,5 @@
 /**
- * Advisory coverage for the phone hand (docs/responsive.md): below the `sm`
+ * Advisory coverage for the phone hand (docs/architecture/responsive.md): below the `sm`
  * breakpoint the hand strip spans the full viewport width and the rendered
  * card zoom is capped (effectiveHandZoom) so several cards fit the screen.
  * The default handZoom of 1 already exceeds the 0.6 phone cap, so the card

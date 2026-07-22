@@ -27,7 +27,7 @@ import '../style.css';
 // Both are auto-exposed by Vite's VITE_ prefix convention — no vite.config.ts
 // wiring needed for these two. Locally/unset, both are undefined.
 // A non-master deploy branch (e.g. the `staging` integration branch, see
-// docs/STAGING.md) reports Sentry environment `preview`.
+// docs/deployment/STAGING.md) reports Sentry environment `preview`.
 const PRODUCTION_BRANCH = 'master';
 const appVersion = import.meta.env.VITE_APP_VERSION as string | undefined;
 const deployBranch = import.meta.env.VITE_APP_ENV as string | undefined;

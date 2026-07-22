@@ -42,7 +42,7 @@ export function useBreakpoint(breakpoint: Breakpoint): boolean {
  * True below the `sm` breakpoint — the app's single "phone layout" line.
  * Use this (not ad-hoc widths) for JS structural branches: a different
  * component tree, react-flow props, disabling drag. Pure show/hide belongs
- * in CSS instead. Full contract: docs/responsive.md.
+ * in CSS instead. Full contract: docs/architecture/responsive.md.
  */
 export function usePhoneLayout(): boolean {
   return !useBreakpoint('sm');

@@ -23,7 +23,7 @@ After any flip to the rewrite, watch **Sentry** (release = commit SHA) and **Pos
 
 ## Handoff — remaining work
 - [x] Confirm `post-deploy-smoke.yml` still fires under Workers Builds' `deployment_status` event — **it does NOT** (Workers Builds reports via check runs + PR comments, not the Deployments API; `gh run list --workflow=post-deploy-smoke.yml` is empty). The workflow is dormant for prod. Re-wiring options documented in [`STAGING.md`](./STAGING.md#known-gap-post-deploy-smoke-test-is-dormant).
-- [x] Update `docs/DEPLOYMENT_SETUP.md` / `docs/DEPLOYMENT_RUNBOOK.md` — refreshed to the Workers Builds / `WORKERS_CI_*` flow (2026-07-09).
+- [x] Update `docs/deployment/DEPLOYMENT_SETUP.md` / `docs/deployment/DEPLOYMENT_RUNBOOK.md` — refreshed to the Workers Builds / `WORKERS_CI_*` flow (2026-07-09).
 - [ ] Disconnect Git on (or delete) the **stray Pages `aura0` project** — it double-builds `aura0.pages.dev` on every push to `kenwuuu/aura0`.
 - [ ] Decide on **CF Web Analytics**: Pages auto-injected its beacon into `index.html`; the Worker does not. Re-add the beacon (token `1dddb2f8…`) if you want to keep it — you also have PostHog + Sentry.
 - [ ] **Soak Pages `aura` ~1–2 weeks**, then delete it. Then handle the advanced cert (below).
