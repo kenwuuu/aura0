@@ -150,20 +150,33 @@ export class CardApiClient {
    * falling back to byName within this same client when bySet fails.
    * Items that fail both lookups are returned in `failedItems` for upstream
    * fallback to a different client.
+   *
+   * Lookups are dispatched concurrently rather than one-at-a-time — the
+   * `PQueue` in the constructor is what actually throttles requests to each
+   * backend's rate limit, so fanning out here doesn't risk exceeding it, and
+   * turns an N-card list into ~N/intervalCap round trips instead of N.
    */
   async fetchImagesForList(
     entries: DeckLineItem[],
     onProgress?: (current: number, total: number) => void,
     retries = 1,
   ): Promise<FetchListResult> {
+    let completed = 0;
+
+    const outcomes = await Promise.all(
+      entries.map(async (entry) => {
+        const outcome = await this.lookupEntry(entry, retries);
+        completed++;
+        onProgress?.(completed, entries.length);
+        return { entry, outcome };
+      }),
+    );
+
     const results: CardDataResult[] = [];
     const failedItems: DeckLineItem[] = [];
     const failures: LookupFailure[] = [];
-    let completed = 0;
 
-    for (const entry of entries) {
-      const outcome = await this.lookupEntry(entry, retries);
-
+    for (const { entry, outcome } of outcomes) {
       if (outcome.card) {
         results.push(toCardDataResult(outcome.card, entry.count, entry.commander, entry.section));
       } else {
@@ -180,9 +193,6 @@ export class CardApiClient {
           error: `[${this.config.name}] lookup failed for "${entry.name}" (${outcome.reason})`,
         });
       }
-
-      completed++;
-      onProgress?.(completed, entries.length);
     }
 
     return { results, failedItems, failures };
