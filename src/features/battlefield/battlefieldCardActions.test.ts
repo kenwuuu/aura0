@@ -67,12 +67,24 @@ describe('executeBattlefieldCardAction', () => {
       expect(log.filter((e) => e.type === 'untap_all')).toHaveLength(1);
     });
 
+    it('clears the summoning-sick tilt too, resetting sick cards to 0°', () => {
+      yCards.set('card-1', makeWhiteboardCard({ id: 'card-1', ownerId: 'p1', isSick: true }));
+      yCards.set('card-2', makeWhiteboardCard({ id: 'card-2', ownerId: 'p1', isTapped: true }));
+
+      executeBattlefieldCardAction('untapAll', '', yCards, yTokens, 'p1');
+
+      expect(yCards.get('card-1')!.isSick).toBe(false);
+      expect(yCards.get('card-2')!.isTapped).toBe(false);
+    });
+
     it('does not touch cards owned by other players', () => {
       yCards.set('card-1', makeWhiteboardCard({ id: 'card-1', ownerId: 'opponent', isTapped: true }));
+      yCards.set('card-2', makeWhiteboardCard({ id: 'card-2', ownerId: 'opponent', isSick: true }));
 
       executeBattlefieldCardAction('untapAll', '', yCards, yTokens, 'p1');
 
       expect(yCards.get('card-1')!.isTapped).toBe(true);
+      expect(yCards.get('card-2')!.isSick).toBe(true);
     });
   });
 

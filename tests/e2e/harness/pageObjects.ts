@@ -179,9 +179,15 @@ export function toolbarMoreButton(page: Page): Locator {
   return page.getByTestId(TESTID.toolbarMore);
 }
 
-/** The "Hotkeys" button in the top bar. Hidden below the `sm` collapse breakpoint. */
-export function hotkeysButton(page: Page): Locator {
-  return toolbar(page).getByRole('button', { name: 'Hotkeys' });
+/** The "Search ⌘K" command-palette launcher in the top bar. Hidden below the
+ *  `sm` collapse breakpoint (the palette is a keyboard feature). */
+export function commandPaletteButton(page: Page): Locator {
+  return toolbar(page).getByRole('button', { name: /open command palette/i });
+}
+
+/** The ⌘K command palette dialog. */
+export function commandPalette(page: Page): Locator {
+  return page.getByRole('dialog', { name: /command palette/i });
 }
 
 /** The "Help" button in the top bar (desktop row; moves into the overflow menu on phone). */

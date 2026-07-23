@@ -53,6 +53,27 @@ describe('ActionLogPanel', () => {
     expect(screen.getByText('drew a card')).toBeInTheDocument();
   });
 
+  it('renders a message entry with a colon after the sender name', () => {
+    const yDoc = new Y.Doc();
+    yDoc.getMap(YDOC_PLAYER('p1')).set(YSTATE_PLAYER_NAME, 'Alice');
+    logAction(yDoc, { actorId: 'p1', type: 'message', text: 'gg everyone' });
+
+    render(<ActionLogPanel yDoc={yDoc} localPlayerId="p1" />);
+
+    expect(screen.getByText('Alice:')).toBeInTheDocument();
+    expect(screen.getByText('gg everyone')).toBeInTheDocument();
+  });
+
+  it('lets the local player send a chat message through the composer', async () => {
+    const user = userEvent.setup();
+    const yDoc = new Y.Doc();
+    render(<ActionLogPanel yDoc={yDoc} localPlayerId="p1" />);
+
+    await user.type(screen.getByLabelText('Chat message'), 'hello{Enter}');
+
+    expect(await screen.findByText('hello')).toBeInTheDocument();
+  });
+
   it('collapses and re-expands the entry list on header click', async () => {
     const user = userEvent.setup();
     const yDoc = new Y.Doc();

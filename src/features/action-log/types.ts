@@ -34,7 +34,8 @@ export type ActionLogType =
   | 'search'
   | 'token_count'
   | 'roll_die'
-  | 'coin_flip';
+  | 'coin_flip'
+  | 'message';
 
 export interface ActionLogEntry {
   id: string;          // see generateEntryId() in actionLog.ts — unique across all peers

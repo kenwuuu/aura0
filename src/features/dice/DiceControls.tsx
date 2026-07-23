@@ -16,15 +16,8 @@ export function DiceControls({ yDoc, localPlayerId }: DiceControlsProps) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px' }}>
       <div style={{ display: 'flex' }}>
-        <Button
-          size="sm"
-          className="rounded-r-none"
-          onClick={() => rollDieAction(yDoc, localPlayerId, sides)}
-        >
-          Roll
-        </Button>
         <Select value={String(sides)} onValueChange={(v) => setSides(Number(v) as DieSides)}>
-          <SelectTrigger size="sm" className="rounded-l-none border-l-0 px-2" aria-label="Die type">
+          <SelectTrigger size="sm" className="rounded-r-none border-r-0 px-2" aria-label="Die type">
             {/* fixed to 4ch so the trigger doesn't resize between "d4" and "d100" */}
             <span className="inline-block w-[4ch]">{`d${sides}`}</span>
           </SelectTrigger>
@@ -34,6 +27,13 @@ export function DiceControls({ yDoc, localPlayerId }: DiceControlsProps) {
             ))}
           </SelectContent>
         </Select>
+        <Button
+          size="sm"
+          className="rounded-l-none"
+          onClick={() => rollDieAction(yDoc, localPlayerId, sides)}
+        >
+          Roll
+        </Button>
       </div>
       <Button size="sm" variant="secondary" onClick={() => flipCoinAction(yDoc, localPlayerId)}>
         Flip
