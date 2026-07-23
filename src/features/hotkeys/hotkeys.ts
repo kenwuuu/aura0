@@ -172,6 +172,18 @@ export const HOTKEYS: Hotkey[] = [
     action: 'flip',
   },
   {
+    // Menu-only (no key binding, like `viewPile`): reveals a facedown card's
+    // hidden face in *your local preview only* — nothing is written to Yjs, so
+    // opponents see nothing. GameContextMenu only shows this row on your own
+    // facedown cards; the executor gates it the same way (see `executePeek`).
+    key: '',
+    keys: [],
+    context: ['battlefield'],
+    shortDescription: 'Peek',
+    longDescription: 'Peek at your facedown card (only you can see it)',
+    action: 'peek',
+  },
+  {
     key: 'U',
     keys: ['u'],
     context: ['global', 'battlefield'],

@@ -61,6 +61,57 @@ describe('GameContextMenu', () => {
     expect(useContextMenuStore.getState().isOpen).toBe(false);
   });
 
+  it('shows a Peek row only on your own facedown card', async () => {
+    const { yDoc } = renderWithGame(<GameContextMenu />);
+    const yCards = yDoc.getMap<WhiteboardCard>(YDOC_CARDS_ON_BOARD);
+    yCards.set('card-1', makeCard({ isFlipped: true, ownerId: 'test-player' }));
+
+    act(() => {
+      useContextMenuStore.getState().openMenu({
+        target: { kind: 'battlefieldCard', id: 'card-1' },
+        x: 10,
+        y: 10,
+      });
+    });
+
+    expect(await screen.findByRole('menuitem', { name: /^Peek\b/ })).toBeInTheDocument();
+  });
+
+  it('hides the Peek row on a face-up card (nothing hidden to reveal)', async () => {
+    const { yDoc } = renderWithGame(<GameContextMenu />);
+    const yCards = yDoc.getMap<WhiteboardCard>(YDOC_CARDS_ON_BOARD);
+    yCards.set('card-1', makeCard({ isFlipped: false, ownerId: 'test-player' }));
+
+    act(() => {
+      useContextMenuStore.getState().openMenu({
+        target: { kind: 'battlefieldCard', id: 'card-1' },
+        x: 10,
+        y: 10,
+      });
+    });
+
+    // Wait for the menu to render, then assert Peek is absent.
+    await screen.findByRole('menuitem', { name: /^Tap\b/ });
+    expect(screen.queryByRole('menuitem', { name: /^Peek\b/ })).not.toBeInTheDocument();
+  });
+
+  it("hides the Peek row on an opponent's facedown card (would leak hidden info)", async () => {
+    const { yDoc } = renderWithGame(<GameContextMenu />);
+    const yCards = yDoc.getMap<WhiteboardCard>(YDOC_CARDS_ON_BOARD);
+    yCards.set('card-1', makeCard({ isFlipped: true, ownerId: 'opponent' }));
+
+    act(() => {
+      useContextMenuStore.getState().openMenu({
+        target: { kind: 'battlefieldCard', id: 'card-1' },
+        x: 10,
+        y: 10,
+      });
+    });
+
+    await screen.findByRole('menuitem', { name: /^Tap\b/ });
+    expect(screen.queryByRole('menuitem', { name: /^Peek\b/ })).not.toBeInTheDocument();
+  });
+
   it('renders the destructive action (Delete) with the destructive variant', async () => {
     const { yDoc } = renderWithGame(<GameContextMenu />);
     const yCards = yDoc.getMap<WhiteboardCard>(YDOC_CARDS_ON_BOARD);

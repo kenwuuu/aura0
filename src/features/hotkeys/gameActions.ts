@@ -16,6 +16,7 @@
 
 import { useGameInstance } from '@/app/stores/gameInstanceStore';
 import { useHotkeyStore } from '@/app/stores/hotkeyStore';
+import { useContextMenuStore } from './contextMenuStore';
 import { useCardPreviewStore } from '@/features/card-preview/cardPreviewStore';
 import { executeBattlefieldCardAction } from '@/features/battlefield/battlefieldCardActions';
 import { spawnTokenAtPosition } from '@/features/battlefield/spawnToken';
@@ -203,6 +204,37 @@ function executeBoardAction(action: string, cursor: { x: number; y: number }): v
 }
 
 /**
+ * Peek at your own facedown card's hidden (front) face. This is a **local-only**
+ * preview — it writes nothing to Yjs, so the board card stays face-down to
+ * everyone and opponents see nothing (no board-state flip, no unflip timeout).
+ *
+ * Gated to the card's owner and to facedown cards; a no-op otherwise, so it can
+ * never leak an opponent's hidden information. `GameContextMenu` applies the
+ * same gate to decide whether to even show the row.
+ */
+function executePeek(cardId: string): void {
+  const { yDoc, playerId } = useGameInstance.getState();
+  if (!yDoc || !playerId) return;
+  const yCards = yDoc.getMap<WhiteboardCard>(YDOC_CARDS_ON_BOARD);
+  const card = yCards.get(cardId);
+  if (!card || card.ownerId !== playerId || !card.isFlipped) return;
+
+  // Anchor the preview at the point the menu was opened from (tap/cursor
+  // position) so its left/right placement is sensible on touch and mouse alike.
+  const { x, y } = useContextMenuStore.getState();
+  useCardPreviewStore.getState().updatePosition(x, y);
+
+  // Preview an *unflipped* copy so the front face renders (see
+  // CardPreview.selectPreviewImage). Only this local copy is unflipped — the
+  // shared board card is untouched. The source watcher auto-hides the preview
+  // once the card leaves the board.
+  useCardPreviewStore.getState().show(
+    { ...card, isFlipped: false },
+    { yMap: yCards, isPresent: () => yCards.has(cardId) },
+  );
+}
+
+/**
  * Route an action id (from `hotkeys.ts`'s `Hotkey.action`) to the executor
  * for the given target. Called by keyboard bindings (`useAllGameHotkeys`)
  * and by `GameContextMenu` on item click — the only two callers, so both
@@ -211,6 +243,9 @@ function executeBoardAction(action: string, cursor: { x: number; y: number }): v
 export function dispatchGameAction(action: string, target: MenuTarget): void {
   switch (target.kind) {
     case 'battlefieldCard': {
+      // Peek is a local-only preview, not a board mutation, so it's handled
+      // here rather than in executeBattlefieldCardAction (which owns Yjs writes).
+      if (action === 'peek') { executePeek(target.id); return; }
       const { yDoc, playerId } = useGameInstance.getState();
       if (!yDoc || !playerId) return;
       const yCards = yDoc.getMap<WhiteboardCard>(YDOC_CARDS_ON_BOARD);

@@ -17,7 +17,7 @@
  */
 
 import { useContextMenuStore } from './contextMenuStore';
-import { getMenuActionsForTarget } from './hotkeys';
+import { getMenuActionsForTarget, type MenuTarget } from './hotkeys';
 import { dispatchGameAction } from './gameActions';
 import {
   DropdownMenu,
@@ -27,6 +27,22 @@ import {
   DropdownMenuTrigger,
 } from '@/shared/ui/dropdown-menu';
 import { CreateTokenGridItem } from '@/features/game-actions/CreateTokenGridItem';
+import { useGameInstance } from '@/app/stores/gameInstanceStore';
+import { YDOC_CARDS_ON_BOARD } from '@/constants';
+import type { WhiteboardCard } from '@/features/battlefield/types';
+
+// "Peek" reveals a facedown card's hidden face in the local preview only, so it
+// belongs solely on *your own facedown* battlefield cards — never on a face-up
+// card (nothing to reveal) or an opponent's (revealing it would leak hidden
+// information). Unlike every other row, whether it applies depends on live card
+// state, not just the target kind, so it's filtered here rather than by context.
+function canPeekTarget(target: MenuTarget): boolean {
+  if (target.kind !== 'battlefieldCard') return false;
+  const { yDoc, playerId } = useGameInstance.getState();
+  if (!yDoc || !playerId) return false;
+  const card = yDoc.getMap<WhiteboardCard>(YDOC_CARDS_ON_BOARD).get(target.id);
+  return !!card && card.ownerId === playerId && !!card.isFlipped;
+}
 
 export function GameContextMenu() {
   const isOpen = useContextMenuStore((s) => s.isOpen);
@@ -41,7 +57,9 @@ export function GameContextMenu() {
   // where there's no hover-and-click affordance — desktop right-click hides
   // them. See the `touchMenuOnly` doc on the Hotkey type.
   const rows = (target ? getMenuActionsForTarget(target) : [])
-    .filter((row) => viaTouch || !row.touchMenuOnly);
+    .filter((row) => viaTouch || !row.touchMenuOnly)
+    // The Peek row is state-conditional: only on your own facedown cards.
+    .filter((row) => row.action !== 'peek' || (!!target && canPeekTarget(target)));
   const open = isOpen && rows.length > 0;
 
   // The hand is anchored to the bottom of the screen (both desktop and phone),
