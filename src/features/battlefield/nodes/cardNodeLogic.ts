@@ -29,6 +29,17 @@ export function resolveCardFace(
   };
 }
 
+/**
+ * A card is *hidden* face-down when it's flipped but has no real back image —
+ * so it shows the generic card back and its true (front) identity is concealed.
+ * This is the only case worth peeking: a double-faced card flipped to its back
+ * is showing a real, public face, not hiding anything. The card object tells us
+ * directly — `images.back` is only populated for double-faced cards.
+ */
+export function isHiddenFacedown(card: Pick<Card, 'isFlipped' | 'images'>): boolean {
+  return !!card.isFlipped && !card.images?.back?.normal;
+}
+
 /** Total rotation in degrees: the card's own rotation plus 90° when tapped. */
 export function resolveCardRotation(card: Pick<Card, 'rotation' | 'isTapped'>): number {
   return (card.rotation ?? 0) + (card.isTapped ? 90 : 0);

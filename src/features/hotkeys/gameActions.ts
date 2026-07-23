@@ -19,6 +19,7 @@ import { useHotkeyStore } from '@/app/stores/hotkeyStore';
 import { useContextMenuStore } from './contextMenuStore';
 import { useCardPreviewStore } from '@/features/card-preview/cardPreviewStore';
 import { executeBattlefieldCardAction } from '@/features/battlefield/battlefieldCardActions';
+import { isHiddenFacedown } from '@/features/battlefield/nodes/cardNodeLogic';
 import { spawnTokenAtPosition } from '@/features/battlefield/spawnToken';
 import { playCardFromPile } from '@/features/battlefield/battlefieldActions';
 import { applyTokenDelta } from '@/features/battlefield/nodes/tokenNodeLogic';
@@ -217,7 +218,7 @@ function executePeek(cardId: string): void {
   if (!yDoc || !playerId) return;
   const yCards = yDoc.getMap<WhiteboardCard>(YDOC_CARDS_ON_BOARD);
   const card = yCards.get(cardId);
-  if (!card || card.ownerId !== playerId || !card.isFlipped) return;
+  if (!card || card.ownerId !== playerId || !isHiddenFacedown(card)) return;
 
   // Anchor the preview at the point the menu was opened from (tap/cursor
   // position) so its left/right placement is sensible on touch and mouse alike.

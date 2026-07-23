@@ -115,6 +115,20 @@ describe('dispatchGameAction', () => {
 
         expect(useCardPreviewStore.getState().isVisible).toBe(false);
       });
+
+      it('does not peek a double-faced card showing its real back (a public face)', () => {
+        const { yDoc, playerId } = seed();
+        const yCards = yDoc.getMap('cards-on-board');
+        yCards.set('card-1', {
+          ...makeCard({ isFlipped: true, images: { front: { normal: 'f.png' }, back: { normal: 'b.png' } } }),
+          zIndex: 1,
+          ownerId: playerId,
+        });
+
+        dispatchGameAction('peek', { kind: 'battlefieldCard', id: 'card-1' });
+
+        expect(useCardPreviewStore.getState().isVisible).toBe(false);
+      });
     });
   });
 

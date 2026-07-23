@@ -31,17 +31,21 @@ beforeEach(() => {
 const PLAYER = 'p1';
 const NODE_ID = 'bolt';
 
-/** Build CardNode's `data` bag: a card plus the maps/ids the handlers close over. */
-function cardNodeData(card: Card, yCards: Y.Map<unknown>, yTokens: Y.Map<unknown>) {
-  return { ...card, zIndex: 0, ownerId: PLAYER, yCards, yTokens, localPlayerId: PLAYER };
+/** Build CardNode's `data` bag: a card plus the maps/ids the handlers close over.
+ * `ownerId` defaults to the local player; pass an opponent id to test enemy cards. */
+function cardNodeData(card: Card, yCards: Y.Map<unknown>, yTokens: Y.Map<unknown>, ownerId = PLAYER) {
+  return { ...card, zIndex: 0, ownerId, yCards, yTokens, localPlayerId: PLAYER };
 }
 
-/** Render CardNode with fresh Yjs maps; returns them so a test can drive Yjs. */
-function renderCard(card: Card) {
+/** Render CardNode with fresh Yjs maps; returns them so a test can drive Yjs.
+ * The plain whiteboard card is seeded into `yCards` (as production does) so
+ * `showPreview`'s `yCards.get(id)` resolves the current card state. */
+function renderCard(card: Card, ownerId = PLAYER) {
   const yDoc = new Y.Doc();
   const yCards = yDoc.getMap(YDOC_CARDS_ON_BOARD);
   const yTokens = yDoc.getMap(YDOC_KEYWORD_TOKENS);
-  const result = renderNode(CardNode, cardNodeData(card, yCards, yTokens), {
+  yCards.set(NODE_ID, { ...card, zIndex: 0, ownerId });
+  const result = renderNode(CardNode, cardNodeData(card, yCards, yTokens, ownerId), {
     playerId: PLAYER,
     nodeProps: { id: NODE_ID },
   });
@@ -114,6 +118,43 @@ describe('CardNode — hover drives the card preview', () => {
     await user.unhover(frame);
     expect(useCardPreviewStore.getState().isVisible).toBe(false);
     expect(useHotkeyStore.getState().hoverTarget).toBeNull();
+  });
+
+  it('auto-peeks your own hidden face-down card: hover previews its front face', async () => {
+    const user = userEvent.setup();
+    const { container } = renderCard(
+      makeCard({ name: 'Bolt', isFlipped: true, images: { front: { normal: 'front.png' } } }),
+    );
+
+    await user.hover(container.firstChild as Element);
+
+    // The board card stays flipped, but the preview shows the unflipped front.
+    const preview = useCardPreviewStore.getState();
+    expect(preview.isVisible).toBe(true);
+    expect(preview.card?.isFlipped).toBe(false);
+  });
+
+  it('does not auto-peek a double-faced card back (a real, public face)', async () => {
+    const user = userEvent.setup();
+    const { container } = renderCard(
+      makeCard({ isFlipped: true, images: { front: { normal: 'front.png' }, back: { normal: 'back.png' } } }),
+    );
+
+    await user.hover(container.firstChild as Element);
+
+    expect(useCardPreviewStore.getState().card?.isFlipped).toBe(true);
+  });
+
+  it("does not auto-peek an opponent's hidden face-down card (no leak)", async () => {
+    const user = userEvent.setup();
+    const { container } = renderCard(
+      makeCard({ isFlipped: true, images: { front: { normal: 'front.png' } } }),
+      'opponent',
+    );
+
+    await user.hover(container.firstChild as Element);
+
+    expect(useCardPreviewStore.getState().card?.isFlipped).toBe(true);
   });
 
   it('does not drive the preview on a synthetic mouseenter when the last input was touch', () => {

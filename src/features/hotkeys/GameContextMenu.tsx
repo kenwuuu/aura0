@@ -28,20 +28,23 @@ import {
 } from '@/shared/ui/dropdown-menu';
 import { CreateTokenGridItem } from '@/features/game-actions/CreateTokenGridItem';
 import { useGameInstance } from '@/app/stores/gameInstanceStore';
+import { isHiddenFacedown } from '@/features/battlefield/nodes/cardNodeLogic';
 import { YDOC_CARDS_ON_BOARD } from '@/constants';
 import type { WhiteboardCard } from '@/features/battlefield/types';
 
 // "Peek" reveals a facedown card's hidden face in the local preview only, so it
-// belongs solely on *your own facedown* battlefield cards — never on a face-up
-// card (nothing to reveal) or an opponent's (revealing it would leak hidden
-// information). Unlike every other row, whether it applies depends on live card
-// state, not just the target kind, so it's filtered here rather than by context.
+// belongs solely on *your own hidden face-down* battlefield cards — never on a
+// face-up card (nothing to reveal), a double-faced card showing its real (public)
+// back, or an opponent's card (revealing it would leak hidden information). The
+// row is also `touchMenuOnly` (desktop auto-peeks on hover). Unlike every other
+// row, whether it applies depends on live card state, not just the target kind,
+// so it's filtered here rather than by context.
 function canPeekTarget(target: MenuTarget): boolean {
   if (target.kind !== 'battlefieldCard') return false;
   const { yDoc, playerId } = useGameInstance.getState();
   if (!yDoc || !playerId) return false;
   const card = yDoc.getMap<WhiteboardCard>(YDOC_CARDS_ON_BOARD).get(target.id);
-  return !!card && card.ownerId === playerId && !!card.isFlipped;
+  return !!card && card.ownerId === playerId && isHiddenFacedown(card);
 }
 
 export function GameContextMenu() {

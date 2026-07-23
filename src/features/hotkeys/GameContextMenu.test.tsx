@@ -61,7 +61,7 @@ describe('GameContextMenu', () => {
     expect(useContextMenuStore.getState().isOpen).toBe(false);
   });
 
-  it('shows a Peek row only on your own facedown card', async () => {
+  it('shows a Peek row on your own hidden facedown card when opened via touch', async () => {
     const { yDoc } = renderWithGame(<GameContextMenu />);
     const yCards = yDoc.getMap<WhiteboardCard>(YDOC_CARDS_ON_BOARD);
     yCards.set('card-1', makeCard({ isFlipped: true, ownerId: 'test-player' }));
@@ -71,10 +71,29 @@ describe('GameContextMenu', () => {
         target: { kind: 'battlefieldCard', id: 'card-1' },
         x: 10,
         y: 10,
+        viaTouch: true,
       });
     });
 
     expect(await screen.findByRole('menuitem', { name: /^Peek\b/ })).toBeInTheDocument();
+  });
+
+  it('hides the Peek row on desktop right-click — desktop auto-peeks on hover instead', async () => {
+    const { yDoc } = renderWithGame(<GameContextMenu />);
+    const yCards = yDoc.getMap<WhiteboardCard>(YDOC_CARDS_ON_BOARD);
+    yCards.set('card-1', makeCard({ isFlipped: true, ownerId: 'test-player' }));
+
+    act(() => {
+      useContextMenuStore.getState().openMenu({
+        target: { kind: 'battlefieldCard', id: 'card-1' },
+        x: 10,
+        y: 10,
+        // no viaTouch → desktop right-click; Peek is touchMenuOnly.
+      });
+    });
+
+    await screen.findByRole('menuitem', { name: /^Tap\b/ });
+    expect(screen.queryByRole('menuitem', { name: /^Peek\b/ })).not.toBeInTheDocument();
   });
 
   it('hides the Peek row on a face-up card (nothing hidden to reveal)', async () => {
@@ -87,10 +106,32 @@ describe('GameContextMenu', () => {
         target: { kind: 'battlefieldCard', id: 'card-1' },
         x: 10,
         y: 10,
+        viaTouch: true,
       });
     });
 
-    // Wait for the menu to render, then assert Peek is absent.
+    await screen.findByRole('menuitem', { name: /^Tap\b/ });
+    expect(screen.queryByRole('menuitem', { name: /^Peek\b/ })).not.toBeInTheDocument();
+  });
+
+  it('hides the Peek row on a double-faced card showing its real back', async () => {
+    const { yDoc } = renderWithGame(<GameContextMenu />);
+    const yCards = yDoc.getMap<WhiteboardCard>(YDOC_CARDS_ON_BOARD);
+    yCards.set('card-1', makeCard({
+      isFlipped: true,
+      ownerId: 'test-player',
+      images: { front: { normal: 'f.png' }, back: { normal: 'b.png' } },
+    }));
+
+    act(() => {
+      useContextMenuStore.getState().openMenu({
+        target: { kind: 'battlefieldCard', id: 'card-1' },
+        x: 10,
+        y: 10,
+        viaTouch: true,
+      });
+    });
+
     await screen.findByRole('menuitem', { name: /^Tap\b/ });
     expect(screen.queryByRole('menuitem', { name: /^Peek\b/ })).not.toBeInTheDocument();
   });
@@ -105,6 +146,7 @@ describe('GameContextMenu', () => {
         target: { kind: 'battlefieldCard', id: 'card-1' },
         x: 10,
         y: 10,
+        viaTouch: true,
       });
     });
 

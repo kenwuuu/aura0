@@ -172,16 +172,19 @@ export const HOTKEYS: Hotkey[] = [
     action: 'flip',
   },
   {
-    // Menu-only (no key binding, like `viewPile`): reveals a facedown card's
-    // hidden face in *your local preview only* — nothing is written to Yjs, so
-    // opponents see nothing. GameContextMenu only shows this row on your own
-    // facedown cards; the executor gates it the same way (see `executePeek`).
+    // Reveals a facedown card's hidden face in *your local preview only* —
+    // nothing is written to Yjs, so opponents see nothing. `touchMenuOnly`
+    // because on desktop a plain hover already auto-peeks your own hidden cards
+    // (see CardNode.showPreview); the menu row exists only for touch, which has
+    // no hover. No key binding (like `viewPile`). GameContextMenu only shows the
+    // row on your own hidden-facedown cards; `executePeek` gates it the same way.
     key: '',
     keys: [],
     context: ['battlefield'],
     shortDescription: 'Peek',
     longDescription: 'Peek at your facedown card (only you can see it)',
     action: 'peek',
+    touchMenuOnly: true,
   },
   {
     key: 'U',
