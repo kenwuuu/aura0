@@ -160,7 +160,7 @@ export const HOTKEYS: Hotkey[] = [
     keys: ['x'],
     context: ['global', 'battlefield'],
     shortDescription: 'Untap all',
-    longDescription: 'Untap all your cards',
+    longDescription: 'Untap all your cards and clear summoning sickness',
     action: 'untapAll',
   },
   {

@@ -54,9 +54,12 @@ export function executeBattlefieldCardAction(
   const yDoc = yCards.doc;
 
   if (action === 'untapAll') {
+    // "Untap all" resets every one of your cards to 0° — clearing both the 90°
+    // tap and the 45° summoning-sick tilt (the two are mutually exclusive, so a
+    // card carries at most one). Skip cards already flat to avoid no-op writes.
     yCards.forEach((c, cId) => {
-      if (c.ownerId === playerId && c.isTapped) {
-        yCards.set(cId, { ...c, isTapped: false });
+      if (c.ownerId === playerId && (c.isTapped || c.isSick)) {
+        yCards.set(cId, { ...c, isTapped: false, isSick: false });
       }
     });
     if (yDoc) {
