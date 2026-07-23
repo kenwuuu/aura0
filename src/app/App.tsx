@@ -45,6 +45,8 @@ import { AnnouncementsService } from '@/shared/services/announcements/Announceme
 import { usePhoneLayout } from '@/shared/hooks';
 import { Toolbar } from './Toolbar';
 import { PhoneHudStack } from './PhoneHudStack';
+import { CommandPalette } from './command-palette/CommandPalette';
+import { HelpModal } from './HelpModal';
 import { playCardFromHand } from '@/features/battlefield/battlefieldActions';
 import { effectiveHandZoom } from '@/features/game-dock/handZoomClamp';
 import { useCardPreviewStore } from '@/features/card-preview/cardPreviewStore';
@@ -208,6 +210,8 @@ export function App({ yDoc, yjsNetworkProvider, player, roomManager, playerId, c
       <CardPreview />
       <GameContextMenu />
       <GameHotkeysManager />
+      <CommandPalette />
+      <HelpModal />
       <Toaster />
       <SettingsModal />
       {/* Replaces the old WelcomeModal, which described the buttons instead of
