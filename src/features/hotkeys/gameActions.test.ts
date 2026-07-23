@@ -12,7 +12,7 @@
  * never unit-tested before this extraction either — no regression in
  * coverage, just not adding a leaky one.
  */
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import { dispatchGameAction } from './gameActions';
 import { useGameInstance } from '@/app/stores/gameInstanceStore';
 import { useHotkeyStore } from '@/app/stores/hotkeyStore';
@@ -76,6 +76,84 @@ describe('dispatchGameAction', () => {
       dispatchGameAction('tap', { kind: 'battlefieldCard', id: 'card-1' });
 
       expect((yCards.get('card-1') as any).isTapped).toBe(true);
+    });
+
+    // The membership rule: an action fans out over the multi-selection only when
+    // the acted-on card is itself part of it (Finder/Explorer convention).
+    describe('multi-select fan-out', () => {
+      afterEach(() => useHotkeyStore.getState().setSelectedCardIds(new Set()));
+
+      function seedThreeCards() {
+        const { yDoc, playerId } = seed();
+        const yCards = yDoc.getMap('cards-on-board');
+        for (const id of ['card-1', 'card-2', 'card-3']) {
+          yCards.set(id, { ...makeCard({ id }), zIndex: 1, ownerId: playerId });
+        }
+        return { yCards };
+      }
+      const tapped = (yCards: any, id: string) => (yCards.get(id) as any).isTapped === true;
+
+      it('acts on every selected card when the target is a member of the group', () => {
+        const { yCards } = seedThreeCards();
+        useHotkeyStore.getState().setSelectedCardIds(new Set(['card-1', 'card-2', 'card-3']));
+
+        dispatchGameAction('tap', { kind: 'battlefieldCard', id: 'card-2' });
+
+        expect(tapped(yCards, 'card-1')).toBe(true);
+        expect(tapped(yCards, 'card-2')).toBe(true);
+        expect(tapped(yCards, 'card-3')).toBe(true);
+      });
+
+      it('acts on only the target card when it is NOT part of the selection', () => {
+        const { yCards } = seedThreeCards();
+        useHotkeyStore.getState().setSelectedCardIds(new Set(['card-1', 'card-2']));
+
+        dispatchGameAction('tap', { kind: 'battlefieldCard', id: 'card-3' });
+
+        expect(tapped(yCards, 'card-3')).toBe(true);
+        expect(tapped(yCards, 'card-1')).toBe(false);
+        expect(tapped(yCards, 'card-2')).toBe(false);
+      });
+
+      it('acts on only the target card when there is no selection', () => {
+        const { yCards } = seedThreeCards();
+
+        dispatchGameAction('tap', { kind: 'battlefieldCard', id: 'card-1' });
+
+        expect(tapped(yCards, 'card-1')).toBe(true);
+        expect(tapped(yCards, 'card-2')).toBe(false);
+      });
+
+      it('fans a batch move out over the whole group', () => {
+        const { yDoc, player, playerId } = seed();
+        const yCards = yDoc.getMap('cards-on-board');
+        for (const id of ['card-1', 'card-2']) {
+          yCards.set(id, { ...makeCard({ id }), zIndex: 1, ownerId: playerId });
+        }
+        useHotkeyStore.getState().setSelectedCardIds(new Set(['card-1', 'card-2']));
+
+        dispatchGameAction('moveToDiscard', { kind: 'battlefieldCard', id: 'card-1' });
+
+        expect(yCards.has('card-1')).toBe(false);
+        expect(yCards.has('card-2')).toBe(false);
+        const discard = player.getState().discardPile.map((c) => c.id);
+        expect(discard).toContain('card-1');
+        expect(discard).toContain('card-2');
+      });
+
+      it('untapAll is never looped, even with a selection', () => {
+        const { yDoc, playerId } = seed();
+        const yCards = yDoc.getMap('cards-on-board');
+        for (const id of ['card-1', 'card-2']) {
+          yCards.set(id, { ...makeCard({ id }), zIndex: 1, ownerId: playerId, isTapped: true });
+        }
+        useHotkeyStore.getState().setSelectedCardIds(new Set(['card-1', 'card-2']));
+
+        expect(() => dispatchGameAction('untapAll', { kind: 'battlefieldCard', id: 'card-1' })).not.toThrow();
+
+        expect(tapped(yCards, 'card-1')).toBe(false);
+        expect(tapped(yCards, 'card-2')).toBe(false);
+      });
     });
   });
 
