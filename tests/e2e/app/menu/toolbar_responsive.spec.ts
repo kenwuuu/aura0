@@ -1,6 +1,6 @@
 /**
  * Advisory coverage for the top menu bar's responsive collapse
- * (src/app/Toolbar.tsx). Below the 640px `sm` breakpoint: Hotkeys
+ * (src/app/Toolbar.tsx). Below the 640px `sm` breakpoint: the ⌘K launcher
  * disappears, Help/Discord move into the "⋯ More" overflow menu, the
  * connection status collapses to its dot, and the new-game/copy-link buttons
  * go icon-only. Untagged (not @smoke) per docs/testing/e2e.md — responsive
@@ -10,7 +10,7 @@ import { test, expect } from '../../fixtures';
 import {
   toolbar,
   toolbarMoreButton,
-  hotkeysButton,
+  commandPaletteButton,
   helpButton,
   discordButton,
   kofiButton,
@@ -27,7 +27,7 @@ test.describe('toolbar responsive collapse', () => {
     await page.setViewportSize(DESKTOP_VIEWPORT);
 
     await expect(deckImportOpenButton(page)).toBeVisible();
-    await expect(hotkeysButton(page)).toBeVisible();
+    await expect(commandPaletteButton(page)).toBeVisible();
     await expect(helpButton(page)).toBeVisible();
     await expect(discordButton(page)).toBeVisible();
     await expect(kofiButton(page)).toBeVisible();
@@ -37,11 +37,11 @@ test.describe('toolbar responsive collapse', () => {
     await expect(toolbarMoreButton(page)).not.toBeVisible();
   });
 
-  test('phone width hides Hotkeys and collapses Help/Discord/Ko-fi into the overflow menu', async ({ page }) => {
+  test('phone width hides the ⌘K launcher and collapses Help/Discord/Ko-fi into the overflow menu', async ({ page }) => {
     await page.setViewportSize(PHONE_VIEWPORT);
 
     await expect(deckImportOpenButton(page)).toBeVisible();
-    await expect(hotkeysButton(page)).not.toBeVisible();
+    await expect(commandPaletteButton(page)).not.toBeVisible();
     await expect(helpButton(page)).not.toBeVisible();
     await expect(discordButton(page)).not.toBeVisible();
     await expect(kofiButton(page)).not.toBeVisible();

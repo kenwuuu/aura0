@@ -5,6 +5,7 @@ import helpContent from './content/help.md?raw';
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from '@/shared/ui/dialog';
@@ -73,6 +74,9 @@ export const HelpModal: React.FC = () => {
       <DialogContent className="min-w-[45vw] max-h-[75vh] flex flex-col">
         <DialogHeader>
           <DialogTitle>Help &amp; Shortcuts</DialogTitle>
+          <DialogDescription>
+            Learn the basics and browse every keyboard shortcut.
+          </DialogDescription>
         </DialogHeader>
         <Tabs defaultValue="guide" className="flex min-h-0 flex-1 flex-col gap-0 px-6 pb-6">
           <TabsList className="mb-4 self-start">
