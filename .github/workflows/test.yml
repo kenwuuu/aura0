@@ -109,10 +109,14 @@ jobs:
 
   e2e-full:
     runs-on: ubuntu-latest
-    # Advisory tier: rehabbed but not yet proven flake-free over time. Promote
-    # to blocking once it's been stable in CI for a while (see
-    # claude_plans/e2e_harness_progress.md).
-    continue-on-error: true
+    # Blocking on the production gate, advisory everywhere else. A PR targeting
+    # `master` (the staging→master promotion) must pass this suite — it is a
+    # required check on `master`. For feature→staging PRs and post-merge pushes
+    # it stays advisory while it earns a longer flake-free track record, so a
+    # flake there never blocks day-to-day work (see
+    # claude_plans/e2e_harness_progress.md). `github.base_ref` is the PR's
+    # target branch and is empty for push events.
+    continue-on-error: ${{ github.base_ref != 'master' }}
 
     steps:
       - name: Checkout code

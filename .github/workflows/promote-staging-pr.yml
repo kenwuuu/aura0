@@ -1,0 +1,103 @@
+name: Open staging → master promotion PR
+
+# Keeps a single, always-current "promote to production" PR open whenever
+# `staging` is ahead of `master`. It only *opens* the PR — merging stays a
+# human click (the production gate: all four required checks, incl. the now-
+# blocking `e2e-full`, must be green first). Flip on master auto-merge later by
+# labeling this PR and teaching auto-merge-staging.yml about the master base.
+#
+# IMPORTANT — why this needs a PAT, not GITHUB_TOKEN:
+#   A PR opened with the built-in GITHUB_TOKEN does NOT trigger `pull_request`
+#   workflow runs (GitHub blocks that to prevent recursion). Our whole point is
+#   to run CI — especially e2e-full, which is only *blocking* on a master-
+#   targeting PR — so the PR must be opened by a token that DOES trigger it.
+#   One-time setup:
+#     gh secret set PROMOTE_PAT --repo kenwuuu/aura0 --body <fine-grained-PAT>
+#   PAT scope: this repo, Contents: read, Pull requests: read & write.
+
+on:
+  push:
+    branches: [staging]        # open/refresh the PR the moment staging advances
+  schedule:
+    - cron: '0 */6 * * *'      # backstop: catches anything the push missed
+  workflow_dispatch: {}        # manual sweep
+
+# Never fan out on forks; serialize so two triggers can't double-open.
+concurrency:
+  group: promote-staging-pr
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  open-promotion-pr:
+    if: github.repository == 'kenwuuu/aura0'
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.PROMOTE_PAT }}
+      REPO: ${{ github.repository }}
+      BASE: master
+      HEAD: staging
+      TITLE: 'chore: promote staging → master'
+    steps:
+      - name: Open or refresh the promotion PR
+        run: |
+          set -euo pipefail
+
+          if [ -z "${GH_TOKEN:-}" ]; then
+            echo "::error::PROMOTE_PAT secret is not set. Create a fine-grained PAT"
+            echo "::error::(Contents: read, Pull requests: read & write on this repo) and run:"
+            echo "::error::  gh secret set PROMOTE_PAT --repo $REPO --body <PAT>"
+            exit 1
+          fi
+
+          # How far ahead/behind is staging vs master?
+          read -r ahead behind < <(gh api "repos/$REPO/compare/$BASE...$HEAD" \
+            --jq '"\(.ahead_by) \(.behind_by)"')
+          echo "staging is $ahead ahead / $behind behind master"
+
+          if [ "$ahead" -eq 0 ]; then
+            echo "Nothing to promote — staging is not ahead of master."
+            exit 0
+          fi
+
+          # Build the PR body: the commit list plus a back-merge warning when
+          # master carries commits staging doesn't (hotfixes not yet merged down).
+          {
+            echo "Automated promotion PR — opened by \`promote-staging-pr.yml\`."
+            echo ""
+            echo "Merging ships **$ahead commit(s)** from \`staging\` to production (\`master\`)."
+            echo ""
+            if [ "$behind" -gt 0 ]; then
+              echo "> [!WARNING]"
+              echo "> \`master\` is **$behind commit(s) ahead** of \`staging\` — likely un-back-merged"
+              echo "> hotfixes. Back-merge \`master → staging\` before or right after this promotion"
+              echo "> so the branches don't keep diverging."
+              echo ""
+            fi
+            echo "**Do not merge until all required checks are green** (\`test\`, \`e2e-smoke\`,"
+            echo "\`e2e-preview\`, and the master-only blocking \`e2e-full\`)."
+            echo ""
+            echo "### Commits ($HEAD not in $BASE)"
+            gh api "repos/$REPO/compare/$BASE...$HEAD" \
+              --jq '.commits | reverse | .[:60][] | "- `\(.sha[0:7])` \(.commit.message | split("\n")[0])"'
+            if [ "$ahead" -gt 60 ]; then
+              echo ""
+              echo "_…and $((ahead - 60)) more._"
+            fi
+          } > body.md
+
+          # One PR at a time: refresh the existing one, otherwise open it.
+          existing=$(gh pr list --repo "$REPO" --base "$BASE" --head "$HEAD" \
+            --state open --json number --jq '.[0].number // empty')
+
+          if [ -n "$existing" ]; then
+            echo "Refreshing open promotion PR #$existing"
+            gh pr edit "$existing" --repo "$REPO" --title "$TITLE" --body-file body.md
+          else
+            echo "Opening new promotion PR"
+            gh pr create --repo "$REPO" --base "$BASE" --head "$HEAD" \
+              --title "$TITLE" --body-file body.md
+          fi
