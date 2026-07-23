@@ -16,6 +16,7 @@ import { describe, it, expect, vi, afterEach } from 'vitest';
 import { dispatchGameAction } from './gameActions';
 import { useGameInstance } from '@/app/stores/gameInstanceStore';
 import { useHotkeyStore } from '@/app/stores/hotkeyStore';
+import { useCardPreviewStore } from '@/features/card-preview/cardPreviewStore';
 import { usePileViewerHotkeyStore } from '@/features/game-dock/pileViewerHotkeyStore';
 import { usePileViewerOpenStore } from '@/features/game-dock/pileViewerOpenStore';
 import { HotkeyContext } from './hotkeys';
@@ -153,6 +154,58 @@ describe('dispatchGameAction', () => {
 
         expect(tapped(yCards, 'card-1')).toBe(false);
         expect(tapped(yCards, 'card-2')).toBe(false);
+      });
+    });
+
+    describe('peek', () => {
+      it('previews your own facedown card as its front face without mutating the board', () => {
+        const { yDoc, playerId } = seed();
+        const yCards = yDoc.getMap('cards-on-board');
+        yCards.set('card-1', { ...makeCard({ isFlipped: true }), zIndex: 1, ownerId: playerId });
+
+        dispatchGameAction('peek', { kind: 'battlefieldCard', id: 'card-1' });
+
+        const preview = useCardPreviewStore.getState();
+        expect(preview.isVisible).toBe(true);
+        expect(preview.card?.id).toBe('card-1');
+        // The previewed copy is unflipped so the front face renders...
+        expect(preview.card?.isFlipped).toBe(false);
+        // ...but the shared board card stays face-down to everyone.
+        expect((yCards.get('card-1') as any).isFlipped).toBe(true);
+      });
+
+      it("does not peek an opponent's facedown card (would leak hidden info)", () => {
+        const { yDoc } = seed('p1');
+        const yCards = yDoc.getMap('cards-on-board');
+        yCards.set('card-1', { ...makeCard({ isFlipped: true }), zIndex: 1, ownerId: 'p2' });
+
+        dispatchGameAction('peek', { kind: 'battlefieldCard', id: 'card-1' });
+
+        expect(useCardPreviewStore.getState().isVisible).toBe(false);
+      });
+
+      it('does not peek a face-up card (nothing hidden to reveal)', () => {
+        const { yDoc, playerId } = seed();
+        const yCards = yDoc.getMap('cards-on-board');
+        yCards.set('card-1', { ...makeCard({ isFlipped: false }), zIndex: 1, ownerId: playerId });
+
+        dispatchGameAction('peek', { kind: 'battlefieldCard', id: 'card-1' });
+
+        expect(useCardPreviewStore.getState().isVisible).toBe(false);
+      });
+
+      it('does not peek a double-faced card showing its real back (a public face)', () => {
+        const { yDoc, playerId } = seed();
+        const yCards = yDoc.getMap('cards-on-board');
+        yCards.set('card-1', {
+          ...makeCard({ isFlipped: true, images: { front: { normal: 'f.png' }, back: { normal: 'b.png' } } }),
+          zIndex: 1,
+          ownerId: playerId,
+        });
+
+        dispatchGameAction('peek', { kind: 'battlefieldCard', id: 'card-1' });
+
+        expect(useCardPreviewStore.getState().isVisible).toBe(false);
       });
     });
   });

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { resolveCardFace, resolveCardRotation } from './cardNodeLogic';
+import { resolveCardFace, resolveCardRotation, isHiddenFacedown } from './cardNodeLogic';
 import { makeCard } from '@/test/factories';
 import { DEFAULT_CARD_BACK } from '@/constants';
 
@@ -72,5 +72,21 @@ describe('resolveCardRotation', () => {
 
   it('treats an absent isSick as not sick', () => {
     expect(resolveCardRotation(makeCard({ rotation: 0, isSick: undefined }))).toBe(0);
+  });
+});
+
+describe('isHiddenFacedown', () => {
+  it('is false for a face-up card', () => {
+    expect(isHiddenFacedown(makeCard({ isFlipped: false }))).toBe(false);
+  });
+
+  it('is true when flipped with no back image (a truly hidden card)', () => {
+    expect(isHiddenFacedown(makeCard({ isFlipped: true, images: { front: { normal: 'f.png' } } }))).toBe(true);
+  });
+
+  it('is false when flipped with a real back image (a double-faced card back is public)', () => {
+    expect(
+      isHiddenFacedown(makeCard({ isFlipped: true, images: { front: { normal: 'f.png' }, back: { normal: 'b.png' } } })),
+    ).toBe(false);
   });
 });
