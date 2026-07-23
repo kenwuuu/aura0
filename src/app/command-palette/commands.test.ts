@@ -1,6 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import * as Y from 'yjs';
+import { Awareness } from 'y-protocols/awareness';
 import { getCommands, RUNNABLE_ACTION_IDS } from './commands';
 import { useOverlayStore } from '@/app/stores/overlayStore';
+import { useGameInstance } from '@/app/stores/gameInstanceStore';
+import { useConfirmStore } from '@/app/stores/confirmStore';
+import { YDOC_PLAYER, YSTATE_JOINED_AT, YSTATE_PLAYER_NAME } from '@/constants';
 
 // Mock at the action boundary — these are covered by their own tests; here we
 // only assert the palette wires the right call to each command.
@@ -66,5 +71,36 @@ describe('command registry', () => {
     expect(copyRoomLink).toHaveBeenCalledTimes(1);
     byId('nav-new-game').run();
     expect(requestNewGame).toHaveBeenCalledTimes(1);
+  });
+
+  it('has no Players section until someone has left the room', () => {
+    // No game instance wired in → no departed players.
+    expect(getCommands().filter((c) => c.section === 'Players')).toHaveLength(0);
+  });
+
+  it('lists a Remove command per departed player, wired to the confirm flow', () => {
+    const yDoc = new Y.Doc();
+    const seat = (id: string, name: string) => {
+      const m = yDoc.getMap(YDOC_PLAYER(id));
+      m.set(YSTATE_JOINED_AT, 1);
+      m.set(YSTATE_PLAYER_NAME, name);
+    };
+    seat('me', 'Me');
+    seat('gone', 'Ghosty');
+    const aw = new Awareness(yDoc);
+    aw.setLocalStateField('playerId', 'me'); // only the local player is online
+
+    const gs = useGameInstance.getState();
+    gs.setYDoc(yDoc);
+    gs.setAwareness(aw);
+    gs.setPlayerId('me');
+
+    const players = getCommands().filter((c) => c.section === 'Players');
+    expect(players).toHaveLength(1);
+    expect(players[0].id).toBe('remove-player-gone');
+    expect(players[0].label).toBe('Remove Ghosty');
+
+    players[0].run();
+    expect(useConfirmStore.getState().request?.title).toBe('Remove Ghosty?');
   });
 });

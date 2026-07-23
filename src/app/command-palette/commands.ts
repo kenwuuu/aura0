@@ -16,8 +16,10 @@
 import { HOTKEYS } from '@/features/hotkeys/hotkeys';
 import { dispatchGameAction } from '@/features/hotkeys/gameActions';
 import { useOverlayStore } from '@/app/stores/overlayStore';
+import { useGameInstance } from '@/app/stores/gameInstanceStore';
 import { copyRoomLink } from '@/features/room/copyRoomLink';
 import { requestNewGame } from '@/features/room/startNewGame';
+import { getDepartedPlayers, requestRemovePlayer } from '@/features/player/removePlayer';
 
 // Duplicated (two-line) from Toolbar so the palette has no reason to import from
 // it; if these ever grow, hoist them to a shared constants module.
@@ -29,7 +31,7 @@ export interface AppCommand {
   label: string;
   /** Extra fuzzy-search terms beyond the label. */
   keywords?: string[];
-  section: 'Game' | 'Navigation';
+  section: 'Game' | 'Players' | 'Navigation';
   /** Display badge for the bound key, if any (e.g. "C"). */
   shortcut?: string;
   run: () => void;
@@ -77,6 +79,22 @@ export function getCommands(): AppCommand[] {
     run: () => dispatchGameAction(action, boardTarget()),
   }));
 
+  // One "Remove <name>" command per player who has left the room. Built live
+  // from the doc + awareness (via the game instance), so it's empty when nobody
+  // has departed and updates as players come and go. The health-widget menu is
+  // the other entry point; both call the same `requestRemovePlayer`.
+  const { yDoc, awareness, playerId } = useGameInstance.getState();
+  const players: AppCommand[] =
+    yDoc && awareness && playerId
+      ? getDepartedPlayers(yDoc, awareness, playerId).map(({ playerId: pid, name }) => ({
+          id: `remove-player-${pid}`,
+          label: `Remove ${name}`,
+          keywords: ['kick', 'remove player', 'left', 'departed', name],
+          section: 'Players' as const,
+          run: () => requestRemovePlayer(pid),
+        }))
+      : [];
+
   const nav: AppCommand[] = [
     {
       id: 'nav-import-deck',
@@ -122,5 +140,5 @@ export function getCommands(): AppCommand[] {
     },
   ];
 
-  return [...game, ...nav];
+  return [...game, ...players, ...nav];
 }

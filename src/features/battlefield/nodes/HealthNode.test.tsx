@@ -2,10 +2,21 @@ import { describe, it, expect } from 'vitest';
 import { screen, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import * as Y from 'yjs';
+import { Awareness } from 'y-protocols/awareness';
 import { HealthNode } from './HealthNode';
 import { renderNode } from '@/test/nodeHarness';
 import { YDOC_PLAYER, YSTATE_HEALTH } from '@/constants';
 import { useContextMenuStore } from '@/features/hotkeys/contextMenuStore';
+import { useGameInstance } from '@/app/stores/gameInstanceStore';
+
+/** Register an awareness whose one live client is `onlineId`, wired into the
+ *  game instance the way bootstrap does. A single local Awareness carries one
+ *  client's state, which is all `isPlayerOnline` needs — it checks presence. */
+function setSoleOnlinePlayer(yDoc: Y.Doc, onlineId: string): void {
+  const awareness = new Awareness(yDoc);
+  awareness.setLocalStateField('playerId', onlineId);
+  useGameInstance.getState().setAwareness(awareness);
+}
 
 const LOCAL_PLAYER = 'p1';
 const OPPONENT = 'p2';
@@ -62,15 +73,44 @@ describe('HealthNode — right-click opens the context menu', () => {
 
     const menu = useContextMenuStore.getState();
     expect(menu.isOpen).toBe(true);
-    expect(menu.target).toEqual({ kind: 'health' });
+    expect(menu.target).toEqual({ kind: 'health', ownerId: LOCAL_PLAYER });
   });
 
-  it("does not open on an opponent's widget", () => {
+  it("does not open on an online opponent's widget", () => {
+    const { container, yDoc } = renderNode(
+      HealthNode,
+      { ownerId: OPPONENT, isLocal: false, name: 'Opponent', health: 40, customCounters: [], yDoc: new Y.Doc() },
+      { playerId: LOCAL_PLAYER },
+    );
+    setSoleOnlinePlayer(yDoc, OPPONENT); // opponent still connected
+
+    fireEvent.contextMenu(container.firstChild as Element);
+
+    expect(useContextMenuStore.getState().isOpen).toBe(false);
+  });
+
+  it("opens on a departed opponent's widget (to offer Remove)", () => {
+    const { container, yDoc } = renderNode(
+      HealthNode,
+      { ownerId: OPPONENT, isLocal: false, name: 'Opponent', health: 40, customCounters: [], yDoc: new Y.Doc() },
+      { playerId: LOCAL_PLAYER },
+    );
+    setSoleOnlinePlayer(yDoc, LOCAL_PLAYER); // opponent is NOT in awareness → offline
+
+    fireEvent.contextMenu(container.firstChild as Element);
+
+    const menu = useContextMenuStore.getState();
+    expect(menu.isOpen).toBe(true);
+    expect(menu.target).toEqual({ kind: 'health', ownerId: OPPONENT });
+  });
+
+  it("does not open on an opponent's widget when awareness is unknown", () => {
     const { container } = renderNode(
       HealthNode,
       { ownerId: OPPONENT, isLocal: false, name: 'Opponent', health: 40, customCounters: [], yDoc: new Y.Doc() },
       { playerId: LOCAL_PLAYER },
     );
+    // No awareness wired in — can't confirm they've left, so no menu.
 
     fireEvent.contextMenu(container.firstChild as Element);
 
