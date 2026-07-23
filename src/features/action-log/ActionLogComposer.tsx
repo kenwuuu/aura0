@@ -23,7 +23,13 @@ export function ActionLogComposer({ yDoc, localPlayerId }: ActionLogComposerProp
   function send() {
     const trimmed = text.trim();
     if (!trimmed) return;
-    logAction(yDoc, { actorId: localPlayerId, type: 'message', text: trimmed });
+    logAction(yDoc, {
+      actorId: localPlayerId,
+      type: 'message',
+      text: trimmed,
+      // Soft blue: distinguishes chat from game-action entries in the feed.
+      tone: 'rgba(130,180,255,0.95)',
+    });
     setText('');
   }
 
