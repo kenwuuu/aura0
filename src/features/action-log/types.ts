@@ -13,6 +13,7 @@ export type ActionLogType =
   | 'draw'
   | 'move_to_pile'
   | 'tap'
+  | 'sick'
   | 'flip'
   | 'copy'
   | 'delete'

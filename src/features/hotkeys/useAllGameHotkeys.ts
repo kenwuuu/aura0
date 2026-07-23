@@ -121,6 +121,8 @@ export function useAllGameHotkeys() {
   // Battlefield-only keys
   useHotkeys(getKeyBindingsForAction('tap'), () => dispatch('tap'),
     { ...board, enabled: isBattlefield });
+  useHotkeys(getKeyBindingsForAction('sick'), () => dispatch('sick'),
+    { ...board, enabled: isBattlefield });
   useHotkeys(getKeyBindingsForAction('addCounter'), () => {
     dispatchGameAction('addCounter', { kind: 'board', ...cursorPos.current });
   }, board);
