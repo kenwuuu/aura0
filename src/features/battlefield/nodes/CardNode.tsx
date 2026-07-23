@@ -8,7 +8,7 @@ import { useCardPreviewStore } from '@/features/card-preview/cardPreviewStore';
 import { wasLastInputTouch } from '@/shared/pointerInput';
 import { useContextMenuStore } from '@/features/hotkeys/contextMenuStore';
 import { useContextMenuTap } from '@/features/hotkeys/useContextMenuTap';
-import { resolveCardFace, resolveCardRotation } from './cardNodeLogic';
+import { resolveCardFace, resolveCardRotation, isHiddenFacedown } from './cardNodeLogic';
 import { CARD_WIDTH, CARD_HEIGHT } from '@/constants';
 
 interface CardNodeData extends WhiteboardCard {
@@ -47,7 +47,15 @@ export const CardNode = memo(function CardNode({ data, id }: NodeProps) {
   const showPreview = useCallback((x: number, y: number) => {
     useHotkeyStore.getState().setHoveredBattlefieldCard(id);
     const latestCard = yCards.get(id) || card;
-    useCardPreviewStore.getState().show(latestCard, { yMap: yCards, isPresent: () => yCards.has(id) });
+    // Auto-peek: previewing *your own* hidden face-down card reveals its real
+    // (front) face, so on desktop a plain hover tells you what it is with no
+    // extra click. Local-only — the board card in Yjs stays face-down to
+    // everyone, so nothing leaks. Opponents' hidden cards and double-faced backs
+    // preview normally (a DFC's back is a real, public face).
+    const previewCard = latestCard.ownerId === card.localPlayerId && isHiddenFacedown(latestCard)
+      ? { ...latestCard, isFlipped: false }
+      : latestCard;
+    useCardPreviewStore.getState().show(previewCard, { yMap: yCards, isPresent: () => yCards.has(id) });
     useCardPreviewStore.getState().updatePosition(x, y);
   }, [id, yCards, card]);
 
