@@ -19,6 +19,7 @@ import {
   YSTATE_SCRY,
   YSTATE_SIDEBOARD,
   YSTATE_DECK_REVEAL_COUNT,
+  YSTATE_REMOVED,
 } from "@/constants";
 import { getStoredPlayerName, setStoredPlayerName } from "@/infrastructure/networking/persistence";
 import { describeTransactionOrigin } from "@/infrastructure/networking/transactionOrigin";
@@ -76,6 +77,14 @@ export class Player {
 
     // Initialize state first so yPlayerState has the arrays
     const isFirstJoin = this.initializeState(initialDeckCards ?? []);
+
+    // A returning player is never tombstoned. If they were removed while away
+    // (see removePlayer.ts), reopening the room is a fresh rejoin — clear the
+    // flag so their seat reappears for every peer. Guarded so a normal boot,
+    // which never carries the flag, writes nothing.
+    if (this.yPlayerState.get(YSTATE_REMOVED)) {
+      this.yPlayerState.delete(YSTATE_REMOVED);
+    }
 
     // Seed this player's display name into their own Yjs state so peers see it.
     // The local player owns this state, so localStorage (the name that follows the

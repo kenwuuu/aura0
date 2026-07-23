@@ -24,6 +24,7 @@ export type ActionLogType =
   | 'mulligan'
   | 'reset'
   | 'untap_all'
+  | 'remove_player'
   | 'add_card'
   | 'scry'
   | 'surveil'

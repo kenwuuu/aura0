@@ -24,6 +24,7 @@ import {
   YSTATE_EXILE_PILE,
   YSTATE_DISCARD_PILE,
   YSTATE_CAN_VIEW_HAND,
+  YSTATE_REMOVED,
 } from '@/constants';
 import { playmatNodePositions, MAT_WIDTH, MAT_HEIGHT, CARD_WIDTH, CARD_HEIGHT, HEALTH_WIDGET_WIDTH, HEALTH_WIDGET_HEIGHT } from './boardWorld';
 
@@ -36,6 +37,9 @@ export function buildPlaymatNodes(yDoc: Y.Doc, localPlayerId: string): Node[] {
     if (!key.startsWith('player-')) return;
     const playerId = key.slice('player-'.length);
     const map = yDoc.getMap(key);
+    // Skip removed (kicked) seats — their map lingers in the doc because Yjs
+    // can't delete a top-level type, but they no longer render (see removePlayer).
+    if (map.get(YSTATE_REMOVED) === true) return;
     const joinedAt = (map.get(YSTATE_JOINED_AT) as number | undefined) ?? 0;
     playerEntries.push({ playerId, joinedAt, map });
   });
@@ -188,6 +192,8 @@ function computeLocalMatOrigin(
     if (!key.startsWith('player-')) return;
     const playerId = key.slice('player-'.length);
     const map = yDoc.getMap(key);
+    // Skip removed seats so seat indices stay in lockstep with buildPlaymatNodes.
+    if (map.get(YSTATE_REMOVED) === true) return;
     const joinedAt = (map.get(YSTATE_JOINED_AT) as number | undefined) ?? 0;
     entries.push({ playerId, joinedAt });
   });

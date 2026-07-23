@@ -52,6 +52,7 @@ export function CommandPalette() {
 
   const commands = getCommands();
   const game = commands.filter((c) => c.section === 'Game');
+  const players = commands.filter((c) => c.section === 'Players');
   const nav = commands.filter((c) => c.section === 'Navigation');
 
   // Reference = the keyboard-bound actions that AREN'T runnable here (they need
@@ -96,6 +97,22 @@ export function CommandPalette() {
             </CommandItem>
           ))}
         </CommandGroup>
+
+        {/* Only rendered when someone has actually left the room. */}
+        {players.length > 0 && (
+          <CommandGroup heading="Players">
+            {players.map((cmd) => (
+              <CommandItem
+                key={cmd.id}
+                value={cmd.label}
+                keywords={cmd.keywords}
+                onSelect={() => run(cmd)}
+              >
+                <span>{cmd.label}</span>
+              </CommandItem>
+            ))}
+          </CommandGroup>
+        )}
 
         <CommandGroup heading="Navigation">
           {nav.map((cmd) => (

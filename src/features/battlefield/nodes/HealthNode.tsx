@@ -5,6 +5,7 @@ import { HealthDisplay } from '@/features/opponents/HealthDisplay';
 import { CustomCounter } from '@/features/player/types';
 import { useGameInstance } from '@/app/stores/gameInstanceStore';
 import { useContextMenuStore } from '@/features/hotkeys/contextMenuStore';
+import { isPlayerOnline } from '@/features/player/removePlayer';
 
 export interface HealthNodeData {
   ownerId: string;
@@ -50,16 +51,20 @@ export const HealthNode = memo(function HealthNode({ data }: NodeProps) {
     useGameInstance.getState().player?.removeCustomCounter(counterId, ownerId);
   };
 
-  // Only the local player's own widget has a menu — the +1/-1 life actions
-  // target `player.modifyHealth()` with no targetPlayerId (implicitly self).
-  // Still suppress the native browser menu over an opponent's widget so the
-  // board consistently feels like "right-click opens our menu everywhere".
+  // The local player's widget always has a menu (the +1/-1 life actions target
+  // `player.modifyHealth()` with no targetPlayerId, implicitly self). An
+  // opponent's widget gets one only once they've *left* the room — it carries a
+  // single "Remove player" action (see GameContextMenu). An online opponent's
+  // widget still just suppresses the native browser menu, so the board
+  // consistently feels like "right-click opens our menu everywhere".
   const handleContextMenu = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (!isLocal) return;
+    const { awareness } = useGameInstance.getState();
+    const shouldOpen = isLocal || (!!awareness && !isPlayerOnline(awareness, ownerId));
+    if (!shouldOpen) return;
     useContextMenuStore.getState().openMenu({
-      target: { kind: 'health' },
+      target: { kind: 'health', ownerId },
       x: e.clientX,
       y: e.clientY,
     });

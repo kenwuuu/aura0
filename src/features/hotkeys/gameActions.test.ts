@@ -404,7 +404,7 @@ describe('dispatchGameAction', () => {
       const { player } = seed();
       const before = player.getState().health;
 
-      dispatchGameAction('gainHealth', { kind: 'health' });
+      dispatchGameAction('gainHealth', { kind: 'health', ownerId: 'p1' });
 
       expect(player.getState().health).toBe(before + 1);
     });
@@ -413,7 +413,7 @@ describe('dispatchGameAction', () => {
       const { player } = seed();
       const before = player.getState().health;
 
-      dispatchGameAction('loseHealth', { kind: 'health' });
+      dispatchGameAction('loseHealth', { kind: 'health', ownerId: 'p1' });
 
       expect(player.getState().health).toBe(before - 1);
     });

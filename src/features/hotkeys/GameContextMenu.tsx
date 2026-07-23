@@ -28,6 +28,7 @@ import {
 } from '@/shared/ui/dropdown-menu';
 import { CreateTokenGridItem } from '@/features/game-actions/CreateTokenGridItem';
 import { useGameInstance } from '@/app/stores/gameInstanceStore';
+import { requestRemovePlayer } from '@/features/player/removePlayer';
 import { isHiddenFacedown } from '@/features/battlefield/nodes/cardNodeLogic';
 import { YDOC_CARDS_ON_BOARD } from '@/constants';
 import type { WhiteboardCard } from '@/features/battlefield/types';
@@ -56,14 +57,25 @@ export function GameContextMenu() {
   const anchorRect = useContextMenuStore((s) => s.anchorRect);
   const close = useContextMenuStore((s) => s.close);
 
+  // A departed opponent's health widget carries exactly one action: Remove.
+  // Its gain/lose-life rows target the *local* player, so they'd be misleading
+  // on someone else's widget — HealthNode only opens this menu on an opponent
+  // once they're offline, so an opponent-health target is always a removal one.
+  const localPlayerId = useGameInstance.getState().playerId;
+  const isOpponentHealth =
+    target?.kind === 'health' && target.ownerId !== localPlayerId;
+
   // `touchMenuOnly` rows (a token's +1/-1) only belong in the menu on touch,
   // where there's no hover-and-click affordance — desktop right-click hides
   // them. See the `touchMenuOnly` doc on the Hotkey type.
   const rows = (target ? getMenuActionsForTarget(target) : [])
     .filter((row) => viaTouch || !row.touchMenuOnly)
     // The Peek row is state-conditional: only on your own facedown cards.
-    .filter((row) => row.action !== 'peek' || (!!target && canPeekTarget(target)));
-  const open = isOpen && rows.length > 0;
+    .filter((row) => row.action !== 'peek' || (!!target && canPeekTarget(target)))
+    // Opponent-health menus drop the self-targeting life rows; they show only
+    // the Remove row appended below.
+    .filter(() => !isOpponentHealth);
+  const open = isOpen && (rows.length > 0 || isOpponentHealth);
 
   // The hand is anchored to the bottom of the screen (both desktop and phone),
   // so a hand-card menu anchored at the tap/cursor point with the default
@@ -174,6 +186,20 @@ export function GameContextMenu() {
             align="end"
             contentClassName="z-[10001]"
           />
+        )}
+        {/* Removing a departed player has no keyboard binding (there's nothing
+            to hover) and needs the target's ownerId + a confirm, so it lives
+            here rather than in the HOTKEYS catalog. */}
+        {isOpponentHealth && target?.kind === 'health' && (
+          <DropdownMenuItem
+            variant="destructive"
+            onSelect={() => {
+              close();
+              requestRemovePlayer(target.ownerId);
+            }}
+          >
+            Remove player
+          </DropdownMenuItem>
         )}
       </DropdownMenuContent>
     </DropdownMenu>

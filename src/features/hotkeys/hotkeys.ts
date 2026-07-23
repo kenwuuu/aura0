@@ -398,7 +398,7 @@ export type MenuTarget =
   | { kind: 'handCard'; id: string }
   | { kind: 'pile'; pileType: Exclude<PileType, 'scry' | 'hand'> }
   | { kind: 'token'; id: string }
-  | { kind: 'health' }
+  | { kind: 'health'; ownerId: string }
   | { kind: 'board'; x: number; y: number }
   | { kind: 'pileViewerCard'; id: string; context: HotkeyContext };
 
