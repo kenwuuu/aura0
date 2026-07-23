@@ -10,6 +10,7 @@ export function makeCard(overrides: Partial<Card> = {}): Card {
     y: 100,
     rotation: 0,
     isTapped: false,
+    isSick: false,
     isFlipped: false,
     counters: [],
     ...overrides,

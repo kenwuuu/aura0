@@ -36,6 +36,12 @@ export interface Card {
   y: number;
   rotation: number;
   isTapped: boolean;
+  /** Tilted 45° to mark summoning sickness. Mutually exclusive with `isTapped`
+   * (a card sits at exactly one of 0°/45°/90°) — see `resolveCardRotation` and
+   * the `sick`/`tap` actions in `battlefieldCardActions`. Optional because it was
+   * added after cards were already persisted in Yjs/IndexedDB; absent reads as
+   * not-sick, which is the correct default. */
+  isSick?: boolean;
   isFlipped: boolean;
   counters: number[]; // Array of counter values
 }
