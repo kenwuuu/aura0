@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import { MtgTextListDeckImporter } from './MtgTextListDeckImporter';
 import { CardLookupService } from '@/infrastructure/cards';
-import type { LookupFailureReason } from '@/infrastructure/cards/CardApiClient';
+import type { LookupFailureReason, PrintingMismatch } from '@/infrastructure/cards/CardApiClient';
 import posthog from 'posthog-js';
 
 // We mock posthog-js — not our own PosthogFunctions wrapper — so the analytics
@@ -43,6 +43,8 @@ type LookupOptions = {
   };
   /** When set, the lookup never settles — used to model an abandoned import. */
   hang?: boolean;
+  /** Lines whose printing resolved to a different card than the line named. */
+  printingMismatches?: PrintingMismatch[];
 };
 
 // Mock CardLookupService so tests don't hit the network. By default every entry
@@ -105,6 +107,7 @@ function makeMockLookup(options: LookupOptions = {}): CardLookupService {
         item,
         reason: 'not_found' as LookupFailureReason,
       })),
+      printingMismatches: options.printingMismatches ?? [],
       fallbackTriggeredCount: triggered,
       fallbackRecoveredCount: options.fallback?.recovered ?? 0,
       fallbackFailedCount: options.fallback?.failed ?? 0,
@@ -523,6 +526,67 @@ DECK:
       await importWith(STANDARD_60);
 
       expect(captureCount('deck_import_fallback_triggered')).toBe(0);
+    });
+
+    /**
+     * A printing that names a different card is the one import fault that raises
+     * no error: the lookup succeeds and the counts all reconcile. If it were not
+     * reported here it would not be reported anywhere.
+     */
+    describe('printing mismatches', () => {
+      const mismatch = (
+        name: string,
+        setCode: string,
+        collectorNumber: string,
+        returnedName: string,
+        resolvedBy: PrintingMismatch['resolvedBy'] = 'name',
+      ): PrintingMismatch => ({
+        item: { count: 1, name, setCode, collectorNumber },
+        returnedName,
+        resolvedBy,
+      });
+
+      it('reports what was asked for against what the printing actually is', async () => {
+        await importWith(STANDARD_60, {
+          printingMismatches: [
+            mismatch("Erase (Not the Urza's Legacy One)", 'unh', '45', 'Smart Ass'),
+          ],
+        });
+
+        expect(capturedProps('deck_import_printing_mismatch')).toMatchObject({
+          mismatch_count: 1,
+          resolved_by_name_count: 1,
+          resolved_by_printing_count: 0,
+          mismatched_sets: ['unh'],
+          mismatches: [
+            {
+              requested: "Erase (Not the Urza's Legacy One)",
+              printing: 'unh/45',
+              returned: 'Smart Ass',
+              resolved_by: 'name',
+            },
+          ],
+        });
+      });
+
+      it('counts the sharper case separately', async () => {
+        await importWith(STANDARD_60, {
+          printingMismatches: [
+            mismatch('A Name That No Longer Exists', 'unh', '45', 'Smart Ass', 'printing'),
+          ],
+        });
+
+        expect(capturedProps('deck_import_printing_mismatch')).toMatchObject({
+          resolved_by_name_count: 0,
+          resolved_by_printing_count: 1,
+        });
+      });
+
+      it('stays silent when every printing is the card it claims to be', async () => {
+        await importWith(STANDARD_60);
+
+        expect(captureCount('deck_import_printing_mismatch')).toBe(0);
+      });
     });
 
     // The distinction these two tests draw is the whole reason the reason-breakdown

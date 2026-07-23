@@ -15,6 +15,7 @@ import {
   trackImportProgress,
   trackImportFailed,
   trackFallbackOutcome,
+  trackPrintingMismatches,
   trackImportSucceeded,
   trackImportPartialFailure,
 } from "@/infrastructure/analytics/PosthogFunctions";
@@ -102,6 +103,12 @@ export class MtgTextListDeckImporter extends DeckImporter {
         this.onProgress?.(current, total);
       });
       results = lookup.results;
+      if (lookup.printingMismatches.length > 0) {
+        trackPrintingMismatches({
+          mismatches: lookup.printingMismatches,
+          totalCount: lookupEntries.length,
+        });
+      }
       if (lookup.fallbackTriggeredCount > 0) {
         trackFallbackOutcome({
           triggeredCount: lookup.fallbackTriggeredCount,

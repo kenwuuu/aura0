@@ -1,7 +1,11 @@
 import posthog from 'posthog-js';
 import {YSTATE_HEALTH} from "@/constants";
 import type { DeckLineItem } from '@/features/deck-manager/DeckListParser';
-import type { LookupFailure, LookupFailureReason } from '@/infrastructure/cards/CardApiClient';
+import type {
+  LookupFailure,
+  LookupFailureReason,
+  PrintingMismatch,
+} from '@/infrastructure/cards/CardApiClient';
 
 // HEALTH
 
@@ -469,6 +473,56 @@ export function trackFallbackOutcome(props: {
     dead_cards: props.deadItems
       .slice(0, MAX_REPORTED_CARD_NAMES)
       .map((item) => item.name),
+  });
+}
+
+/**
+ * Emitted once per import in which at least one line's printing named a
+ * different card than the line did.
+ *
+ * This is the only import fault that produces no error anywhere. The lookup
+ * succeeds, the deck comes out the right size, every count reconciles — and the
+ * player gets a card they never chose. `1 Erase (Not the Urza's Legacy One)
+ * (UNH) 45` resolves cleanly to Smart Ass, because UNH 45 *is* Smart Ass. Since
+ * nothing fails, nothing else in this file would ever mention it.
+ *
+ * We now repair it (the name wins), so the question this answers is not "are
+ * players losing cards" but **"how stale are printings in the wild?"** — which
+ * decides whether preferring `bySet` is a good trade at all, and whether some
+ * source is emitting printings we should stop trusting.
+ *
+ * `resolved_by_printing_count` is the sharper number of the two. It means no
+ * card had the name on the line *and* the printing named something else, which
+ * is either a renamed card or a line that is wrong twice over.
+ */
+export function trackPrintingMismatches(props: {
+  mismatches: PrintingMismatch[];
+  totalCount: number;
+}): void {
+  const byPrinting = props.mismatches.filter((m) => m.resolvedBy === 'printing');
+
+  posthog.capture('deck_import_printing_mismatch', {
+    mismatch_count: props.mismatches.length,
+    total_count: props.totalCount,
+    mismatch_rate: props.totalCount > 0 ? props.mismatches.length / props.totalCount : 0,
+
+    resolved_by_name_count: props.mismatches.length - byPrinting.length,
+    resolved_by_printing_count: byPrinting.length,
+
+    // Set codes alone, so a source emitting bad printings for a whole set shows
+    // up as a set rather than as a scatter of unrelated card names.
+    mismatched_sets: [...new Set(props.mismatches.map((m) => m.item.setCode))]
+      .slice(0, MAX_REPORTED_CARD_NAMES),
+
+    // What was asked for against what the printing actually is. Paired, because
+    // either name alone is unactionable — the pair is what shows whether the
+    // collector number is off by one, off by a set, or nonsense.
+    mismatches: props.mismatches.slice(0, MAX_REPORTED_CARD_NAMES).map((m) => ({
+      requested: m.item.name,
+      printing: `${m.item.setCode}/${m.item.collectorNumber}`,
+      returned: m.returnedName,
+      resolved_by: m.resolvedBy,
+    })),
   });
 }
 

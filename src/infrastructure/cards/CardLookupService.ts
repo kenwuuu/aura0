@@ -82,6 +82,10 @@ export class CardLookupService {
       results: [...fallbackRun.results, ...primarySuccesses],
       failedItems: fallbackRun.failedItems,
       failures: fallbackRun.failures,
+      // Both runs, because a stale printing misses in whichever backend answers —
+      // and an item handed to the fallback was, by definition, one the primary
+      // never resolved, so the two lists cannot double-count the same card.
+      printingMismatches: [...primaryRun.printingMismatches, ...fallbackRun.printingMismatches],
       fallbackTriggeredCount,
       fallbackRecoveredCount: fallbackTriggeredCount - fallbackFailedCount,
       fallbackFailedCount,
