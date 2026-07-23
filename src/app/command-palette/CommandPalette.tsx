@@ -74,6 +74,10 @@ export function CommandPalette() {
       onOpenChange={(o) => useOverlayStore.getState().set('commandPalette', o)}
       title="Command palette"
       description="Search for an action to run or a shortcut to look up."
+      // No × button: the shared DialogContent close uses the pile-viewer's
+      // 36px glyph, which is oversized for a spotlight. Palettes close on
+      // Escape / click-outside, matching Raycast/Obsidian/Cloudflare.
+      showCloseButton={false}
     >
       <CommandInput placeholder="Search actions and shortcuts…" />
       <CommandList>
