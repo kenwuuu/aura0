@@ -38,6 +38,7 @@ import { MIN_ZOOM, MAX_ZOOM, MAT_WIDTH, MAT_HEIGHT, BACKGROUND_GRID_GAP } from '
 import type { Player } from '@/features/player';
 import type { TokenService } from '@/infrastructure/cards';
 import { useContextMenuStore } from '@/features/hotkeys/contextMenuStore';
+import { useHotkeyStore } from '@/app/stores/hotkeyStore';
 import { useCardPreviewStore } from '@/features/card-preview/cardPreviewStore';
 import { useGameInstance } from '@/app/stores/gameInstanceStore';
 import { useSettingsStore } from '@/app/stores/settingsStore';
@@ -183,6 +184,15 @@ function BattlefieldCanvasInner({ yDoc, localPlayerId }: BattlefieldCanvasProps)
     return () => { window.removeEventListener('keydown', onDown); window.removeEventListener('keyup', onUp); };
   }, []);
   const snapActive = snapToGridEnabled || altHeld;
+
+  // Mirror react-flow's node selection (cards only) into hotkeyStore so the
+  // app-level menu/hotkey layer — mounted outside <ReactFlowProvider> — can fan
+  // an action out over the whole group. react-flow refires this when a selected
+  // node leaves the graph (moved to a pile, deleted), so the set self-prunes.
+  const onSelectionChange = useCallback((sel: { nodes: Node[] }) => {
+    const ids = sel.nodes.filter((n) => n.type === 'card').map((n) => n.id);
+    useHotkeyStore.getState().setSelectedCardIds(new Set(ids));
+  }, []);
 
   // Center the camera on the local player's mat, and keep following it while the
   // seating settles during initial peer sync. When a player first loads in, only
@@ -571,6 +581,11 @@ function BattlefieldCanvasInner({ yDoc, localPlayerId }: BattlefieldCanvasProps)
         onSelectionDragStart={onSelectionDragStart}
         onSelectionDrag={onSelectionDrag}
         onSelectionDragStop={onSelectionDragStop}
+        onSelectionChange={onSelectionChange}
+        // Additive multi-pick: ⌘ (Mac) / Ctrl (Win/Linux) + click toggles a card
+        // into the box-selected group. Note macOS turns literal Ctrl+click into a
+        // right-click, so ⌘ is the working Mac modifier. Shift still box-selects.
+        multiSelectionKeyCode={['Meta', 'Control']}
         nodeTypes={nodeTypes}
         onDragOver={onDragOver}
         onDrop={onDrop}

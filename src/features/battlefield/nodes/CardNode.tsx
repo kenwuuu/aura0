@@ -36,7 +36,13 @@ const CARD_STYLE = {
   padding: .5,
 };
 
-export const CardNode = memo(function CardNode({ data, id }: NodeProps) {
+// Ring drawn when the card is part of a multi-selection. On the card's own
+// (rotated) element so it tracks tap rotation and the card's border-radius; the
+// drop shadow is kept so a selected card still reads as lifted off the board.
+const SELECTED_BOX_SHADOW =
+  '0 0 0 2px #4c9be8, 0 0 0 5px rgba(76,155,232,0.35), 0 4px 6px rgba(0,0,0,0.3)';
+
+export const CardNode = memo(function CardNode({ data, id, selected }: NodeProps) {
   const card = data as unknown as CardNodeData;
   const { yCards } = card;
 
@@ -97,7 +103,8 @@ export const CardNode = memo(function CardNode({ data, id }: NodeProps) {
     <div
       data-testid="battlefield-card"
       data-card-id={id}
-      style={{ ...CARD_STYLE, transform }}
+      data-selected={selected ? '' : undefined}
+      style={{ ...CARD_STYLE, transform, boxShadow: selected ? SELECTED_BOX_SHADOW : CARD_STYLE.boxShadow }}
       onMouseEnter={handleMouseEnter}
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}

@@ -123,11 +123,19 @@ export function useAllGameHotkeys() {
     { ...board, enabled: isBattlefield });
   useHotkeys(getKeyBindingsForAction('sick'), () => dispatch('sick'),
     { ...board, enabled: isBattlefield });
+  // Counters are the one battlefield key that isn't hover-routed: by default the
+  // 'u'/'i' keys quick-drop a counter at the cursor. But when the hovered card is
+  // part of a multi-selection, route through the card branch so each selected card
+  // gets its own centered counter (matching the menu's card-anchored counter).
   useHotkeys(getKeyBindingsForAction('addCounter'), () => {
-    dispatchGameAction('addCounter', { kind: 'board', ...cursorPos.current });
+    const sel = useHotkeyStore.getState().selectedCardIds;
+    if (isBattlefield && t && sel.has(t.id)) dispatch('addCounter');
+    else dispatchGameAction('addCounter', { kind: 'board', ...cursorPos.current });
   }, board);
   useHotkeys(getKeyBindingsForAction('removeCounter'), () => {
-    dispatchGameAction('removeCounter', { kind: 'board', ...cursorPos.current });
+    const sel = useHotkeyStore.getState().selectedCardIds;
+    if (isBattlefield && t && sel.has(t.id)) dispatch('removeCounter');
+    else dispatchGameAction('removeCounter', { kind: 'board', ...cursorPos.current });
   }, board);
   useHotkeys(getKeyBindingsForAction('copy'), () => dispatch('copy'),
     { ...board, enabled: isBattlefield });

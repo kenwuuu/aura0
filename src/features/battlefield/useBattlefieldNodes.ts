@@ -92,14 +92,22 @@ export function useBattlefieldNodes(
   useEffect(() => {
     const sync = () => setNodes((prev) => {
       const next = buildNodes(yCards, yTokens, localPlayerId);
-      if (draggingIdsRef.current.size === 0) return next;
-      // Keep the local position/zIndex for nodes this client is dragging so
-      // a peer's concurrent Yjs write doesn't fight react-flow's in-flight drag.
+      // buildNodes carries no `selected` flag (react-flow holds selection in the
+      // local `nodes` array via onNodesChange), so a naive replace would wipe the
+      // user's multi-selection on every Yjs write — including a group drag's own
+      // drag-stop commit. Carry `selected` forward so a selection only clears when
+      // the user clicks empty board. Also keep local position/zIndex for nodes this
+      // client is dragging so a peer's concurrent write doesn't fight react-flow's
+      // in-flight drag.
       const localById = new Map(prev.map((n) => [n.id, n]));
       return next.map((n) => {
-        if (!draggingIdsRef.current.has(n.id)) return n;
         const local = localById.get(n.id);
-        return local ? { ...n, position: local.position, zIndex: local.zIndex } : n;
+        if (!local) return n;
+        const selected = local.selected ? { selected: true } : null;
+        const dragging = draggingIdsRef.current.has(n.id)
+          ? { position: local.position, zIndex: local.zIndex }
+          : null;
+        return selected || dragging ? { ...n, ...selected, ...dragging } : n;
       });
     });
     yCards.observe(sync);

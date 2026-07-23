@@ -215,7 +215,18 @@ export function dispatchGameAction(action: string, target: MenuTarget): void {
       if (!yDoc || !playerId) return;
       const yCards = yDoc.getMap<WhiteboardCard>(YDOC_CARDS_ON_BOARD);
       const yTokens = yDoc.getMap<KeywordToken>(YDOC_KEYWORD_TOKENS);
-      executeBattlefieldCardAction(action, target.id, yCards, yTokens, playerId);
+      // Membership rule: when the acted-on card is part of a multi-selection,
+      // fan the action out over the whole group; otherwise it targets just this
+      // card. `untapAll` already sweeps every owned card, so never loop it.
+      const selected = useHotkeyStore.getState().selectedCardIds;
+      const ids = action !== 'untapAll' && selected.size > 1 && selected.has(target.id)
+        ? [...selected]
+        : [target.id];
+      // One transaction → one undo step and one observer rebuild for the batch
+      // (also batches the hand/deck writes the moveTo* actions delegate to).
+      yDoc.transact(() => {
+        for (const id of ids) executeBattlefieldCardAction(action, id, yCards, yTokens, playerId);
+      });
       return;
     }
     case 'handCard':
