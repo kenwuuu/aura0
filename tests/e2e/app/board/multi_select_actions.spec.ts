@@ -169,6 +169,35 @@ test('a Space hotkey taps every card in a box-selected group', async ({ page }) 
   expect(await getElementOrientation(c)).toBe('portrait');
 });
 
+test('a Space hotkey taps the whole selection with nothing hovered', async ({ page }) => {
+  const [a, b, c] = await playFannedRow(page, 3);
+  await selectCards(page, [a, b]);
+
+  // Park the cursor off every card so no hoverTarget is set, then tap. A selected
+  // group must accept the action whether or not the cursor is over a member —
+  // before, the battlefield hotkeys were disabled with nothing hovered.
+  await parkMouseAwayFromBoard(page);
+  await page.keyboard.press('Space');
+
+  expect(await getElementOrientation(a)).toBe('landscape');
+  expect(await getElementOrientation(b)).toBe('landscape');
+  expect(await getElementOrientation(c)).toBe('portrait');
+});
+
+test('a move hotkey fans over the selection with nothing hovered', async ({ page }) => {
+  const [a, b, c] = await playFannedRow(page, 3);
+  await selectCards(page, [a, b]);
+
+  // Discard (D) with nothing hovered removes every selected card from the board;
+  // the unselected card stays put.
+  await parkMouseAwayFromBoard(page);
+  await page.keyboard.press('d');
+
+  await expect(a).toHaveCount(0);
+  await expect(b).toHaveCount(0);
+  await expect(c).toHaveCount(1);
+});
+
 test('clicking empty board clears the selection', async ({ page }) => {
   const [a, b] = await playFannedRow(page, 2);
   await selectCards(page, [a, b]);
