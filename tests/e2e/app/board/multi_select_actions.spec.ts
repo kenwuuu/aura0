@@ -46,6 +46,34 @@ async function selectCards(page: Page, [first, ...rest]: Locator[]): Promise<voi
   for (const card of rest) await card.click({ modifiers: ['ControlOrMeta'] });
 }
 
+/**
+ * Rubber-band a Shift+drag rectangle enclosing every given card, starting on
+ * empty pane above-left of them and dragging to below-right. Leaves react-flow's
+ * `nodesSelectionActive` overlay in place (that overlay is the thing under test).
+ */
+async function boxSelect(page: Page, cards: Locator[]): Promise<void> {
+  await parkMouseAwayFromBoard(page);
+  const boxes = await Promise.all(cards.map(async (c) => {
+    const box = await c.boundingBox();
+    if (!box) throw new Error('card has no bounding box');
+    return box;
+  }));
+  const start = {
+    x: Math.min(...boxes.map((b) => b.x)) - 30,
+    y: Math.min(...boxes.map((b) => b.y)) - 30,
+  };
+  const end = {
+    x: Math.max(...boxes.map((b) => b.x + b.width)) + 30,
+    y: Math.max(...boxes.map((b) => b.y + b.height)) + 30,
+  };
+  await page.keyboard.down('Shift');
+  await page.mouse.move(start.x, start.y);
+  await page.mouse.down();
+  await page.mouse.move(end.x, end.y, { steps: 20 });
+  await page.mouse.up();
+  await page.keyboard.up('Shift');
+}
+
 test('⌘/Ctrl+click builds a visible multi-selection', async ({ page }) => {
   const [a, b, c] = await playFannedRow(page, 3);
   await selectCards(page, [a, b]);
@@ -100,28 +128,28 @@ test('a group stays selected after being dragged', async ({ page }) => {
 
 test('Shift box-select groups the cards it encloses', async ({ page }) => {
   const [a, b] = await playFannedRow(page, 2);
-  await parkMouseAwayFromBoard(page);
-
-  // Rubber-band a rectangle (Shift held) around both cards, starting on empty
-  // pane above-left of the row and dragging to below-right of it.
-  const ba = await a.boundingBox();
-  const bb = await b.boundingBox();
-  if (!ba || !bb) throw new Error('card has no bounding box');
-  const start = { x: Math.min(ba.x, bb.x) - 30, y: Math.min(ba.y, bb.y) - 30 };
-  const end = {
-    x: Math.max(ba.x + ba.width, bb.x + bb.width) + 30,
-    y: Math.max(ba.y + ba.height, bb.y + bb.height) + 30,
-  };
-
-  await page.keyboard.down('Shift');
-  await page.mouse.move(start.x, start.y);
-  await page.mouse.down();
-  await page.mouse.move(end.x, end.y, { steps: 20 });
-  await page.mouse.up();
-  await page.keyboard.up('Shift');
+  await boxSelect(page, [a, b]);
 
   await expectSelected(a);
   await expectSelected(b);
+});
+
+test('a menu action fans out over a box-selected group without dismissing the box', async ({ page }) => {
+  const [a, b, c] = await playFannedRow(page, 3);
+  await boxSelect(page, [a, b]);
+  await expectSelected(a);
+  await expectSelected(b);
+
+  // react-flow's box-select leaves a selection overlay covering the group. If it
+  // weren't click-through, this right-click would land on the overlay (not the
+  // card) and nothing would tap. Acting straight after box-select — no click to
+  // dismiss the box first — is the whole point of the assertion.
+  await openCardMenu(page, a);
+  await page.getByText('TapSpace').click();
+
+  expect(await getElementOrientation(a)).toBe('landscape');
+  expect(await getElementOrientation(b)).toBe('landscape');
+  expect(await getElementOrientation(c)).toBe('portrait');
 });
 
 test('clicking empty board clears the selection', async ({ page }) => {
