@@ -164,6 +164,16 @@ export const HOTKEYS: Hotkey[] = [
     action: 'untapAll',
   },
   {
+    // Zzz = summoning-sick creature that can't act yet. Tilts the card 45°;
+    // mutually exclusive with tap (see the `sick`/`tap` executors).
+    key: 'Z',
+    keys: ['z'],
+    context: ['battlefield'],
+    shortDescription: 'Summoning sick',
+    longDescription: 'Tilt card 45° to mark summoning sickness',
+    action: 'sick',
+  },
+  {
     key: 'F',
     keys: ['f'],
     context: ['battlefield', 'hand'],

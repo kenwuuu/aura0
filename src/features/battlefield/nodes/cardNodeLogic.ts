@@ -40,7 +40,12 @@ export function isHiddenFacedown(card: Pick<Card, 'isFlipped' | 'images'>): bool
   return !!card.isFlipped && !card.images?.back?.normal;
 }
 
-/** Total rotation in degrees: the card's own rotation plus 90° when tapped. */
-export function resolveCardRotation(card: Pick<Card, 'rotation' | 'isTapped'>): number {
-  return (card.rotation ?? 0) + (card.isTapped ? 90 : 0);
+/**
+ * Total rotation in degrees: the card's own base rotation plus its state tilt.
+ * Tapped (90°) and summoning-sick (45°) are mutually exclusive — a card is in
+ * exactly one physical position — so tap wins if both flags are somehow set.
+ */
+export function resolveCardRotation(card: Pick<Card, 'rotation' | 'isTapped' | 'isSick'>): number {
+  const stateTilt = card.isTapped ? 90 : card.isSick ? 45 : 0;
+  return (card.rotation ?? 0) + stateTilt;
 }

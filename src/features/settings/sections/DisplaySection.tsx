@@ -26,9 +26,9 @@ import { SettingRow } from '../components/SettingRow';
 import styles from './DisplaySection.module.css';
 
 const DEMO_HAND_CARDS: Card[] = [
-  { id: '__demo_1', cardNumber: 0, x: 0, y: 0, rotation: 0, isTapped: false, isFlipped: false, counters: [], images: { front: { normal: DEFAULT_CARD_BACK } } },
-  { id: '__demo_2', cardNumber: 0, x: 0, y: 0, rotation: 0, isTapped: false, isFlipped: false, counters: [], images: { front: { normal: DEFAULT_CARD_BACK } } },
-  { id: '__demo_3', cardNumber: 0, x: 0, y: 0, rotation: 0, isTapped: false, isFlipped: false, counters: [], images: { front: { normal: DEFAULT_CARD_BACK } } },
+  { id: '__demo_1', cardNumber: 0, x: 0, y: 0, rotation: 0, isTapped: false, isSick: false, isFlipped: false, counters: [], images: { front: { normal: DEFAULT_CARD_BACK } } },
+  { id: '__demo_2', cardNumber: 0, x: 0, y: 0, rotation: 0, isTapped: false, isSick: false, isFlipped: false, counters: [], images: { front: { normal: DEFAULT_CARD_BACK } } },
+  { id: '__demo_3', cardNumber: 0, x: 0, y: 0, rotation: 0, isTapped: false, isSick: false, isFlipped: false, counters: [], images: { front: { normal: DEFAULT_CARD_BACK } } },
 ];
 
 const DEMO_PREVIEW_CARD: Card = {
@@ -38,6 +38,7 @@ const DEMO_PREVIEW_CARD: Card = {
   y: 0,
   rotation: 0,
   isTapped: false,
+  isSick: false,
   isFlipped: false,
   counters: [],
   images: { front: { normal: DEFAULT_CARD_BACK } },

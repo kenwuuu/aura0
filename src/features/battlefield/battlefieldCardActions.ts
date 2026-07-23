@@ -72,7 +72,9 @@ export function executeBattlefieldCardAction(
     case 'tap': {
       // card.isTapped reflects the state *before* the toggle
       const verb = card.isTapped ? 'untapped' : 'tapped';
-      yCards.set(cardId, { ...card, isTapped: !card.isTapped });
+      // Tap and summoning-sickness are mutually exclusive rotations (a card is
+      // in one physical position), so tapping clears the 45° sick tilt.
+      yCards.set(cardId, { ...card, isTapped: !card.isTapped, isSick: false });
       if (yDoc) {
         const ownerName = opponentOwnerName(yDoc, card, playerId);
         logAction(yDoc, {
@@ -80,6 +82,21 @@ export function executeBattlefieldCardAction(
           type: 'tap',
           text: ownerName ? `${verb} ${ownerName}'s ${cardLogName(card)}` : `${verb} ${cardLogName(card)}`,
         });
+      }
+      break;
+    }
+    case 'sick': {
+      // card.isSick reflects the state *before* the toggle. Marking a card
+      // summoning-sick clears tap — the two tilts are mutually exclusive.
+      const willBeSick = !card.isSick;
+      yCards.set(cardId, { ...card, isSick: willBeSick, isTapped: false });
+      if (yDoc) {
+        const ownerName = opponentOwnerName(yDoc, card, playerId);
+        const verb = willBeSick ? 'marked' : 'cleared summoning sickness on';
+        const text = willBeSick
+          ? (ownerName ? `marked ${ownerName}'s ${cardLogName(card)} summoning sick` : `marked ${cardLogName(card)} summoning sick`)
+          : (ownerName ? `${verb} ${ownerName}'s ${cardLogName(card)}` : `${verb} ${cardLogName(card)}`);
+        logAction(yDoc, { actorId: playerId, type: 'sick', text });
       }
       break;
     }
