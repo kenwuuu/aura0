@@ -323,16 +323,6 @@ export function getHotkeysForContext(context: HotkeyContext): Hotkey[] {
   return HOTKEYS.filter(hotkey => hotkey.context.includes(context));
 }
 
-/**
- * Get all hotkeys with their long descriptions (for the modal)
- */
-export function getAllHotkeysWithLongDescriptions(): Array<{ key: string; action: string }> {
-  return HOTKEYS.map(hotkey => ({
-    key: hotkey.key,
-    action: hotkey.longDescription,
-  }));
-}
-
 /** A named group of hotkeys for the shortcut-reference UI (Help modal's
  *  Shortcuts tab and the command palette's read-only reference section). */
 export interface HotkeyZone {
