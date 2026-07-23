@@ -333,6 +333,63 @@ export function getAllHotkeysWithLongDescriptions(): Array<{ key: string; action
   }));
 }
 
+/** A named group of hotkeys for the shortcut-reference UI (Help modal's
+ *  Shortcuts tab and the command palette's read-only reference section). */
+export interface HotkeyZone {
+  zone: string;
+  hotkeys: Hotkey[];
+}
+
+/**
+ * Display order + which `HotkeyContext`s qualify a hotkey for each zone. Many
+ * keys (D/S/T/Y/B/H, flip, the counters) belong to several contexts; the zone
+ * order below is a *priority* — each key is shown once, under the first zone it
+ * qualifies for. Order is chosen for discoverability, not internal structure:
+ * the shared card-movement keys (D=discard, S=exile, …) land under Hand, where a
+ * player reaches for them most, rather than being buried under Battlefield.
+ */
+const ZONE_ORDER: Array<{ zone: string; contexts: HotkeyContext[] }> = [
+  { zone: 'Global', contexts: [HotkeyContext.Global] },
+  { zone: 'Hand', contexts: [HotkeyContext.Hand] },
+  { zone: 'Battlefield', contexts: [HotkeyContext.Battlefield] },
+  {
+    zone: 'Piles',
+    contexts: [
+      HotkeyContext.Deck,
+      HotkeyContext.Exile,
+      HotkeyContext.Discard,
+      HotkeyContext.Sideboard,
+      HotkeyContext.DeckCard,
+      HotkeyContext.Scry,
+    ],
+  },
+  { zone: 'Tokens', contexts: [HotkeyContext.KeywordToken, HotkeyContext.KeywordTokenStack] },
+  { zone: 'Life', contexts: [HotkeyContext.Health] },
+];
+
+/**
+ * Group the catalog into ordered, deduplicated zones for the shortcut
+ * reference. Pointer-only rows (empty `key`, e.g. `viewPile`) are omitted since
+ * there is no keystroke to show, and each action appears in exactly one zone
+ * (see `ZONE_ORDER`). Reads live from `HOTKEYS`, so the reference can never
+ * drift from the actual bindings.
+ */
+export function getHotkeysGroupedByZone(): HotkeyZone[] {
+  const seen = new Set<string>();
+  const groups: HotkeyZone[] = [];
+  for (const { zone, contexts } of ZONE_ORDER) {
+    const hotkeys = HOTKEYS.filter(
+      (h) =>
+        h.key !== '' &&
+        !seen.has(h.action) &&
+        contexts.some((c) => h.context.includes(c)),
+    );
+    hotkeys.forEach((h) => seen.add(h.action));
+    if (hotkeys.length > 0) groups.push({ zone, hotkeys });
+  }
+  return groups;
+}
+
 /**
  * Get key bindings for a specific action (for react-hotkeys-hook)
  */
