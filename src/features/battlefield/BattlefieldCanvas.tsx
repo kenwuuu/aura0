@@ -85,30 +85,6 @@ function finalizeCardDrag(
   });
 }
 
-// Build the awareness drag payload for a node and its attached tokens.
-// Position-only: no pile-drop, attach, or reparent logic runs here — those are
-// decisions made at drag-stop. Attached children are carried by their captured
-// offset so the whole cluster moves together on every frame.
-function buildDragNodes(
-  node: Node,
-  elevatedZ: number | undefined,
-  dragElevation: Map<string, number>,
-  attachOffsets: Map<string, { dx: number; dy: number }>,
-): DragNodeState[] {
-  const dragNodes: DragNodeState[] = [
-    { id: node.id, x: node.position.x, y: node.position.y, zIndex: elevatedZ ?? (node.zIndex as number ?? 0) },
-  ];
-  attachOffsets.forEach((offset, tokenId) => {
-    dragNodes.push({
-      id: tokenId,
-      x: node.position.x + offset.dx,
-      y: node.position.y + offset.dy,
-      zIndex: dragElevation.get(tokenId) ?? 0,
-    });
-  });
-  return dragNodes;
-}
-
 function finalizeTokenDrag(
   node: Node,
   yCards: Y.Map<WhiteboardCard>,
@@ -323,42 +299,57 @@ function BattlefieldCanvasInner({ yDoc, localPlayerId }: BattlefieldCanvasProps)
   // Maps token id → pixel offset from its card's top-left corner, captured at
   // drag-start. Used to carry attached tokens along during a card drag.
   const attachOffsetsRef = useRef<Map<string, { dx: number; dy: number }>>(new Map());
-  // True while a multi-selection drag is in flight; prevents onNodeDragStop from
-  // double-writing the primary node (onSelectionDragStop handles all nodes instead).
-  const isMultiDragRef = useRef(false);
+
+  // A drag started on a node moves *every selected node* together (react-flow's
+  // `getDragItems` gathers all `selected` nodes), and the third callback arg is
+  // that full set. A single unselected card drags as a group of one. Because the
+  // box-selection overlay is click-through (see reactFlowControls.css), grabbing
+  // any card — whether picked via ⌘/Ctrl-click or a shift box-select — routes
+  // through these `onNodeDrag*` handlers, so this one path serves both gestures
+  // and react-flow's separate `onSelectionDrag*` callbacks are never used.
+  const dragSet = (node: Node, nodes: Node[]): Node[] => (nodes.length > 1 ? nodes : [node]);
 
   const onNodeDragStart: OnNodeDrag = useCallback(
-    (_, node) => {
+    (_, node, nodes) => {
       useContextMenuStore.getState().close();
       // Dragging a board card dismisses any preview showing for it (on touch the
       // preview was raised by a first tap; the drag supersedes it).
       useCardPreviewStore.getState().hide();
-      const newZ = getMaxZIndex(yCards, yTokens) + 1;
-      dragElevationRef.current.set(node.id, newZ);
 
-      // Build a single elevation map for the card and all its attached tokens,
-      // then apply it in one setNodes call so the card never briefly appears
-      // above its tokens between two separate state updates.
+      const dragged = dragSet(node, nodes);
+      const baseZ = getMaxZIndex(yCards, yTokens);
+      // Tokens already in the drag set keep their own elevation; don't re-elevate
+      // them again as some card's attached child.
+      const selectedTokenIds = new Set(dragged.filter((n) => n.type === 'token').map((n) => n.id));
+
+      // Build one elevation map for every dragged node and its carried tokens,
+      // then apply it in a single setNodes call so a card never briefly appears
+      // above its own tokens between two separate state updates.
       const zElevations = new Map<string, number>();
-      zElevations.set(node.id, newZ);
+      dragged.forEach((n, i) => {
+        const newZ = baseZ + i + 1;
+        dragElevationRef.current.set(n.id, newZ);
+        zElevations.set(n.id, newZ);
 
-      // Any node type can have attached children — collect offsets and elevations for all.
-      attachedChildren(node.id, yTokens).forEach((child, i) => {
-        // Store offset from parent origin so we can recompute absolute position
-        // purely from the parent's drag position (no accumulated drift).
-        attachOffsetsRef.current.set(child.id, {
-          dx: child.x - node.position.x,
-          dy: child.y - node.position.y,
+        // Any node type can carry attached children.
+        attachedChildren(n.id, yTokens).forEach((child, j) => {
+          if (selectedTokenIds.has(child.id)) return;
+          // Store offset from parent origin so we can recompute absolute position
+          // purely from the parent's drag position (no accumulated drift).
+          attachOffsetsRef.current.set(child.id, {
+            dx: child.x - n.position.x,
+            dy: child.y - n.position.y,
+          });
+          // Each child sits just above its parent. Multiple children get
+          // progressively higher z so they don't interleave with each other.
+          const childZ = newZ + j + 1;
+          dragElevationRef.current.set(child.id, childZ);
+          zElevations.set(child.id, childZ);
         });
-        // Each child sits just above its parent. Multiple children get
-        // progressively higher z so they don't interleave with each other.
-        const childZ = newZ + i + 1;
-        dragElevationRef.current.set(child.id, childZ);
-        zElevations.set(child.id, childZ);
       });
 
       elevateNodes(zElevations);
-      // The dragged node and its carried tokens are now locally controlled —
+      // The dragged nodes and their carried tokens are now locally controlled —
       // shield them from observer rebuilds triggered by a peer's concurrent Yjs
       // write, which would otherwise snap them to their stale pre-drag position.
       setDraggingNodeIds(new Set(zElevations.keys()));
@@ -366,81 +357,22 @@ function BattlefieldCanvasInner({ yDoc, localPlayerId }: BattlefieldCanvasProps)
     [yCards, yTokens, elevateNodes, setDraggingNodeIds],
   );
 
-  // Broadcast the dragged node (and its carried children) via awareness on every
+  // Broadcast every dragged node (plus its carried tokens) via awareness on each
   // frame so peers see live movement without touching the Yjs document. Final
-  // positions are committed to Yjs only on drag-stop.
+  // positions are committed to Yjs only on drag-stop. The dragged nodes' own
+  // positions are driven by react-flow; we only translate their attached tokens.
   const onNodeDrag: OnNodeDrag = useCallback(
-    (_, node) => {
-      // Selection drags are handled by onSelectionDrag; avoid double-broadcasting.
-      if (isMultiDragRef.current) return;
-      const elevatedZ = dragElevationRef.current.get(node.id);
-      awareness?.setLocalStateField('drag', {
-        nodes: buildDragNodes(node, elevatedZ, dragElevationRef.current, attachOffsetsRef.current),
-      });
-
-      if (attachOffsetsRef.current.size === 0) return;
-      const positions = new Map<string, { x: number; y: number }>();
-      attachOffsetsRef.current.forEach((offset, tokenId) => {
-        positions.set(tokenId, {
-          x: node.position.x + offset.dx,
-          y: node.position.y + offset.dy,
-        });
-      });
-      translateNodes(positions);
-    },
-    [awareness, translateNodes],
-  );
-
-  const onSelectionDragStart = useCallback(
-    (_: React.MouseEvent, nodes: Node[]) => {
-      isMultiDragRef.current = true;
-      useContextMenuStore.getState().close();
-      const baseZ = getMaxZIndex(yCards, yTokens);
-
-      // Collect ids of tokens already in the selection so we don't assign them
-      // a second elevation when processing their parent card's attached tokens.
-      const selectedTokenIds = new Set(nodes.filter((n) => n.type === 'token').map((n) => n.id));
-
-      // Build the full elevation map for all selected nodes + their implicitly
-      // carried tokens, then apply in one setNodes call (avoids card-over-token flicker).
-      const zElevations = new Map<string, number>();
-      nodes.forEach((node, i) => {
-        const newZ = baseZ + i + 1;
-        dragElevationRef.current.set(node.id, newZ);
-        zElevations.set(node.id, newZ);
-
-        // Any node type can carry attached children.
-        attachedChildren(node.id, yTokens).forEach((child, j) => {
-          if (selectedTokenIds.has(child.id)) return;
-          attachOffsetsRef.current.set(child.id, {
-            dx: child.x - node.position.x,
-            dy: child.y - node.position.y,
-          });
-          const childZ = newZ + j + 1;
-          dragElevationRef.current.set(child.id, childZ);
-          zElevations.set(child.id, childZ);
-        });
-      });
-      elevateNodes(zElevations);
-      setDraggingNodeIds(new Set(zElevations.keys()));
-    },
-    [yCards, yTokens, elevateNodes, setDraggingNodeIds],
-  );
-
-  // Broadcast every node in a selection drag (plus their carried tokens) via
-  // awareness, mirroring onNodeDrag for the multi-node case.
-  const onSelectionDrag = useCallback(
-    (_: React.MouseEvent, nodes: Node[]) => {
+    (_, node, nodes) => {
       const dragNodes: DragNodeState[] = [];
       const positions = new Map<string, { x: number; y: number }>();
-      nodes.forEach((node) => {
-        const elevatedZ = dragElevationRef.current.get(node.id);
-        dragNodes.push({ id: node.id, x: node.position.x, y: node.position.y, zIndex: elevatedZ ?? (node.zIndex as number ?? 0) });
-        attachedChildren(node.id, yTokens).forEach((child) => {
+      dragSet(node, nodes).forEach((n) => {
+        const elevatedZ = dragElevationRef.current.get(n.id);
+        dragNodes.push({ id: n.id, x: n.position.x, y: n.position.y, zIndex: elevatedZ ?? (n.zIndex as number ?? 0) });
+        attachedChildren(n.id, yTokens).forEach((child) => {
           const offset = attachOffsetsRef.current.get(child.id);
           if (!offset) return;
-          const x = node.position.x + offset.dx;
-          const y = node.position.y + offset.dy;
+          const x = n.position.x + offset.dx;
+          const y = n.position.y + offset.dy;
           dragNodes.push({ id: child.id, x, y, zIndex: dragElevationRef.current.get(child.id) ?? child.zIndex });
           positions.set(child.id, { x, y });
         });
@@ -452,15 +384,29 @@ function BattlefieldCanvasInner({ yDoc, localPlayerId }: BattlefieldCanvasProps)
   );
 
   const onNodeDragStop: OnNodeDrag = useCallback(
-    (event, node) => {
-      // react-flow fires onNodeDragStop for every node in a selection drag too.
-      // Skip here — onSelectionDragStop owns all Yjs writes for multi-node drags.
-      if (isMultiDragRef.current) return;
-
+    (event, node, nodes) => {
       // Clear awareness drag so peers stop seeing the in-flight ghost.
       awareness?.setLocalStateField('drag', null);
       // Drag is over — stop shielding nodes from observer rebuilds.
       setDraggingNodeIds(new Set());
+
+      // Multi-node drag: commit every node's final position. Pile-drop and
+      // free-token attachment stay single-card affordances (both are ambiguous
+      // for a group), so they live in the single-node branch below.
+      if (nodes.length > 1) {
+        const selectedTokenIds = new Set(nodes.filter((n) => n.type === 'token').map((n) => n.id));
+        nodes.forEach((n) => {
+          const elevatedZ = dragElevationRef.current.get(n.id);
+          dragElevationRef.current.delete(n.id);
+          if (n.type === 'card') {
+            finalizeCardDrag(n, yCards, yTokens, elevatedZ, dragElevationRef.current, attachOffsetsRef.current, selectedTokenIds);
+          } else if (n.type === 'token') {
+            finalizeTokenDrag(n, yCards, yTokens, elevatedZ);
+          }
+        });
+        attachOffsetsRef.current.clear();
+        return;
+      }
 
       const elevatedZ = dragElevationRef.current.get(node.id);
       dragElevationRef.current.delete(node.id);
@@ -499,26 +445,6 @@ function BattlefieldCanvasInner({ yDoc, localPlayerId }: BattlefieldCanvasProps)
       }
     },
     [awareness, yCards, yTokens, localPlayerId, setDraggingNodeIds],
-  );
-
-  const onSelectionDragStop = useCallback(
-    (_: React.MouseEvent, nodes: Node[]) => {
-      isMultiDragRef.current = false;
-      awareness?.setLocalStateField('drag', null);
-      setDraggingNodeIds(new Set());
-      const selectedTokenIds = new Set(nodes.filter((n) => n.type === 'token').map((n) => n.id));
-      nodes.forEach((node) => {
-        const elevatedZ = dragElevationRef.current.get(node.id);
-        dragElevationRef.current.delete(node.id);
-        if (node.type === 'card') {
-          finalizeCardDrag(node, yCards, yTokens, elevatedZ, dragElevationRef.current, attachOffsetsRef.current, selectedTokenIds);
-        } else if (node.type === 'token') {
-          finalizeTokenDrag(node, yCards, yTokens, elevatedZ);
-        }
-      });
-      attachOffsetsRef.current.clear();
-    },
-    [awareness, yCards, yTokens, setDraggingNodeIds],
   );
 
   // Only token-template drops remain here — hand cards use dnd-kit (see App.tsx onDragEnd).
@@ -578,9 +504,6 @@ function BattlefieldCanvasInner({ yDoc, localPlayerId }: BattlefieldCanvasProps)
         onNodeDragStart={onNodeDragStart}
         onNodeDrag={onNodeDrag}
         onNodeDragStop={onNodeDragStop}
-        onSelectionDragStart={onSelectionDragStart}
-        onSelectionDrag={onSelectionDrag}
-        onSelectionDragStop={onSelectionDragStop}
         onSelectionChange={onSelectionChange}
         // Additive multi-pick: ⌘ (Mac) / Ctrl (Win/Linux) + click toggles a card
         // into the box-selected group. Note macOS turns literal Ctrl+click into a

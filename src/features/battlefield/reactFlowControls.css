@@ -49,3 +49,19 @@
   max-width: 14px;
   max-height: 14px;
 }
+
+/**
+ * Box-selection overlay: make it click-through.
+ *
+ * After a shift box-select, react-flow draws a `.react-flow__nodesselection-rect`
+ * over the whole group with `pointer-events: all`, sitting above the cards. Left
+ * interactive it swallows hover (so `hoverTarget` never sets → hotkeys/menu can't
+ * act on a selected card) and forces group drags down react-flow's separate
+ * `onSelectionDrag*` path. Setting it to `none` lets hover, right-click, and drag
+ * fall through to the cards themselves, so box-select and ⌘/Ctrl-click behave
+ * identically: one node-drag path moves the group, and the group stays hoverable.
+ * The bounding box stays visible as a purely cosmetic affordance.
+ */
+.react-flow__nodesselection-rect {
+  pointer-events: none;
+}
