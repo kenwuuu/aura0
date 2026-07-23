@@ -71,7 +71,7 @@ export const HelpModal: React.FC = () => {
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && useOverlayStore.getState().close('help')}>
-      <DialogContent className="min-w-[45vw] max-h-[75vh] flex flex-col">
+      <DialogContent size="xl" className="max-h-[75vh] flex flex-col">
         <DialogHeader>
           <DialogTitle>Help &amp; Shortcuts</DialogTitle>
           <DialogDescription>

@@ -46,7 +46,7 @@ export function SettingsModal() {
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && close()}>
-      <DialogContent className="w-[680px] max-w-[95vw] p-0">
+      <DialogContent size="lg">
         <DialogHeader className="px-6 py-5">
           <DialogTitle>Settings</DialogTitle>
         </DialogHeader>
