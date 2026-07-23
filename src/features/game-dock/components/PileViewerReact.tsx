@@ -611,6 +611,7 @@ export function PileViewerReact({
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent
+        size="full"
         className="deck-pile-viewer-content w-[80vw] h-[70vh] p-0"
         data-testid="pile-viewer"
         data-pile-type={pileType}

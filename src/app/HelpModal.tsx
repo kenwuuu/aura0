@@ -17,7 +17,7 @@ interface HelpModalProps {
 export const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose }) => {
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="min-w-[45vw] max-h-[65vh] flex flex-col">
+      <DialogContent size="xl" className="max-h-[65vh] flex flex-col">
         <DialogHeader>
           <DialogTitle>Help & Instructions</DialogTitle>
         </DialogHeader>

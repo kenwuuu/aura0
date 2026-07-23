@@ -23,7 +23,7 @@ export const HotkeysModal: React.FC<HotkeysModalProps> = ({ isOpen, onClose }) =
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="lg:min-w-[900px] w-[95vw] max-h-[65vh] top-[45vh]">
+      <DialogContent size="xl" className="max-h-[65vh]">
         <DialogHeader>
           <DialogTitle>Keyboard Shortcuts</DialogTitle>
         </DialogHeader>

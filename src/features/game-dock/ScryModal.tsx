@@ -66,7 +66,7 @@ export const ScryModal: React.FC<ScryModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onCancel()}>
-      <DialogContent className="max-w-[400px] w-[90%]">
+      <DialogContent size="sm">
         <DialogHeader>
           <DialogTitle>Scry and Surveil</DialogTitle>
         </DialogHeader>
