@@ -30,6 +30,15 @@ interface HotkeyStore {
   // What the user is currently hovering (only one surface at a time).
   hoverTarget: HoverTarget | null;
 
+  // Ids of the battlefield cards in the current react-flow multi-selection.
+  // react-flow owns selection inside the canvas (in the local `nodes` array);
+  // the menu/hotkey layer lives outside <ReactFlowProvider> and can't read it
+  // directly, so BattlefieldCanvas mirrors it here (like hoverTarget) for the
+  // dispatch layer to fan actions out over. Cards only — tokens have their own
+  // action set. Empty means "no group"; a single action then targets the
+  // hovered/clicked card alone.
+  selectedCardIds: Set<string>;
+
   // Modal states (disable hotkeys / switch scopes when modals are open).
   isModalOpen: boolean;
   addCardModalOpen: boolean;
@@ -40,6 +49,7 @@ interface HotkeyStore {
   setHoveredPile: (pileType: PileType | null) => void;
   setHoveredToken: (tokenId: string | null) => void;
   setHoveredPileViewerCard: (cardId: string | null, context: HotkeyContext | null) => void;
+  setSelectedCardIds: (ids: Set<string>) => void;
   setModalOpen: (isOpen: boolean) => void;
   setAddCardModalOpen: (isOpen: boolean) => void;
   reset: () => void;
@@ -47,6 +57,7 @@ interface HotkeyStore {
 
 export const useHotkeyStore = create<HotkeyStore>((set) => ({
   hoverTarget: null,
+  selectedCardIds: new Set<string>(),
   isModalOpen: false,
   addCardModalOpen: false,
 
@@ -68,9 +79,11 @@ export const useHotkeyStore = create<HotkeyStore>((set) => ({
         cardId && context ? { kind: 'pileViewer', id: cardId, context } : null,
     }),
 
+  setSelectedCardIds: (ids) => set({ selectedCardIds: ids }),
+
   setModalOpen: (isOpen) => set({ isModalOpen: isOpen }),
 
   setAddCardModalOpen: (isOpen) => set({ addCardModalOpen: isOpen }),
 
-  reset: () => set({ hoverTarget: null }),
+  reset: () => set({ hoverTarget: null, selectedCardIds: new Set<string>() }),
 }));
