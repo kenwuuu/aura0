@@ -152,6 +152,23 @@ test('a menu action fans out over a box-selected group without dismissing the bo
   expect(await getElementOrientation(c)).toBe('portrait');
 });
 
+test('a Space hotkey taps every card in a box-selected group', async ({ page }) => {
+  const [a, b, c] = await playFannedRow(page, 3);
+  await boxSelect(page, [a, b]);
+  await expectSelected(a);
+  await expectSelected(b);
+
+  // Tap via the Space hotkey (not the menu). Keyboard actions route through the
+  // hovered card, so this checks that a box-selected card is hoverable through
+  // the selection overlay — the right-click menu path never needed hover.
+  await a.hover();
+  await page.keyboard.press('Space');
+
+  expect(await getElementOrientation(a)).toBe('landscape');
+  expect(await getElementOrientation(b)).toBe('landscape');
+  expect(await getElementOrientation(c)).toBe('portrait');
+});
+
 test('clicking empty board clears the selection', async ({ page }) => {
   const [a, b] = await playFannedRow(page, 2);
   await selectCards(page, [a, b]);
