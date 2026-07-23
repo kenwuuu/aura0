@@ -39,6 +39,37 @@ export const test = base.extend<{ onboardingTour: boolean }>({
     if (!onboardingTour) await markReturningPlayer(page.context());
 
     await blockAnalytics(page);
+
+    // Neutralize CSS animations/transitions across the whole context before the
+    // app loads. `playwright.config.ts` sets `reducedMotion: 'reduce'`, but the
+    // app's Tailwind `animate-in`/`slide-in-*` menu classes aren't gated on that
+    // media query, so the Radix context menu still slide/zoom-animates open. On a
+    // loaded CI runner its box never settles inside Playwright's stability window
+    // before the click times out — the `element is not stable` / `detached from
+    // the DOM` flake that hits every context-menu item click (card_tooltips,
+    // smoketest, tooltips…). Forcing zero-duration paints menus in their final
+    // position immediately, so the item click lands. Context-level (not page)
+    // because `openDuplicateTab` opens a second page that must be covered too.
+    await page.context().addInitScript(() => {
+      const inject = () => {
+        if ((window as unknown as { __e2eNoAnim?: boolean }).__e2eNoAnim) return;
+        const root = document.head ?? document.documentElement;
+        if (!root) return;
+        const style = document.createElement('style');
+        style.setAttribute('data-e2e-no-animations', '');
+        style.textContent =
+          '*, *::before, *::after {' +
+          'animation-duration: 0s !important; animation-delay: 0s !important;' +
+          'animation-iteration-count: 1 !important;' +
+          'transition-duration: 0s !important; transition-delay: 0s !important;' +
+          'scroll-behavior: auto !important; }';
+        root.appendChild(style);
+        (window as unknown as { __e2eNoAnim?: boolean }).__e2eNoAnim = true;
+      };
+      inject();
+      document.addEventListener('DOMContentLoaded', inject);
+    });
+
     await page.goto(`/?room=${generateRandomString(30)}`, { waitUntil: 'networkidle' });
     await page.evaluate(() => localStorage.clear());
 
