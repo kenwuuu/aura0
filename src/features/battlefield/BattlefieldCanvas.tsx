@@ -18,6 +18,7 @@ import * as Y from 'yjs';
 
 import { CardNode } from './nodes/CardNode';
 import { TokenNode } from './nodes/TokenNode';
+import { TimerNode } from './nodes/TimerNode';
 import { PlaymatNode } from './nodes/PlaymatNode';
 import { HealthNode } from './nodes/HealthNode';
 import { PileNode } from './nodes/PileNode';
@@ -33,8 +34,10 @@ import { attachedChildren, findParent, nodeCenter, nodeContainsPoint } from './n
 import { findDropTarget, type PileDropTarget } from './dropTargetDetection';
 import { spawnTokenAtPosition, getMaxZIndex } from './spawnToken';
 import { computeGroupDragElevations } from './dragElevation';
+import { moveTimer } from './timers/spawnTimer';
+import type { BoardTimer } from './timers/types';
 import { moveCardFromBattlefield } from './battlefieldActions';
-import { YDOC_CARDS_ON_BOARD, YDOC_KEYWORD_TOKENS } from '@/constants';
+import { YDOC_CARDS_ON_BOARD, YDOC_KEYWORD_TOKENS, YDOC_TIMERS } from '@/constants';
 import { MIN_ZOOM, MAX_ZOOM, MAT_WIDTH, MAT_HEIGHT, BACKGROUND_GRID_GAP } from './boardWorld';
 import type { Player } from '@/features/player';
 import type { TokenService } from '@/infrastructure/cards';
@@ -49,6 +52,7 @@ import { SettingsButton } from '@/features/settings/SettingsButton';
 const nodeTypes = {
   card: CardNode,
   token: TokenNode,
+  timer: TimerNode,
   playmat: PlaymatNode,
   health: HealthNode,
   pile: PileNode,
@@ -105,13 +109,14 @@ function finalizeTokenDrag(
 function BattlefieldCanvasInner({ yDoc, localPlayerId }: BattlefieldCanvasProps) {
   const yCards = yDoc.getMap<WhiteboardCard>(YDOC_CARDS_ON_BOARD);
   const yTokens = yDoc.getMap<KeywordToken>(YDOC_KEYWORD_TOKENS);
+  const yTimers = yDoc.getMap<BoardTimer>(YDOC_TIMERS);
   const awareness = useGameInstance((s) => s.awareness);
   // On phone the bottom-left corner belongs to nothing (the full-width hand
   // covers the bottom edge) and the top-left hosts the HUD toggle stack, so
   // the settings gear + zoom controls move to the top-right. docs/architecture/responsive.md.
   const isPhone = usePhoneLayout();
 
-  const { nodes: cardTokenNodes, onNodesChange, elevateNodes, translateNodes, setDraggingNodeIds } = useBattlefieldNodes(yCards, yTokens, localPlayerId, awareness);
+  const { nodes: cardTokenNodes, onNodesChange, elevateNodes, translateNodes, setDraggingNodeIds } = useBattlefieldNodes(yCards, yTokens, yTimers, localPlayerId, awareness);
   const { nodes: playmatNodes, localMatOrigin } = usePlaymatNodes(yDoc, localPlayerId);
   const { screenToFlowPosition, fitBounds } = useReactFlow();
   const { setNodeRef: setBattlefieldRef } = useDroppable({ id: 'battlefield' });
@@ -441,9 +446,12 @@ function BattlefieldCanvasInner({ yDoc, localPlayerId }: BattlefieldCanvasProps)
         });
       } else if (node.type === 'token') {
         finalizeTokenDrag(node, yCards, yTokens, elevatedZ);
+      } else if (node.type === 'timer') {
+        const timer = yTimers.get(node.id);
+        if (timer) moveTimer(yTimers, node.id, node.position.x, node.position.y, elevatedZ ?? timer.zIndex);
       }
     },
-    [awareness, yCards, yTokens, localPlayerId, setDraggingNodeIds],
+    [awareness, yCards, yTokens, yTimers, localPlayerId, setDraggingNodeIds],
   );
 
   // Only token-template drops remain here — hand cards use dnd-kit (see App.tsx onDragEnd).

@@ -29,6 +29,7 @@ import {
   DropdownMenuTrigger,
 } from '@/shared/ui/dropdown-menu';
 import { CreateTokenGridItem } from '@/features/game-actions/CreateTokenGridItem';
+import { createTimerFromScreenPoint } from '@/features/battlefield/timers/spawnTimer';
 import { usePileViewerHotkeyStore } from '@/features/game-dock/pileViewerHotkeyStore';
 import { useGameInstance } from '@/app/stores/gameInstanceStore';
 import { requestRemovePlayer } from '@/features/player/removePlayer';
@@ -192,6 +193,15 @@ export function GameContextMenu() {
             {hotkey.destructive && index < rows.length - 1 && <DropdownMenuSeparator />}
           </Fragment>
         ))}
+        {/* Empty-board create items. Like the token grid below, these perform no
+            dispatchable/target-bound action, so they live here rather than in
+            the HOTKEYS catalog and carry no keyboard shortcut. The timer spawns
+            at the click point (the menu's own x/y). */}
+        {target?.kind === 'board' && (
+          <DropdownMenuItem onSelect={() => { close(); createTimerFromScreenPoint({ x, y }); }}>
+            Add timer
+          </DropdownMenuItem>
+        )}
         {/* The empty-board menu also offers keyword-token creation via the same
             drag-to-board grid as the toolbar's Create ▾ menu, appended after the
             +1/-1 counter rows above. It performs no dispatchable action, so it

@@ -25,6 +25,7 @@ import {
   YDOC_PLAYER,
   YDOC_CARDS_ON_BOARD,
   YDOC_KEYWORD_TOKENS,
+  YDOC_TIMERS,
   YSTATE_REMOVED,
 } from '@/constants';
 import { logAction } from '@/features/action-log/actionLog';
@@ -58,6 +59,7 @@ export function removePlayer(
   const playerMap = yDoc.getMap(YDOC_PLAYER(targetPlayerId));
   const yCards = yDoc.getMap<OwnedBoardObject>(YDOC_CARDS_ON_BOARD);
   const yTokens = yDoc.getMap<OwnedBoardObject>(YDOC_KEYWORD_TOKENS);
+  const yTimers = yDoc.getMap<OwnedBoardObject>(YDOC_TIMERS);
 
   yDoc.transact(() => {
     // Clear the seat's contents (drops their piles, reclaims doc space) and
@@ -78,6 +80,12 @@ export function removePlayer(
       if (token.ownerId === targetPlayerId) tokenIds.push(id);
     });
     tokenIds.forEach((id) => yTokens.delete(id));
+
+    const timerIds: string[] = [];
+    yTimers.forEach((timer, id) => {
+      if (timer.ownerId === targetPlayerId) timerIds.push(id);
+    });
+    timerIds.forEach((id) => yTimers.delete(id));
   });
 
   logAction(yDoc, {

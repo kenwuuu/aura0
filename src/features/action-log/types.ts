@@ -18,6 +18,7 @@ export type ActionLogType =
   | 'copy'
   | 'delete'
   | 'spawn_token'
+  | 'spawn_timer'
   | 'health'
   | 'counter'
   | 'shuffle'

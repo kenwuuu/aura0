@@ -6,6 +6,7 @@ import { WhiteboardCard } from './types';
 import type { BattlefieldAwareness } from './awareness';
 import { easePoint } from './peerMotion';
 import { KeywordToken } from '@/features/keyword-tokens/types';
+import type { BoardTimer } from './timers/types';
 
 export interface DragNodeState {
   id: string;
@@ -26,6 +27,7 @@ function sameDragNodes(a: Map<string, DragNodeState>, b: Map<string, DragNodeSta
 function buildNodes(
   yCards: Y.Map<WhiteboardCard>,
   yTokens: Y.Map<KeywordToken>,
+  yTimers: Y.Map<BoardTimer>,
   localPlayerId: string,
 ): Node[] {
   const nodes: Node[] = [];
@@ -60,17 +62,33 @@ function buildNodes(
     });
   });
 
+  // Timers are draggable board utilities but stay out of the card selection
+  // group (selectable:false) — the box-select and its fan-out group actions are
+  // card-only, and a timer has no "tap/flip/move" semantics to receive.
+  yTimers.forEach((timer) => {
+    nodes.push({
+      id: timer.id,
+      type: 'timer',
+      position: { x: timer.x, y: timer.y },
+      data: { ...timer, yTimers, localPlayerId },
+      zIndex: timer.zIndex,
+      draggable: true,
+      selectable: false,
+    });
+  });
+
   return nodes;
 }
 
 export function useBattlefieldNodes(
   yCards: Y.Map<WhiteboardCard>,
   yTokens: Y.Map<KeywordToken>,
+  yTimers: Y.Map<BoardTimer>,
   localPlayerId: string,
   awareness: Awareness | null,
 ) {
   const [nodes, setNodes] = useState<Node[]>(() =>
-    buildNodes(yCards, yTokens, localPlayerId)
+    buildNodes(yCards, yTokens, yTimers, localPlayerId)
   );
   const [peerDragOverrides, setPeerDragOverrides] = useState<Map<string, DragNodeState>>(new Map);
 
@@ -95,7 +113,7 @@ export function useBattlefieldNodes(
 
   useEffect(() => {
     const sync = () => setNodes((prev) => {
-      const next = buildNodes(yCards, yTokens, localPlayerId);
+      const next = buildNodes(yCards, yTokens, yTimers, localPlayerId);
       // buildNodes carries no `selected` flag (react-flow holds selection in the
       // local `nodes` array via onNodesChange), so a naive replace would wipe the
       // user's multi-selection on every Yjs write — including a group drag's own
@@ -116,12 +134,14 @@ export function useBattlefieldNodes(
     });
     yCards.observe(sync);
     yTokens.observe(sync);
+    yTimers.observe(sync);
     sync();
     return () => {
       yCards.unobserve(sync);
       yTokens.unobserve(sync);
+      yTimers.unobserve(sync);
     };
-  }, [yCards, yTokens, localPlayerId]);
+  }, [yCards, yTokens, yTimers, localPlayerId]);
 
   // Listen for peer drag positions broadcast via awareness and apply them as
   // position overrides so opponents see live card movement. The streamed
@@ -159,7 +179,7 @@ export function useBattlefieldNodes(
       // its committed position, then let go.
       shown.forEach((prev, id) => {
         if (targets.has(id)) return;
-        const committed = yCards.get(id) ?? yTokens.get(id);
+        const committed = yCards.get(id) ?? yTokens.get(id) ?? yTimers.get(id);
         if (!committed) return; // left the board mid-drag (e.g. dropped on a pile)
         const eased = easePoint(prev, committed, dt);
         if (eased.settled) return; // arrived: the Yjs position speaks for itself now
@@ -208,7 +228,7 @@ export function useBattlefieldNodes(
       if (dragRafRef.current !== null) cancelAnimationFrame(dragRafRef.current);
       dragRafRef.current = null;
     };
-  }, [awareness, yCards, yTokens]);
+  }, [awareness, yCards, yTokens, yTimers]);
 
   const onNodesChange = useCallback((changes: NodeChange[]) => {
     setNodes((prev) => applyNodeChanges(changes, prev));

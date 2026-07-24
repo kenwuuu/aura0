@@ -12,6 +12,7 @@ import {
   YDOC_PLAYER,
   YDOC_CARDS_ON_BOARD,
   YDOC_KEYWORD_TOKENS,
+  YDOC_TIMERS,
   YSTATE_REMOVED,
   YSTATE_HEALTH,
   YSTATE_JOINED_AT,
@@ -32,6 +33,10 @@ function putCard(yDoc: Y.Doc, id: string, ownerId: string): void {
 
 function putToken(yDoc: Y.Doc, id: string, ownerId: string): void {
   yDoc.getMap(YDOC_KEYWORD_TOKENS).set(id, { id, ownerId, title: 'Flying' });
+}
+
+function putTimer(yDoc: Y.Doc, id: string, ownerId: string): void {
+  yDoc.getMap(YDOC_TIMERS).set(id, { id, ownerId });
 }
 
 /** Build an Awareness whose live clients are exactly `onlineIds`. Each extra id
@@ -67,21 +72,26 @@ describe('removePlayer', () => {
     expect(map.get(YSTATE_PLAYER_NAME)).toBeUndefined();
   });
 
-  it("deletes the removed player's board cards and tokens, leaving others' alone", () => {
+  it("deletes the removed player's board cards, tokens, and timers, leaving others' alone", () => {
     seatPlayer(yDoc, 'gone');
     putCard(yDoc, 'c-gone', 'gone');
     putCard(yDoc, 'c-mine', 'me');
     putToken(yDoc, 't-gone', 'gone');
     putToken(yDoc, 't-mine', 'me');
+    putTimer(yDoc, 'tm-gone', 'gone');
+    putTimer(yDoc, 'tm-mine', 'me');
 
     removePlayer(yDoc, 'gone', 'me');
 
     const cards = yDoc.getMap(YDOC_CARDS_ON_BOARD);
     const tokens = yDoc.getMap(YDOC_KEYWORD_TOKENS);
+    const timers = yDoc.getMap(YDOC_TIMERS);
     expect(cards.has('c-gone')).toBe(false);
     expect(cards.has('c-mine')).toBe(true);
     expect(tokens.has('t-gone')).toBe(false);
     expect(tokens.has('t-mine')).toBe(true);
+    expect(timers.has('tm-gone')).toBe(false);
+    expect(timers.has('tm-mine')).toBe(true);
   });
 
   it('logs a remove_player entry naming the departed player', () => {
