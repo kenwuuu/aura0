@@ -230,6 +230,25 @@ export function settingsButton(page: Page): Locator {
   return page.getByRole('button', { name: 'Open settings' });
 }
 
+/**
+ * A category in the Settings modal's sidebar nav (Profile, Display, Gameplay,
+ * Advanced, About — see src/features/settings/sections.tsx). Exact-matched:
+ * "About" would otherwise also hit rows inside a panel.
+ */
+export function settingsNavButton(page: Page, label: string): Locator {
+  return page.getByRole('button', { name: label, exact: true });
+}
+
+/** Settings > Profile > Display name. */
+export function playerNameInput(page: Page): Locator {
+  return page.getByRole('textbox', { name: 'Display name' });
+}
+
+/** Settings > Profile > Player color. A native color input has no role. */
+export function playerColorInput(page: Page): Locator {
+  return page.getByLabel('Player color');
+}
+
 /** react-flow's zoom controls (same corner as the settings button). */
 export function zoomControls(page: Page): Locator {
   return page.locator('.react-flow__controls');
@@ -311,7 +330,7 @@ export function tourBackButton(page: Page): Locator {
   return page.getByTestId(TESTID.tourBack);
 }
 
-/** Settings > Display > Replay tour. */
+/** Settings > About > Replay tour. */
 export function replayTourButton(page: Page): Locator {
   return page.getByTestId(TESTID.replayTour);
 }
