@@ -38,7 +38,7 @@ export const PlayerCounterModal: React.FC<CounterModalProps> = ({ isOpen, onAdd,
 
   return (
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
-      <DialogContent className="max-w-[450px] w-[90%]">
+      <DialogContent size="sm">
         <DialogHeader>
           <DialogTitle>Add Custom Counter</DialogTitle>
         </DialogHeader>

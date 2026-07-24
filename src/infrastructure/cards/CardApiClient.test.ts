@@ -116,3 +116,93 @@ describe('CardApiClient — why a lookup failed', () => {
     expect(result.failures[0]).toMatchObject({ reason: 'rate_limited', status: 429 });
   });
 });
+
+/**
+ * A wrong printing does not fail — it succeeds with a different card, and every
+ * layer downstream treats that as a clean import. `1 Erase (Not the Urza's
+ * Legacy One) (UNH) 45` resolves to Smart Ass, because UNH 45 is Smart Ass.
+ */
+describe('CardApiClient — when the printing and the name disagree', () => {
+  /** A 200 carrying a specific card name, so agreement can actually be tested. */
+  function card(name: string): Response {
+    return {
+      ok: true,
+      status: 200,
+      statusText: 'status 200',
+      json: async () => ({ id: `id-${name}`, name }),
+    } as Response;
+  }
+
+  const printed = (name: string): DeckLineItem => ({
+    count: 1,
+    name,
+    setCode: 'unh',
+    collectorNumber: '45',
+  });
+
+  const lookup = (client: CardApiClient, item: DeckLineItem) =>
+    client.fetchImagesForList([item], undefined, 0);
+
+  it('keeps the printing when it is the card the line named', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(card('Erase (Not the Urza’s Legacy One)'));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const result = await lookup(new CardApiClient(CONFIG), printed('Erase (Not the Urza’s Legacy One)'));
+
+    expect(result.results[0].name).toBe('Erase (Not the Urza’s Legacy One)');
+    // One request: the printing answered and was believed.
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('prefers the name when the printing resolves to a different card', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(card('Smart Ass'))
+      .mockResolvedValueOnce(card('Erase (Not the Urza’s Legacy One)'));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const result = await lookup(new CardApiClient(CONFIG), printed('Erase (Not the Urza’s Legacy One)'));
+
+    expect(result.results[0].name).toBe('Erase (Not the Urza’s Legacy One)');
+    expect(result.failedItems).toEqual([]);
+  });
+
+  // The API answers a double-faced lookup with the full "A // B" name while the
+  // entry carries only the front face. Reading that as a disagreement would send
+  // every DFC on a pointless second round trip and lose its exact printing.
+  it('does not read a double-faced name as a disagreement', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(card('Brazen Borrower // Petty Theft'));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const result = await lookup(new CardApiClient(CONFIG), printed('Brazen Borrower'));
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(result.results[0].name).toBe('Brazen Borrower // Petty Theft');
+  });
+
+  it('does not read a dropped accent as a disagreement', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(card('Lim-Dûl’s Vault'));
+    vi.stubGlobal('fetch', fetchMock);
+
+    await lookup(new CardApiClient(CONFIG), printed('Lim-Dul’s Vault'));
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  /**
+   * The shape a renamed card takes: the name on the list is dead, the printing
+   * is not. Failing here would lose a card we are holding in our hand.
+   */
+  it('falls back to the mismatched printing when no card has that name', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(card('Smart Ass'))
+      .mockResolvedValueOnce(httpResponse(404));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const result = await lookup(new CardApiClient(CONFIG), printed('A Name That No Longer Exists'));
+
+    expect(result.results[0].name).toBe('Smart Ass');
+    expect(result.failedItems).toEqual([]);
+  });
+});

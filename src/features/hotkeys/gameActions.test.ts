@@ -12,10 +12,11 @@
  * never unit-tested before this extraction either — no regression in
  * coverage, just not adding a leaky one.
  */
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import { dispatchGameAction } from './gameActions';
 import { useGameInstance } from '@/app/stores/gameInstanceStore';
 import { useHotkeyStore } from '@/app/stores/hotkeyStore';
+import { useCardPreviewStore } from '@/features/card-preview/cardPreviewStore';
 import { usePileViewerHotkeyStore } from '@/features/game-dock/pileViewerHotkeyStore';
 import { usePileViewerOpenStore } from '@/features/game-dock/pileViewerOpenStore';
 import { HotkeyContext } from './hotkeys';
@@ -76,6 +77,136 @@ describe('dispatchGameAction', () => {
       dispatchGameAction('tap', { kind: 'battlefieldCard', id: 'card-1' });
 
       expect((yCards.get('card-1') as any).isTapped).toBe(true);
+    });
+
+    // The membership rule: an action fans out over the multi-selection only when
+    // the acted-on card is itself part of it (Finder/Explorer convention).
+    describe('multi-select fan-out', () => {
+      afterEach(() => useHotkeyStore.getState().setSelectedCardIds(new Set()));
+
+      function seedThreeCards() {
+        const { yDoc, playerId } = seed();
+        const yCards = yDoc.getMap('cards-on-board');
+        for (const id of ['card-1', 'card-2', 'card-3']) {
+          yCards.set(id, { ...makeCard({ id }), zIndex: 1, ownerId: playerId });
+        }
+        return { yCards };
+      }
+      const tapped = (yCards: any, id: string) => (yCards.get(id) as any).isTapped === true;
+
+      it('acts on every selected card when the target is a member of the group', () => {
+        const { yCards } = seedThreeCards();
+        useHotkeyStore.getState().setSelectedCardIds(new Set(['card-1', 'card-2', 'card-3']));
+
+        dispatchGameAction('tap', { kind: 'battlefieldCard', id: 'card-2' });
+
+        expect(tapped(yCards, 'card-1')).toBe(true);
+        expect(tapped(yCards, 'card-2')).toBe(true);
+        expect(tapped(yCards, 'card-3')).toBe(true);
+      });
+
+      it('acts on only the target card when it is NOT part of the selection', () => {
+        const { yCards } = seedThreeCards();
+        useHotkeyStore.getState().setSelectedCardIds(new Set(['card-1', 'card-2']));
+
+        dispatchGameAction('tap', { kind: 'battlefieldCard', id: 'card-3' });
+
+        expect(tapped(yCards, 'card-3')).toBe(true);
+        expect(tapped(yCards, 'card-1')).toBe(false);
+        expect(tapped(yCards, 'card-2')).toBe(false);
+      });
+
+      it('acts on only the target card when there is no selection', () => {
+        const { yCards } = seedThreeCards();
+
+        dispatchGameAction('tap', { kind: 'battlefieldCard', id: 'card-1' });
+
+        expect(tapped(yCards, 'card-1')).toBe(true);
+        expect(tapped(yCards, 'card-2')).toBe(false);
+      });
+
+      it('fans a batch move out over the whole group', () => {
+        const { yDoc, player, playerId } = seed();
+        const yCards = yDoc.getMap('cards-on-board');
+        for (const id of ['card-1', 'card-2']) {
+          yCards.set(id, { ...makeCard({ id }), zIndex: 1, ownerId: playerId });
+        }
+        useHotkeyStore.getState().setSelectedCardIds(new Set(['card-1', 'card-2']));
+
+        dispatchGameAction('moveToDiscard', { kind: 'battlefieldCard', id: 'card-1' });
+
+        expect(yCards.has('card-1')).toBe(false);
+        expect(yCards.has('card-2')).toBe(false);
+        const discard = player.getState().discardPile.map((c) => c.id);
+        expect(discard).toContain('card-1');
+        expect(discard).toContain('card-2');
+      });
+
+      it('untapAll is never looped, even with a selection', () => {
+        const { yDoc, playerId } = seed();
+        const yCards = yDoc.getMap('cards-on-board');
+        for (const id of ['card-1', 'card-2']) {
+          yCards.set(id, { ...makeCard({ id }), zIndex: 1, ownerId: playerId, isTapped: true });
+        }
+        useHotkeyStore.getState().setSelectedCardIds(new Set(['card-1', 'card-2']));
+
+        expect(() => dispatchGameAction('untapAll', { kind: 'battlefieldCard', id: 'card-1' })).not.toThrow();
+
+        expect(tapped(yCards, 'card-1')).toBe(false);
+        expect(tapped(yCards, 'card-2')).toBe(false);
+      });
+    });
+
+    describe('peek', () => {
+      it('previews your own facedown card as its front face without mutating the board', () => {
+        const { yDoc, playerId } = seed();
+        const yCards = yDoc.getMap('cards-on-board');
+        yCards.set('card-1', { ...makeCard({ isFlipped: true }), zIndex: 1, ownerId: playerId });
+
+        dispatchGameAction('peek', { kind: 'battlefieldCard', id: 'card-1' });
+
+        const preview = useCardPreviewStore.getState();
+        expect(preview.isVisible).toBe(true);
+        expect(preview.card?.id).toBe('card-1');
+        // The previewed copy is unflipped so the front face renders...
+        expect(preview.card?.isFlipped).toBe(false);
+        // ...but the shared board card stays face-down to everyone.
+        expect((yCards.get('card-1') as any).isFlipped).toBe(true);
+      });
+
+      it("does not peek an opponent's facedown card (would leak hidden info)", () => {
+        const { yDoc } = seed('p1');
+        const yCards = yDoc.getMap('cards-on-board');
+        yCards.set('card-1', { ...makeCard({ isFlipped: true }), zIndex: 1, ownerId: 'p2' });
+
+        dispatchGameAction('peek', { kind: 'battlefieldCard', id: 'card-1' });
+
+        expect(useCardPreviewStore.getState().isVisible).toBe(false);
+      });
+
+      it('does not peek a face-up card (nothing hidden to reveal)', () => {
+        const { yDoc, playerId } = seed();
+        const yCards = yDoc.getMap('cards-on-board');
+        yCards.set('card-1', { ...makeCard({ isFlipped: false }), zIndex: 1, ownerId: playerId });
+
+        dispatchGameAction('peek', { kind: 'battlefieldCard', id: 'card-1' });
+
+        expect(useCardPreviewStore.getState().isVisible).toBe(false);
+      });
+
+      it('does not peek a double-faced card showing its real back (a public face)', () => {
+        const { yDoc, playerId } = seed();
+        const yCards = yDoc.getMap('cards-on-board');
+        yCards.set('card-1', {
+          ...makeCard({ isFlipped: true, images: { front: { normal: 'f.png' }, back: { normal: 'b.png' } } }),
+          zIndex: 1,
+          ownerId: playerId,
+        });
+
+        dispatchGameAction('peek', { kind: 'battlefieldCard', id: 'card-1' });
+
+        expect(useCardPreviewStore.getState().isVisible).toBe(false);
+      });
     });
   });
 
@@ -172,6 +303,25 @@ describe('dispatchGameAction', () => {
       expect(player.getState().hand.some((c) => c.id === 'card-1')).toBe(true);
     });
 
+    it('playToBattlefield puts the top card of the deck on the board, skipping the hand', () => {
+      const { yDoc, player } = seed();
+      player.placeCardInPile(makeCard({ id: 'bottom' }), 'deck');
+      player.placeCardInPile(makeCard({ id: 'top' }), 'deck');
+
+      dispatchGameAction('playToBattlefield', { kind: 'pile', pileType: 'deck' });
+
+      expect(yDoc.getMap('cards-on-board').has('top')).toBe(true);
+      expect(player.getDeck().peekTop()!.id).toBe('bottom');
+      expect(player.getState().hand).toHaveLength(0);
+    });
+
+    it('playToBattlefield on an empty pile is a no-op', () => {
+      const { yDoc } = seed();
+
+      expect(() => dispatchGameAction('playToBattlefield', { kind: 'pile', pileType: 'deck' })).not.toThrow();
+      expect(yDoc.getMap('cards-on-board').size).toBe(0);
+    });
+
     it('viewPile requests the local pile viewer (the touch-tap "View" row)', () => {
       seed();
       usePileViewerOpenStore.getState().clear();
@@ -254,7 +404,7 @@ describe('dispatchGameAction', () => {
       const { player } = seed();
       const before = player.getState().health;
 
-      dispatchGameAction('gainHealth', { kind: 'health' });
+      dispatchGameAction('gainHealth', { kind: 'health', ownerId: 'p1' });
 
       expect(player.getState().health).toBe(before + 1);
     });
@@ -263,7 +413,7 @@ describe('dispatchGameAction', () => {
       const { player } = seed();
       const before = player.getState().health;
 
-      dispatchGameAction('loseHealth', { kind: 'health' });
+      dispatchGameAction('loseHealth', { kind: 'health', ownerId: 'p1' });
 
       expect(player.getState().health).toBe(before - 1);
     });

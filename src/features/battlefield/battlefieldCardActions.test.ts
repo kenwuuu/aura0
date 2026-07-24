@@ -67,12 +67,24 @@ describe('executeBattlefieldCardAction', () => {
       expect(log.filter((e) => e.type === 'untap_all')).toHaveLength(1);
     });
 
+    it('clears the summoning-sick tilt too, resetting sick cards to 0°', () => {
+      yCards.set('card-1', makeWhiteboardCard({ id: 'card-1', ownerId: 'p1', isSick: true }));
+      yCards.set('card-2', makeWhiteboardCard({ id: 'card-2', ownerId: 'p1', isTapped: true }));
+
+      executeBattlefieldCardAction('untapAll', '', yCards, yTokens, 'p1');
+
+      expect(yCards.get('card-1')!.isSick).toBe(false);
+      expect(yCards.get('card-2')!.isTapped).toBe(false);
+    });
+
     it('does not touch cards owned by other players', () => {
       yCards.set('card-1', makeWhiteboardCard({ id: 'card-1', ownerId: 'opponent', isTapped: true }));
+      yCards.set('card-2', makeWhiteboardCard({ id: 'card-2', ownerId: 'opponent', isSick: true }));
 
       executeBattlefieldCardAction('untapAll', '', yCards, yTokens, 'p1');
 
       expect(yCards.get('card-1')!.isTapped).toBe(true);
+      expect(yCards.get('card-2')!.isSick).toBe(true);
     });
   });
 
@@ -106,6 +118,58 @@ describe('executeBattlefieldCardAction', () => {
       const log = getActionLog(boardDoc).toArray();
       const entry = log.find((e) => e.type === 'tap');
       expect(entry!.text).toBe("tapped Alice's Lightning Bolt");
+      expect(entry!.actorId).toBe('p1');
+    });
+
+    it('clears the summoning-sick tilt when tapping (mutually exclusive)', () => {
+      yCards.set('card-1', makeWhiteboardCard({ isTapped: false, isSick: true }));
+
+      executeBattlefieldCardAction('tap', 'card-1', yCards, yTokens, 'p1');
+
+      expect(yCards.get('card-1')!.isTapped).toBe(true);
+      expect(yCards.get('card-1')!.isSick).toBe(false);
+    });
+  });
+
+  describe('sick', () => {
+    it('toggles isSick on and logs marking the card summoning sick', () => {
+      yCards.set('card-1', makeWhiteboardCard({ isSick: false }));
+
+      executeBattlefieldCardAction('sick', 'card-1', yCards, yTokens, 'p1');
+
+      expect(yCards.get('card-1')!.isSick).toBe(true);
+      const log = getActionLog(boardDoc).toArray();
+      expect(log.some((e) => e.type === 'sick' && e.text.includes('summoning sick'))).toBe(true);
+    });
+
+    it('toggles isSick back off and logs clearing the sickness', () => {
+      yCards.set('card-1', makeWhiteboardCard({ isSick: true }));
+
+      executeBattlefieldCardAction('sick', 'card-1', yCards, yTokens, 'p1');
+
+      expect(yCards.get('card-1')!.isSick).toBe(false);
+      const log = getActionLog(boardDoc).toArray();
+      expect(log.some((e) => e.type === 'sick' && e.text.includes('cleared summoning sickness'))).toBe(true);
+    });
+
+    it('clears the tapped state when marking summoning sick (mutually exclusive)', () => {
+      yCards.set('card-1', makeWhiteboardCard({ isTapped: true, isSick: false }));
+
+      executeBattlefieldCardAction('sick', 'card-1', yCards, yTokens, 'p1');
+
+      expect(yCards.get('card-1')!.isSick).toBe(true);
+      expect(yCards.get('card-1')!.isTapped).toBe(false);
+    });
+
+    it("names the owner when marking another player's card summoning sick", () => {
+      setPlayerName(boardDoc, 'p2', 'Alice');
+      yCards.set('card-1', makeWhiteboardCard({ ownerId: 'p2', isSick: false }));
+
+      executeBattlefieldCardAction('sick', 'card-1', yCards, yTokens, 'p1');
+
+      const log = getActionLog(boardDoc).toArray();
+      const entry = log.find((e) => e.type === 'sick');
+      expect(entry!.text).toBe("marked Alice's Lightning Bolt summoning sick");
       expect(entry!.actorId).toBe('p1');
     });
   });
@@ -175,6 +239,33 @@ describe('executeBattlefieldCardAction', () => {
       expect(copy.ownerId).toBe('p1');
       const log = getActionLog(boardDoc).toArray();
       expect(log.some((e) => e.type === 'copy')).toBe(true);
+    });
+
+    it('keeps cascading when the same card is copied repeatedly', () => {
+      yCards.set('card-1', makeWhiteboardCard({ id: 'card-1', x: 10, y: 10, ownerId: 'p1' }));
+
+      executeBattlefieldCardAction('copy', 'card-1', yCards, yTokens, 'p1');
+      executeBattlefieldCardAction('copy', 'card-1', yCards, yTokens, 'p1');
+      executeBattlefieldCardAction('copy', 'card-1', yCards, yTokens, 'p1');
+
+      const copies = Array.from(yCards.values())
+        .filter((c) => c.id !== 'card-1')
+        .sort((a, b) => a.x - b.x);
+      expect(copies.map((c) => [c.x, c.y])).toEqual([
+        [30, 30],
+        [50, 50],
+        [70, 70],
+      ]);
+    });
+
+    it('continues the cascade past a card that already sits in the next slot', () => {
+      yCards.set('card-1', makeWhiteboardCard({ id: 'card-1', x: 10, y: 10, ownerId: 'p1' }));
+      yCards.set('blocker', makeWhiteboardCard({ id: 'blocker', x: 30, y: 30, ownerId: 'p1' }));
+
+      executeBattlefieldCardAction('copy', 'card-1', yCards, yTokens, 'p1');
+
+      const copy = Array.from(yCards.values()).find((c) => c.id !== 'card-1' && c.id !== 'blocker')!;
+      expect([copy.x, copy.y]).toEqual([50, 50]);
     });
 
     it("names the owner when copying another player's card", () => {

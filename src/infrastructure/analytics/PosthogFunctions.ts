@@ -1,7 +1,11 @@
 import posthog from 'posthog-js';
 import {YSTATE_HEALTH} from "@/constants";
 import type { DeckLineItem } from '@/features/deck-manager/DeckListParser';
-import type { LookupFailure, LookupFailureReason } from '@/infrastructure/cards/CardApiClient';
+import type {
+  LookupFailure,
+  LookupFailureReason,
+  PrintingMismatch,
+} from '@/infrastructure/cards/CardApiClient';
 
 // HEALTH
 
@@ -472,6 +476,56 @@ export function trackFallbackOutcome(props: {
   });
 }
 
+/**
+ * Emitted once per import in which at least one line's printing named a
+ * different card than the line did.
+ *
+ * This is the only import fault that produces no error anywhere. The lookup
+ * succeeds, the deck comes out the right size, every count reconciles — and the
+ * player gets a card they never chose. `1 Erase (Not the Urza's Legacy One)
+ * (UNH) 45` resolves cleanly to Smart Ass, because UNH 45 *is* Smart Ass. Since
+ * nothing fails, nothing else in this file would ever mention it.
+ *
+ * We now repair it (the name wins), so the question this answers is not "are
+ * players losing cards" but **"how stale are printings in the wild?"** — which
+ * decides whether preferring `bySet` is a good trade at all, and whether some
+ * source is emitting printings we should stop trusting.
+ *
+ * `resolved_by_printing_count` is the sharper number of the two. It means no
+ * card had the name on the line *and* the printing named something else, which
+ * is either a renamed card or a line that is wrong twice over.
+ */
+export function trackPrintingMismatches(props: {
+  mismatches: PrintingMismatch[];
+  totalCount: number;
+}): void {
+  const byPrinting = props.mismatches.filter((m) => m.resolvedBy === 'printing');
+
+  posthog.capture('deck_import_printing_mismatch', {
+    mismatch_count: props.mismatches.length,
+    total_count: props.totalCount,
+    mismatch_rate: props.totalCount > 0 ? props.mismatches.length / props.totalCount : 0,
+
+    resolved_by_name_count: props.mismatches.length - byPrinting.length,
+    resolved_by_printing_count: byPrinting.length,
+
+    // Set codes alone, so a source emitting bad printings for a whole set shows
+    // up as a set rather than as a scatter of unrelated card names.
+    mismatched_sets: [...new Set(props.mismatches.map((m) => m.item.setCode))]
+      .slice(0, MAX_REPORTED_CARD_NAMES),
+
+    // What was asked for against what the printing actually is. Paired, because
+    // either name alone is unactionable — the pair is what shows whether the
+    // collector number is off by one, off by a set, or nonsense.
+    mismatches: props.mismatches.slice(0, MAX_REPORTED_CARD_NAMES).map((m) => ({
+      requested: m.item.name,
+      printing: `${m.item.setCode}/${m.item.collectorNumber}`,
+      returned: m.returnedName,
+      resolved_by: m.resolvedBy,
+    })),
+  });
+}
+
 function mostCommonReason(failures: LookupFailure[]): LookupFailureReason | undefined {
   const counts = new Map<LookupFailureReason, number>();
   for (const f of failures) counts.set(f.reason, (counts.get(f.reason) ?? 0) + 1);
@@ -485,6 +539,75 @@ function mostCommonReason(failures: LookupFailure[]): LookupFailureReason | unde
     }
   }
   return best;
+}
+
+/**
+ * A deck link was resolved through `/api/deck-import`.
+ *
+ * This fires once per upstream request — including failures, because a failed
+ * request costs the same rate budget a successful one does — and it exists to
+ * answer one question we deliberately did not guess at: **how often is the same
+ * deck fetched twice?**
+ *
+ * Moxfield caps Aura at one request per second across all players, and caching
+ * is the obvious way to stretch that. But a cache TTL trades staleness for
+ * headroom, and we have no idea yet whether the repeat rate justifies the trade
+ * — a pod all opening one shared link would, a hundred players each importing
+ * their own deck would not. So Moxfield runs uncached on purpose and this event
+ * measures the real repeat rate first. See `cacheHintFor` in
+ * `src/worker/deckImport.ts`.
+ *
+ * `deck_id` is the site's own public identifier — the same string that appears
+ * in a shareable URL — so it identifies a deck, never a player. It is what makes
+ * the repeat rate computable at all: group by `source` + `deck_id` and compare
+ * total events to distinct decks.
+ */
+export function trackDeckUrlImport(props: {
+  source: string;
+  deckId: string;
+  outcome: 'succeeded' | 'failed';
+  durationMs: number;
+  /** What the source site says the deck holds. Absent for sources that don't say. */
+  sourceCardCount?: number;
+  /** What our adapter actually produced from it, as a sum of quantities. */
+  extractedCardCount?: number;
+  /**
+   * Whether the shared rate gate shed this request before it went through.
+   *
+   * True even when the retry then succeeded. Without it, contention is
+   * unmeasurable — a request that waited a second looks exactly like one that
+   * sailed through, and we would only ever learn the cap was too tight from
+   * players complaining.
+   */
+  wasRateLimited?: boolean;
+}): void {
+  const { sourceCardCount, extractedCardCount } = props;
+
+  // Only meaningful when the source published a total. Comparing against an
+  // absent one would manufacture a shortfall equal to the whole deck.
+  const comparable = typeof sourceCardCount === 'number' && typeof extractedCardCount === 'number';
+
+  posthog.capture('deck_url_import', {
+    source: props.source,
+    deck_id: props.deckId,
+    outcome: props.outcome,
+    duration_ms: props.durationMs,
+    was_rate_limited: props.wasRateLimited === true,
+
+    ...(typeof sourceCardCount === 'number' ? { source_card_count: sourceCardCount } : {}),
+    ...(typeof extractedCardCount === 'number' ? { extracted_card_count: extractedCardCount } : {}),
+
+    ...(comparable
+      ? {
+          // The number to alert on. Positive means *we* lost cards between the
+          // site's deck and ours — an adapter bug, not a bad decklist. Negative
+          // means we invented some, which is just as wrong and would otherwise
+          // hide inside an absolute-difference metric.
+          cards_lost_in_extraction: sourceCardCount - extractedCardCount,
+          extraction_is_lossless: sourceCardCount === extractedCardCount,
+        }
+      : {}),
+  });
 }
 
 export function trackImportSucceeded(props: {

@@ -2,17 +2,23 @@ import React, { useState } from 'react';
 import { DeckImportModal } from './DeckImportModal';
 import { DeckSelectionModal } from './DeckSelectionModal';
 import { SavedDeck } from '@/features/player/types';
+import { useOverlayStore } from '@/app/stores/overlayStore';
 
 interface DeckManagerProps {
   onDeckSelected: (deck: SavedDeck) => void;
 }
 
 export function DeckManager({ onDeckSelected }: DeckManagerProps) {
-  const [showSelectionModal, setShowSelectionModal] = useState(false);
+  // Selection-modal open state lives in the overlay store so the command
+  // palette's "Import a deck" command can open it too (the import modal stays
+  // internal — it's only ever reached from the selection modal).
+  const showSelectionModal = useOverlayStore((s) => s.deckSelectionOpen);
+  const setSelectionModalOpen = (open: boolean) =>
+    useOverlayStore.getState().set('deckSelection', open);
   const [showImportModal, setShowImportModal] = useState(false);
 
   const handleOpenSelection = () => {
-    setShowSelectionModal(true);
+    setSelectionModalOpen(true);
   };
 
   // No analytics here on purpose. The importer owns the import funnel end to end
@@ -26,7 +32,7 @@ export function DeckManager({ onDeckSelected }: DeckManagerProps) {
   };
 
   const handleDeckSelected = (deck: SavedDeck) => {
-    setShowSelectionModal(false);
+    setSelectionModalOpen(false);
     onDeckSelected(deck);
   };
 
@@ -39,10 +45,10 @@ export function DeckManager({ onDeckSelected }: DeckManagerProps) {
 
       <DeckSelectionModal
         isOpen={showSelectionModal}
-        onClose={() => setShowSelectionModal(false)}
+        onClose={() => setSelectionModalOpen(false)}
         onDeckSelected={handleDeckSelected}
         onImportNewDeck={() => {
-          setShowSelectionModal(false);
+          setSelectionModalOpen(false);
           setShowImportModal(true);
         }}
       />

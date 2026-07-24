@@ -1,7 +1,8 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Toolbar } from './Toolbar';
+import { useOverlayStore } from '@/app/stores/overlayStore';
 import type { YjsNetworkProvider } from '@/infrastructure/networking/YjsNetworkFactory';
 import type { Awareness } from 'y-protocols/awareness';
 
@@ -29,11 +30,16 @@ function renderToolbar() {
 }
 
 describe('<Toolbar>', () => {
+  beforeEach(() => {
+    // The toolbar drives the shared overlay store; reset it between tests.
+    useOverlayStore.setState({ commandPaletteOpen: false, helpOpen: false, deckSelectionOpen: false });
+  });
+
   it('renders the deck-import, secondary action, and room controls', () => {
     renderToolbar();
 
     expect(screen.getByTestId('deck-import-open')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Hotkeys' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /open command palette/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Help' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Join Discord Server' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /more toolbar options/i })).toBeInTheDocument();
@@ -55,29 +61,30 @@ describe('<Toolbar>', () => {
     expect(openSpy).toHaveBeenCalledWith('https://ko-fi.com/Z8Z11OOHFX', '_blank');
   });
 
-  it('opens the Hotkeys modal from the desktop button', async () => {
+  it('opens the command palette from the ⌘K launcher', async () => {
     const user = userEvent.setup();
     renderToolbar();
 
-    await user.click(screen.getByRole('button', { name: 'Hotkeys' }));
+    await user.click(screen.getByRole('button', { name: /open command palette/i }));
 
-    expect(screen.getByRole('dialog', { name: 'Keyboard Shortcuts' })).toBeInTheDocument();
+    // The palette itself is mounted at the app shell (App.tsx); the toolbar only
+    // flips the shared overlay flag.
+    expect(useOverlayStore.getState().commandPaletteOpen).toBe(true);
   });
 
-  it('opens the same Help modal from both the desktop button and the overflow menu', async () => {
+  it('opens the same Help overlay from both the desktop button and the overflow menu', async () => {
     const user = userEvent.setup();
     renderToolbar();
 
+    // Both surfaces flip the one shared `helpOpen` flag — there's exactly one
+    // HelpModal instance (mounted in App.tsx), not a copy per surface.
     await user.click(screen.getByRole('button', { name: 'Help' }));
-    expect(screen.getByRole('dialog', { name: /help/i })).toBeInTheDocument();
-    await user.keyboard('{Escape}');
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(useOverlayStore.getState().helpOpen).toBe(true);
 
-    // The overflow menu's "Help" item drives the very same modal instance —
-    // there's exactly one HelpModal mounted, not a second copy per surface.
+    useOverlayStore.getState().close('help');
     await user.click(screen.getByRole('button', { name: /more toolbar options/i }));
     await user.click(screen.getByRole('menuitem', { name: 'Help' }));
-    expect(screen.getByRole('dialog', { name: /help/i })).toBeInTheDocument();
+    expect(useOverlayStore.getState().helpOpen).toBe(true);
   });
 
   it('opens Discord from the overflow menu', async () => {

@@ -25,7 +25,7 @@ body {
   /* dvh tracks the *visible* viewport as mobile browser chrome collapses and
      expands; the vh declaration before it is the fallback for browsers
      without dvh support (Safari <15.4, Chrome <108). Keep the pair in this
-     order — see docs/responsive.md. */
+     order — see docs/architecture/responsive.md. */
   height: 100vh;
   height: 100dvh;
   display: flex;
@@ -229,7 +229,9 @@ body {
   height: calc(3 * 88px * var(--card-zoom, 1));
   background-color: #2d2d2d;
   border: 2px solid #4a4a4a;
-  border-radius: 10px;
+  /* Scale the radius with --card-zoom (mirrors CardPreview's `24 * zoom`) so the
+     corners stay proportional to the art at every hand zoom level. */
+  border-radius: calc(10px * var(--card-zoom, 1));
   cursor: grab;
   display: flex;
   align-items: center;
@@ -253,7 +255,7 @@ body {
   object-fit: contain;
   display: block;
   pointer-events: none;
-  border-radius: 10px;
+  border-radius: calc(10px * var(--card-zoom, 1));
 }
 
 /* Specific pile colors */
@@ -504,114 +506,6 @@ body {
 
 .counter-minus {
   order: 3;
-}
-
-/* Modal Styles */
-.modal-backdrop {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.8);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 10000;
-  backdrop-filter: blur(4px);
-}
-
-.modal-content {
-  background-color: #1a1a1a;
-  border: 2px solid #3d3d3d;
-  border-radius: 16px;
-  max-width: 600px;
-  width: 90%;
-  max-height: 90vh;
-  display: flex;
-  flex-direction: column;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8);
-}
-
-.modal-header {
-  padding: 20px;
-  border-bottom: 2px solid #2d2d2d;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.modal-header h2 {
-  color: #ffffff;
-  font-size: 20px;
-  margin: 0;
-}
-
-.modal-close {
-  background: none;
-  border: none;
-  color: #9ca3af;
-  font-size: 32px;
-  cursor: pointer;
-  padding: 0;
-  width: 40px;
-  height: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 8px;
-  transition: all 0.2s;
-}
-
-.modal-close:hover {
-  background-color: #2d2d2d;
-  color: #ffffff;
-}
-
-.modal-body {
-  padding: 20px;
-  overflow-y: auto;
-  flex: 1;
-}
-
-.modal-footer {
-  padding: 20px;
-  border-top: 2px solid #2d2d2d;
-  display: flex;
-  gap: 12px;
-  justify-content: flex-end;
-}
-
-.modal-footer button {
-  padding: 10px 20px;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
-  border: 1px solid #3d3d3d;
-  background-color: #2d2d2d;
-  color: #ffffff;
-}
-
-.modal-footer button:hover {
-  background-color: #3d3d3d;
-  border-color: #4d4d4d;
-}
-
-.modal-footer button.primary {
-  background-color: #3b82f6;
-  border-color: #3b82f6;
-}
-
-.modal-footer button.primary:hover {
-  background-color: #2563eb;
-  border-color: #2563eb;
-}
-
-.modal-footer button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
 }
 
 /* Form Styles */
@@ -964,7 +858,7 @@ body {
   }
 }
 
-/* ── Phone layout (below sm) — see docs/responsive.md ─────────────────────
+/* ── Phone layout (below sm) — see docs/architecture/responsive.md ─────────────────────
    Show/hide rules for the phone layout accumulate here, in one place, as
    plain unlayered CSS (same cascade rationale as the toolbar collapse
    above). Structural/behavioral phone branches live in JS via
@@ -1476,7 +1370,7 @@ body {
   font-size: 13px;
 }
 
-/* ===== Pile Viewer — phone full-screen shell (design 1a) — see docs/responsive.md ===== */
+/* ===== Pile Viewer — phone full-screen shell (design 1a) — see docs/architecture/responsive.md ===== */
 @media (max-width: 639px) {
   .deck-pile-viewer-content {
     position: fixed;

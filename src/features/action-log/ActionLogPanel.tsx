@@ -2,8 +2,8 @@
  * ActionLogPanel
  *
  * A collapsible, draggable, chat-box-style panel that renders the shared action
- * history. Read-only for now; the same Y.Array will carry `type: 'message'`
- * entries when a chat composer is added later.
+ * history. The same Y.Array carries `type: 'message'` chat entries alongside
+ * game-action entries, appended via the composer at the bottom of the panel.
  *
  * The draggable window frame is FloatingPanel; the header (icon + label +
  * collapse toggle) is supplied as its custom handle. Keeping the drag state in
@@ -20,6 +20,7 @@ import { resolvePlayerName } from '@/shared/utils/resolvePlayerName';
 import { DiceControls } from '@/features/dice/DiceControls';
 import { FloatingPanel } from '@/shared/ui/FloatingPanel';
 import { useActionLog } from './useActionLog';
+import { ActionLogComposer } from './ActionLogComposer';
 
 interface ActionLogPanelProps {
   yDoc: Y.Doc;
@@ -63,6 +64,7 @@ export function ActionLogBody({ yDoc, localPlayerId }: ActionLogPanelProps) {
             entries.map((entry) => {
               const name = resolvePlayerName(yDoc, entry.actorId);
               const isLocal = entry.actorId === localPlayerId;
+              const isMessage = entry.type === 'message';
               return (
                 <div
                   key={entry.id}
@@ -78,7 +80,7 @@ export function ActionLogBody({ yDoc, localPlayerId }: ActionLogPanelProps) {
                     color: isLocal ? 'rgba(130,180,255,0.9)' : 'rgba(200,160,255,1)',
                     marginRight: 4,
                   }}>
-                    {name}
+                    {isMessage ? `${name}:` : name}
                   </span>
                   <span style={{ color: entry.tone ?? 'rgba(255,255,255,1)' }}>
                     {entry.text}
@@ -104,7 +106,9 @@ export function ActionLogBody({ yDoc, localPlayerId }: ActionLogPanelProps) {
         <DiceControls yDoc={yDoc} localPlayerId={localPlayerId} />
       </div>
 
-      {/* Future: message composer goes here */}
+      <div style={{ borderTop: '1px solid rgba(255,255,255,0.07)' }}>
+        <ActionLogComposer yDoc={yDoc} localPlayerId={localPlayerId} />
+      </div>
     </>
   );
 }

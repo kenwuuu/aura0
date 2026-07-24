@@ -1,13 +1,16 @@
-Vitest setup (`setup.ts`) and shared test scaffolding.
-Per-module unit tests live next to the code they test (`*.test.ts` / `*.test.tsx`); E2E lives in the top-level `tests/` directory.
+Vitest global setup and shared unit-test scaffolding — anything more than one spec needs
+(factories, game seeding, render harnesses). A helper used by exactly one spec belongs in that
+spec. Per-module unit tests live next to the code they test; E2E lives in the top-level `tests/`.
 
-- `setup.ts` — global setup: `@testing-library/jest-dom` matchers + `afterEach` store reset. Specs
-  never reset Zustand stores by hand; it happens here.
-- Harness (`harness.tsx`, `factories.ts`, `seedGame.ts`, `mocks/`) — seed a real `Y.Doc` + `Player`
-  and render. Never mock Yjs or owned domain code.
-- `nodeHarness.tsx` — `renderNode(Node, data, opts)` renders a single react-flow node in isolation
-  (no `ReactFlowProvider`; nodes read only `id`/`data`). Prefer extracting a node's pure logic into a
-  `*.ts` module and unit-testing that; use `renderNode` for the store-wiring seam only.
+Setup is global, so **specs never reset Zustand stores by hand** — an `afterEach` here already
+does, and a spec resetting again is usually papering over leaked state.
 
-Conventions live in `@tests/testing-react.md` — read it before adding or changing anything here, and
-keep this directory's API consistent with the rules there.
+The harness seeds a **real `Y.Doc` + `Player`** and renders against it. Never mock Yjs or owned
+domain code; mock only at the network boundary.
+
+For react-flow nodes, prefer extracting the pure logic into a `*.ts` module and testing that.
+The node render harness is for the store-wiring seam only — reach for it when the wiring *is*
+what you're testing.
+
+Conventions live in `@tests/testing-react.md` — read it before changing anything here, and keep
+this directory's API consistent with it.

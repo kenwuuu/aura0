@@ -27,6 +27,63 @@ everything else above can look green while peering or sync is silently broken.
 > Until it's re-wired, Sentry + PostHog (below) are the live layers. Fix
 > options are in [`STAGING.md`](./STAGING.md#known-gap-post-deploy-smoke-test-is-dormant).
 
+## Worker secrets
+
+One secret is required per Worker, and it is **not** in `wrangler.jsonc` —
+anything in `vars` is plaintext in the repo and in the dashboard.
+
+| Secret                 | Used by                    | Consequence if missing                          |
+|------------------------|----------------------------|-------------------------------------------------|
+| `MOXFIELD_USER_AGENT`  | `/api/deck-import`         | Moxfield imports return **503**; other sources unaffected |
+
+Secrets are per-Worker and are **not** inherited into named environments, so
+production and staging each need their own:
+
+```bash
+npx wrangler secret put MOXFIELD_USER_AGENT                  # aura0 (production)
+npx wrangler secret put MOXFIELD_USER_AGENT --env staging    # aura0-staging
+```
+
+Locally, put it in `.dev.vars` (gitignored) as `MOXFIELD_USER_AGENT=<value>` —
+both `wrangler dev` and the Vite dev server read that file. Note the leading
+dot: a file named `dev.vars` is ignored by git but *not* read by wrangler.
+
+This is a credential Moxfield issued to Aura specifically, and it is capped at
+one request per second **for all of Aura**, not per player. If that cap is ever
+bypassed the risk is not throttling but the credential being revoked for
+everyone.
+
+## The Moxfield gate Worker
+
+The cap is enforced by a Durable Object, and it lives in its own Worker —
+`workers/moxfield-gate/`, deployed **by hand**:
+
+```bash
+npx wrangler deploy --config workers/moxfield-gate/wrangler.jsonc
+```
+
+Three things to know before touching it:
+
+1. **Deploy it before any `aura0` deploy that binds to it.** `aura0` reaches the
+   object through a cross-script binding (`script_name: "aura0-moxfield-gate"`),
+   and the target script has to already exist.
+2. **It is deliberately not wired to Workers Builds.** A Durable Object
+   migration cannot be applied by `wrangler versions upload`, which is how every
+   non-`master` branch deploys — a `migrations` key in the root
+   `wrangler.jsonc` fails *every* branch preview with error 10211.
+3. **`aura0` and `aura0-staging` share this one gate.** That is intentional:
+   Moxfield's cap applies to the credential, which cannot tell our environments
+   apart, so neither does the gate.
+
+It is separate for a second reason worth remembering: **rollbacks cannot cross a
+Durable Object lifecycle change.** Had the class shipped inside `aura0`, the
+whole app would have permanently lost the ability to roll back to any version
+older than that deploy — see
+[`WORKER_CUTOVER_RUNBOOK.md`](./WORKER_CUTOVER_RUNBOOK.md) for how much this
+project relies on that.
+
+The gate changes about as often as the rate limit does, which is to say never.
+
 ## Where `VITE_APP_VERSION` comes from
 
 Cloudflare **Workers Builds** injects `WORKERS_CI_COMMIT_SHA` for every build.

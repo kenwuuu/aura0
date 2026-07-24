@@ -916,6 +916,69 @@ SIDEBOARD:
         expect(result[1]).toEqual({ count: 1, name: 'Windswept Heath', setCode: 'WC04', collectorNumber: 'jn328' });
         expect(result[2]).toEqual({ count: 1, name: 'Zuran Orb', setCode: 'PTC', collectorNumber: 'et350' });
       });
+
+      // 45 real cards carry a parenthesis in their own name. Reading the *first*
+      // parenthesis on the line took the name apart at the wrong place and handed
+      // the lookup a set code made of English words — which failed, fell through
+      // to the name, and resolved a different card with no error anywhere.
+      describe('parentheses inside a card name', () => {
+        it('does not mistake a name parenthetical for a set code', () => {
+          expect(parseDecklist("1 Erase (Not the Urza's Legacy One)")).toEqual([
+            { count: 1, name: "Erase (Not the Urza's Legacy One)" },
+          ]);
+        });
+
+        it('reads the printing from the right when the name has parentheses too', () => {
+          expect(parseDecklist("1 Erase (Not the Urza's Legacy One) (UNH) 10")).toEqual([
+            {
+              count: 1,
+              name: "Erase (Not the Urza's Legacy One)",
+              setCode: 'UNH',
+              collectorNumber: '10',
+            },
+          ]);
+        });
+
+        it('keeps a multi-word parenthetical out of the set code', () => {
+          expect(parseDecklist('1 B.F.M. (Big Furry Monster)')).toEqual([
+            { count: 1, name: 'B.F.M. (Big Furry Monster)' },
+          ]);
+        });
+      });
+
+      // Shapes taken from the real import corpus, where ~46% of lines carry a
+      // printing suffix and exporters append their own annotations after it.
+      describe('annotations after the printing', () => {
+        it('does not read an Archidekt category as a collector number', () => {
+          expect(parseDecklist('1x Double Vision (m21) [Copy]')).toEqual([
+            { count: 1, name: 'Double Vision', setCode: 'm21' },
+          ]);
+        });
+
+        it('keeps the collector number when a category follows it', () => {
+          expect(parseDecklist('4x Colossal Dreadmaw (j25) 646 [Finisher]')).toEqual([
+            { count: 4, name: 'Colossal Dreadmaw', setCode: 'j25', collectorNumber: '646' },
+          ]);
+        });
+
+        it('keeps the collector number when a colour-tagged label follows it', () => {
+          expect(parseDecklist('1x Doran, Besieged by Time (ecl) 215 ^Drawn,#1b1686^')).toEqual([
+            { count: 1, name: 'Doran, Besieged by Time', setCode: 'ecl', collectorNumber: '215' },
+          ]);
+        });
+
+        it('ignores an MTGO-style foil marker', () => {
+          expect(parseDecklist('1 Flusterstorm (MH3) 496 *F*')).toEqual([
+            { count: 1, name: 'Flusterstorm', setCode: 'MH3', collectorNumber: '496' },
+          ]);
+        });
+
+        it('takes the set code alone when the line names no printing', () => {
+          expect(parseDecklist('1 Spider-Punk (SPM)')).toEqual([
+            { count: 1, name: 'Spider-Punk', setCode: 'SPM' },
+          ]);
+        });
+      });
     });
 
     describe('two-faced cards', () => {

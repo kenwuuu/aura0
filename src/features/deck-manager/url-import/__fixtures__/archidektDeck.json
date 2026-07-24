@@ -1,0 +1,233 @@
+{
+  "id": 24569510,
+  "name": "Group hugs",
+  "deckFormat": 3,
+  "categories": [
+    {
+      "id": 309354553,
+      "name": "Copy",
+      "isPremier": false,
+      "includedInDeck": true,
+      "includedInPrice": true
+    },
+    {
+      "id": 309352804,
+      "name": "Sorcery",
+      "isPremier": false,
+      "includedInDeck": true,
+      "includedInPrice": true
+    },
+    {
+      "id": 309351006,
+      "name": "Finisher",
+      "isPremier": false,
+      "includedInDeck": true,
+      "includedInPrice": true
+    },
+    {
+      "id": 309350509,
+      "name": "Instant",
+      "isPremier": false,
+      "includedInDeck": true,
+      "includedInPrice": true
+    },
+    {
+      "id": 309350017,
+      "name": "Tutor",
+      "isPremier": false,
+      "includedInDeck": true,
+      "includedInPrice": true
+    },
+    {
+      "id": 309295411,
+      "name": "Creature",
+      "isPremier": false,
+      "includedInDeck": true,
+      "includedInPrice": true
+    },
+    {
+      "id": 309294055,
+      "name": "Tokens",
+      "isPremier": false,
+      "includedInDeck": true,
+      "includedInPrice": true
+    },
+    {
+      "id": 309293753,
+      "name": "Lifegain",
+      "isPremier": false,
+      "includedInDeck": true,
+      "includedInPrice": true
+    },
+    {
+      "id": 309293419,
+      "name": "Land",
+      "isPremier": false,
+      "includedInDeck": true,
+      "includedInPrice": true
+    },
+    {
+      "id": 309293379,
+      "name": "Pump",
+      "isPremier": false,
+      "includedInDeck": true,
+      "includedInPrice": true
+    },
+    {
+      "id": 309292713,
+      "name": "Recursion",
+      "isPremier": false,
+      "includedInDeck": true,
+      "includedInPrice": true
+    },
+    {
+      "id": 309292515,
+      "name": "Counters",
+      "isPremier": false,
+      "includedInDeck": true,
+      "includedInPrice": true
+    },
+    {
+      "id": 309291780,
+      "name": "Removal",
+      "isPremier": false,
+      "includedInDeck": true,
+      "includedInPrice": true
+    },
+    {
+      "id": 309291221,
+      "name": "Protection",
+      "isPremier": false,
+      "includedInDeck": true,
+      "includedInPrice": true
+    },
+    {
+      "id": 309290537,
+      "name": "Draw",
+      "isPremier": false,
+      "includedInDeck": true,
+      "includedInPrice": true
+    },
+    {
+      "id": 309290474,
+      "name": "Ramp",
+      "isPremier": false,
+      "includedInDeck": true,
+      "includedInPrice": true
+    },
+    {
+      "id": 309278027,
+      "name": "Commander",
+      "isPremier": true,
+      "includedInDeck": true,
+      "includedInPrice": true
+    }
+  ],
+  "cards": [
+    {
+      "quantity": 1,
+      "categories": [
+        "Commander"
+      ],
+      "card": {
+        "collectorNumber": "275",
+        "edition": {
+          "editioncode": "clb"
+        },
+        "oracleCard": {
+          "name": "Gluntch, the Bestower"
+        }
+      }
+    },
+    {
+      "quantity": 1,
+      "categories": [
+        "Ramp"
+      ],
+      "card": {
+        "collectorNumber": "211",
+        "edition": {
+          "editioncode": "msc"
+        },
+        "oracleCard": {
+          "name": "Sol Ring"
+        }
+      }
+    },
+    {
+      "quantity": 1,
+      "categories": [
+        "Recursion"
+      ],
+      "card": {
+        "collectorNumber": "ZNR-180",
+        "edition": {
+          "editioncode": "plst"
+        },
+        "oracleCard": {
+          "name": "Bala Ged Recovery // Bala Ged Sanctuary"
+        }
+      }
+    },
+    {
+      "quantity": 1,
+      "categories": [
+        "Land"
+      ],
+      "card": {
+        "collectorNumber": "ZNR-258",
+        "edition": {
+          "editioncode": "plst"
+        },
+        "oracleCard": {
+          "name": "Branchloft Pathway // Boulderloft Pathway"
+        }
+      }
+    },
+    {
+      "quantity": 1,
+      "categories": [
+        "Draw"
+      ],
+      "card": {
+        "collectorNumber": "127",
+        "edition": {
+          "editioncode": "msc"
+        },
+        "oracleCard": {
+          "name": "Cut a Deal"
+        }
+      }
+    },
+    {
+      "quantity": 1,
+      "categories": [
+        "Draw"
+      ],
+      "card": {
+        "collectorNumber": "15",
+        "edition": {
+          "editioncode": "afr"
+        },
+        "oracleCard": {
+          "name": "Flumph"
+        }
+      }
+    },
+    {
+      "quantity": 1,
+      "categories": [
+        "Ramp"
+      ],
+      "card": {
+        "collectorNumber": "122",
+        "edition": {
+          "editioncode": "blc"
+        },
+        "oracleCard": {
+          "name": "Rites of Flourishing"
+        }
+      }
+    }
+  ]
+}

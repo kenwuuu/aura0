@@ -27,6 +27,10 @@ import { dispatchGameAction } from '@/features/hotkeys/gameActions';
 export function useAllGameHotkeys() {
   const hoverTarget = useHotkeyStore((s) => s.hoverTarget);
   const isModalOpen = useHotkeyStore((s) => s.isModalOpen);
+  // Reactive so the battlefield `enabled` flags below re-evaluate when the
+  // selection appears/clears: a selected group must accept board actions with
+  // nothing hovered, which means those keys can't be gated on hover alone.
+  const hasSelection = useHotkeyStore((s) => s.selectedCardIds.size > 0);
 
   const { enableScope, disableScope } = useHotkeysContext();
 
@@ -83,6 +87,18 @@ export function useAllGameHotkeys() {
     if (target) dispatchGameAction(action, target);
   };
 
+  // Board battlefield-capable action. A hovered surface still wins — you can act
+  // on the hand/pile/token/board card under the cursor — but with nothing
+  // hovered the action falls to the multi-selection, so a selected group is
+  // actionable without hovering a member. dispatchGameAction's membership rule
+  // then fans it over the whole group. Board scope only: a selection is
+  // battlefield state, meaningless in a pile, so pile-viewer keys keep `dispatch`.
+  const dispatchOrSelection = (action: string) => {
+    if (t) { dispatch(action); return; }
+    const sel = useHotkeyStore.getState().selectedCardIds;
+    if (sel.size > 0) dispatchGameAction(action, { kind: 'battlefieldCard', id: [...sel][0] });
+  };
+
   // ===========================================================================
   // Global shortcuts — fire whenever the Board scope is active (no hover needed)
   // ===========================================================================
@@ -119,50 +135,75 @@ export function useAllGameHotkeys() {
   // ===========================================================================
 
   // Battlefield-only keys
-  useHotkeys(getKeyBindingsForAction('tap'), () => dispatch('tap'),
-    { ...board, enabled: isBattlefield });
+  useHotkeys(getKeyBindingsForAction('tap'), () => dispatchOrSelection('tap'),
+    { ...board, enabled: isBattlefield || hasSelection });
+  useHotkeys(getKeyBindingsForAction('sick'), () => dispatchOrSelection('sick'),
+    { ...board, enabled: isBattlefield || hasSelection });
+  // Counters aren't hover-routed like the rest: by default 'u'/'i' quick-drop a
+  // counter at the cursor. A multi-selection takes over that key — whether a
+  // member is hovered or nothing is — so each selected card gets its own centered
+  // counter (matching the menu's card-anchored counter); the cursor quick-drop
+  // remains only when there's no selection to act on.
   useHotkeys(getKeyBindingsForAction('addCounter'), () => {
-    dispatchGameAction('addCounter', { kind: 'board', ...cursorPos.current });
+    const sel = useHotkeyStore.getState().selectedCardIds;
+    if (isBattlefield && t && sel.has(t.id)) dispatch('addCounter');
+    else if (!t && sel.size > 0) dispatchGameAction('addCounter', { kind: 'battlefieldCard', id: [...sel][0] });
+    else dispatchGameAction('addCounter', { kind: 'board', ...cursorPos.current });
   }, board);
   useHotkeys(getKeyBindingsForAction('removeCounter'), () => {
-    dispatchGameAction('removeCounter', { kind: 'board', ...cursorPos.current });
+    const sel = useHotkeyStore.getState().selectedCardIds;
+    if (isBattlefield && t && sel.has(t.id)) dispatch('removeCounter');
+    else if (!t && sel.size > 0) dispatchGameAction('removeCounter', { kind: 'battlefieldCard', id: [...sel][0] });
+    else dispatchGameAction('removeCounter', { kind: 'board', ...cursorPos.current });
   }, board);
-  useHotkeys(getKeyBindingsForAction('copy'), () => dispatch('copy'),
-    { ...board, enabled: isBattlefield });
+  useHotkeys(getKeyBindingsForAction('copy'), () => dispatchOrSelection('copy'),
+    { ...board, enabled: isBattlefield || hasSelection });
 
   // Flip — battlefield card or hand card
-  useHotkeys(getKeyBindingsForAction('flip'), () => dispatch('flip'),
-    { ...board, enabled: isBattlefield || isHand });
+  useHotkeys(getKeyBindingsForAction('flip'), () => dispatchOrSelection('flip'),
+    { ...board, enabled: isBattlefield || isHand || hasSelection });
 
   // Backspace — delete battlefield card or delete token
   useHotkeys(getKeyBindingsForAction('delete'), () => {
     if (isBattlefield) dispatch('delete');
     else if (isToken) dispatch('tokenDelete');
-  }, { ...board, enabled: isBattlefield || isToken });
+    else if (!t) {
+      const sel = useHotkeyStore.getState().selectedCardIds;
+      if (sel.size > 0) dispatchGameAction('delete', { kind: 'battlefieldCard', id: [...sel][0] });
+    }
+  }, { ...board, enabled: isBattlefield || isToken || hasSelection });
+
+  // Play-to-board (P) — top card of the deck straight onto the battlefield.
+  // Gated to the deck specifically (not every pile like the moveTo* keys) to
+  // match the catalog, which lists this row on the deck's menu only: exile and
+  // discard get played from by picking a card in the pile viewer, not blind off
+  // the top.
+  useHotkeys(getKeyBindingsForAction('playToBattlefield'), () => dispatch('playToBattlefield'),
+    { ...board, enabled: isPile && t?.pileType === 'deck' });
 
   // Move-to-hand (H) — battlefield card or pile top
-  useHotkeys(getKeyBindingsForAction('moveToHand'), () => dispatch('moveToHand'),
-    { ...board, enabled: isBattlefield || isPile });
+  useHotkeys(getKeyBindingsForAction('moveToHand'), () => dispatchOrSelection('moveToHand'),
+    { ...board, enabled: isBattlefield || isPile || hasSelection });
 
   // Move-to-discard (D) — battlefield / hand / pile
-  useHotkeys(getKeyBindingsForAction('moveToDiscard'), () => dispatch('moveToDiscard'),
-    { ...board, enabled: isBattlefield || isHand || isPile });
+  useHotkeys(getKeyBindingsForAction('moveToDiscard'), () => dispatchOrSelection('moveToDiscard'),
+    { ...board, enabled: isBattlefield || isHand || isPile || hasSelection });
 
   // Move-to-exile (S) — battlefield / hand / pile
-  useHotkeys(getKeyBindingsForAction('moveToExile'), () => dispatch('moveToExile'),
-    { ...board, enabled: isBattlefield || isHand || isPile });
+  useHotkeys(getKeyBindingsForAction('moveToExile'), () => dispatchOrSelection('moveToExile'),
+    { ...board, enabled: isBattlefield || isHand || isPile || hasSelection });
 
   // Move-to-deck-top (T) — battlefield / hand / pile
-  useHotkeys(getKeyBindingsForAction('moveToDeckTop'), () => dispatch('moveToDeckTop'),
-    { ...board, enabled: isBattlefield || isHand || isPile });
+  useHotkeys(getKeyBindingsForAction('moveToDeckTop'), () => dispatchOrSelection('moveToDeckTop'),
+    { ...board, enabled: isBattlefield || isHand || isPile || hasSelection });
 
   // Move-to-deck-bottom (Y) — battlefield / hand / pile (position 0)
-  useHotkeys(getKeyBindingsForAction('moveToDeckBottom'), () => dispatch('moveToDeckBottom'),
-    { ...board, enabled: isBattlefield || isHand || isPile });
+  useHotkeys(getKeyBindingsForAction('moveToDeckBottom'), () => dispatchOrSelection('moveToDeckBottom'),
+    { ...board, enabled: isBattlefield || isHand || isPile || hasSelection });
 
   // Move-to-sideboard (B) — battlefield / hand / pile
-  useHotkeys(getKeyBindingsForAction('moveToSideboard'), () => dispatch('moveToSideboard'),
-    { ...board, enabled: isBattlefield || isHand || isPile });
+  useHotkeys(getKeyBindingsForAction('moveToSideboard'), () => dispatchOrSelection('moveToSideboard'),
+    { ...board, enabled: isBattlefield || isHand || isPile || hasSelection });
 
   // Token counters
   useHotkeys(getKeyBindingsForAction('tokenIncrement'), () => dispatch('tokenIncrement'),

@@ -26,6 +26,7 @@ import {
   YSTATE_SIDEBOARD,
   YSTATE_CUSTOM_COUNTERS,
   YSTATE_CAN_VIEW_HAND,
+  YSTATE_REMOVED,
   YDOC_PLAYER,
 } from '@/constants';
 import { seatOrigin, playmatNodePositions } from './boardWorld';
@@ -122,6 +123,34 @@ describe('buildPlaymatNodes', () => {
     expect(sideboard.x).toBeLessThan(deck.x);
     expect(sideboard.y).toBe(deck.y);
     expect(sideboard.y).toBeLessThan(at('pile-discard-local-p1').y);
+  });
+
+  it('emits no nodes for a removed (tombstoned) seat', () => {
+    const yDoc = new Y.Doc();
+    writePlayer(yDoc, 'local-p1', { joinedAt: 100 });
+    writePlayer(yDoc, 'gone-p2', { joinedAt: 200 });
+    // Tombstone the second seat, as removePlayer does.
+    yDoc.getMap(YDOC_PLAYER('gone-p2')).set(YSTATE_REMOVED, true);
+
+    const nodes = buildPlaymatNodes(yDoc, 'local-p1');
+
+    expect(nodes.some((n) => n.id.endsWith('gone-p2'))).toBe(false);
+    expect(nodes.some((n) => n.id === 'playmat-local-p1')).toBe(true);
+  });
+
+  it('keeps the local seat index stable when an earlier seat is removed', () => {
+    // local joined second (seat 1). Removing the earlier joiner must not shift
+    // the local player's seat — both enumerators skip the tombstoned map.
+    const yDoc = new Y.Doc();
+    writePlayer(yDoc, 'early-p1', { joinedAt: 100 });
+    writePlayer(yDoc, 'local-p2', { joinedAt: 200 });
+    yDoc.getMap(YDOC_PLAYER('early-p1')).set(YSTATE_REMOVED, true);
+
+    const nodes = buildPlaymatNodes(yDoc, 'local-p2');
+    const localMat = nodes.find((n) => n.id === 'playmat-local-p2')!;
+
+    // With the earlier seat gone, the local player is now the sole seat → seat 0.
+    expect(localMat.position).toEqual(playmatNodePositions(0).mat);
   });
 
   it('emits an opponent hand pile for non-local players only', () => {

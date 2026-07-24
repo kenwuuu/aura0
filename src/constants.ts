@@ -39,6 +39,13 @@ export const YSTATE_PLAYER_NAME = 'playerName';
 export const YSTATE_PLAYER_COLOR = 'playerColor';
 // Timestamp (Date.now()) written once on first init; determines stable seat order across peers.
 export const YSTATE_JOINED_AT = 'joinedAt';
+// Tombstone marking a seat as removed (a departed player kicked from the room).
+// Yjs has no API to delete a top-level shared type, so a removed player's
+// `YDOC_PLAYER(id)` map lingers in the doc forever; the seat enumerators
+// (buildPlaymatNodes) skip any map carrying this flag instead. Cleared by
+// Player's constructor on rejoin, so removal is a kick, not a ban. See
+// features/player/removePlayer.ts.
+export const YSTATE_REMOVED = 'removed';
 
 // Action log: shared append-only Y.Array of ActionLogEntry objects.
 // Using Y.Array (not a JS-array-in-a-Y.Map) so concurrent appends from different

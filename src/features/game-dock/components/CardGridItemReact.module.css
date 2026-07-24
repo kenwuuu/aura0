@@ -75,7 +75,7 @@
    nearly fills the fixed 250px box, but the narrow 3-up phone cells (~112px)
    leave tall dead bands above/below the contained card. Size the image box to
    the card's own aspect ratio (63:88 = CARD_WIDTH:CARD_HEIGHT) so it hugs the
-   art and more cards fit per screen. Breakpoint tracks docs/responsive.md. */
+   art and more cards fit per screen. Breakpoint tracks docs/architecture/responsive.md. */
 @media (max-width: 639px) {
   .cardGridItemImage {
     height: auto;

@@ -16,9 +16,12 @@
 
 import { useGameInstance } from '@/app/stores/gameInstanceStore';
 import { useHotkeyStore } from '@/app/stores/hotkeyStore';
+import { useContextMenuStore } from './contextMenuStore';
 import { useCardPreviewStore } from '@/features/card-preview/cardPreviewStore';
 import { executeBattlefieldCardAction } from '@/features/battlefield/battlefieldCardActions';
+import { isHiddenFacedown } from '@/features/battlefield/nodes/cardNodeLogic';
 import { spawnTokenAtPosition } from '@/features/battlefield/spawnToken';
+import { playCardFromPile } from '@/features/battlefield/battlefieldActions';
 import { applyTokenDelta } from '@/features/battlefield/nodes/tokenNodeLogic';
 import { usePileViewerHotkeyStore } from '@/features/game-dock/pileViewerHotkeyStore';
 import { usePileViewerOpenStore } from '@/features/game-dock/pileViewerOpenStore';
@@ -75,11 +78,36 @@ function executeHandCardAction(action: string, cardId: string): void {
   if (card) player.movePileCard(card, 'hand', move.dest, move.position);
 }
 
+/** Play the top card of a pile onto the battlefield. Removing the card here
+ * (rather than in playCardFromPile) matches the pile-viewer's play button,
+ * which also owns the removal from its own pile — playCardFromPile only ever
+ * places an already-detached card. */
+function executePlayTopOfPile(pileType: PileType): void {
+  const { player, roomManager } = useGameInstance.getState();
+  if (!player) return;
+
+  const card = player.drawCardFromPile(pileType);
+  if (!card) return;
+  // Not awaited: the card lands on the board synchronously; only its related
+  // tokens are fetched async (same as every other play path).
+  void playCardFromPile(card);
+  // Same persistence the 'draw' action does: the deck shrank, so the saved
+  // deck for this room has to shrink with it.
+  if (pileType === 'deck' && roomManager) {
+    DeckPersistenceService.saveDeckForRoom(roomManager.getRoomName(), player.getDeck());
+  }
+}
+
 /** Move the top card of a battlefield pile (deck/exile/discard) elsewhere.
  * A move into the same pile is a no-op. */
 function executePileAction(action: string, pileType: PileType): void {
   const { player } = useGameInstance.getState();
   if (!player) return;
+
+  if (action === 'playToBattlefield') {
+    executePlayTopOfPile(pileType);
+    return;
+  }
 
   const move = resolveMoveDestination(action);
   if (!move || move.dest === pileType) return;
@@ -177,6 +205,37 @@ function executeBoardAction(action: string, cursor: { x: number; y: number }): v
 }
 
 /**
+ * Peek at your own facedown card's hidden (front) face. This is a **local-only**
+ * preview — it writes nothing to Yjs, so the board card stays face-down to
+ * everyone and opponents see nothing (no board-state flip, no unflip timeout).
+ *
+ * Gated to the card's owner and to facedown cards; a no-op otherwise, so it can
+ * never leak an opponent's hidden information. `GameContextMenu` applies the
+ * same gate to decide whether to even show the row.
+ */
+function executePeek(cardId: string): void {
+  const { yDoc, playerId } = useGameInstance.getState();
+  if (!yDoc || !playerId) return;
+  const yCards = yDoc.getMap<WhiteboardCard>(YDOC_CARDS_ON_BOARD);
+  const card = yCards.get(cardId);
+  if (!card || card.ownerId !== playerId || !isHiddenFacedown(card)) return;
+
+  // Anchor the preview at the point the menu was opened from (tap/cursor
+  // position) so its left/right placement is sensible on touch and mouse alike.
+  const { x, y } = useContextMenuStore.getState();
+  useCardPreviewStore.getState().updatePosition(x, y);
+
+  // Preview an *unflipped* copy so the front face renders (see
+  // CardPreview.selectPreviewImage). Only this local copy is unflipped — the
+  // shared board card is untouched. The source watcher auto-hides the preview
+  // once the card leaves the board.
+  useCardPreviewStore.getState().show(
+    { ...card, isFlipped: false },
+    { yMap: yCards, isPresent: () => yCards.has(cardId) },
+  );
+}
+
+/**
  * Route an action id (from `hotkeys.ts`'s `Hotkey.action`) to the executor
  * for the given target. Called by keyboard bindings (`useAllGameHotkeys`)
  * and by `GameContextMenu` on item click — the only two callers, so both
@@ -185,11 +244,25 @@ function executeBoardAction(action: string, cursor: { x: number; y: number }): v
 export function dispatchGameAction(action: string, target: MenuTarget): void {
   switch (target.kind) {
     case 'battlefieldCard': {
+      // Peek is a local-only preview, not a board mutation, so it's handled
+      // here rather than in executeBattlefieldCardAction (which owns Yjs writes).
+      if (action === 'peek') { executePeek(target.id); return; }
       const { yDoc, playerId } = useGameInstance.getState();
       if (!yDoc || !playerId) return;
       const yCards = yDoc.getMap<WhiteboardCard>(YDOC_CARDS_ON_BOARD);
       const yTokens = yDoc.getMap<KeywordToken>(YDOC_KEYWORD_TOKENS);
-      executeBattlefieldCardAction(action, target.id, yCards, yTokens, playerId);
+      // Membership rule: when the acted-on card is part of a multi-selection,
+      // fan the action out over the whole group; otherwise it targets just this
+      // card. `untapAll` already sweeps every owned card, so never loop it.
+      const selected = useHotkeyStore.getState().selectedCardIds;
+      const ids = action !== 'untapAll' && selected.size > 1 && selected.has(target.id)
+        ? [...selected]
+        : [target.id];
+      // One transaction → one undo step and one observer rebuild for the batch
+      // (also batches the hand/deck writes the moveTo* actions delegate to).
+      yDoc.transact(() => {
+        for (const id of ids) executeBattlefieldCardAction(action, id, yCards, yTokens, playerId);
+      });
       return;
     }
     case 'handCard':

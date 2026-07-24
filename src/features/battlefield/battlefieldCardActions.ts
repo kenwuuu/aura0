@@ -12,6 +12,7 @@ import { nodeCenter } from './nodeAttachment';
 import { useContextMenuStore } from '@/features/hotkeys/contextMenuStore';
 import { logAction, cardLogName } from '@/features/action-log/actionLog';
 import { spawnTokenAtPosition, getMaxZIndex, detachTokens } from './spawnToken';
+import { firstFreeCascadeSlot, CASCADE_OFFSET } from './cascade';
 import {
   moveCardToHand,
   moveCardToDiscard,
@@ -30,6 +31,19 @@ function opponentOwnerName(yDoc: Y.Doc, card: WhiteboardCard, actorId: string): 
   return card.ownerId === actorId ? null : resolvePlayerName(yDoc, card.ownerId);
 }
 
+// Copies cascade down-right from the card they came from, solitaire-style. A
+// fixed offset would drop every copy after the first on the same spot (copying
+// the same card twice reads the same source position), so the search starts one
+// step out — a copy must never land on its source — and `firstFreeCascadeSlot`
+// walks on from there. The Nth copy of a card lands N steps down the cascade,
+// and copying a copy continues the same run.
+function nextCascadePosition(card: WhiteboardCard, yCards: Y.Map<WhiteboardCard>) {
+  return firstFreeCascadeSlot(yCards, {
+    x: card.x + CASCADE_OFFSET,
+    y: card.y + CASCADE_OFFSET,
+  });
+}
+
 export function executeBattlefieldCardAction(
   action: string,
   cardId: string,
@@ -40,9 +54,12 @@ export function executeBattlefieldCardAction(
   const yDoc = yCards.doc;
 
   if (action === 'untapAll') {
+    // "Untap all" resets every one of your cards to 0° — clearing both the 90°
+    // tap and the 45° summoning-sick tilt (the two are mutually exclusive, so a
+    // card carries at most one). Skip cards already flat to avoid no-op writes.
     yCards.forEach((c, cId) => {
-      if (c.ownerId === playerId && c.isTapped) {
-        yCards.set(cId, { ...c, isTapped: false });
+      if (c.ownerId === playerId && (c.isTapped || c.isSick)) {
+        yCards.set(cId, { ...c, isTapped: false, isSick: false });
       }
     });
     if (yDoc) {
@@ -58,7 +75,9 @@ export function executeBattlefieldCardAction(
     case 'tap': {
       // card.isTapped reflects the state *before* the toggle
       const verb = card.isTapped ? 'untapped' : 'tapped';
-      yCards.set(cardId, { ...card, isTapped: !card.isTapped });
+      // Tap and summoning-sickness are mutually exclusive rotations (a card is
+      // in one physical position), so tapping clears the 45° sick tilt.
+      yCards.set(cardId, { ...card, isTapped: !card.isTapped, isSick: false });
       if (yDoc) {
         const ownerName = opponentOwnerName(yDoc, card, playerId);
         logAction(yDoc, {
@@ -66,6 +85,21 @@ export function executeBattlefieldCardAction(
           type: 'tap',
           text: ownerName ? `${verb} ${ownerName}'s ${cardLogName(card)}` : `${verb} ${cardLogName(card)}`,
         });
+      }
+      break;
+    }
+    case 'sick': {
+      // card.isSick reflects the state *before* the toggle. Marking a card
+      // summoning-sick clears tap — the two tilts are mutually exclusive.
+      const willBeSick = !card.isSick;
+      yCards.set(cardId, { ...card, isSick: willBeSick, isTapped: false });
+      if (yDoc) {
+        const ownerName = opponentOwnerName(yDoc, card, playerId);
+        const verb = willBeSick ? 'marked' : 'cleared summoning sickness on';
+        const text = willBeSick
+          ? (ownerName ? `marked ${ownerName}'s ${cardLogName(card)} summoning sick` : `marked ${cardLogName(card)} summoning sick`)
+          : (ownerName ? `${verb} ${ownerName}'s ${cardLogName(card)}` : `${verb} ${cardLogName(card)}`);
+        logAction(yDoc, { actorId: playerId, type: 'sick', text });
       }
       break;
     }
@@ -89,12 +123,13 @@ export function executeBattlefieldCardAction(
     }
     case 'copy': {
       const maxZIndex = getMaxZIndex(yCards, yTokens);
+      const { x, y } = nextCascadePosition(card, yCards);
       const newCard: WhiteboardCard = {
         ...card,
         id: makeCardId(),
         ownerId: playerId,
-        x: card.x + 20,
-        y: card.y + 20,
+        x,
+        y,
         zIndex: maxZIndex + 1,
         counters: [...card.counters],
       };

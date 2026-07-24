@@ -10,6 +10,7 @@ import React from 'react';
 import { createRoot } from 'react-dom/client';
 import * as Sentry from '@sentry/react';
 import posthog from 'posthog-js';
+import { sentryTunnelOption } from '@/shared/sentryTunnel';
 
 import { bootstrapGame, type BootstrapOptions } from './bootstrap';
 import { App } from './App';
@@ -26,7 +27,7 @@ import '../style.css';
 // Both are auto-exposed by Vite's VITE_ prefix convention — no vite.config.ts
 // wiring needed for these two. Locally/unset, both are undefined.
 // A non-master deploy branch (e.g. the `staging` integration branch, see
-// docs/STAGING.md) reports Sentry environment `preview`.
+// docs/deployment/STAGING.md) reports Sentry environment `preview`.
 const PRODUCTION_BRANCH = 'master';
 const appVersion = import.meta.env.VITE_APP_VERSION as string | undefined;
 const deployBranch = import.meta.env.VITE_APP_ENV as string | undefined;
@@ -74,6 +75,11 @@ Sentry.init({
   environment: sentryEnvironment,
   release: appVersion,
   dsn: 'https://beb5f109e66475063b4650877bc1c6a1@o4510353682006016.ingest.de.sentry.io/4510353685610576',
+  // Route ingest through our own origin so ad blockers (which block
+  // *.sentry.io outright) stop making a whole cohort of players invisible.
+  // `undefined` here is exactly "no tunnel" — see shared/sentryTunnel.ts for
+  // the scope knob and how to turn this off.
+  tunnel: sentryTunnelOption(isProd),
   // Setting this option to true will send default PII data to Sentry.
   // For example, automatic IP address collection on events
   sendDefaultPii: true,

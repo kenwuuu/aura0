@@ -1,6 +1,6 @@
 /**
  * Shared viewport presets for responsive specs. Responsive coverage sets the
- * viewport per spec with `page.setViewportSize` (see docs/responsive.md) —
+ * viewport per spec with `page.setViewportSize` (see docs/architecture/responsive.md) —
  * the commented-out mobile device projects in playwright.config.ts stay
  * disabled because the rest of the suite is tuned for the default 1920×1080.
  */

@@ -1,5 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { getMenuActionsForTarget, getHotkeysForContext, HotkeyContext } from './hotkeys';
+import {
+  getMenuActionsForTarget,
+  getHotkeysForContext,
+  getHotkeysGroupedByZone,
+  HOTKEYS,
+  HotkeyContext,
+} from './hotkeys';
 
 /**
  * The context menu and the keyboard layer read the same `HOTKEYS` table, so a
@@ -43,5 +49,54 @@ describe('pile-viewer context menus', () => {
       expect(actions, `${context} should offer moveToDeckTop`).toContain('moveToDeckTop');
       expect(actions, `${context} should offer moveToDeckBottom`).toContain('moveToDeckBottom');
     }
+  });
+});
+
+/**
+ * `getHotkeysGroupedByZone` backs the shortcut reference (Help modal's
+ * Shortcuts tab + the command palette). It must show every keyboard-bound
+ * action exactly once and land the common keys where a player would look.
+ */
+describe('getHotkeysGroupedByZone', () => {
+  const groups = getHotkeysGroupedByZone();
+  const zoneOf = (action: string) =>
+    groups.find((g) => g.hotkeys.some((h) => h.action === action))?.zone;
+
+  it('lists every keyboard-bound action exactly once', () => {
+    const flat = groups.flatMap((g) => g.hotkeys.map((h) => h.action));
+    expect(new Set(flat).size, 'no action appears in two zones').toBe(flat.length);
+
+    // Every catalog entry that has a key to press must be reachable.
+    const keyboardActions = HOTKEYS.filter((h) => h.key !== '').map((h) => h.action);
+    expect(new Set(flat)).toEqual(new Set(keyboardActions));
+  });
+
+  it('omits pointer-only rows that have no keystroke to show', () => {
+    // `viewPile` is a menu-only row (empty `key`/`keys`) — nothing to reference.
+    const flat = groups.flatMap((g) => g.hotkeys.map((h) => h.action));
+    expect(flat).not.toContain('viewPile');
+  });
+
+  it('groups keys where a player reaches for them', () => {
+    expect(zoneOf('draw')).toBe('Global');
+    expect(zoneOf('untapAll')).toBe('Global');
+    // Shared card-movement keys surface under Hand, not buried under Battlefield.
+    expect(zoneOf('moveToDiscard')).toBe('Hand');
+    expect(zoneOf('moveToSideboard')).toBe('Hand');
+    expect(zoneOf('tap')).toBe('Battlefield');
+    expect(zoneOf('shuffle')).toBe('Piles');
+    expect(zoneOf('tokenIncrement')).toBe('Tokens');
+    expect(zoneOf('gainHealth')).toBe('Life');
+  });
+
+  it('preserves the declared zone order and drops empty zones', () => {
+    expect(groups.map((g) => g.zone)).toEqual([
+      'Global',
+      'Hand',
+      'Battlefield',
+      'Piles',
+      'Tokens',
+      'Life',
+    ]);
   });
 });

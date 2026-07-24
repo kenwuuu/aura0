@@ -1,20 +1,15 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
-
 ## What This Is
 
-Aura is a **peer-to-peer Magic: The Gathering tabletop app** with a goal 
-of becoming a generic card-game platform with MTG specifics (command 
-zone, commander auto-draw) as plugins. Players share 
+Aura is a **Magic: The Gathering tabletop app**. Players share 
 a collaborative whiteboard via WebRTC/WebSockets — there is no backend for 
-game state. All real-time sync uses **Yjs CRDTs** over **y-webrtc**. The 
-only backend is a card-import API (Aura backend → Scryfall fallback). That
+game state. Game state is stored locally in **Yjs CRDTs**. The 
+only backend is a card-import API (Aura backend → Scryfall fallback) and the 
+WebSocket server that both live on the same DigitalOcean server. That
 backend lives in this repo at `mtg_card_search/` — a Python/FastAPI service
-with its own venv, tests (`pytest tests/` from its directory), and deployment
-docs (`mtg_card_search/SETUP.md`). See `mtg_card_search/CLAUDE.md` before
-working there (notably: never read files under `mtg_card_search/cards/` in
-full — they're multi-GB NDJSON).
+with its own venv, tests, and deployment
+docs. 
 
 ## Commands
 
@@ -32,29 +27,6 @@ npx playwright test     # e2e tests (requires dev server running)
 npx tsc --noEmit        # type-check
 ```
 
-## Branch workflow
-
-**Branch off `staging`, open PRs into `staging`.** Never work off `master` or
-target it directly. `staging` is the long-lived integration branch (and the
-repo default), so `git clone` / new branches start there by default:
-
-```bash
-git switch staging && git pull
-git switch -c feature/x     # do the work, then open a PR into staging
-```
-
-`master` is the **production/release** branch — Cloudflare Workers Builds
-deploys it to `aura0.app` on every push. It advances *only* via a single
-`staging → master` promotion PR once changes are verified on
-`staging.aura0.app`. Direct pushes to `master` are blocked by a local
-`pre-push` hook (`.husky/pre-push`); override an intentional one with
-`ALLOW_MASTER_PUSH=1 git push …`.
-
-The one exception is a **production hotfix** that can't wait for what's in
-staging: branch off `master`, PR into `master`, then back-merge
-`master → staging`. This is a human call — not a default. Full flow and the
-Cloudflare/GitHub setup are in [`docs/STAGING.md`](docs/STAGING.md).
-
 ## Architecture
 
 ### Entry point flow
@@ -66,12 +38,6 @@ Cloudflare/GitHub setup are in [`docs/STAGING.md`](docs/STAGING.md).
 1. **Yjs** — source of truth for all shared game state. Access via `yDoc.getMap(YDOC_*)` constants from `src/constants.ts`. Key maps: `YDOC_CARDS_ON_BOARD` (battlefield cards), `YDOC_KEYWORD_TOKENS` (board tokens), `YDOC_PLAYER(id)` (per-player state: hand, deck, health, etc.).
 2. **Zustand** — UI-only state (`src/stores/`). `gameInstanceStore` holds `yDoc`, `player`, `playerId`, `roomManager` so hotkeys and components don't need prop-drilling. `hotkeyStore` tracks what's hovered (`hoverTarget`) and modal state. Never put game mutations in Zustand — they belong in Yjs.
 
-### Feature directories (`src/features/`)
-Each feature owns its UI, business logic, and types.
-
-### Battlefield (react-flow)
-`BattlefieldCanvas` wraps `<ReactFlow>` with controlled nodes driven by `useBattlefieldNodes`. The bridge observes `yCards`/`yTokens` and calls `setNodes`; drag writes back to Yjs only on `onNodeDragStop`. Board-to-dock card moves go through `battlefieldActions.moveCardFromBattlefield`. Hand-to-board drops call `battlefieldActions.playCardFromHand`; keyword-token drops are handled inside `BattlefieldCanvas.onDrop` via `screenToFlowPosition`.
-
 ### Hotkey system
 `useAllGameHotkeys` (mounted in `<GameHotkeysManager>`) reads `hoverTarget` from `hotkeyStore` to route contextual actions to the right surface (battlefield card, hand card, pile, token). Modal state switches between `HotkeyScope.Board` and `HotkeyScope.PileViewer` via `react-hotkeys-hook`'s `<HotkeysProvider>`. The context menu (`HotkeyMenu`) is a Radix Popover opened imperatively via `useHotkeyMenuStore.getState().openMenu(...)`.
 
@@ -80,17 +46,31 @@ Each feature owns its UI, business logic, and types.
 
 ## Design Philosophy
 
-**Extensible and self-documenting over simple.** When choosing where to put logic, prefer the location that makes the code correct by default for all future callers — not the one that's shortest. An action like `playCardFromHand` names a complete game action; if callers have to remember to also trigger token creation afterward, the name lies and every new call-site is a latent bug.
-
-**Complete semantic actions.** Store actions represent full game events with all their consequences. Side effects (token creation, analytics, persistence) belong inside the action, not scattered at call sites. This means: if you add a new way to play a card from hand (hotkey, pile drag, etc.), it gets token creation for free.
-
-**Caller should not need to know implementation details.** If playing a card creates tokens, that is not the UI layer's concern. The UI layer says what happened (a card was played); the action layer decides what that means (place card + spawn related tokens).
+**Complete semantic actions over convenience.** When choosing where to put logic, prefer the location that makes the code correct by default for all future callers — not the one that's shortest. Store actions represent full game events with all their consequences; side effects (token creation, analytics, persistence) belong inside the action, not scattered at call sites. If `playCardFromHand` spawns related tokens, every new call-site (hotkey, pile drag, etc.) gets that for free — if callers have to remember to trigger it afterward, the name lies and every call-site is a latent bug. The UI layer says *what* happened; the action layer decides what that *means*.
 
 **Yjs mutations always go through `Player`** for player-state (hand, deck, health). For battlefield objects, write directly to `yDoc.getMap(YDOC_CARDS_ON_BOARD)`. Never use `player.yPlayerState` directly from outside `Player.ts`.
 
-**No more window events for cross-module communication.** Battlefield→dock card moves (`features/battlefield/battlefieldActions.ts`), pile-viewer open requests, and the scry viewer's close handling all go through Zustand stores, direct Yjs access, or plain component state.
+**No window events for cross-module communication.** Cross-module calls go through Zustand stores, direct Yjs access, or plain component state — never a `CustomEvent` on `window`.
 
-**`src/components/`** holds modals and cross-feature UI (used by more than one feature). Feature-specific UI belongs in `src/features/<feature>/`. Generic primitives and shadcn components belong in `src/shared/`.
+**Where UI goes.** Feature-specific UI belongs in `src/features/<feature>/`. Generic primitives and shadcn components belong in `src/shared/`. App-shell composition — the toolbar, root-mounted modals, the stores that wire features together — belongs in `src/app/`.
+
+## Workflow
+
+When beginning a coding task ALWAYS start by updating `staging`, then
+**Branch off `staging` and start a new worktree, open PRs into `staging`.**
+Never work off `master` or
+target it directly. `staging` is the long-lived integration branch (and the
+repo default), so `git clone` / new branches start there by default:
+
+```bash
+git switch staging && git pull
+git switch -c feature/x     # do the work, then open a PR into staging
+```
+
+**Production hotfix** that can't wait for what's in
+staging: branch off `master`, PR into `master`, then back-merge
+`master → staging`. This is a human call — not a default. Full flow and the
+Cloudflare/GitHub setup are in [`docs/STAGING.md`](docs/STAGING.md).
 
 ## Testing
 

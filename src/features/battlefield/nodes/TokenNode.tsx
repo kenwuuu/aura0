@@ -15,7 +15,11 @@ interface TokenNodeData extends KeywordToken {
   localPlayerId: string;
 }
 
-export const TokenNode = memo(function TokenNode({ data, id }: NodeProps) {
+// Ring drawn on the token's circle when it's part of a multi-selection, matching
+// the card selection affordance (CardNode's SELECTED_BOX_SHADOW).
+const SELECTED_RING = '0 0 0 2px #4c9be8, 0 0 0 4px rgba(76,155,232,0.35)';
+
+export const TokenNode = memo(function TokenNode({ data, id, selected }: NodeProps) {
   const token = data as unknown as TokenNodeData;
   const { yTokens, localPlayerId } = token;
   const isOwn = isOwnToken(token.ownerId, localPlayerId);
@@ -108,6 +112,7 @@ export const TokenNode = memo(function TokenNode({ data, id }: NodeProps) {
         alignItems: 'center',
         justifyContent: 'center',
         pointerEvents: 'none',
+        boxShadow: selected ? SELECTED_RING : undefined,
       }}>
         {token.imageUrl && (
           <img

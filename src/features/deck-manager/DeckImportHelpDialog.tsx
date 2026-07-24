@@ -114,6 +114,36 @@ export function DeckImportHelpDialog({ isOpen, onClose }: DeckImportHelpDialogPr
           <Dialog.Close style={styles.iconButton} onClick={(e) => { e.stopPropagation(); onClose(); }}>×</Dialog.Close>
 
           <div style={styles.section}>
+            <div style={styles.sectionTitle}>Import from a link</div>
+            <p style={styles.text}>
+              Paste a deck link from <strong style={{ color: '#fff' }}>Archidekt</strong>,{' '}
+              <strong style={{ color: '#fff' }}>TappedOut</strong>,{' '}
+              <strong style={{ color: '#fff' }}>MTGGoldfish</strong> or{' '}
+              <strong style={{ color: '#fff' }}>EDHREC</strong> and we'll fetch the list for
+              you:
+            </p>
+            <div style={styles.code}>
+              {`https://archidekt.com/decks/24569510
+https://tappedout.net/mtg-decks/your-deck/
+https://www.mtggoldfish.com/deck/5778970
+https://edhrec.com/deckpreview/cwQ2Ltjw...`}
+            </div>
+            <p style={styles.text}>
+              The deck needs to be public or unlisted. The list drops into the box below, so you
+              can still edit it before importing.
+            </p>
+            <p style={styles.text}>
+              An EDHREC <strong style={{ color: '#fff' }}>commander</strong> link gives you that
+              commander's average deck — a good starting point when you don't have a list yet.
+            </p>
+            <p style={styles.text}>
+              Archidekt and EDHREC links carry your commander across automatically.
+              TappedOut and MTGGoldfish exports don't say which card is the commander, so put
+              it under a "Commander" header yourself.
+            </p>
+          </div>
+
+          <div style={styles.section}>
             <div style={styles.sectionTitle}>Recommended Format</div>
             <p style={styles.text}>
               For best results, use the <strong style={{ color: '#fff' }}>MTGO preset</strong> from Moxfield's download button:

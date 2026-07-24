@@ -34,3 +34,15 @@ node_modules/
 /blob-report/
 /playwright/.cache/
 /playwright/.auth/
+
+# Local wrangler dev state (miniflare cache, bundled dev entrypoints).
+# Regenerated on every `wrangler dev`; nothing here belongs in the repo.
+.wrangler/
+
+# Wrangler local secrets. `.dev.vars` is what `wrangler dev` reads; `dev.vars`
+# is ignored too because the dotless name is easy to create by accident and it
+# holds the same thing — an upstream API credential that must never be
+# committed. Production/staging values live in `wrangler secret put`, not here.
+.dev.vars
+.dev.vars.*
+dev.vars

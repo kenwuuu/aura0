@@ -1,8 +1,34 @@
 import * as React from "react"
 import * as DialogPrimitive from "@radix-ui/react-dialog"
 import { XIcon } from "lucide-react"
+import { cva, type VariantProps } from "class-variance-authority"
 
 import { cn } from "@/shared/utils/utils"
+
+// One responsive width scale for every modal. Each size is a single unprefixed
+// `max-w` using `min(target, calc(100vw - 2rem))`, so the modal never exceeds
+// its target on desktop and always keeps a 1rem gutter on mobile — with no
+// breakpoint-prefixed cap that a caller's own `max-w-*` would fail to override.
+// (The previous base kept shadcn's `sm:max-w-lg`, which lived in a different
+// tailwind-merge bucket than callers' unprefixed widths and silently pinned
+// nearly every modal to 512px on desktop.)
+const dialogContentVariants = cva(
+  "bg-[#1a1a1a] border-2 border-[#4a4a4a] rounded-xl shadow-[0_20px_60px_rgba(0,0,0,0.5)] p-0 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-[10000] grid w-full translate-x-[-50%] translate-y-[-50%] gap-4 duration-200",
+  {
+    variants: {
+      size: {
+        sm: "max-w-[min(28rem,calc(100vw-2rem))]",
+        md: "max-w-[min(36rem,calc(100vw-2rem))]",
+        lg: "max-w-[min(48rem,calc(100vw-2rem))]",
+        xl: "max-w-[min(62rem,calc(100vw-2rem))]",
+        full: "max-w-[calc(100vw-2rem)]",
+      },
+    },
+    defaultVariants: {
+      size: "md",
+    },
+  }
+)
 
 function Dialog({
   ...props
@@ -48,19 +74,18 @@ function DialogContent({
   className,
   children,
   showCloseButton = true,
+  size,
   ...props
-}: React.ComponentProps<typeof DialogPrimitive.Content> & {
-  showCloseButton?: boolean
-}) {
+}: React.ComponentProps<typeof DialogPrimitive.Content> &
+  VariantProps<typeof dialogContentVariants> & {
+    showCloseButton?: boolean
+  }) {
   return (
     <DialogPortal data-slot="dialog-portal">
       <DialogOverlay />
       <DialogPrimitive.Content
         data-slot="dialog-content"
-        className={cn(
-          "bg-[#1a1a1a] border-2 border-[#4a4a4a] rounded-xl shadow-[0_20px_60px_rgba(0,0,0,0.5)] p-0 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[45vh] left-[50%] z-[10000] grid w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 duration-200 sm:max-w-lg",
-          className
-        )}
+        className={cn(dialogContentVariants({ size }), className)}
         {...props}
       >
         {children}

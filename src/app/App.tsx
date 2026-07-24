@@ -45,6 +45,8 @@ import { AnnouncementsService } from '@/shared/services/announcements/Announceme
 import { usePhoneLayout } from '@/shared/hooks';
 import { Toolbar } from './Toolbar';
 import { PhoneHudStack } from './PhoneHudStack';
+import { CommandPalette } from './command-palette/CommandPalette';
+import { HelpModal } from './HelpModal';
 import { playCardFromHand } from '@/features/battlefield/battlefieldActions';
 import { effectiveHandZoom } from '@/features/game-dock/handZoomClamp';
 import { useCardPreviewStore } from '@/features/card-preview/cardPreviewStore';
@@ -192,7 +194,7 @@ export function App({ yDoc, yjsNetworkProvider, player, roomManager, playerId, c
       <LocalPileTiles />
       <OpponentPileViewers yDoc={yDoc} localPlayerId={playerId} />
       {/* HUD windows float and drag on desktop; on phone they collapse into
-          the fixed top-left toggle column (see docs/responsive.md). */}
+          the fixed top-left toggle column (see docs/architecture/responsive.md). */}
       {isPhone ? (
         <PhoneHudStack yDoc={yDoc} localPlayerId={playerId} />
       ) : (
@@ -208,6 +210,8 @@ export function App({ yDoc, yjsNetworkProvider, player, roomManager, playerId, c
       <CardPreview />
       <GameContextMenu />
       <GameHotkeysManager />
+      <CommandPalette />
+      <HelpModal />
       <Toaster />
       <SettingsModal />
       {/* Replaces the old WelcomeModal, which described the buttons instead of

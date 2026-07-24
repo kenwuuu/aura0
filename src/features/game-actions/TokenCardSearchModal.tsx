@@ -88,7 +88,7 @@ export function TokenCardSearchModal({ cardLookup }: TokenCardSearchModalProps) 
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && close()}>
-      <DialogContent className="max-w-[600px]">
+      <DialogContent size="md">
         <DialogHeader>
           <DialogTitle>Create Token Card</DialogTitle>
         </DialogHeader>

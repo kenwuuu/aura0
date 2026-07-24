@@ -81,6 +81,17 @@ export const HOTKEYS: Hotkey[] = [
     longDescription: 'Draw',
     action: 'draw',
   },
+  {
+    // Deck-only: takes the top card of the deck straight onto the battlefield,
+    // skipping the hand. Not in 'global' — it's a deck-pile action, so it stays
+    // off the empty-board menu, and the key only fires while the deck is hovered.
+    key: 'P',
+    keys: ['p'],
+    context: ['deck'],
+    shortDescription: 'Play to board',
+    longDescription: 'Play the top card of your deck to the battlefield',
+    action: 'playToBattlefield',
+  },
   // Not in 'global' context: shuffle/mulligan are deck-pile actions, so they
   // stay off the empty-board menu (they remain on the deck menu). The v/m keys
   // still fire — those bindings are registered directly in useAllGameHotkeys,
@@ -149,8 +160,18 @@ export const HOTKEYS: Hotkey[] = [
     keys: ['x'],
     context: ['global', 'battlefield'],
     shortDescription: 'Untap all',
-    longDescription: 'Untap all your cards',
+    longDescription: 'Untap all your cards and clear summoning sickness',
     action: 'untapAll',
+  },
+  {
+    // Zzz = summoning-sick creature that can't act yet. Tilts the card 45°;
+    // mutually exclusive with tap (see the `sick`/`tap` executors).
+    key: 'Z',
+    keys: ['z'],
+    context: ['battlefield'],
+    shortDescription: 'Summoning sick',
+    longDescription: 'Tilt card 45° to mark summoning sickness',
+    action: 'sick',
   },
   {
     key: 'F',
@@ -159,6 +180,21 @@ export const HOTKEYS: Hotkey[] = [
     shortDescription: 'Flip',
     longDescription: 'Flip card face-down/face-up',
     action: 'flip',
+  },
+  {
+    // Reveals a facedown card's hidden face in *your local preview only* —
+    // nothing is written to Yjs, so opponents see nothing. `touchMenuOnly`
+    // because on desktop a plain hover already auto-peeks your own hidden cards
+    // (see CardNode.showPreview); the menu row exists only for touch, which has
+    // no hover. No key binding (like `viewPile`). GameContextMenu only shows the
+    // row on your own hidden-facedown cards; `executePeek` gates it the same way.
+    key: '',
+    keys: [],
+    context: ['battlefield'],
+    shortDescription: 'Peek',
+    longDescription: 'Peek at your facedown card (only you can see it)',
+    action: 'peek',
+    touchMenuOnly: true,
   },
   {
     key: 'U',
@@ -287,14 +323,61 @@ export function getHotkeysForContext(context: HotkeyContext): Hotkey[] {
   return HOTKEYS.filter(hotkey => hotkey.context.includes(context));
 }
 
+/** A named group of hotkeys for the shortcut-reference UI (Help modal's
+ *  Shortcuts tab and the command palette's read-only reference section). */
+export interface HotkeyZone {
+  zone: string;
+  hotkeys: Hotkey[];
+}
+
 /**
- * Get all hotkeys with their long descriptions (for the modal)
+ * Display order + which `HotkeyContext`s qualify a hotkey for each zone. Many
+ * keys (D/S/T/Y/B/H, flip, the counters) belong to several contexts; the zone
+ * order below is a *priority* — each key is shown once, under the first zone it
+ * qualifies for. Order is chosen for discoverability, not internal structure:
+ * the shared card-movement keys (D=discard, S=exile, …) land under Hand, where a
+ * player reaches for them most, rather than being buried under Battlefield.
  */
-export function getAllHotkeysWithLongDescriptions(): Array<{ key: string; action: string }> {
-  return HOTKEYS.map(hotkey => ({
-    key: hotkey.key,
-    action: hotkey.longDescription,
-  }));
+const ZONE_ORDER: Array<{ zone: string; contexts: HotkeyContext[] }> = [
+  { zone: 'Global', contexts: [HotkeyContext.Global] },
+  { zone: 'Hand', contexts: [HotkeyContext.Hand] },
+  { zone: 'Battlefield', contexts: [HotkeyContext.Battlefield] },
+  {
+    zone: 'Piles',
+    contexts: [
+      HotkeyContext.Deck,
+      HotkeyContext.Exile,
+      HotkeyContext.Discard,
+      HotkeyContext.Sideboard,
+      HotkeyContext.DeckCard,
+      HotkeyContext.Scry,
+    ],
+  },
+  { zone: 'Tokens', contexts: [HotkeyContext.KeywordToken, HotkeyContext.KeywordTokenStack] },
+  { zone: 'Life', contexts: [HotkeyContext.Health] },
+];
+
+/**
+ * Group the catalog into ordered, deduplicated zones for the shortcut
+ * reference. Pointer-only rows (empty `key`, e.g. `viewPile`) are omitted since
+ * there is no keystroke to show, and each action appears in exactly one zone
+ * (see `ZONE_ORDER`). Reads live from `HOTKEYS`, so the reference can never
+ * drift from the actual bindings.
+ */
+export function getHotkeysGroupedByZone(): HotkeyZone[] {
+  const seen = new Set<string>();
+  const groups: HotkeyZone[] = [];
+  for (const { zone, contexts } of ZONE_ORDER) {
+    const hotkeys = HOTKEYS.filter(
+      (h) =>
+        h.key !== '' &&
+        !seen.has(h.action) &&
+        contexts.some((c) => h.context.includes(c)),
+    );
+    hotkeys.forEach((h) => seen.add(h.action));
+    if (hotkeys.length > 0) groups.push({ zone, hotkeys });
+  }
+  return groups;
 }
 
 /**
@@ -315,7 +398,7 @@ export type MenuTarget =
   | { kind: 'handCard'; id: string }
   | { kind: 'pile'; pileType: Exclude<PileType, 'scry' | 'hand'> }
   | { kind: 'token'; id: string }
-  | { kind: 'health' }
+  | { kind: 'health'; ownerId: string }
   | { kind: 'board'; x: number; y: number }
   | { kind: 'pileViewerCard'; id: string; context: HotkeyContext };
 

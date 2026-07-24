@@ -27,6 +27,7 @@ function makeRun(
     results,
     failedItems,
     failures: failedItems.map((item) => ({ item, reason })),
+    printingMismatches: [],
   };
 }
 

@@ -1,6 +1,6 @@
 import PQueue from 'p-queue';
 import pRetry from 'p-retry';
-import { DeckLineItem } from '@/features/deck-manager/DeckListParser';
+import { DeckLineItem, stripBackFace } from '@/features/deck-manager/DeckListParser';
 import { toCardDataResult } from './ScryfallCardAdapter';
 import { CardDataResult, ScryfallCard } from './types';
 
@@ -71,6 +71,39 @@ function statusOf(err: unknown): number | undefined {
   return err instanceof CardApiError ? err.status : undefined;
 }
 
+/**
+ * Whether the card an API returned is the card the line asked for.
+ *
+ * A set code and collector number are preferred over a name, which means a
+ * *wrong* printing does not fail — it succeeds, with a different card.
+ * `1 Erase (Not the Urza's Legacy One) (UNH) 45` resolves cleanly to Smart Ass,
+ * because UNH 45 *is* Smart Ass. Nothing on that path errors and nothing is
+ * logged; the player simply receives a card they never asked for. Printings are
+ * also the part of a decklist most likely to be stale — names are typed by
+ * people and rarely change, collector numbers are copied between exports and
+ * renumbered between printings — so the two disagreeing is a real event, not a
+ * hypothetical.
+ *
+ * Comparison is loose about presentation and strict about identity. Loose,
+ * because the API answers a double-faced lookup with the full "A // B" while the
+ * entry carries only the front face, and because accents survive some exports
+ * and not others. Strict, because the two directions cost different amounts: a
+ * false mismatch falls back to the name and still finds the right card, losing
+ * only the exact printing, while a false match imports the wrong card silently.
+ */
+function namesAgree(requested: string, returned: string): boolean {
+  return normalizeName(requested) === normalizeName(returned);
+}
+
+function normalizeName(name: string): string {
+  return stripBackFace(name)
+    .normalize('NFD')
+    // Combining marks, so "Lim-Dûl's Vault" and "Lim-Dul's Vault" are one card.
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim()
+    .toLowerCase();
+}
+
 export type CardApiClientConfig = {
   name: string;
   baseUrl: string;
@@ -82,11 +115,35 @@ export type CardApiClientConfig = {
   endpoints: CardApiEndpoints;
 };
 
+/**
+ * A line whose printing resolved to a card the line did not name.
+ *
+ * Worth reporting rather than just repairing. This is the one import fault that
+ * produces no error at any layer — the lookup succeeds, the deck is the right
+ * size, and the only evidence is a card the player did not choose. Counting them
+ * is how we find out whether decklists in the wild carry stale printings at a
+ * rate worth caring about, and which sources produce them.
+ */
+export type PrintingMismatch = {
+  /** The parsed line, carrying the set code and collector number that missed. */
+  item: DeckLineItem;
+  /** The card that printing actually is. */
+  returnedName: string;
+  /**
+   * Which lookup supplied the card in the end. `name` is the ordinary repair;
+   * `printing` means no card had that name and the mismatched one was kept —
+   * rarer, and the more suspicious of the two.
+   */
+  resolvedBy: 'name' | 'printing';
+};
+
 export type FetchListResult = {
   results: CardDataResult[];
   failedItems: DeckLineItem[];
   /** Parallel to `failedItems`, but carries why each one failed. */
   failures: LookupFailure[];
+  /** Lines whose printing named a different card. Empty on a clean import. */
+  printingMismatches: PrintingMismatch[];
 };
 
 /**
@@ -150,20 +207,37 @@ export class CardApiClient {
    * falling back to byName within this same client when bySet fails.
    * Items that fail both lookups are returned in `failedItems` for upstream
    * fallback to a different client.
+   *
+   * Lookups are dispatched concurrently rather than one-at-a-time — the
+   * `PQueue` in the constructor is what actually throttles requests to each
+   * backend's rate limit, so fanning out here doesn't risk exceeding it, and
+   * turns an N-card list into ~N/intervalCap round trips instead of N.
    */
   async fetchImagesForList(
     entries: DeckLineItem[],
     onProgress?: (current: number, total: number) => void,
     retries = 1,
   ): Promise<FetchListResult> {
+    let completed = 0;
+
+    const outcomes = await Promise.all(
+      entries.map(async (entry) => {
+        const outcome = await this.lookupEntry(entry, retries);
+        completed++;
+        onProgress?.(completed, entries.length);
+        return { entry, outcome };
+      }),
+    );
+
     const results: CardDataResult[] = [];
     const failedItems: DeckLineItem[] = [];
     const failures: LookupFailure[] = [];
-    let completed = 0;
+    const printingMismatches: PrintingMismatch[] = [];
 
-    for (const entry of entries) {
-      const outcome = await this.lookupEntry(entry, retries);
-
+    for (const { entry, outcome } of outcomes) {
+      if (outcome.mismatch !== undefined) {
+        printingMismatches.push(outcome.mismatch);
+      }
       if (outcome.card) {
         results.push(toCardDataResult(outcome.card, entry.count, entry.commander, entry.section));
       } else {
@@ -180,12 +254,9 @@ export class CardApiClient {
           error: `[${this.config.name}] lookup failed for "${entry.name}" (${outcome.reason})`,
         });
       }
-
-      completed++;
-      onProgress?.(completed, entries.length);
     }
 
-    return { results, failedItems, failures };
+    return { results, failedItems, failures, printingMismatches };
   }
 
   getQueueSize(): number {
@@ -200,11 +271,24 @@ export class CardApiClient {
    * Resolves one entry, reporting *why* it failed rather than just that it did.
    * When both the set and name lookups are tried, the name lookup's reason wins —
    * it's the attempt that actually decided the outcome.
+   *
+   * The printing is preferred, but only while it agrees with the name; see
+   * {@link namesAgree} for why disagreement is the dangerous case rather than the
+   * harmless one.
    */
   private async lookupEntry(
     entry: DeckLineItem,
     retries: number,
-  ): Promise<{ card?: ScryfallCard; reason: LookupFailureReason; status?: number }> {
+  ): Promise<{
+    card?: ScryfallCard;
+    reason: LookupFailureReason;
+    status?: number;
+    mismatch?: PrintingMismatch;
+  }> {
+    // Set when the printing resolved to a card that isn't the one the line named.
+    let mismatched: ScryfallCard | undefined;
+    let printingError: unknown;
+
     if (entry.setCode && entry.collectorNumber) {
       try {
         const card = await this.fetchBySet(
@@ -213,32 +297,51 @@ export class CardApiClient {
           retries,
           entry.name,
         );
-        return { card, reason: 'unknown' };
-      } catch (err) {
-        // bySet failed — try name within this same client before giving up
-        try {
-          const card = await this.fetchByName(entry.name, retries);
+        if (namesAgree(entry.name, card.name)) {
           return { card, reason: 'unknown' };
-        } catch (fallbackErr) {
-          console.error(
-            `[${this.config.name}] both set and name lookups failed for "${entry.name}"`,
-            { primary: err, fallback: fallbackErr },
-          );
-          return {
-            reason: classifyError(fallbackErr),
-            status: statusOf(fallbackErr),
-          };
         }
+        mismatched = card;
+        console.warn(
+          `[${this.config.name}] ${entry.setCode}/${entry.collectorNumber} is "${card.name}", `
+          + `not "${entry.name}" — trying the name instead`,
+        );
+      } catch (err) {
+        printingError = err;
       }
     }
 
+    // Reached because there was no printing to try, because it failed, or because
+    // it answered with a different card.
     try {
       const card = await this.fetchByName(entry.name, retries);
-      return { card, reason: 'unknown' };
+      return {
+        card,
+        reason: 'unknown',
+        ...(mismatched === undefined
+          ? {}
+          : { mismatch: { item: entry, returnedName: mismatched.name, resolvedBy: 'name' } }),
+      };
     } catch (err) {
+      if (mismatched !== undefined) {
+        // The name found nothing, so the printing is the only card we have. A card
+        // from the printing the list named beats no card at all — this is the shape
+        // a renamed card takes, where the old name is dead and the printing is not.
+        console.warn(
+          `[${this.config.name}] no card named "${entry.name}"; keeping `
+          + `"${mismatched.name}" from ${entry.setCode}/${entry.collectorNumber}`,
+        );
+        return {
+          card: mismatched,
+          reason: 'unknown',
+          mismatch: { item: entry, returnedName: mismatched.name, resolvedBy: 'printing' },
+        };
+      }
+
       console.error(
-        `[${this.config.name}] name lookup failed for "${entry.name}"`,
-        err,
+        printingError === undefined
+          ? `[${this.config.name}] name lookup failed for "${entry.name}"`
+          : `[${this.config.name}] both set and name lookups failed for "${entry.name}"`,
+        printingError === undefined ? err : { primary: printingError, fallback: err },
       );
       return { reason: classifyError(err), status: statusOf(err) };
     }

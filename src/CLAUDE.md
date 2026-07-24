@@ -1,2 +1,2 @@
 Source root following screaming architecture: domain verticals in `features/`, cross-cutting tech in `infrastructure/`, generic primitives in `shared/`, app shell in `app/`.
-Entry point is `app/main.ts` → `bootstrapGame()` → single `createRoot(<App/>)`. No imperative UI classes remain — the last one, `PileViewer` (in `features/game-dock/`), was retired in favor of `PileViewerReact` mounted normally in the tree.
+Entry point is `app/main.ts` → `bootstrapGame()` → single `createRoot(<App/>)`. Bootstrap is the only imperative layer; UI is one React tree, with no detached roots or imperative UI classes.
