@@ -27,6 +27,7 @@ import {
   DropdownMenuTrigger,
 } from '@/shared/ui/dropdown-menu';
 import { CreateTokenGridItem } from '@/features/game-actions/CreateTokenGridItem';
+import { usePileViewerHotkeyStore } from '@/features/game-dock/pileViewerHotkeyStore';
 import { useGameInstance } from '@/app/stores/gameInstanceStore';
 import { requestRemovePlayer } from '@/features/player/removePlayer';
 import { isHiddenFacedown } from '@/features/battlefield/nodes/cardNodeLogic';
@@ -50,6 +51,10 @@ function canPeekTarget(target: MenuTarget): boolean {
 
 export function GameContextMenu() {
   const isOpen = useContextMenuStore((s) => s.isOpen);
+  // Which rows the open pile viewer can actually perform (see
+  // pileViewerHotkeyStore) — a scry pile has no face-down play, an exile pile
+  // has nothing to view from inside its own viewer.
+  const pileViewerActions = usePileViewerHotkeyStore((s) => s.availableActions);
   const x = useContextMenuStore((s) => s.x);
   const y = useContextMenuStore((s) => s.y);
   const target = useContextMenuStore((s) => s.target);
@@ -74,7 +79,14 @@ export function GameContextMenu() {
     .filter((row) => row.action !== 'peek' || (!!target && canPeekTarget(target)))
     // Opponent-health menus drop the self-targeting life rows; they show only
     // the Remove row appended below.
-    .filter(() => !isOpponentHealth);
+    .filter(() => !isOpponentHealth)
+    // Pile-viewer rows are presence-driven, exactly like the destination bar and
+    // the desktop key legend: the open viewer publishes the actions it was given
+    // callbacks for, so a row it can't perform is dropped instead of rendering
+    // as a no-op ("Play to board facedown" in the scry viewer, "View" from
+    // inside the pile you're already viewing). A read-only viewer (an opponent's
+    // pile) publishes none, so its cards get no menu at all.
+    .filter((row) => target?.kind !== 'pileViewerCard' || pileViewerActions.has(row.action));
   const open = isOpen && (rows.length > 0 || isOpponentHealth);
 
   // The hand is anchored to the bottom of the screen (both desktop and phone),
