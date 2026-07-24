@@ -16,6 +16,7 @@
  * at (x, y), with `Content` positioned relative to it via Radix Popper.
  */
 
+import { Fragment } from 'react';
 import { useContextMenuStore } from './contextMenuStore';
 import { getMenuActionsForTarget, type MenuTarget } from './hotkeys';
 import { dispatchGameAction } from './gameActions';
@@ -23,6 +24,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuShortcut,
   DropdownMenuTrigger,
 } from '@/shared/ui/dropdown-menu';
@@ -175,19 +177,26 @@ export function GameContextMenu() {
         onFocusOutside={(e) => e.preventDefault()}
       >
         {target && rows.map((hotkey, index) => (
-          <DropdownMenuItem
-            key={`${hotkey.action}-${index}`}
-            variant={hotkey.destructive ? 'destructive' : 'default'}
-            onSelect={() => dispatchGameAction(hotkey.action, target)}
-          >
-            {hotkey.shortDescription}
-            <DropdownMenuShortcut>{hotkey.key}</DropdownMenuShortcut>
-          </DropdownMenuItem>
+          <Fragment key={`${hotkey.action}-${index}`}>
+            <DropdownMenuItem
+              variant={hotkey.destructive ? 'destructive' : 'default'}
+              onSelect={() => dispatchGameAction(hotkey.action, target)}
+            >
+              {hotkey.shortDescription}
+              <DropdownMenuShortcut>{hotkey.key}</DropdownMenuShortcut>
+            </DropdownMenuItem>
+            {/* Destructive rows (Delete) get a divider after them so a
+                misclick can't slide from Delete straight into the next
+                action (Hand, on the battlefield-card menu). Skipped when
+                destructive is the last row (e.g. the token menu). */}
+            {hotkey.destructive && index < rows.length - 1 && <DropdownMenuSeparator />}
+          </Fragment>
         ))}
-        {/* The empty-board menu offers token creation via the same drag-to-board
-            grid as the toolbar's Create ▾ menu (it took the "-1/-1 counter"
-            slot). It performs no dispatchable action, so it lives here rather
-            than in the HOTKEYS catalog and carries no keyboard shortcut. */}
+        {/* The empty-board menu also offers keyword-token creation via the same
+            drag-to-board grid as the toolbar's Create ▾ menu, appended after the
+            +1/-1 counter rows above. It performs no dispatchable action, so it
+            lives here rather than in the HOTKEYS catalog and carries no keyboard
+            shortcut. */}
         {target?.kind === 'board' && (
           <CreateTokenGridItem
             label="Keyword counters"
