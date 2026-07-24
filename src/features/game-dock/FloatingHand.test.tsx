@@ -108,4 +108,41 @@ describe('FloatingHand', () => {
     expect(screen.getByAltText('Real Card')).toBeInTheDocument();
     expect(screen.queryByAltText('Demo 0')).not.toBeInTheDocument();
   });
+
+  describe('collapse toggle', () => {
+    it('starts expanded, showing the hand and a "Hide hand" button', () => {
+      renderWithGame(<FloatingHand />, { hand: makeCards(1) });
+
+      const toggle = screen.getByTestId('hand-collapse-toggle');
+      expect(toggle).toHaveAttribute('aria-label', 'Hide hand');
+      expect(toggle).toHaveAttribute('aria-expanded', 'true');
+      expect(screen.getByTestId('hand-collapse-region')).toHaveAttribute('aria-hidden', 'false');
+    });
+
+    it('collapses the hand region and flips to a "Show hand" button on click', async () => {
+      const user = userEvent.setup();
+      renderWithGame(<FloatingHand />, { hand: makeCards(1) });
+
+      await user.click(screen.getByTestId('hand-collapse-toggle'));
+
+      const toggle = screen.getByTestId('hand-collapse-toggle');
+      expect(toggle).toHaveAttribute('aria-label', 'Show hand');
+      expect(toggle).toHaveAttribute('aria-expanded', 'false');
+      const region = screen.getByTestId('hand-collapse-region');
+      expect(region).toHaveAttribute('aria-hidden', 'true');
+      expect(region).toHaveStyle({ pointerEvents: 'none' });
+    });
+
+    it('expands again on a second click', async () => {
+      const user = userEvent.setup();
+      renderWithGame(<FloatingHand />, { hand: makeCards(1) });
+
+      const toggle = screen.getByTestId('hand-collapse-toggle');
+      await user.click(toggle);
+      await user.click(toggle);
+
+      expect(toggle).toHaveAttribute('aria-label', 'Hide hand');
+      expect(screen.getByTestId('hand-collapse-region')).toHaveAttribute('aria-hidden', 'false');
+    });
+  });
 });
