@@ -17,6 +17,7 @@ import React, { useState } from 'react';
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from '@/shared/ui/dialog';
@@ -56,7 +57,15 @@ export function ConfirmDialog({
           <DialogTitle>{title}</DialogTitle>
         </DialogHeader>
         <div className="p-6 pt-0">
-          <p className="text-gray-400 text-md mb-5">{description}</p>
+          {/* A real DialogDescription, not a styled <p>: Radix wires it to the
+              dialog's aria-describedby, and warns in dev when it is missing.
+              `text-base` is load-bearing — this was a bare <p> carrying a
+              `text-md` that Tailwind has never defined, so it rendered at the
+              inherited 16px. DialogDescription brings its own `text-sm`, which
+              would silently shrink every existing confirm dialog. */}
+          <DialogDescription className="text-gray-400 text-base mb-5">
+            {description}
+          </DialogDescription>
           {dontAskAgainLabel && (
             <label className="flex items-center gap-2 mb-5 text-sm text-gray-400 cursor-pointer select-none">
               <Checkbox

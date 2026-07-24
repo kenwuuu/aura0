@@ -31,6 +31,16 @@ function renderDialog(props: Partial<React.ComponentProps<typeof ConfirmDialog>>
 }
 
 describe('ConfirmDialog', () => {
+  // Was a bare <p>, so the dialog had no aria-describedby and Radix logged a
+  // "Missing `Description`" warning on every open.
+  it('announces the description to assistive tech', () => {
+    renderDialog();
+
+    expect(screen.getByRole('dialog')).toHaveAccessibleDescription(
+      'Removes Lightning Bolt from the battlefield.',
+    );
+  });
+
   it('has no opt-out checkbox unless a label is given', () => {
     renderDialog();
 
