@@ -146,7 +146,7 @@ export function requestRemovePlayer(targetPlayerId: string): void {
   useConfirmStore.getState().open({
     title: `Remove ${name}?`,
     description:
-      "Removes this player's seat, along with any cards and tokens they left on the board. If they rejoin the room, they'll get a fresh seat.",
+      "Removes this player's seat, along with any cards and tokens they left on the board. Freeing up their seat can shift where the remaining playmats sit — mats move, but any cards already on the board stay exactly where they are, so you may need to drag them back into place (shift-drag to box-select several at once). If they rejoin the room, they'll get a fresh seat.",
     confirmLabel: 'Remove',
     destructive: true,
     onConfirm: () => removePlayer(yDoc, targetPlayerId, playerId),
