@@ -27,16 +27,16 @@ test('right-clicking empty board opens the global actions menu', async ({ page }
   await expect(page.getByRole('menuitem', { name: /^-1 life\b/ })).toHaveCount(0);
 });
 
-test('board pane menu offers Keyword counters in place of "-1/-1 counter"', async ({ page }) => {
+test('board pane menu offers +1/-1 counter rows plus a "Keyword counters" grid', async ({ page }) => {
   const { x, y } = await emptyBoardPoint(page);
 
   await page.mouse.click(x, y, { button: 'right' });
 
-  // The drag-to-board grid took the "-1/-1 counter" slot; the "+1/+1"
-  // ("Counter") row is untouched. `/^Counter\b/` matches only that row, not the
-  // "Keyword counters" grid item below (which starts with "Keyword").
-  await expect(page.getByRole('menuitem', { name: /^Counter\b/ })).toBeVisible();
-  await expect(page.getByRole('menuitem', { name: /-1\/-1 counter/ })).toHaveCount(0);
+  // Both counter rows are on the empty-board menu now, alongside the
+  // drag-to-board "Keyword counters" grid. The anchored `^` regexes match only
+  // the counter rows, not "Keyword counters" (which starts with "Keyword").
+  await expect(page.getByRole('menuitem', { name: /^\+1 counter\b/ })).toBeVisible();
+  await expect(page.getByRole('menuitem', { name: /^-1 counter\b/ })).toBeVisible();
 
   // "Keyword counters" hosts the same drag-to-board grid as the toolbar's Create ▾
   // menu — clicking it opens the popover (real-browser check of the nested
