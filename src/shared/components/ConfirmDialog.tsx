@@ -4,15 +4,24 @@
  * Generic yes/no confirmation dialog for consequential actions (Reset Deck,
  * New Game, etc). Styled to match NumberPrompt/ScryModal so they feel
  * consistent.
+ *
+ * Opt-out: pass `dontAskAgainLabel` to show a "Don't ask again" checkbox. Its
+ * state is reported through `onConfirm(dontAskAgain)` and *only* on confirm —
+ * ticking the box and then cancelling changes nothing. Suppressing a
+ * confirmation you just backed out of would silently arm the very action you
+ * declined, so the checkbox means "yes, and stop asking", never "no, and stop
+ * asking".
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from '@/shared/ui/dialog';
+import { Checkbox } from '@/shared/ui/checkbox';
 
 interface ConfirmDialogProps {
   isOpen: boolean;
@@ -21,7 +30,10 @@ interface ConfirmDialogProps {
   confirmLabel?: string;
   cancelLabel?: string;
   destructive?: boolean;
-  onConfirm: () => void;
+  /** Shows a "don't ask again" checkbox with this label. Omit for no checkbox. */
+  dontAskAgainLabel?: string;
+  /** `dontAskAgain` is the checkbox state, always false when no checkbox is shown. */
+  onConfirm: (dontAskAgain: boolean) => void;
   onCancel: () => void;
 }
 
@@ -32,9 +44,12 @@ export function ConfirmDialog({
   confirmLabel = 'Confirm',
   cancelLabel = 'Cancel',
   destructive = false,
+  dontAskAgainLabel,
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) {
+  const [dontAskAgain, setDontAskAgain] = useState(false);
+
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onCancel()}>
       <DialogContent size="sm">
@@ -42,7 +57,24 @@ export function ConfirmDialog({
           <DialogTitle>{title}</DialogTitle>
         </DialogHeader>
         <div className="p-6 pt-0">
-          <p className="text-gray-400 text-md mb-5">{description}</p>
+          {/* A real DialogDescription, not a styled <p>: Radix wires it to the
+              dialog's aria-describedby, and warns in dev when it is missing.
+              `text-base` is load-bearing — this was a bare <p> carrying a
+              `text-md` that Tailwind has never defined, so it rendered at the
+              inherited 16px. DialogDescription brings its own `text-sm`, which
+              would silently shrink every existing confirm dialog. */}
+          <DialogDescription className="text-gray-400 text-base mb-5">
+            {description}
+          </DialogDescription>
+          {dontAskAgainLabel && (
+            <label className="flex items-center gap-2 mb-5 text-sm text-gray-400 cursor-pointer select-none">
+              <Checkbox
+                checked={dontAskAgain}
+                onCheckedChange={(checked) => setDontAskAgain(checked === true)}
+              />
+              {dontAskAgainLabel}
+            </label>
+          )}
           <div className="flex gap-3">
             <button
               className="flex-1 px-3 py-3 rounded-lg border-none text-base font-bold cursor-pointer transition-colors bg-[#2d2d2d] text-[#9ca3af] hover:bg-[#3d3d3d]"
@@ -56,7 +88,7 @@ export function ConfirmDialog({
                   ? 'flex-1 px-3 py-3 rounded-lg border-none text-base font-bold cursor-pointer transition-colors bg-red-600 text-white hover:bg-red-700'
                   : 'flex-1 px-3 py-3 rounded-lg border-none text-base font-bold cursor-pointer transition-colors bg-blue-500 text-white hover:bg-blue-600'
               }
-              onClick={onConfirm}
+              onClick={() => onConfirm(dontAskAgain)}
             >
               {confirmLabel}
             </button>

@@ -1,6 +1,7 @@
 import {test as base, expect, Locator} from '@playwright/test';
 import { blockAnalytics } from './harness/network';
 import { markReturningPlayer } from './harness/onboarding';
+import { setDeleteConfirmation } from './harness/settings';
 
 async function closeIfVisible(locator: Locator) {
   // Only try the click if the locator exists in the DOM
@@ -21,7 +22,7 @@ function generateRandomString(length: number): string {
   return result;
 }
 
-export const test = base.extend<{ onboardingTour: boolean }>({
+export const test = base.extend<{ onboardingTour: boolean; deleteConfirmation: boolean }>({
   /**
    * Whether this spec wants the first-run tour. Off by default: a fresh context
    * has empty localStorage, which makes every test a brand-new player, and the
@@ -33,10 +34,21 @@ export const test = base.extend<{ onboardingTour: boolean }>({
    */
   onboardingTour: [false, { option: true }],
 
-  page: async ({ page, onboardingTour }, use) => {
+  /**
+   * Whether this spec wants the "are you sure?" prompt on card delete. It ships
+   * **on**, but is off here so that deleting a card stays a single click for the
+   * specs that only delete as a setup step. Opt in with
+   * `test.use({ deleteConfirmation: true })` — see
+   * `app/board/delete_confirmation.spec.ts`, which covers the real behavior.
+   */
+  deleteConfirmation: [false, { option: true }],
+
+  page: async ({ page, onboardingTour, deleteConfirmation }, use) => {
     // The whole context, not just this page: `openDuplicateTab` opens a second page
     // here, and a page-level script would leave that tab booting as a new player.
     if (!onboardingTour) await markReturningPlayer(page.context());
+
+    await setDeleteConfirmation(page.context(), deleteConfirmation);
 
     await blockAnalytics(page);
 

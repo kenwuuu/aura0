@@ -1,5 +1,6 @@
 export * from './network';
 export * from './onboarding';
+export * from './settings';
 export * from './selectors';
 export * from './viewports';
 export * from './pageObjects';

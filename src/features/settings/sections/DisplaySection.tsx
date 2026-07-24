@@ -86,6 +86,8 @@ export function DisplaySection() {
   const setPreviewZoom = useSettingsStore((s) => s.setPreviewZoom);
   const snapToGridEnabled = useSettingsStore((s) => s.snapToGridEnabled);
   const setSnapToGridEnabled = useSettingsStore((s) => s.setSnapToGridEnabled);
+  const confirmCardDelete = useSettingsStore((s) => s.confirmCardDelete);
+  const setConfirmCardDelete = useSettingsStore((s) => s.setConfirmCardDelete);
 
   return (
     <div className={styles.section}>
@@ -133,6 +135,18 @@ export function DisplaySection() {
           aria-label="Always snap to grid"
           checked={snapToGridEnabled}
           onCheckedChange={(checked) => setSnapToGridEnabled(checked === true)}
+        />
+      </SettingRow>
+
+      <p className={styles.sectionTitle}>Confirmations</p>
+      <SettingRow
+        label="Ask before deleting a card"
+        description="Deleting removes a card from the battlefield without sending it to a pile, and can't be undone."
+      >
+        <Checkbox
+          aria-label="Ask before deleting a card"
+          checked={confirmCardDelete}
+          onCheckedChange={(checked) => setConfirmCardDelete(checked === true)}
         />
       </SettingRow>
 
