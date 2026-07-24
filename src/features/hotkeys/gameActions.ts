@@ -16,6 +16,7 @@
 
 import { useGameInstance } from '@/app/stores/gameInstanceStore';
 import { useHotkeyStore } from '@/app/stores/hotkeyStore';
+import { useSettingsStore } from '@/app/stores/settingsStore';
 import { useContextMenuStore } from './contextMenuStore';
 import { useCardPreviewStore } from '@/features/card-preview/cardPreviewStore';
 import { executeBattlefieldCardAction } from '@/features/battlefield/battlefieldCardActions';
@@ -171,7 +172,7 @@ function executeBoardAction(action: string, cursor: { x: number; y: number }): v
       break;
     case 'mulligan':
       if (player) {
-        triggerConfirmation('Mulligan? Draws 7 new cards.', 'm').then((confirmed) => {
+        triggerConfirmation('Mulligan? Draws 7 new cards.', 'm').then(({ confirmed }) => {
           if (confirmed) { player.mulligan(7); saveDeck(); }
         });
       }
@@ -260,9 +261,26 @@ export function dispatchGameAction(action: string, target: MenuTarget): void {
         : [target.id];
       // One transaction → one undo step and one observer rebuild for the batch
       // (also batches the hand/deck writes the moveTo* actions delegate to).
-      yDoc.transact(() => {
-        for (const id of ids) executeBattlefieldCardAction(action, id, yCards, yTokens, playerId);
-      });
+      const runAction = () => {
+        yDoc.transact(() => {
+          for (const id of ids) executeBattlefieldCardAction(action, id, yCards, yTokens, playerId);
+        });
+      };
+      // Delete is the one battlefield action that's actually irreversible — the
+      // moveTo* actions all relocate the card to a pile it can be recovered
+      // from. Gated on a persisted setting (default on) so a player can turn it
+      // off permanently, either from Settings or via the dialog's own checkbox.
+      if (action === 'delete' && useSettingsStore.getState().confirmCardDeletion) {
+        const message = ids.length > 1
+          ? `Delete ${ids.length} cards? This cannot be undone.`
+          : 'Delete this card? This cannot be undone.';
+        triggerConfirmation(message, 'Backspace', { showDontAskAgain: true }).then(({ confirmed, dontAskAgain }) => {
+          if (dontAskAgain) useSettingsStore.getState().setConfirmCardDeletion(false);
+          if (confirmed) runAction();
+        });
+        return;
+      }
+      runAction();
       return;
     }
     case 'handCard':

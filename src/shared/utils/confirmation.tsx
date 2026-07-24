@@ -2,13 +2,28 @@ import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { ConfirmationDialog } from '@/shared/components/ConfirmationDialog';
 
+export interface ConfirmationOptions {
+  /** Shows a "Don't ask me again" checkbox below the message. */
+  showDontAskAgain?: boolean;
+}
+
+export interface ConfirmationResult {
+  confirmed: boolean;
+  /** Whether the "Don't ask me again" checkbox was checked when the dialog closed. */
+  dontAskAgain: boolean;
+}
+
 /**
- * Triggers a confirmation dialog and returns a promise that resolves to true if confirmed, false if canceled.
+ * Triggers a confirmation dialog and returns a promise resolving once the user confirms or cancels.
  * @param message The confirmation message to display
  * @param confirmKey The keyboard key that the user must press to confirm (e.g., 'z', 'y')
- * @returns Promise<boolean> - resolves to true if confirmed, false if canceled
+ * @param options Optional extras — e.g. a "don't ask me again" checkbox
  */
-export function triggerConfirmation(message: string, confirmKey: string): Promise<boolean> {
+export function triggerConfirmation(
+  message: string,
+  confirmKey: string,
+  options: ConfirmationOptions = {},
+): Promise<ConfirmationResult> {
   return new Promise((resolve) => {
     // Create a container div for the dialog
     const container = document.createElement('div');
@@ -17,6 +32,8 @@ export function triggerConfirmation(message: string, confirmKey: string): Promis
 
     const root = createRoot(container);
 
+    let dontAskAgain = false;
+
     const cleanup = () => {
       root.unmount();
       document.body.removeChild(container);
@@ -24,12 +41,16 @@ export function triggerConfirmation(message: string, confirmKey: string): Promis
 
     const handleConfirm = () => {
       cleanup();
-      resolve(true);
+      resolve({ confirmed: true, dontAskAgain });
     };
 
     const handleCancel = () => {
       cleanup();
-      resolve(false);
+      resolve({ confirmed: false, dontAskAgain });
+    };
+
+    const handleDontAskAgainChange = (checked: boolean) => {
+      dontAskAgain = checked;
     };
 
     root.render(
@@ -39,6 +60,8 @@ export function triggerConfirmation(message: string, confirmKey: string): Promis
         confirmKey={confirmKey}
         onConfirm={handleConfirm}
         onCancel={handleCancel}
+        showDontAskAgain={options.showDontAskAgain}
+        onDontAskAgainChange={handleDontAskAgainChange}
       />
     );
   });

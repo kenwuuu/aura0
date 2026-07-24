@@ -56,4 +56,14 @@ describe('DisplaySection', () => {
 
     expect(useSettingsStore.getState().snapToGridEnabled).toBe(true);
   });
+
+  it('toggles confirm-card-deletion via the checkbox', async () => {
+    const user = userEvent.setup();
+    useSettingsStore.setState({ confirmCardDeletion: true });
+    render(<DisplaySection />);
+
+    await user.click(screen.getByRole('checkbox', { name: 'Confirm card deletion' }));
+
+    expect(useSettingsStore.getState().confirmCardDeletion).toBe(false);
+  });
 });

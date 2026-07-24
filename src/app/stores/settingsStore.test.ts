@@ -52,6 +52,18 @@ describe('useSettingsStore', () => {
     });
   });
 
+  describe('setConfirmCardDeletion', () => {
+    it('defaults to true and toggles', () => {
+      expect(useSettingsStore.getState().confirmCardDeletion).toBe(true);
+
+      useSettingsStore.getState().setConfirmCardDeletion(false);
+      expect(useSettingsStore.getState().confirmCardDeletion).toBe(false);
+
+      useSettingsStore.getState().setConfirmCardDeletion(true);
+      expect(useSettingsStore.getState().confirmCardDeletion).toBe(true);
+    });
+  });
+
   describe('setDemoHandCards', () => {
     it('sets and clears the ephemeral demo hand', () => {
       const cards = [{ id: 'c1' } as any];

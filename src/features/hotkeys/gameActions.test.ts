@@ -6,16 +6,19 @@
  * `Y.Doc`/`Player` (never mocked), so the refactor can be verified against
  * them instead of by hand.
  *
- * `mulligan` is intentionally not covered here: `triggerConfirmation` mounts
- * a real dialog via a bare `createRoot` outside RTL's render/cleanup cycle,
- * so driving it in a logic-tier test would leak DOM across tests. It was
- * never unit-tested before this extraction either — no regression in
- * coverage, just not adding a leaky one.
+ * `mulligan` — and `delete` when `confirmCardDeletion` is on — are
+ * intentionally not covered here: `triggerConfirmation` mounts a real dialog
+ * via a bare `createRoot` outside RTL's render/cleanup cycle, so driving it
+ * in a logic-tier test would leak DOM across tests. It was never unit-tested
+ * before this extraction either — no regression in coverage, just not adding
+ * a leaky one. `delete` with the setting off (the common "skip the dialog"
+ * path) is covered below since it never touches `triggerConfirmation`.
  */
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { dispatchGameAction } from './gameActions';
 import { useGameInstance } from '@/app/stores/gameInstanceStore';
 import { useHotkeyStore } from '@/app/stores/hotkeyStore';
+import { useSettingsStore } from '@/app/stores/settingsStore';
 import { useCardPreviewStore } from '@/features/card-preview/cardPreviewStore';
 import { usePileViewerHotkeyStore } from '@/features/game-dock/pileViewerHotkeyStore';
 import { usePileViewerOpenStore } from '@/features/game-dock/pileViewerOpenStore';
@@ -206,6 +209,22 @@ describe('dispatchGameAction', () => {
         dispatchGameAction('peek', { kind: 'battlefieldCard', id: 'card-1' });
 
         expect(useCardPreviewStore.getState().isVisible).toBe(false);
+      });
+    });
+
+    describe('delete', () => {
+      const originalConfirmCardDeletion = useSettingsStore.getState().confirmCardDeletion;
+      afterEach(() => useSettingsStore.setState({ confirmCardDeletion: originalConfirmCardDeletion }));
+
+      it('deletes immediately, without a confirmation dialog, when the setting is off', () => {
+        useSettingsStore.setState({ confirmCardDeletion: false });
+        const { yDoc, playerId } = seed();
+        const yCards = yDoc.getMap('cards-on-board');
+        yCards.set('card-1', { ...makeCard(), zIndex: 1, ownerId: playerId });
+
+        dispatchGameAction('delete', { kind: 'battlefieldCard', id: 'card-1' });
+
+        expect(yCards.has('card-1')).toBe(false);
       });
     });
   });

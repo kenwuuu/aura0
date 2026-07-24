@@ -86,6 +86,8 @@ export function DisplaySection() {
   const setPreviewZoom = useSettingsStore((s) => s.setPreviewZoom);
   const snapToGridEnabled = useSettingsStore((s) => s.snapToGridEnabled);
   const setSnapToGridEnabled = useSettingsStore((s) => s.setSnapToGridEnabled);
+  const confirmCardDeletion = useSettingsStore((s) => s.confirmCardDeletion);
+  const setConfirmCardDeletion = useSettingsStore((s) => s.setConfirmCardDeletion);
 
   return (
     <div className={styles.section}>
@@ -133,6 +135,16 @@ export function DisplaySection() {
           aria-label="Always snap to grid"
           checked={snapToGridEnabled}
           onCheckedChange={(checked) => setSnapToGridEnabled(checked === true)}
+        />
+      </SettingRow>
+      <SettingRow
+        label="Confirm card deletion"
+        description="Ask before deleting a battlefield card. Also toggled by the \"don't ask again\" checkbox on the confirmation dialog itself."
+      >
+        <Checkbox
+          aria-label="Confirm card deletion"
+          checked={confirmCardDeletion}
+          onCheckedChange={(checked) => setConfirmCardDeletion(checked === true)}
         />
       </SettingRow>
 

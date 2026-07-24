@@ -1,5 +1,6 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
+import { Checkbox } from '@/shared/ui/checkbox';
 
 interface ConfirmationDialogProps {
   isOpen: boolean;
@@ -7,6 +8,11 @@ interface ConfirmationDialogProps {
   confirmKey: string;
   onConfirm: () => void;
   onCancel: () => void;
+  /** Shows a "Don't ask me again" checkbox below the message. */
+  showDontAskAgain?: boolean;
+  /** Fires whenever the checkbox is toggled, so the caller can read its final
+   *  state at confirm/cancel time without this component owning the setting. */
+  onDontAskAgainChange?: (checked: boolean) => void;
 }
 
 const styles = {
@@ -85,6 +91,15 @@ const styles = {
     borderRadius: '6px',
     border: '1px solid #3d3d3d',
   } as React.CSSProperties,
+  dontAskAgain: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    marginTop: '16px',
+    color: '#e5e7eb',
+    fontSize: '14px',
+    cursor: 'pointer',
+  } as React.CSSProperties,
 };
 
 export const ConfirmationDialog: React.FC<ConfirmationDialogProps> = ({
@@ -93,7 +108,11 @@ export const ConfirmationDialog: React.FC<ConfirmationDialogProps> = ({
   confirmKey,
   onConfirm,
   onCancel,
+  showDontAskAgain,
+  onDontAskAgainChange,
 }) => {
+  const [dontAskAgain, setDontAskAgain] = useState(false);
+
   useEffect(() => {
     if (!isOpen) return;
 
@@ -146,6 +165,20 @@ export const ConfirmationDialog: React.FC<ConfirmationDialogProps> = ({
                 <kbd style={styles.key}>ESC</kbd>
                 <span>to cancel</span>
               </div>
+              {showDontAskAgain && (
+                <label style={styles.dontAskAgain}>
+                  <Checkbox
+                    aria-label="Don't ask me again"
+                    checked={dontAskAgain}
+                    onCheckedChange={(checked) => {
+                      const next = checked === true;
+                      setDontAskAgain(next);
+                      onDontAskAgainChange?.(next);
+                    }}
+                  />
+                  Don't ask me again
+                </label>
+              )}
             </div>
           </Dialog.Content>
         </Dialog.Overlay>

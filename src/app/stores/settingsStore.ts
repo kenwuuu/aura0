@@ -59,6 +59,11 @@ interface SettingsStore {
   // When false, the snap-to-grid hotkey (hold Alt) still works per-drag.
   snapToGridEnabled: boolean;
   setSnapToGridEnabled: (enabled: boolean) => void;
+  // When true, deleting a battlefield card (Backspace / the menu's Delete row)
+  // asks for confirmation first. The confirmation dialog's own "don't ask
+  // again" checkbox is how a player flips this off without visiting Settings.
+  confirmCardDeletion: boolean;
+  setConfirmCardDeletion: (enabled: boolean) => void;
   // Draggable HUD panel positions (toolbar, action log, …), keyed by panel id.
   // Persisted so a player's window layout survives reloads.
   panelPositions: Record<string, { x: number; y: number }>;
@@ -97,6 +102,8 @@ export const useSettingsStore = create<SettingsStore>()(
       setPreviewZoom: (zoom) => set({ previewZoom: clampPreviewZoom(zoom) }),
       snapToGridEnabled: false,
       setSnapToGridEnabled: (enabled) => set({ snapToGridEnabled: enabled }),
+      confirmCardDeletion: true,
+      setConfirmCardDeletion: (enabled) => set({ confirmCardDeletion: enabled }),
       panelPositions: {},
       setPanelPosition: (key, pos) =>
         set((s) => ({ panelPositions: { ...s.panelPositions, [key]: pos } })),
@@ -128,6 +135,7 @@ export const useSettingsStore = create<SettingsStore>()(
         handZoom: state.handZoom,
         previewZoom: state.previewZoom,
         snapToGridEnabled: state.snapToGridEnabled,
+        confirmCardDeletion: state.confirmCardDeletion,
         networkTransport: state.networkTransport,
         panelPositions: state.panelPositions,
         tourOutcome: state.tourOutcome,
