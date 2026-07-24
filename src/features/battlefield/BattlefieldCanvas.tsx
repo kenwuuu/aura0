@@ -32,6 +32,7 @@ import { KeywordToken } from '@/features/keyword-tokens/types';
 import { attachedChildren, findParent, nodeCenter, nodeContainsPoint } from './nodeAttachment';
 import { findDropTarget, type PileDropTarget } from './dropTargetDetection';
 import { spawnTokenAtPosition, getMaxZIndex } from './spawnToken';
+import { computeGroupDragElevations } from './dragElevation';
 import { moveCardFromBattlefield } from './battlefieldActions';
 import { YDOC_CARDS_ON_BOARD, YDOC_KEYWORD_TOKENS } from '@/constants';
 import { MIN_ZOOM, MAX_ZOOM, MAT_WIDTH, MAT_HEIGHT, BACKGROUND_GRID_GAP } from './boardWorld';
@@ -318,41 +319,31 @@ function BattlefieldCanvasInner({ yDoc, localPlayerId }: BattlefieldCanvasProps)
 
       const dragged = dragSet(node, nodes);
       const baseZ = getMaxZIndex(yCards, yTokens);
-      // Tokens already in the drag set keep their own elevation; don't re-elevate
-      // them again as some card's attached child.
-      const selectedTokenIds = new Set(dragged.filter((n) => n.type === 'token').map((n) => n.id));
+      const draggedIds = new Set(dragged.map((n) => n.id));
 
-      // Build one elevation map for every dragged node and its carried tokens,
-      // then apply it in a single setNodes call so a card never briefly appears
-      // above its own tokens between two separate state updates.
-      const zElevations = new Map<string, number>();
-      dragged.forEach((n, i) => {
-        const newZ = baseZ + i + 1;
-        dragElevationRef.current.set(n.id, newZ);
-        zElevations.set(n.id, newZ);
+      // Lift the whole selection above the board while preserving its internal
+      // stacking order (react-flow gathers selected nodes in array order, not
+      // z-order, so a naive `baseZ + index` reshuffles overlapping stacks). This
+      // also carries each node's attached tokens along, just above their parent.
+      const { zIndices, childOffsets } = computeGroupDragElevations(
+        dragged.map((n) => ({ id: n.id, position: n.position, zIndex: n.zIndex })),
+        baseZ,
+        draggedIds,
+        (parentId) => attachedChildren(parentId, yTokens),
+      );
 
-        // Any node type can carry attached children.
-        attachedChildren(n.id, yTokens).forEach((child, j) => {
-          if (selectedTokenIds.has(child.id)) return;
-          // Store offset from parent origin so we can recompute absolute position
-          // purely from the parent's drag position (no accumulated drift).
-          attachOffsetsRef.current.set(child.id, {
-            dx: child.x - n.position.x,
-            dy: child.y - n.position.y,
-          });
-          // Each child sits just above its parent. Multiple children get
-          // progressively higher z so they don't interleave with each other.
-          const childZ = newZ + j + 1;
-          dragElevationRef.current.set(child.id, childZ);
-          zElevations.set(child.id, childZ);
-        });
-      });
+      for (const [id, z] of zIndices) dragElevationRef.current.set(id, z);
+      // Store each carried child's offset from its parent origin so we can
+      // recompute its absolute position purely from the parent's drag position.
+      for (const [id, offset] of childOffsets) attachOffsetsRef.current.set(id, offset);
 
-      elevateNodes(zElevations);
+      // Apply every elevation in one setNodes call so a card never briefly
+      // appears above its own tokens between two separate state updates.
+      elevateNodes(zIndices);
       // The dragged nodes and their carried tokens are now locally controlled —
       // shield them from observer rebuilds triggered by a peer's concurrent Yjs
       // write, which would otherwise snap them to their stale pre-drag position.
-      setDraggingNodeIds(new Set(zElevations.keys()));
+      setDraggingNodeIds(new Set(zIndices.keys()));
     },
     [yCards, yTokens, elevateNodes, setDraggingNodeIds],
   );
