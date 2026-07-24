@@ -21,7 +21,12 @@ import {
   YSTATE_DECK_REVEAL_COUNT,
   YSTATE_REMOVED,
 } from "@/constants";
-import { getStoredPlayerName, setStoredPlayerName } from "@/infrastructure/networking/persistence";
+import {
+  getStoredPlayerName,
+  setStoredPlayerName,
+  getStoredPlayerColor,
+  setStoredPlayerColor,
+} from "@/infrastructure/networking/persistence";
 import { describeTransactionOrigin } from "@/infrastructure/networking/transactionOrigin";
 import { colorFromPlayerId } from './playerColor';
 import { CardPile } from './CardPile';
@@ -90,9 +95,12 @@ export class Player {
     // The local player owns this state, so localStorage (the name that follows the
     // user across rooms) is authoritative; fall back to a short slice of the ID.
     this.yPlayerState.set(YSTATE_PLAYER_NAME, getStoredPlayerName() ?? this.getDefaultName());
-    // Seed a stable identity color. Deterministic from playerId so it's consistent
-    // without needing localStorage. A future picker can call setColor() to override.
-    this.yPlayerState.set(YSTATE_PLAYER_COLOR, colorFromPlayerId(playerId));
+    // Seed this player's identity color, same contract as the name above: the
+    // local player owns it, so a color they picked in Settings (localStorage,
+    // which follows them across rooms) wins over the playerId-derived default.
+    // Reseeding unconditionally from the default here would silently discard
+    // their choice on every reload.
+    this.yPlayerState.set(YSTATE_PLAYER_COLOR, getStoredPlayerColor() ?? colorFromPlayerId(playerId));
 
     // Create CardPile instances that reference yPlayerState
     this.deck = new CardPile(this.yPlayerState, YSTATE_DECK);
@@ -215,9 +223,16 @@ export class Player {
     return (this.yPlayerState.get(YSTATE_PLAYER_COLOR) as string | undefined) ?? colorFromPlayerId(this.playerId);
   }
 
-  /** Override the identity color. Syncs to peers via Yjs. */
+  /**
+   * Override the identity color. Syncs to peers via Yjs and persists locally
+   * so the color follows the user across rooms and reloads — mirroring
+   * setName. Persisting is not optional: the constructor reseeds this player's
+   * color on every boot, so a Yjs-only write would survive exactly until the
+   * next reload.
+   */
   public setColor(color: string): void {
     this.yPlayerState.set(YSTATE_PLAYER_COLOR, color);
+    setStoredPlayerColor(color);
   }
 
   public getState(): PlayerState {

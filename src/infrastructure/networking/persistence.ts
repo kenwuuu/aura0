@@ -39,6 +39,7 @@ import { randomIdSuffix } from '@/shared/utils/ids';
 const STORAGE_KEYS = {
   PLAYER_ID: 'aura:playerId',
   PLAYER_NAME: 'aura:playerName',
+  PLAYER_COLOR: 'aura:playerColor',
   AWARENESS_STATE: 'aura:awarenessState',
   PEER_ID: 'aura:peerId',
 } as const;
@@ -78,6 +79,25 @@ export function getStoredPlayerName(): string | null {
  */
 export function setStoredPlayerName(name: string): void {
   localStorage.setItem(STORAGE_KEYS.PLAYER_NAME, name);
+}
+
+/**
+ * Get the player's chosen identity color from localStorage, if they've picked
+ * one. Same contract as the display name: localStorage is authoritative for
+ * what the *local* player chose, because Player's constructor reseeds its own
+ * Yjs state on every boot — without this, a color picked in Settings would be
+ * overwritten by the playerId-derived default on the next reload. Returns null
+ * when the user has never picked one.
+ */
+export function getStoredPlayerColor(): string | null {
+  return localStorage.getItem(STORAGE_KEYS.PLAYER_COLOR);
+}
+
+/**
+ * Persist the player's chosen identity color to localStorage.
+ */
+export function setStoredPlayerColor(color: string): void {
+  localStorage.setItem(STORAGE_KEYS.PLAYER_COLOR, color);
 }
 
 /**

@@ -9,6 +9,12 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  // Vitest doesn't inherit vite.config.ts's `define`, so mirror the build-time
+  // constants here or any module that reads one throws `__BUILD_DATE__ is not
+  // defined` at import. Fixed, obviously-synthetic value — never a real date.
+  define: {
+    __BUILD_DATE__: JSON.stringify('1970-01-01T00:00:00.000Z'),
+  },
   test: {
     globals: true,
     environment: 'happy-dom',

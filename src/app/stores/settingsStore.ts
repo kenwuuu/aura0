@@ -83,7 +83,7 @@ interface SettingsStore {
   sessionNetworkTransportOverride: NetworkTransport | null;
   setSessionNetworkTransportOverride: (transport: NetworkTransport | null) => void;
   // How the player's first-run tour ended, or null if they haven't finished one.
-  // Persisted, so the tour doesn't reappear on every visit; Settings > Display
+  // Persisted, so the tour doesn't reappear on every visit; Settings > About
   // offers a "Replay tour" that clears it.
   //
   // An outcome rather than a boolean because "finished the tour" and "bailed out

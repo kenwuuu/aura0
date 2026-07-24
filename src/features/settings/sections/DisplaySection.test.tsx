@@ -5,9 +5,12 @@ import { DisplaySection } from './DisplaySection';
 import { useSettingsStore } from '@/app/stores/settingsStore';
 
 /**
- * DisplaySection reflects/updates useSettingsStore. Sliders and the checkbox
- * were given aria-labels (previously unlabeled) so they're queryable by role
- * — the same change makes them properly accessible.
+ * DisplaySection reflects/updates useSettingsStore. Sliders were given
+ * aria-labels (previously unlabeled) so they're queryable by role — the same
+ * change makes them properly accessible.
+ *
+ * Snap-to-grid and the delete confirmation used to be asserted here; both
+ * moved to GameplaySection.test.tsx along with the controls themselves.
  *
  * Scope note: DisplaySection also drives a live cross-store demo
  * (demoHandCards / cardPreviewStore) while a slider is being *dragged* with
@@ -47,32 +50,11 @@ describe('DisplaySection', () => {
     expect(useSettingsStore.getState().previewZoom).toBeCloseTo(1.1);
   });
 
-  it('toggles snap-to-grid via the checkbox', async () => {
-    const user = userEvent.setup();
-    useSettingsStore.setState({ snapToGridEnabled: false });
+  it('no longer carries the controls that moved to other sections', () => {
     render(<DisplaySection />);
 
-    await user.click(screen.getByRole('checkbox', { name: 'Always snap to grid' }));
-
-    expect(useSettingsStore.getState().snapToGridEnabled).toBe(true);
-  });
-
-  // This is the same preference the delete dialog's "Don't ask again" checkbox
-  // writes, so the settings row is how a player turns the prompt back on.
-  it('reflects the delete-confirmation preference', () => {
-    useSettingsStore.setState({ confirmCardDelete: false });
-    render(<DisplaySection />);
-
-    expect(screen.getByRole('checkbox', { name: 'Ask before deleting a card' })).not.toBeChecked();
-  });
-
-  it('toggles the delete confirmation via the checkbox', async () => {
-    const user = userEvent.setup();
-    useSettingsStore.setState({ confirmCardDelete: false });
-    render(<DisplaySection />);
-
-    await user.click(screen.getByRole('checkbox', { name: 'Ask before deleting a card' }));
-
-    expect(useSettingsStore.getState().confirmCardDelete).toBe(true);
+    expect(screen.queryByRole('checkbox', { name: 'Always snap to grid' })).toBeNull();
+    expect(screen.queryByRole('checkbox', { name: 'Ask before deleting a card' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Replay' })).toBeNull();
   });
 });
