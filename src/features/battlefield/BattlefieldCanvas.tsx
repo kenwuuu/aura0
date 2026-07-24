@@ -423,7 +423,15 @@ function BattlefieldCanvasInner({ yDoc, localPlayerId }: BattlefieldCanvasProps)
           pileTarget = findDropTarget(el);
           if (pileTarget) break;
         }
-        if (pileTarget && (pileTarget.ownerId === null || pileTarget.ownerId === localPlayerId)) {
+        // Two separate ownership questions, and both must pass. Whose *pile*:
+        // cards only ever go into your own zones. Whose *card*: an opponent's
+        // card may be shoved around the board freely but not swept into your
+        // deck by a drag that happened to end over it — `moveCardFromBattlefield`
+        // refuses it anyway, and without this check the drop would take that
+        // path and return having committed nothing, leaving the card parked at
+        // its new position locally until the next Yjs write snapped it back.
+        const ownCard = yCards.get(node.id)?.ownerId === localPlayerId;
+        if (ownCard && pileTarget && (pileTarget.ownerId === null || pileTarget.ownerId === localPlayerId)) {
           moveCardFromBattlefield(node.id, pileTarget.pileType);
           attachOffsetsRef.current.clear();
           return;

@@ -100,6 +100,31 @@ describe('useBattlefieldNodes selection persistence', () => {
   });
 });
 
+describe('useBattlefieldNodes ownership', () => {
+  // `draggable` was opened up for opponents' cards but `selectable` stayed
+  // owner-only, so a Shift box-drag skipped every opponent card inside its own
+  // rectangle — and with it every group action, which routes through the
+  // selection. The two flags have to agree.
+  it('marks an opponent card and token draggable and selectable, same as your own', () => {
+    const yDoc = new Y.Doc();
+    const yCards = yDoc.getMap<WhiteboardCard>('cards-on-board');
+    const yTokens = yDoc.getMap<KeywordToken>('keyword-tokens');
+    yCards.set('mine', makeCard('mine'));
+    yCards.set('theirs', makeCard('theirs', { ownerId: 'p2' }));
+    yTokens.set('t-theirs', {
+      id: 't-theirs', title: '+1/+1', backgroundColor: '#fff',
+      x: 0, y: 0, zIndex: 1, ownerId: 'p2',
+    } as KeywordToken);
+
+    const { result } = renderHook(() => useBattlefieldNodes(yCards, yTokens, 'p1', null));
+
+    for (const id of ['mine', 'theirs', 't-theirs']) {
+      const node = result.current.nodes.find((n) => n.id === id);
+      expect(node, id).toMatchObject({ draggable: true, selectable: true });
+    }
+  });
+});
+
 describe('useBattlefieldNodes drag helpers and peer motion', () => {
   it('elevateNodes updates zIndex for matching nodes only', () => {
     const { result } = setup();
