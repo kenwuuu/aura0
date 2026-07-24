@@ -108,4 +108,44 @@ describe('FloatingHand', () => {
     expect(screen.getByAltText('Real Card')).toBeInTheDocument();
     expect(screen.queryByAltText('Demo 0')).not.toBeInTheDocument();
   });
+
+  describe('collapse toggle', () => {
+    it('starts expanded with the hand visible and the tray tab announcing "Collapse"', () => {
+      renderWithGame(<FloatingHand />, { hand: makeCards(1) });
+
+      const toggle = screen.getByTestId('hand-collapse-toggle');
+      expect(toggle).toHaveAttribute('aria-expanded', 'true');
+      expect(toggle).toHaveAttribute('aria-label', 'Collapse hand');
+      expect(screen.getByTestId('hand-cards-container').parentElement).toHaveAttribute('aria-hidden', 'false');
+    });
+
+    it('collapses the hand region and flips the toggle to "Expand" on click', async () => {
+      const user = userEvent.setup();
+      renderWithGame(<FloatingHand />, { hand: makeCards(1) });
+
+      await user.click(screen.getByTestId('hand-collapse-toggle'));
+
+      const toggle = screen.getByTestId('hand-collapse-toggle');
+      expect(toggle).toHaveAttribute('aria-expanded', 'false');
+      expect(toggle).toHaveAttribute('aria-label', 'Expand hand');
+      const handRegion = screen.getByTestId('hand-cards-container').parentElement as HTMLElement;
+      expect(handRegion).toHaveAttribute('aria-hidden', 'true');
+      expect(handRegion).toHaveStyle({ pointerEvents: 'none' });
+    });
+
+    it('re-expands the hand on a second click', async () => {
+      const user = userEvent.setup();
+      renderWithGame(<FloatingHand />, { hand: makeCards(1) });
+
+      const toggle = screen.getByTestId('hand-collapse-toggle');
+      await user.click(toggle);
+      await user.click(toggle);
+
+      expect(toggle).toHaveAttribute('aria-expanded', 'true');
+      expect(toggle).toHaveAttribute('aria-label', 'Collapse hand');
+      const handRegion = screen.getByTestId('hand-cards-container').parentElement as HTMLElement;
+      expect(handRegion).toHaveAttribute('aria-hidden', 'false');
+      expect(handRegion).not.toHaveStyle({ pointerEvents: 'none' });
+    });
+  });
 });
