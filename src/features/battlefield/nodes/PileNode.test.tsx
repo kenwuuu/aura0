@@ -86,6 +86,17 @@ describe('PileNode — click routes to the right viewer', () => {
       pile: 'hand',
     });
   });
+
+  it("does not open an opponent's deck — its order is private to its owner", async () => {
+    // No draw button and no viewer for an opponent's deck: a click on the node
+    // must resolve to nothing, or the count becomes a door into the library.
+    const user = userEvent.setup();
+    renderPile({ ownerId: OPPONENT, isLocal: false, pileKind: 'deck', count: 60 });
+
+    await user.click(screen.getByText('Deck'));
+
+    expect(usePileViewerOpenStore.getState().request).toBeNull();
+  });
 });
 
 describe('PileNode — right-click opens the context menu', () => {
