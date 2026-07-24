@@ -24,7 +24,10 @@ export function ConfirmDialogManager() {
     return unsub;
   }, []);
 
-  const handleConfirm = () => {
+  const handleConfirm = (dontAskAgain: boolean) => {
+    // Suppress first: onConfirm may open another surface, and the preference
+    // should already be written by the time it does.
+    if (dontAskAgain) current?.onSuppress?.();
     current?.onConfirm();
     setCurrent(null);
   };
@@ -44,6 +47,7 @@ export function ConfirmDialogManager() {
       confirmLabel={current.confirmLabel}
       cancelLabel={current.cancelLabel}
       destructive={current.destructive}
+      dontAskAgainLabel={current.dontAskAgainLabel}
       onConfirm={handleConfirm}
       onCancel={handleCancel}
     />

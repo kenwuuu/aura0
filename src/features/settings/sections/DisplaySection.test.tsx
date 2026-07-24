@@ -56,4 +56,23 @@ describe('DisplaySection', () => {
 
     expect(useSettingsStore.getState().snapToGridEnabled).toBe(true);
   });
+
+  // This is the same preference the delete dialog's "Don't ask again" checkbox
+  // writes, so the settings row is how a player turns the prompt back on.
+  it('reflects the delete-confirmation preference', () => {
+    useSettingsStore.setState({ confirmCardDelete: false });
+    render(<DisplaySection />);
+
+    expect(screen.getByRole('checkbox', { name: 'Ask before deleting a card' })).not.toBeChecked();
+  });
+
+  it('toggles the delete confirmation via the checkbox', async () => {
+    const user = userEvent.setup();
+    useSettingsStore.setState({ confirmCardDelete: false });
+    render(<DisplaySection />);
+
+    await user.click(screen.getByRole('checkbox', { name: 'Ask before deleting a card' }));
+
+    expect(useSettingsStore.getState().confirmCardDelete).toBe(true);
+  });
 });

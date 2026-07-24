@@ -108,6 +108,18 @@ never need to invent a selector or a drag recipe from scratch.
   deck to be fully loaded (40 health, 8-card hand) before handing the page to
   the test. Every spec imports `test`/`expect` from here, not
   `@playwright/test` directly.
+
+  It also carries the **opt-in fixture options** for always-on UI. A fresh
+  context has empty `localStorage`, so anything the app shows by default would
+  otherwise render over every spec in the suite. Each such feature gets an
+  option defaulted to the value that keeps unrelated specs quiet, and one
+  dedicated spec opts back in with `test.use({ ... })` to cover the shipped
+  behavior: `onboardingTour` (first-run tour, → `app/onboarding_tour.spec.ts`)
+  and `deleteConfirmation` (the "are you sure?" prompt on card delete, →
+  `app/board/delete_confirmation.spec.ts`). Adding one of these is preferred
+  over auditing the whole suite for interference. Seed the preference itself
+  through `harness/settings.ts`, never with a post-`goto` `localStorage` write
+  — stores rehydrate before React mounts.
 - `tests/e2e/harness/` — the test-only API surface. `selectors.ts` (testid
   constants — the only place a raw `data-testid` string should appear),
   `pageObjects.ts` (locators), `interactions.ts` (`mouseDrag` and everything
@@ -115,7 +127,8 @@ never need to invent a selector or a drag recipe from scratch.
   (`waitForPileViewerReady`, `waitForSync`), `assertions.ts` (domain-level
   `expect` wrappers), `scenarios.ts` (multi-step setup: `importOneCardDeck`,
   `drawOpeningHand`, `playCreature`, `moveBetweenZones`, `reloadAndResync`,
-  `connectSecondPlayer`), `network.ts` (`blockAnalytics`). All re-exported
+  `connectSecondPlayer`), `network.ts` (`blockAnalytics`), `settings.ts`
+  (`setDeleteConfirmation` — seeds persisted user preferences). All re-exported
   from `index.ts` — import from `'../harness'` (or `'../../harness'` from a
   nested spec directory), not individual files.
 - `tests/e2e/smoke/` — the blocking `@smoke` tier.

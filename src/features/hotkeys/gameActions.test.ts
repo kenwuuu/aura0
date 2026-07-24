@@ -16,6 +16,8 @@ import { describe, it, expect, vi, afterEach } from 'vitest';
 import { dispatchGameAction } from './gameActions';
 import { useGameInstance } from '@/app/stores/gameInstanceStore';
 import { useHotkeyStore } from '@/app/stores/hotkeyStore';
+import { useConfirmStore } from '@/app/stores/confirmStore';
+import { useSettingsStore } from '@/app/stores/settingsStore';
 import { useCardPreviewStore } from '@/features/card-preview/cardPreviewStore';
 import { usePileViewerHotkeyStore } from '@/features/game-dock/pileViewerHotkeyStore';
 import { usePileViewerOpenStore } from '@/features/game-dock/pileViewerOpenStore';
@@ -154,6 +156,118 @@ describe('dispatchGameAction', () => {
 
         expect(tapped(yCards, 'card-1')).toBe(false);
         expect(tapped(yCards, 'card-2')).toBe(false);
+      });
+    });
+
+    /**
+     * Delete is gated behind a confirmation because it's the only battlefield
+     * action that destroys a card outright (moveTo* always leaves it in a
+     * pile) and there is no undo stack. These drive the real confirmStore —
+     * with no ConfirmDialogManager mounted the request just sits there, so
+     * `request.onConfirm()` stands in for clicking Delete.
+     */
+    describe('delete confirmation', () => {
+      afterEach(() => {
+        useSettingsStore.setState({ confirmCardDelete: true });
+        useConfirmStore.setState({ request: null });
+        useHotkeyStore.getState().setSelectedCardIds(new Set());
+      });
+
+      function seedOneCard(overrides: Partial<Card> = {}) {
+        const { yDoc, playerId } = seed();
+        const yCards = yDoc.getMap('cards-on-board');
+        yCards.set('card-1', { ...makeCard(overrides), zIndex: 1, ownerId: playerId });
+        return { yCards };
+      }
+
+      it('leaves the card on the board until the prompt is answered', () => {
+        const { yCards } = seedOneCard();
+
+        dispatchGameAction('delete', { kind: 'battlefieldCard', id: 'card-1' });
+
+        expect(yCards.has('card-1')).toBe(true);
+        expect(useConfirmStore.getState().request?.title).toBe('Delete card?');
+      });
+
+      it('deletes once confirmed', () => {
+        const { yCards } = seedOneCard();
+
+        dispatchGameAction('delete', { kind: 'battlefieldCard', id: 'card-1' });
+        useConfirmStore.getState().request!.onConfirm();
+
+        expect(yCards.has('card-1')).toBe(false);
+      });
+
+      it('names the card in the prompt', () => {
+        seedOneCard();
+
+        dispatchGameAction('delete', { kind: 'battlefieldCard', id: 'card-1' });
+
+        expect(useConfirmStore.getState().request?.description).toContain('Lightning Bolt');
+      });
+
+      // The prompt must not leak the identity of a face-down card — it may be
+      // an opponent's, and cardLogName is what keeps the action log honest too.
+      it('keeps a face-down card anonymous in the prompt', () => {
+        seedOneCard({ isFlipped: true });
+
+        dispatchGameAction('delete', { kind: 'battlefieldCard', id: 'card-1' });
+
+        const { description } = useConfirmStore.getState().request!;
+        expect(description).not.toContain('Lightning Bolt');
+        expect(description).toContain('a face-down card');
+      });
+
+      it('asks once for the whole group and deletes all of it on confirm', () => {
+        const { yDoc, playerId } = seed();
+        const yCards = yDoc.getMap('cards-on-board');
+        for (const id of ['card-1', 'card-2', 'card-3']) {
+          yCards.set(id, { ...makeCard({ id }), zIndex: 1, ownerId: playerId });
+        }
+        useHotkeyStore.getState().setSelectedCardIds(new Set(['card-1', 'card-2', 'card-3']));
+
+        dispatchGameAction('delete', { kind: 'battlefieldCard', id: 'card-2' });
+
+        expect(useConfirmStore.getState().request?.title).toBe('Delete 3 cards?');
+        useConfirmStore.getState().request!.onConfirm();
+        expect(yCards.size).toBe(0);
+      });
+
+      it('deletes immediately with no prompt when the preference is off', () => {
+        const { yCards } = seedOneCard();
+        useSettingsStore.setState({ confirmCardDelete: false });
+
+        dispatchGameAction('delete', { kind: 'battlefieldCard', id: 'card-1' });
+
+        expect(yCards.has('card-1')).toBe(false);
+        expect(useConfirmStore.getState().request).toBeNull();
+      });
+
+      it('onSuppress turns the preference off, so the next delete is immediate', () => {
+        const { yCards } = seedOneCard();
+
+        dispatchGameAction('delete', { kind: 'battlefieldCard', id: 'card-1' });
+        // What ConfirmDialogManager does when "Don't ask again" is ticked.
+        const { onSuppress, onConfirm } = useConfirmStore.getState().request!;
+        onSuppress!();
+        onConfirm();
+        expect(useSettingsStore.getState().confirmCardDelete).toBe(false);
+
+        yCards.set('card-2', { ...makeCard({ id: 'card-2' }), zIndex: 1, ownerId: 'p1' });
+        dispatchGameAction('delete', { kind: 'battlefieldCard', id: 'card-2' });
+
+        expect(yCards.has('card-2')).toBe(false);
+      });
+
+      it('still deletes a keyword token without asking', () => {
+        const { yDoc, playerId } = seed();
+        const yTokens = yDoc.getMap<KeywordToken>(YDOC_KEYWORD_TOKENS);
+        yTokens.set('token-1', makeToken({ ownerId: playerId }));
+
+        dispatchGameAction('tokenDelete', { kind: 'token', id: 'token-1' });
+
+        expect(yTokens.has('token-1')).toBe(false);
+        expect(useConfirmStore.getState().request).toBeNull();
       });
     });
 
