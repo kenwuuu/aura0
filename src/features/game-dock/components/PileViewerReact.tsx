@@ -11,6 +11,7 @@
  */
 
 import * as React from 'react';
+import type * as Y from 'yjs';
 import { Card, PileType } from '@/features/player';
 import { HotkeyContext } from '@/features/hotkeys/hotkeys';
 import { YSTATE_DECK_REVEAL_COUNT } from '@/constants';
@@ -61,6 +62,15 @@ export interface PileViewerReactProps {
   cards: Card[];
   pileType: PileType;
   callbacks?: PileViewerCallbacks;
+  /**
+   * The player-state Yjs map these `cards` actually live in — used only to
+   * auto-dismiss the card preview once a card leaves this pile. Defaults to the
+   * local player's state (correct for every local pile). Opponent viewers show
+   * cards from *another* player's map, so they must pass it explicitly;
+   * otherwise the preview's presence check watches the wrong map, never finds
+   * the hovered card, and hides the preview the instant it appears.
+   */
+  cardsOwnerState?: Y.Map<any>;
 }
 
 type SortOrder = 'top-to-bottom' | 'bottom-to-top' | 'alphabetical';
@@ -179,8 +189,13 @@ export function PileViewerReact({
   cards,
   pileType,
   callbacks = {},
+  cardsOwnerState,
 }: PileViewerReactProps) {
   const yPlayerState = usePlayerStore((state) => state.yPlayerState);
+  // Reveal state (deck only) reads/writes the *local* player's map — you reveal
+  // your own deck — while the card preview must watch whichever map the shown
+  // cards live in: this local one by default, an opponent's for opponent viewers.
+  const cardsSourceState = cardsOwnerState ?? yPlayerState;
   const setModalOpen = useHotkeyStore((state) => state.setModalOpen);
   const setHoveredPileViewerCard = useHotkeyStore((state) => state.setHoveredPileViewerCard);
   const yDoc = useGameInstance((s) => s.yDoc);
@@ -724,7 +739,7 @@ export function PileViewerReact({
             <CardGrid
               cards={filteredAndSortedCards}
               pileType={pileType}
-              yPlayerState={yPlayerState}
+              yPlayerState={cardsSourceState}
               visibleCardCount={visibleCardCount}
               revealAll={revealAll}
               revealCount={revealCount}
