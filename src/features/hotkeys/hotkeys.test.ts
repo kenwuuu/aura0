@@ -50,6 +50,28 @@ describe('pile-viewer context menus', () => {
       expect(actions, `${context} should offer moveToDeckBottom`).toContain('moveToDeckBottom');
     }
   });
+
+  it('offers "play to board facedown" on every pile-viewer card, and on no pile itself', () => {
+    for (const context of [
+      HotkeyContext.DeckCard,
+      HotkeyContext.Discard,
+      HotkeyContext.Exile,
+      HotkeyContext.Sideboard,
+      HotkeyContext.Scry,
+    ]) {
+      const actions = getMenuActionsForTarget({ kind: 'pileViewerCard', id: 'card-1', context })
+        .map((hotkey) => hotkey.action);
+      expect(actions, `${context} should offer playFacedown`).toContain('playFacedown');
+    }
+
+    // The per-pile contexts are shared with the board pile nodes, which act
+    // blind on the top card. Playing face down is always a deliberate pick, so
+    // the row must not leak onto the pile itself.
+    for (const pileType of ['deck', 'exile', 'discard', 'sideboard'] as const) {
+      const actions = getMenuActionsForTarget({ kind: 'pile', pileType }).map((h) => h.action);
+      expect(actions, `the ${pileType} pile should not offer playFacedown`).not.toContain('playFacedown');
+    }
+  });
 });
 
 /**

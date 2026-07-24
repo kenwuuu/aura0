@@ -176,8 +176,17 @@ export async function playCardFromHand(cardId: string, clientX: number, clientY:
  * battlefield, spawning at the viewport center. Callers must have already removed the
  * card from its origin pile. Shares placement/logging/token-spawn with playCardFromHand
  * so a card has the same consequences regardless of which zone it was played from.
+ *
+ * `facedown` plays it hidden (manifest/cloak/foretell). Setting the flag here
+ * rather than at the call sites keeps every consequence of a face-down play in
+ * one place: `placeCardOnBattlefield` already reads `isFlipped` to log "played a
+ * card face down" and to divert related tokens into the hand instead of putting
+ * them on the board, where they'd give away what the hidden card is.
  */
-export async function playCardFromPile(card: Card): Promise<void> {
+export async function playCardFromPile(
+  card: Card,
+  { facedown = false }: { facedown?: boolean } = {},
+): Promise<void> {
   const { yDoc, player, playerId, screenToFlowPosition, tokenService } = useGameInstance.getState();
   if (!yDoc || !player || !playerId) return;
 
@@ -187,5 +196,6 @@ export async function playCardFromPile(card: Card): Promise<void> {
   const position = screenToFlowPosition
     ? screenToFlowPosition({ x: window.innerWidth / 2, y: window.innerHeight / 2 })
     : { x: 300, y: 300 };
-  await placeCardOnBattlefield(card, position, { yDoc, playerId, player, tokenService }, { cascade: true });
+  const played = facedown ? { ...card, isFlipped: true } : card;
+  await placeCardOnBattlefield(played, position, { yDoc, playerId, player, tokenService }, { cascade: true });
 }

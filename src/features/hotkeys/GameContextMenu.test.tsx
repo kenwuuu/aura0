@@ -1,8 +1,10 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { screen, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { GameContextMenu } from './GameContextMenu';
 import { useContextMenuStore } from './contextMenuStore';
+import { HotkeyContext } from './hotkeys';
+import { usePileViewerHotkeyStore } from '@/features/game-dock/pileViewerHotkeyStore';
 import { renderWithGame } from '@/test/harness';
 import { YDOC_CARDS_ON_BOARD } from '@/constants';
 import type { WhiteboardCard } from '@/features/battlefield/types';
@@ -152,6 +154,50 @@ describe('GameContextMenu', () => {
 
     await screen.findByRole('menuitem', { name: /^Tap\b/ });
     expect(screen.queryByRole('menuitem', { name: /^Peek\b/ })).not.toBeInTheDocument();
+  });
+
+  it('offers "Play to board facedown" on a pile-viewer card and dispatches it to the open viewer', async () => {
+    const user = userEvent.setup();
+    const actionHandler = vi.fn();
+    renderWithGame(<GameContextMenu />);
+
+    // Stand in for an open deck viewer: it can move a card to hand and play it
+    // face down (see PileViewerReact's registration).
+    act(() => {
+      usePileViewerHotkeyStore.getState().setActionHandler(
+        actionHandler,
+        new Set(['moveToHand', 'playFacedown']),
+      );
+      useContextMenuStore.getState().openMenu({
+        target: { kind: 'pileViewerCard', id: 'card-1', context: HotkeyContext.DeckCard },
+        x: 10,
+        y: 10,
+      });
+    });
+
+    const playItem = await screen.findByRole('menuitem', { name: /^Play to board facedown\b/ });
+    // Rows the viewer has no callback for are dropped rather than rendered as
+    // no-ops — this deck viewer was given no exile callback.
+    expect(screen.queryByRole('menuitem', { name: /^Exile\b/ })).not.toBeInTheDocument();
+
+    await user.click(playItem);
+    expect(actionHandler).toHaveBeenCalledWith('playFacedown', 'card-1');
+  });
+
+  it('gives a read-only pile viewer no menu at all', async () => {
+    renderWithGame(<GameContextMenu />);
+
+    // An opponent's pile viewer registers no actions.
+    act(() => {
+      usePileViewerHotkeyStore.getState().setActionHandler(() => {}, new Set());
+      useContextMenuStore.getState().openMenu({
+        target: { kind: 'pileViewerCard', id: 'card-1', context: HotkeyContext.Exile },
+        x: 10,
+        y: 10,
+      });
+    });
+
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument();
   });
 
   it('renders the destructive action (Delete) with the destructive variant', async () => {

@@ -40,7 +40,9 @@ import { usePhoneLayout } from '@/shared/hooks';
 import { logAction } from '@/features/action-log/actionLog';
 
 export interface PileViewerCallbacks {
-  onPlayToBattlefield?: (card: Card) => void;
+  /** Send this card from the pile straight to the battlefield. `facedown`
+   *  plays it hidden (manifest/cloak/foretell) instead of face up. */
+  onPlayToBattlefield?: (card: Card, options?: { facedown?: boolean }) => void;
   onMoveToHand?: (card: Card) => void;
   onMoveToExile?: (card: Card) => void;
   onMoveToDiscard?: (card: Card) => void;
@@ -66,7 +68,9 @@ type SortOrder = 'top-to-bottom' | 'bottom-to-top' | 'alphabetical';
 /**
  * The 6 pile-viewer card moves, and the callback each dispatches to. Both the
  * right-click menu and the pile-viewer hotkey layer route through this one
- * table (see `dispatchPileMove`) instead of two mappings that can drift apart.
+ * table (see `dispatchPileCardAction`) instead of two mappings that can drift
+ * apart. `playFacedown` is the one card action that isn't a pile→pile move, so
+ * it sits beside this table rather than in it.
  */
 type PileMoveAction =
   | 'moveToHand'
@@ -357,32 +361,50 @@ export function PileViewerReact({
     });
   }, [cards]);
 
-  // Single source of truth for pile-card moves. Validity is determined entirely
-  // by which callback this pile-viewer instance was given — e.g. the deck viewer
-  // wires onMoveToDeckTop/onMoveToDeckBottom to reorder within the deck itself,
-  // while discard/exile simply don't define a callback for their own pile — so
-  // no separate pileType guard is needed here.
-  const dispatchPileMove = React.useCallback((action: string, cardId: string) => {
-    const callbackKey = PILE_MOVE_CALLBACKS[action as PileMoveAction];
-    if (!callbackKey) return;
+  // Single source of truth for pile-card actions. Validity is determined
+  // entirely by which callback this pile-viewer instance was given — e.g. the
+  // deck viewer wires onMoveToDeckTop/onMoveToDeckBottom to reorder within the
+  // deck itself, while discard/exile simply don't define a callback for their
+  // own pile — so no separate pileType guard is needed here.
+  const dispatchPileCardAction = React.useCallback((action: string, cardId: string) => {
     const card = cards.find((c) => c.id === cardId);
     if (!card) return;
+    if (action === 'playFacedown') {
+      callbacks.onPlayToBattlefield?.(card, { facedown: true });
+      return;
+    }
+    const callbackKey = PILE_MOVE_CALLBACKS[action as PileMoveAction];
+    if (!callbackKey) return;
     (callbacks[callbackKey] as ((card: Card) => void) | undefined)?.(card);
   }, [cards, callbacks]);
 
-  // Batch variant: move every id through the same per-card callback. Each
+  // Batch variant: run every id through the same per-card callback. Each
   // callback reads fresh pile state, so looping synchronously is safe.
-  const dispatchPileMoveBatch = React.useCallback((action: string, ids: string[]) => {
-    ids.forEach((id) => dispatchPileMove(action, id));
-  }, [dispatchPileMove]);
+  const dispatchPileCardActionBatch = React.useCallback((action: string, ids: string[]) => {
+    ids.forEach((id) => dispatchPileCardAction(action, id));
+  }, [dispatchPileCardAction]);
+
+  // What this viewer can actually do, derived from the callbacks it was handed
+  // — the same presence rule as the destination bar and the key legend. The
+  // right-click menu reads this (via the hotkey store) so it only ever offers
+  // rows that will do something: no "Play to board facedown" in the scry
+  // viewer, and no menu at all on a read-only opponent pile.
+  const availableActions = React.useMemo(() => {
+    const actions = new Set<string>();
+    for (const [action, callbackKey] of Object.entries(PILE_MOVE_CALLBACKS)) {
+      if (typeof callbacks[callbackKey] === 'function') actions.add(action);
+    }
+    if (typeof callbacks.onPlayToBattlefield === 'function') actions.add('playFacedown');
+    return actions;
+  }, [callbacks]);
 
   // A destination-bar tap: move the whole selection, then clear it.
   const handleDestination = React.useCallback((action: string) => {
     const ids = Array.from(selectedIds);
     if (ids.length === 0) return;
-    dispatchPileMoveBatch(action, ids);
+    dispatchPileCardActionBatch(action, ids);
     clearSelection();
-  }, [selectedIds, dispatchPileMoveBatch, clearSelection]);
+  }, [selectedIds, dispatchPileCardActionBatch, clearSelection]);
 
   // The registered hotkey handler reads selection through a ref so it doesn't
   // re-register on every toggle (and never captures a stale selection).
@@ -391,9 +413,9 @@ export function PileViewerReact({
     selectedIdsRef.current = selectedIds;
   }, [selectedIds]);
 
-  // Register this viewer's move handler so the global hotkey layer AND the
+  // Register this viewer's action handler so the global hotkey layer AND the
   // right-click context menu (GameContextMenu, via dispatchGameAction's
-  // 'pileViewerCard' case) can route pile-viewer moves to it (replaces the
+  // 'pileViewerCard' case) can route pile-viewer actions to it (replaces the
   // old window 'pileViewerCardAction' bus). When a selection exists, an H/D/S/T/Y
   // press moves the whole batch; otherwise it acts on the single hovered card.
   React.useEffect(() => {
@@ -403,16 +425,16 @@ export function PileViewerReact({
       useContextMenuStore.getState().close();
       const selected = selectedIdsRef.current;
       if (selected.size > 0) {
-        dispatchPileMoveBatch(action, Array.from(selected));
+        dispatchPileCardActionBatch(action, Array.from(selected));
         clearSelection();
       } else {
-        dispatchPileMove(action, cardId);
+        dispatchPileCardAction(action, cardId);
       }
     };
 
-    usePileViewerHotkeyStore.getState().setActionHandler(handlePileViewerAction);
+    usePileViewerHotkeyStore.getState().setActionHandler(handlePileViewerAction, availableActions);
     return () => usePileViewerHotkeyStore.getState().setActionHandler(null);
-  }, [isOpen, dispatchPileMove, dispatchPileMoveBatch, clearSelection]);
+  }, [isOpen, dispatchPileCardAction, dispatchPileCardActionBatch, clearSelection, availableActions]);
 
   // Debounced search
   const handleSearchChange = (value: string) => {
