@@ -16,6 +16,7 @@ import {HotkeyContext} from '@/features/hotkeys/hotkeys';
 import {DEFAULT_CARD_BACK, YSTATE_HAND, YSTATE_DECK, YSTATE_EXILE_PILE, YSTATE_DISCARD_PILE, YSTATE_SCRY, YSTATE_SIDEBOARD} from '@/constants';
 import styles from './CardGridItemReact.module.css';
 import {useContextMenuStore} from "@/features/hotkeys/contextMenuStore";
+import {usePileViewerHotkeyStore} from "@/features/game-dock/pileViewerHotkeyStore";
 import {useCardPreviewStore} from "@/features/card-preview/cardPreviewStore";
 import {wasLastInputTouch} from "@/shared/pointerInput";
 
@@ -107,6 +108,11 @@ export const CardGridItemReact = React.memo(function CardGridItemReact({
 
   const handleContextMenu = (e: React.MouseEvent) => {
     e.preventDefault();
+    // A read-only viewer (an opponent's pile) can perform none of the menu's
+    // rows, so GameContextMenu would render nothing — but the store would still
+    // be flagged open, and the viewer's hover tracking ignores mouseleave while
+    // a menu is open. Don't open one there.
+    if (usePileViewerHotkeyStore.getState().availableActions.size === 0) return;
     useContextMenuStore.getState().openMenu({
       target: { kind: 'pileViewerCard', id: card.id, context: hotkeyContext },
       x: e.clientX,

@@ -1,8 +1,10 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { screen, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { GameContextMenu } from './GameContextMenu';
 import { useContextMenuStore } from './contextMenuStore';
+import { HotkeyContext } from './hotkeys';
+import { usePileViewerHotkeyStore } from '@/features/game-dock/pileViewerHotkeyStore';
 import { renderWithGame } from '@/test/harness';
 import { YDOC_CARDS_ON_BOARD } from '@/constants';
 import type { WhiteboardCard } from '@/features/battlefield/types';
@@ -154,6 +156,50 @@ describe('GameContextMenu', () => {
     expect(screen.queryByRole('menuitem', { name: /^Peek\b/ })).not.toBeInTheDocument();
   });
 
+  it('offers "Play to board facedown" on a pile-viewer card and dispatches it to the open viewer', async () => {
+    const user = userEvent.setup();
+    const actionHandler = vi.fn();
+    renderWithGame(<GameContextMenu />);
+
+    // Stand in for an open deck viewer: it can move a card to hand and play it
+    // face down (see PileViewerReact's registration).
+    act(() => {
+      usePileViewerHotkeyStore.getState().setActionHandler(
+        actionHandler,
+        new Set(['moveToHand', 'playFacedown']),
+      );
+      useContextMenuStore.getState().openMenu({
+        target: { kind: 'pileViewerCard', id: 'card-1', context: HotkeyContext.DeckCard },
+        x: 10,
+        y: 10,
+      });
+    });
+
+    const playItem = await screen.findByRole('menuitem', { name: /^Play to board facedown\b/ });
+    // Rows the viewer has no callback for are dropped rather than rendered as
+    // no-ops — this deck viewer was given no exile callback.
+    expect(screen.queryByRole('menuitem', { name: /^Exile\b/ })).not.toBeInTheDocument();
+
+    await user.click(playItem);
+    expect(actionHandler).toHaveBeenCalledWith('playFacedown', 'card-1');
+  });
+
+  it('gives a read-only pile viewer no menu at all', async () => {
+    renderWithGame(<GameContextMenu />);
+
+    // An opponent's pile viewer registers no actions.
+    act(() => {
+      usePileViewerHotkeyStore.getState().setActionHandler(() => {}, new Set());
+      useContextMenuStore.getState().openMenu({
+        target: { kind: 'pileViewerCard', id: 'card-1', context: HotkeyContext.Exile },
+        x: 10,
+        y: 10,
+      });
+    });
+
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+  });
+
   it('renders the destructive action (Delete) with the destructive variant', async () => {
     const { yDoc } = renderWithGame(<GameContextMenu />);
     const yCards = yDoc.getMap<WhiteboardCard>(YDOC_CARDS_ON_BOARD);
@@ -207,7 +253,7 @@ describe('GameContextMenu', () => {
     expect(screen.getByRole('menuitem', { name: /^Delete token\b/ })).toBeInTheDocument();
   });
 
-  it('board menu replaces "-1/-1 counter" with a "Keyword counters" grid item', async () => {
+  it('board menu shows +1/-1 counter rows plus a "Keyword counters" grid item', async () => {
     const user = userEvent.setup();
     renderWithGame(<GameContextMenu />);
 
@@ -219,12 +265,11 @@ describe('GameContextMenu', () => {
       });
     });
 
-    // The drag-to-board grid took the "-1/-1 counter" slot on the empty board
-    // menu; the "+1/+1" ("Counter") row is untouched. `/^Counter\b/` matches
-    // only that row, not "Keyword counters" (which starts with "Keyword").
+    // Both counter rows are on the empty-board menu now, alongside the
+    // drag-to-board "Keyword counters" grid.
     const createToken = await screen.findByRole('menuitem', { name: /^Keyword counters\b/ });
-    expect(screen.getByRole('menuitem', { name: /^Counter\b/ })).toBeInTheDocument();
-    expect(screen.queryByRole('menuitem', { name: /-1\/-1 counter/ })).not.toBeInTheDocument();
+    expect(screen.getByRole('menuitem', { name: /^\+1 counter\b/ })).toBeInTheDocument();
+    expect(screen.getByRole('menuitem', { name: /^-1 counter\b/ })).toBeInTheDocument();
 
     // Deck-pile actions (Shuffle/Mulligan) and per-player health (+1/-1 life)
     // aren't empty-board actions — they live on the deck and health-node menus,
@@ -237,5 +282,29 @@ describe('GameContextMenu', () => {
     // It hosts the same drag-to-board grid as the toolbar's Create ▾ menu.
     await user.click(createToken);
     expect(await screen.findByText(/drag a counter onto the board/i)).toBeInTheDocument();
+  });
+
+  it('shows a divider between Delete and Hand on the battlefield-card menu', async () => {
+    const { yDoc } = renderWithGame(<GameContextMenu />);
+    const yCards = yDoc.getMap<WhiteboardCard>(YDOC_CARDS_ON_BOARD);
+    yCards.set('card-1', makeCard());
+
+    act(() => {
+      useContextMenuStore.getState().openMenu({
+        target: { kind: 'battlefieldCard', id: 'card-1' },
+        x: 10,
+        y: 10,
+      });
+    });
+
+    const deleteItem = await screen.findByRole('menuitem', { name: /^Delete\b/ });
+    const handItem = await screen.findByRole('menuitem', { name: /^Hand\b/ });
+    const menu = await screen.findByRole('menu');
+    const children = Array.from(menu.children);
+    const deleteIndex = children.indexOf(deleteItem);
+    const handIndex = children.indexOf(handItem);
+
+    expect(handIndex).toBe(deleteIndex + 2);
+    expect(children[deleteIndex + 1]).toHaveAttribute('data-slot', 'dropdown-menu-separator');
   });
 });

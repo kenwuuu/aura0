@@ -59,6 +59,56 @@ describe('PileViewerReact — tap-to-select + destination bar', () => {
   });
 });
 
+describe('PileViewerReact — play to board facedown', () => {
+  it('routes the menu action to onPlayToBattlefield with the facedown flag', () => {
+    const onPlayToBattlefield = vi.fn();
+    const { cards } = renderDeckViewer({ onPlayToBattlefield, onMoveToHand: () => {} });
+
+    // The right-click menu and the hotkey layer both arrive through this handler.
+    act(() => {
+      usePileViewerHotkeyStore.getState().actionHandler!('playFacedown', cards[0].id);
+    });
+
+    expect(onPlayToBattlefield).toHaveBeenCalledTimes(1);
+    expect(onPlayToBattlefield.mock.calls[0][0]).toMatchObject({ id: cards[0].id });
+    expect(onPlayToBattlefield.mock.calls[0][1]).toEqual({ facedown: true });
+  });
+
+  it('plays the whole selection face down when one exists', async () => {
+    const user = tapThroughModal();
+    const onPlayToBattlefield = vi.fn();
+    renderDeckViewer({ onPlayToBattlefield, onMoveToHand: () => {} });
+
+    const cardEls = await screen.findAllByTestId('pile-viewer-card');
+    await user.click(cardEls[0]);
+    await user.click(cardEls[1]);
+    const selectedIds = [idOf(cardEls[0]), idOf(cardEls[1])].sort();
+
+    act(() => {
+      usePileViewerHotkeyStore.getState().actionHandler!('playFacedown', idOf(cardEls[2])!);
+    });
+
+    const playedIds = onPlayToBattlefield.mock.calls.map((c) => (c[0] as { id: string }).id).sort();
+    expect(playedIds).toEqual(selectedIds);
+    expect(onPlayToBattlefield.mock.calls.every((c) => c[1]?.facedown === true)).toBe(true);
+  });
+
+  it('publishes only the actions it was given callbacks for', () => {
+    renderDeckViewer({ onPlayToBattlefield: () => {}, onMoveToHand: () => {} });
+
+    const published = usePileViewerHotkeyStore.getState().availableActions;
+    expect([...published].sort()).toEqual(['moveToHand', 'playFacedown']);
+  });
+
+  it('publishes no facedown play for a viewer that cannot play to the board', () => {
+    // The scry viewer only reorders the top of the library — it has no play
+    // callback, so the menu must not offer the row there.
+    renderDeckViewer({ onMoveToDeckTop: () => {}, onMoveToDeckBottom: () => {} });
+
+    expect(usePileViewerHotkeyStore.getState().availableActions.has('playFacedown')).toBe(false);
+  });
+});
+
 describe('PileViewerReact — hotkey precedence (selection vs hover)', () => {
   it('with a selection, an H/D/S/T/Y press moves the whole batch, not the hovered card', async () => {
     const user = tapThroughModal();

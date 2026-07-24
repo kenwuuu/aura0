@@ -148,6 +148,10 @@ export function OpponentPileViewers({ yDoc, localPlayerId }: OpponentPileViewers
           cards={v.cards}
           pileType={v.pile}
           callbacks={{}}
+          // These cards live in the opponent's player map, not the local one —
+          // point the preview's presence check there so it doesn't dismiss on
+          // sight (see PileViewerReact's cardsOwnerState).
+          cardsOwnerState={yDoc.getMap(YDOC_PLAYER(v.playerId))}
         />
       ))}
     </>

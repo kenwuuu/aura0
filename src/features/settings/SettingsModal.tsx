@@ -26,11 +26,13 @@ export function SettingsModal() {
   const initialSectionId = useSettingsModalStore((s) => s.initialSectionId);
   const close = useSettingsModalStore((s) => s.close);
 
-  // 'network' is the one section gated behind a PostHog flag (rollout for
-  // the manual transport-override feature) — every other section in the
-  // registry is unconditionally visible.
-  const networkSectionEnabled = useManualTransportOverrideFlag();
-  const sections = SECTIONS.filter((s) => s.id !== 'network' || networkSectionEnabled);
+  // 'advanced' is the one section gated behind a PostHog flag (rollout for
+  // the manual transport-override feature, currently its only control) —
+  // every other section in the registry is unconditionally visible. If
+  // Advanced grows an ungated control, move this gate onto the transport row
+  // itself rather than dropping the whole section.
+  const advancedSectionEnabled = useManualTransportOverrideFlag();
+  const sections = SECTIONS.filter((s) => s.id !== 'advanced' || advancedSectionEnabled);
 
   const [activeSectionId, setActiveSectionId] = useState(sections[0].id);
 

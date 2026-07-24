@@ -1,0 +1,33 @@
+/**
+ * Styles for the Profile settings section.
+ */
+
+.nameInput {
+  width: 180px;
+}
+
+/* Native color inputs render as a chunky bordered button by default; strip it
+   back to a plain swatch that matches the other controls' sizing. */
+.colorInput {
+  width: 44px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid #3d3d3d;
+  border-radius: 6px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.colorInput::-webkit-color-swatch-wrapper {
+  padding: 2px;
+}
+
+.colorInput::-webkit-color-swatch {
+  border: none;
+  border-radius: 4px;
+}
+
+.colorInput::-moz-color-swatch {
+  border: none;
+  border-radius: 4px;
+}

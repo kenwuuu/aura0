@@ -30,8 +30,13 @@ function buildNodes(
 ): Node[] {
   const nodes: Node[] = [];
 
+  // Ownership gates nothing here. The board is a shared table: anyone may move,
+  // tap, or select anyone's cards, the same way a hand reaches across a real one
+  // — every executor in battlefieldCardActions already accepts an opponent's
+  // card and logs it as "tapped <owner>'s <card>". Selection has to follow that,
+  // or a Shift box-drag silently skips half the cards inside its own rectangle
+  // and the group actions it feeds only ever fan out over your own board.
   yCards.forEach((card) => {
-    const isLocal = card.ownerId === localPlayerId;
     nodes.push({
       id: card.id,
       type: 'card',
@@ -39,12 +44,11 @@ function buildNodes(
       data: { ...card, yCards, yTokens, localPlayerId },
       zIndex: card.zIndex,
       draggable: true,
-      selectable: isLocal,
+      selectable: true,
     });
   });
 
   yTokens.forEach((token) => {
-    const isLocal = token.ownerId === localPlayerId;
     nodes.push({
       id: token.id,
       type: 'token',
@@ -52,7 +56,7 @@ function buildNodes(
       data: { ...token, yTokens, localPlayerId },
       zIndex: token.zIndex,
       draggable: true,
-      selectable: isLocal,
+      selectable: true,
     });
   });
 

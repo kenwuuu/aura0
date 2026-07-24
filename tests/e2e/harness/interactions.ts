@@ -61,38 +61,55 @@ export async function parkMouseAwayFromBoard(page: Page): Promise<void> {
 }
 
 /**
- * Zoom the board out until a pile is actually within the viewport, and return it.
+ * Zoom the board out until a node is fully within the viewport, and return it.
  *
- * A fresh room auto-fits the board to the **local** player's mat, so an
- * opponent's mat sits above the visible area — their discard pile lands at a
- * negative `y`, and a tap at its "centre" hits nothing at all (`boundingBox()`
- * still reports a box, so this fails silently rather than erroring). A real
- * player pans or zooms to see their opponent; the harness zooms, which is
- * deterministic. Any spec that interacts with an opponent's board furniture
+ * A fresh room auto-fits the board to the **local** player's mat, so anything on
+ * an opponent's mat sits above the visible area at a negative `y` — and a click
+ * or tap at its "centre" hits nothing at all (`boundingBox()` still reports a
+ * box for an off-screen node, so this fails silently rather than erroring). A
+ * real player pans or zooms to see their opponent; the harness zooms, which is
+ * deterministic. Any spec that reaches across to an opponent's half of the board
  * needs this first.
  */
+export async function revealOnBoard(
+  page: Page,
+  target: Locator,
+  description: string,
+  // Keep-clear band around the viewport edge. "On screen" is not the same as
+  // "reachable": the toolbar overlays the top of the board and the hand dock the
+  // bottom, so a node flush against either edge is visible and still unclickable.
+  // Callers that need room to *start a gesture* beside the node (a box-select
+  // rectangle begins outside it) want a margin wider than that gesture's reach.
+  { margin = 0, maxZoomOuts = 6 }: { margin?: number; maxZoomOuts?: number } = {},
+): Promise<Locator> {
+  const zoomOut = page.getByRole('button', { name: /zoom out/i });
+  for (let i = 0; i <= maxZoomOuts; i++) {
+    const box = await target.boundingBox();
+    const vp = page.viewportSize();
+    if (
+      box && vp &&
+      box.x >= margin && box.y >= margin &&
+      box.x + box.width <= vp.width - margin && box.y + box.height <= vp.height - margin
+    ) {
+      return target;
+    }
+    await zoomOut.click();
+  }
+  throw new Error(`${description} never came fully on screen after ${maxZoomOuts} zoom-outs.`);
+}
+
+/** `revealOnBoard` for a player's pile tile. */
 export async function revealPile(
   page: Page,
   kind: PileKind,
   ownerId: string,
   maxZoomOuts = 6,
 ): Promise<Locator> {
-  const tile = pileTile(page, kind, ownerId);
-  const zoomOut = page.getByRole('button', { name: /zoom out/i });
-  for (let i = 0; i <= maxZoomOuts; i++) {
-    const box = await tile.boundingBox();
-    const vp = page.viewportSize();
-    if (
-      box && vp &&
-      box.x >= 0 && box.y >= 0 &&
-      box.x + box.width <= vp.width && box.y + box.height <= vp.height
-    ) {
-      return tile;
-    }
-    await zoomOut.click();
-  }
-  throw new Error(
-    `The ${kind} pile owned by ${ownerId} never came fully on screen after ${maxZoomOuts} zoom-outs.`,
+  return revealOnBoard(
+    page,
+    pileTile(page, kind, ownerId),
+    `The ${kind} pile owned by ${ownerId}`,
+    { maxZoomOuts },
   );
 }
 
@@ -127,6 +144,38 @@ export async function mouseDrag(
   await page.waitForTimeout(120);
   await page.mouse.up();
   await page.waitForTimeout(350);
+}
+
+/**
+ * Rubber-band a Shift+drag selection rectangle enclosing every given node.
+ *
+ * Starts on empty pane above-left of the group and drags to below-right, with
+ * real incremental travel so react-flow's pane handler sees the gesture. The
+ * `nodesselection-rect` overlay react-flow leaves behind afterwards is
+ * deliberately *not* dismissed — specs act straight through it (it is
+ * click-through by design; see reactFlowControls.css).
+ */
+export async function boxSelectNodes(page: Page, nodes: Locator[]): Promise<void> {
+  await parkMouseAwayFromBoard(page);
+  const boxes = await Promise.all(nodes.map(async (n) => {
+    const box = await n.boundingBox();
+    if (!box) throw new Error('node has no bounding box');
+    return box;
+  }));
+  const start = {
+    x: Math.min(...boxes.map((b) => b.x)) - 30,
+    y: Math.min(...boxes.map((b) => b.y)) - 30,
+  };
+  const end = {
+    x: Math.max(...boxes.map((b) => b.x + b.width)) + 30,
+    y: Math.max(...boxes.map((b) => b.y + b.height)) + 30,
+  };
+  await page.keyboard.down('Shift');
+  await page.mouse.move(start.x, start.y);
+  await page.mouse.down();
+  await page.mouse.move(end.x, end.y, { steps: 20 });
+  await page.mouse.up();
+  await page.keyboard.up('Shift');
 }
 
 /**

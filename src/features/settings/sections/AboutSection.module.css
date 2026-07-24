@@ -1,0 +1,11 @@
+/**
+ * Styles for the About settings section.
+ */
+
+/* A commit SHA — monospace so it's readable when copied into a bug report. */
+.version {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  color: #9ca3af;
+  user-select: all;
+}

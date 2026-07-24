@@ -12,6 +12,20 @@ They look like one "drag" feature and are not — three separate mechanisms, onl
 
 All three end in a `battlefieldActions` call rather than a direct Yjs write — that's the "complete semantic actions" rule from the root `CLAUDE.md`, and it's why a new play path gets token creation for free.
 
+## Ownership gates nothing on the board
+
+Cards and tokens carry an `ownerId`, and it decides *whose zones* a card can go
+into (your hand, your deck) and *how an action is worded* in the log ("tapped
+Bob's Llanowar Elves"). It does **not** decide who may act. Anyone can move, tap,
+flip, or select anyone's board object — that's a shared table, and every executor
+in `battlefieldCardActions.ts` already accepts an opponent's card.
+
+So `buildNodes` sets `draggable`/`selectable` unconditionally. This has been
+half-shipped twice: `draggable` was opened up in d6e10a8 while `selectable`
+stayed owner-only, which left an opponent's card draggable but invisible to a
+Shift box-drag — and therefore to every group action, since those route through
+the selection. If you add a third such flag, it goes the same way as the other two.
+
 ## Two sync channels
 
 **Yjs document** — durable shared game state. Card/token positions are written here on drag-stop and survive reload. Peers who join late get the full state. Use this for anything that should persist.

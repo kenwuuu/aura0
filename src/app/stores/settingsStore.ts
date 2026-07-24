@@ -59,6 +59,12 @@ interface SettingsStore {
   // When false, the snap-to-grid hotkey (hold Alt) still works per-drag.
   snapToGridEnabled: boolean;
   setSnapToGridEnabled: (enabled: boolean) => void;
+  // When true, deleting a battlefield card asks first. Deleting is the one
+  // board action with no undo path back to the card (moveTo* all put it in a
+  // pile you can dig it out of), and Backspace is easy to hit by accident, so
+  // this defaults ON. The dialog's "Don't ask again" checkbox flips it off.
+  confirmCardDelete: boolean;
+  setConfirmCardDelete: (enabled: boolean) => void;
   // Draggable HUD panel positions (toolbar, action log, …), keyed by panel id.
   // Persisted so a player's window layout survives reloads.
   panelPositions: Record<string, { x: number; y: number }>;
@@ -77,7 +83,7 @@ interface SettingsStore {
   sessionNetworkTransportOverride: NetworkTransport | null;
   setSessionNetworkTransportOverride: (transport: NetworkTransport | null) => void;
   // How the player's first-run tour ended, or null if they haven't finished one.
-  // Persisted, so the tour doesn't reappear on every visit; Settings > Display
+  // Persisted, so the tour doesn't reappear on every visit; Settings > About
   // offers a "Replay tour" that clears it.
   //
   // An outcome rather than a boolean because "finished the tour" and "bailed out
@@ -97,6 +103,8 @@ export const useSettingsStore = create<SettingsStore>()(
       setPreviewZoom: (zoom) => set({ previewZoom: clampPreviewZoom(zoom) }),
       snapToGridEnabled: false,
       setSnapToGridEnabled: (enabled) => set({ snapToGridEnabled: enabled }),
+      confirmCardDelete: true,
+      setConfirmCardDelete: (enabled) => set({ confirmCardDelete: enabled }),
       panelPositions: {},
       setPanelPosition: (key, pos) =>
         set((s) => ({ panelPositions: { ...s.panelPositions, [key]: pos } })),
@@ -128,6 +136,7 @@ export const useSettingsStore = create<SettingsStore>()(
         handZoom: state.handZoom,
         previewZoom: state.previewZoom,
         snapToGridEnabled: state.snapToGridEnabled,
+        confirmCardDelete: state.confirmCardDelete,
         networkTransport: state.networkTransport,
         panelPositions: state.panelPositions,
         tourOutcome: state.tourOutcome,

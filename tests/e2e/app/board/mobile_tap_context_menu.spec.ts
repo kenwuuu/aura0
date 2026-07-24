@@ -74,7 +74,8 @@ test('tapping the empty board opens the global-actions menu', async ({ page }) =
 
   await expect(page.getByRole('menuitem', { name: /^Draw\b/ })).toBeVisible();
   await expect(page.getByRole('menuitem', { name: /^Untap all\b/ })).toBeVisible();
-  await expect(page.getByRole('menuitem', { name: /^Counter\b/ })).toBeVisible();
+  await expect(page.getByRole('menuitem', { name: /^\+1 counter\b/ })).toBeVisible();
+  await expect(page.getByRole('menuitem', { name: /^-1 counter\b/ })).toBeVisible();
 });
 
 test('tapping the empty board while a menu is open dismisses it (no re-open)', async ({ page }) => {
