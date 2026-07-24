@@ -15,16 +15,33 @@ const SETTINGS_VERSION = 1;
  *
  * Must be an init script, not a post-`goto` write — `settingsStore` rehydrates
  * synchronously when the module is first imported, long before React mounts.
- * (`fixtures.ts` clears localStorage after `goto`; that is harmless here because
- * the value is already in memory and nothing reloads the page afterwards.)
+ *
+ * **Merges into whatever is already stored, never replaces it.** An init script
+ * re-runs on *every* navigation, so a blind `setItem` would hand every reloading
+ * spec a settings blob containing only this key — silently discarding anything
+ * the app persisted during the test. That is not hypothetical: it wiped
+ * `panelPositions` and `tourOutcome`, breaking the two specs whose whole point
+ * is that a preference survives a reload (`floating_panel`, `onboarding_tour`).
  *
  * Whole-context, not page: `openDuplicateTab` and `connectSecondPlayer` open
  * further pages that would otherwise boot with defaults.
  */
 async function seedSetting(target: Page | BrowserContext, patch: Record<string, unknown>): Promise<void> {
   await target.addInitScript(
-    ([key, version, state]) => {
-      localStorage.setItem(key, JSON.stringify({ state, version }));
+    ([key, version, patchToApply]) => {
+      let stored: { state?: Record<string, unknown>; version?: number } = {};
+      try {
+        stored = JSON.parse(localStorage.getItem(key as string) ?? '{}') ?? {};
+      } catch {
+        stored = {};
+      }
+      localStorage.setItem(
+        key as string,
+        JSON.stringify({
+          state: { ...stored.state, ...(patchToApply as Record<string, unknown>) },
+          version: stored.version ?? version,
+        }),
+      );
     },
     [SETTINGS_KEY, SETTINGS_VERSION, patch] as const,
   );
