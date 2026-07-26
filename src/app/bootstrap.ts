@@ -12,7 +12,7 @@ import { RoomManager } from '@/features/room';
 import { CardLookupService, TokenService } from '@/infrastructure/cards';
 import { yjsNetworkFactory } from '@/infrastructure/networking';
 import { YjsNetworkProvider } from '@/infrastructure/networking/YjsNetworkFactory';
-import { getOrCreatePlayerId, getOrCreatePeerId } from '@/infrastructure/networking';
+import { resolvePlayerIdForRoom, getOrCreatePeerId } from '@/infrastructure/networking';
 import {
   acquireTabLock,
   onTabTakeoverRequest,
@@ -77,11 +77,14 @@ export interface BootstrapOptions {
 
 export async function bootstrapGame(options: BootstrapOptions = {}): Promise<BootstrapResult> {
   // ── 1. Core identifiers ────────────────────────────────────────────────────
-  const playerId = getOrCreatePlayerId();
-  console.log('Player ID:', playerId);
-
+  // Room first: which player we are can depend on which room this is. A game
+  // restored from a file keeps its original seat ids, and the device that
+  // claimed a seat plays as that id here — see resolvePlayerIdForRoom.
   const roomManager = new RoomManager();
   const roomName = roomManager.getRoomName();
+
+  const playerId = resolvePlayerIdForRoom(roomName);
+  console.log('Player ID:', playerId);
 
   // ── 2. Claim the room for this tab ─────────────────────────────────────────
   // Before anything else: a second tab must not get as far as constructing the

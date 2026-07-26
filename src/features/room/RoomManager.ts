@@ -2,13 +2,41 @@ import {ROOM_PREFIX} from "../../constants";
 import posthog from "posthog-js";
 import { randomIdSuffix } from '@/shared/utils/ids';
 
+const VISITED_ROOMS_KEY = 'aura-visited-rooms';
+const MAX_RECENT_ROOMS = 3;
+
+/** The rooms this browser has been in recently, most recent first. */
+export function readVisitedRooms(): string[] {
+  const raw = localStorage.getItem(VISITED_ROOMS_KEY);
+  if (!raw) return [];
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.filter((r): r is string => typeof r === 'string') : [];
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Record a visit to `roomName`, keeping only the most recent few.
+ *
+ * Standalone as well as a `RoomManager` method because a room can need marking
+ * *before* anyone is in it: session import marks the room it is about to
+ * navigate to, so that boot reads it as a returning visit and
+ * `autoLoadDeckOnStart` skips the deck reset that would wipe the restored game.
+ */
+export function markRoomVisited(roomName: string): void {
+  const updated = [roomName, ...readVisitedRooms().filter((r) => r !== roomName)]
+    .slice(0, MAX_RECENT_ROOMS);
+  localStorage.setItem(VISITED_ROOMS_KEY, JSON.stringify(updated));
+}
+
 /**
  * Service for managing room state and tracking
  * Handles room ID generation, URL management, and visit tracking
  */
 export class RoomManager {
-  private static readonly VISITED_ROOMS_KEY = 'aura-visited-rooms';
-  private static readonly MAX_RECENT_ROOMS = 3;
+  private static readonly VISITED_ROOMS_KEY = VISITED_ROOMS_KEY;
 
   private roomName: string;
 
@@ -55,26 +83,14 @@ export class RoomManager {
    * Maintains a list of the N most recent rooms
    */
   markRoomAsVisited(): void {
-    const visitedRooms = this.getVisitedRooms();
-
-    // Add this room to visited list (keep only last N)
-    const updatedRooms = [
-      this.roomName,
-      ...visitedRooms.filter(r => r !== this.roomName)
-    ].slice(0, RoomManager.MAX_RECENT_ROOMS);
-
-    localStorage.setItem(
-      RoomManager.VISITED_ROOMS_KEY,
-      JSON.stringify(updatedRooms)
-    );
+    markRoomVisited(this.roomName);
   }
 
   /**
    * Get list of recently visited rooms
    */
   private getVisitedRooms(): string[] {
-    const visitedRoomsJson = localStorage.getItem(RoomManager.VISITED_ROOMS_KEY);
-    return visitedRoomsJson ? JSON.parse(visitedRoomsJson) : [];
+    return readVisitedRooms();
   }
 
   /**

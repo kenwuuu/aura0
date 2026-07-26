@@ -13,8 +13,8 @@ import { useState, useEffect } from 'react';
 import { Node } from '@xyflow/react';
 import * as Y from 'yjs';
 import { CustomCounter, Card } from '@/features/player/types';
+import { listSeats } from '@/features/player/listSeats';
 import {
-  YSTATE_JOINED_AT,
   YSTATE_HEALTH,
   YSTATE_PLAYER_NAME,
   YSTATE_CUSTOM_COUNTERS,
@@ -24,34 +24,13 @@ import {
   YSTATE_EXILE_PILE,
   YSTATE_DISCARD_PILE,
   YSTATE_CAN_VIEW_HAND,
-  YSTATE_REMOVED,
 } from '@/constants';
 import { playmatNodePositions, MAT_WIDTH, MAT_HEIGHT, CARD_WIDTH, CARD_HEIGHT, HEALTH_WIDGET_WIDTH, HEALTH_WIDGET_HEIGHT } from './boardWorld';
 
 export function buildPlaymatNodes(yDoc: Y.Doc, localPlayerId: string): Node[] {
   const nodes: Node[] = [];
 
-  // Collect all player maps
-  const playerEntries: { playerId: string; joinedAt: number; map: Y.Map<any> }[] = [];
-  yDoc.share.forEach((_, key) => {
-    if (!key.startsWith('player-')) return;
-    const playerId = key.slice('player-'.length);
-    const map = yDoc.getMap(key);
-    // Skip removed (kicked) seats — their map lingers in the doc because Yjs
-    // can't delete a top-level type, but they no longer render (see removePlayer).
-    if (map.get(YSTATE_REMOVED) === true) return;
-    const joinedAt = (map.get(YSTATE_JOINED_AT) as number | undefined) ?? 0;
-    playerEntries.push({ playerId, joinedAt, map });
-  });
-
-  // Sort by joinedAt, then playerId for determinism when timestamps collide
-  playerEntries.sort((a, b) =>
-    a.joinedAt !== b.joinedAt
-      ? a.joinedAt - b.joinedAt
-      : a.playerId.localeCompare(b.playerId),
-  );
-
-  playerEntries.forEach(({ playerId, map }, seatIndex) => {
+  listSeats(yDoc).forEach(({ playerId, map }, seatIndex) => {
     const isLocal = playerId === localPlayerId;
     const positions = playmatNodePositions(seatIndex);
 
@@ -187,22 +166,8 @@ function computeLocalMatOrigin(
   yDoc: Y.Doc,
   localPlayerId: string,
 ): { x: number; y: number } | null {
-  const entries: { playerId: string; joinedAt: number }[] = [];
-  yDoc.share.forEach((_, key) => {
-    if (!key.startsWith('player-')) return;
-    const playerId = key.slice('player-'.length);
-    const map = yDoc.getMap(key);
-    // Skip removed seats so seat indices stay in lockstep with buildPlaymatNodes.
-    if (map.get(YSTATE_REMOVED) === true) return;
-    const joinedAt = (map.get(YSTATE_JOINED_AT) as number | undefined) ?? 0;
-    entries.push({ playerId, joinedAt });
-  });
-  entries.sort((a, b) =>
-    a.joinedAt !== b.joinedAt
-      ? a.joinedAt - b.joinedAt
-      : a.playerId.localeCompare(b.playerId),
-  );
-  const seatIndex = entries.findIndex((e) => e.playerId === localPlayerId);
+  // Same enumeration as buildPlaymatNodes, so seat indices stay in lockstep.
+  const seatIndex = listSeats(yDoc).findIndex((s) => s.playerId === localPlayerId);
   if (seatIndex === -1) return null;
   return playmatNodePositions(seatIndex).mat;
 }

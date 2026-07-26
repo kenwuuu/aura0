@@ -8,5 +8,9 @@ export {
   saveAwarenessState,
   restoreAwarenessState,
   clearPersistedSession,
+  resolvePlayerIdForRoom,
+  getSeatAlias,
+  setSeatAlias,
+  clearSeatAlias,
   type AwarenessState
 } from './persistence';
