@@ -30,6 +30,7 @@ import { DeckManager } from '@/features/deck-manager';
 import { RoomConnectionStatus } from '@/features/room/RoomConnectionStatus';
 import { RoomLinkButton } from '@/features/room/RoomLinkButton';
 import { NewGameButton } from '@/features/room/NewGameButton';
+import { SessionMenuButton } from '@/features/session-transfer/SessionMenuButton';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -102,6 +103,7 @@ export function Toolbar({ yjsNetworkProvider, onDeckSelected }: ToolbarProps) {
         <RoomConnectionStatus yjsNetworkProvider={yjsNetworkProvider} />
       </span>
 
+      <SessionMenuButton />
       <NewGameButton />
       <RoomLinkButton />
 

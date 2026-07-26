@@ -334,3 +334,27 @@ export function tourBackButton(page: Page): Locator {
 export function replayTourButton(page: Page): Locator {
   return page.getByTestId(TESTID.replayTour);
 }
+
+/** The toolbar's Game menu — save/load a whole session. */
+export function sessionMenuButton(page: Page): Locator {
+  return page.getByTestId(TESTID.sessionMenu);
+}
+
+export function sessionImportModal(page: Page): Locator {
+  return page.getByTestId(TESTID.sessionImportModal);
+}
+
+/** The "which seat is yours?" screen shown on a link into a restored game. */
+export function seatSelectionScreen(page: Page): Locator {
+  return page.getByTestId(TESTID.seatSelection);
+}
+
+/** Every seat the picker is offering. */
+export function seatOptions(page: Page): Locator {
+  return page.getByTestId(TESTID.seatOption);
+}
+
+/** A seat offered by name — the way a player picks their own. */
+export function seatOption(page: Page, name: string): Locator {
+  return seatOptions(page).filter({ hasText: name });
+}

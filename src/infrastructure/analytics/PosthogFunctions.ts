@@ -130,6 +130,38 @@ export function trackRoomDocsPurged(props: {
   });
 }
 
+/** A game was saved to a file. Seat and card counts size what people export. */
+export function trackSessionExported(props: { seatCount: number; cardCount: number }): void {
+  posthog.capture('session_exported', {
+    seat_count: props.seatCount,
+    card_count: props.cardCount,
+  });
+}
+
+/**
+ * A game was restored from a file.
+ *
+ * `unresolved_count` is the one that matters: those are cards that came back
+ * without art because no backend could resolve their name, so a rising number
+ * means rehydration-by-name is failing for some class of card.
+ */
+export function trackSessionImported(props: {
+  seatCount: number;
+  cardCount: number;
+  unresolvedCount: number;
+}): void {
+  posthog.capture('session_imported', {
+    seat_count: props.seatCount,
+    card_count: props.cardCount,
+    unresolved_count: props.unresolvedCount,
+  });
+}
+
+/** A player took a seat in a restored game, or declined and joined as themselves. */
+export function trackSeatClaimed(props: { claimedExisting: boolean }): void {
+  posthog.capture('seat_claimed', { claimed_existing: props.claimedExisting });
+}
+
 /**
  * `connectMs` times the successful connection attempt (handshake latency);
  * `offlineForMs` times the outage it ended. They are not interchangeable — a

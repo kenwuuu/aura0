@@ -20,8 +20,7 @@
  */
 import { ROOM_PREFIX } from '@/constants';
 import { randomIdSuffix } from '@/shared/utils/ids';
-import { setSeatAlias } from '@/infrastructure/networking';
-import { markRoomVisited } from '@/features/room/RoomManager';
+import { claimSeatOnThisDevice } from './claimSeatOnThisDevice';
 import { stashPendingImport } from './pendingImport';
 import type { SessionSnapshot } from './sessionSnapshot';
 
@@ -51,8 +50,7 @@ export function startImport(
   // has been mutated and before we have navigated to a room that would boot empty.
   stashPendingImport(roomName, snapshot);
 
-  setSeatAlias(roomName, seatId);
-  markRoomVisited(roomName);
+  claimSeatOnThisDevice(roomName, seatId);
 
   const url = `?room=${encodeURIComponent(roomName)}&${RESUME_PARAM}=1`;
   (options.navigate ?? ((target: string) => window.location.assign(target)))(url);

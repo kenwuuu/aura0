@@ -160,6 +160,25 @@ describe('applySessionSnapshot', () => {
     expect(listCalls[0].map((e) => e.name.toLowerCase()).sort()).toEqual(['forest', 'sol ring']);
   });
 
+  it('resolves a double-faced card by its front face', async () => {
+    // A snapshot stores the full Scryfall name, and neither backend resolves
+    // "A // B" by name — the default deck's Shatterskull Smashing came back
+    // artless until this stripped the back face, exactly as deck import does.
+    const yDoc = new Y.Doc();
+    const { service, listCalls } = createFakeCardLookup();
+    const snapshot = snapshotWith();
+    snapshot.seats[0].zones.hand = [
+      toCardRef(makeCard({ name: 'Shatterskull Smashing // Shatterskull, the Hammer Pass' })),
+    ];
+
+    const { unresolved } = await applySessionSnapshot(yDoc, snapshot, service);
+
+    expect(listCalls[0].map((e) => e.name)).toEqual(['Shatterskull Smashing']);
+    expect(unresolved).toEqual([]);
+    const [card] = yDoc.getMap(YDOC_PLAYER('alice')).get(YSTATE_HAND) as any[];
+    expect(card.images).toBeDefined();
+  });
+
   it('still places a card whose name could not be resolved, and reports it', async () => {
     const yDoc = new Y.Doc();
     const { service } = createFakeCardLookup({ unresolvable: ['Sol Ring'] });

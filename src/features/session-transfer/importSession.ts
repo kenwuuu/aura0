@@ -51,7 +51,7 @@ import {
 } from '@/constants';
 import type { CardLookupService } from '@/infrastructure/cards';
 import type { Card } from '@/features/player/types';
-import type { DeckLineItem } from '@/features/deck-manager/DeckListParser';
+import { stripBackFace, type DeckLineItem } from '@/features/deck-manager/DeckListParser';
 import {
   SNAPSHOT_ZONES,
   fromCardRef,
@@ -80,9 +80,18 @@ const ZONE_STATE_KEYS: Record<SnapshotZone, string> = {
   sideboard: YSTATE_SIDEBOARD,
 };
 
-/** Lookup key for a card name — tolerant of case and stray whitespace. */
+/**
+ * Lookup key for a card name — tolerant of case, stray whitespace, and back faces.
+ *
+ * The back face matters. A snapshot stores the full Scryfall name of a modal
+ * double-faced card ("Shatterskull Smashing // Shatterskull, the Hammer Pass"),
+ * and neither backend resolves that by name — deck import hits the same wall,
+ * which is why `stripBackFace` exists. Stripping here means the request goes out
+ * as the front face *and* the response (which comes back carrying the full name)
+ * still keys back to the card that asked for it.
+ */
 function nameKey(name: string): string {
-  return name.trim().toLowerCase().replace(/\s+/g, ' ');
+  return stripBackFace(name).trim().toLowerCase().replace(/\s+/g, ' ');
 }
 
 /** Every card ref in the snapshot, across every seat's zones and the board. */
@@ -119,7 +128,10 @@ async function resolveCardData(
       continue;
     }
     const key = nameKey(ref.name);
-    if (key && !namedEntries.has(key)) namedEntries.set(key, { count: 1, name: ref.name });
+    // Ask for the front face, for the reason `nameKey` documents.
+    if (key && !namedEntries.has(key)) {
+      namedEntries.set(key, { count: 1, name: stripBackFace(ref.name) });
+    }
   }
 
   const total = namedEntries.size + tokenIds.size;

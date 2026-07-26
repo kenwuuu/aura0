@@ -33,6 +33,11 @@ export const TESTID = {
   tourNext: 'tour-next',
   tourBack: 'tour-back',
   replayTour: 'replay-tour',
+  sessionMenu: 'session-menu',
+  sessionImportModal: 'session-import-modal',
+  importSeatOption: 'import-seat-option',
+  seatSelection: 'seat-selection',
+  seatOption: 'seat-option',
 } as const;
 
 export type PileKind = 'deck' | 'discard' | 'exile' | 'hand' | 'sideboard';

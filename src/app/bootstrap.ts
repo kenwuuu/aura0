@@ -7,12 +7,25 @@
  * Deck domain logic lives in features/deck-manager/deckLoading.ts.
  */
 import * as Y from 'yjs';
+import * as Sentry from '@sentry/react';
 import { Player } from '@/features/player';
 import { RoomManager } from '@/features/room';
 import { CardLookupService, TokenService } from '@/infrastructure/cards';
 import { yjsNetworkFactory } from '@/infrastructure/networking';
 import { YjsNetworkProvider } from '@/infrastructure/networking/YjsNetworkFactory';
-import { resolvePlayerIdForRoom, getOrCreatePeerId } from '@/infrastructure/networking';
+import {
+  resolvePlayerIdForRoom,
+  getOrCreatePeerId,
+  getSeatAlias,
+} from '@/infrastructure/networking';
+import {
+  applySessionSnapshot,
+  claimSeat,
+  countSnapshotCards,
+  isResumeLink,
+  takePendingImport,
+  useSessionImportStore,
+} from '@/features/session-transfer';
 import {
   acquireTabLock,
   onTabTakeoverRequest,
@@ -21,7 +34,11 @@ import {
 } from '@/infrastructure/networking/tabLock';
 import { watchRoomOccupancy } from '@/infrastructure/networking/roomOccupancy';
 import { purgeExpiredRoomDocs } from '@/infrastructure/networking/roomDocStorage';
-import { trackRoomOccupancyChanged, trackRoomDocsPurged } from '@/infrastructure/analytics/PosthogFunctions';
+import {
+  trackRoomOccupancyChanged,
+  trackRoomDocsPurged,
+  trackSessionImported,
+} from '@/infrastructure/analytics/PosthogFunctions';
 import { DeckPersistenceService, DeckStorageService } from '@/infrastructure/persistence';
 import { useGameInstance } from '@/app/stores/gameInstanceStore';
 import { usePlayerStore } from '@/app/stores/playerStore';
@@ -58,13 +75,24 @@ export interface GameContext {
 }
 
 /**
- * A boot either produces a game or discovers this room is already open in
- * another tab of the same browser. The second case is not an error — it is a
- * screen (see `DuplicateTabNotice`) — so it is a result, not a thrown exception.
+ * A boot either produces a game or lands on a screen that has to be answered
+ * first — this room is already open in another tab, or it is a restored game
+ * that does not yet know which player this is. Neither is an error, so both are
+ * results rather than thrown exceptions.
+ *
+ * `seat-selection` hands back the live doc and provider on purpose: the picker
+ * has to watch for the roster arriving from peers and for seats being claimed
+ * while it is open, so tearing them down first would blind it.
  */
 export type BootstrapResult =
   | { status: 'ready'; context: GameContext }
-  | { status: 'duplicate-tab'; roomName: string };
+  | { status: 'duplicate-tab'; roomName: string }
+  | {
+      status: 'seat-selection';
+      roomName: string;
+      yDoc: Y.Doc;
+      yjsNetworkProvider: YjsNetworkProvider;
+    };
 
 export interface BootstrapOptions {
   /**
@@ -133,14 +161,61 @@ export async function bootstrapGame(options: BootstrapOptions = {}): Promise<Boo
   // against the persisted state, wiping the hand on refresh.
   await yjsNetworkProvider.whenSynced();
 
+  const cardLookup = new CardLookupService();
+
+  // ── 5a. Restore a game imported from a file ────────────────────────────────
+  // Before Player, for exactly the reason above: an import that landed after
+  // Player had seeded its defaults would lose the merge against them.
+  const pendingImport = takePendingImport(roomName);
+  if (pendingImport) {
+    const store = useSessionImportStore.getState();
+    store.begin();
+    try {
+      const { unresolved } = await applySessionSnapshot(
+        yDoc,
+        pendingImport,
+        cardLookup,
+        store.progress,
+      );
+      store.finish(unresolved);
+      trackSessionImported({
+        seatCount: pendingImport.seats.length,
+        cardCount: countSnapshotCards(pendingImport),
+        unresolvedCount: unresolved.length,
+      });
+    } catch (error) {
+      // The snapshot is already consumed, so a reload lands in an ordinary (if
+      // empty) room rather than replaying this failure forever.
+      console.error('Failed to restore the imported game:', error);
+      Sentry.captureException(error);
+      store.fail('The cards in that game could not be loaded.');
+      throw error;
+    }
+  }
+
+  // ── 5b. Offer a seat in somebody else's restored game ──────────────────────
+  // Only for a link flagged as a resume, and only until this device has picked.
+  // The flag has to come from the URL: whenSynced() above resolved on IndexedDB
+  // alone, so for a player opening an invite link the doc right here is still
+  // empty and cannot be asked whether it is a restored game.
+  else if (isResumeLink() && !getSeatAlias(roomName)) {
+    return { status: 'seat-selection', roomName, yDoc, yjsNetworkProvider };
+  }
+
   const restoredDeck = DeckPersistenceService.restoreDeckForRoom(roomName);
   const player = new Player(playerId, yDoc, restoredDeck, { initialHealth: 40 });
+
+  // ── 5c. Record the seat claim ──────────────────────────────────────────────
+  // Written here rather than on the picker screen: that screen reloads the page
+  // to hand over to a normal boot, and a write issued immediately before a
+  // reload may not survive the IndexedDB flush. By this point the doc is live
+  // and the write is ordinary.
+  if (getSeatAlias(roomName)) claimSeat(yDoc, playerId, peerId);
 
   // Populate playerStore immediately so any component reading yPlayerState gets it on mount
   usePlayerStore.getState().setYPlayerState(player.yPlayerState);
 
   // ── 6. Services ────────────────────────────────────────────────────────────
-  const cardLookup = new CardLookupService();
   const tokenService = new TokenService(cardLookup);
 
   // ── 7. Populate game-instance store (before React renders) ─────────────────
