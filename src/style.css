@@ -623,6 +623,21 @@ body {
   margin: 0 0 4px 0;
 }
 
+/* Tailwind's preflight strips list markers. These suggestions each run to two
+   or three lines, so without a marker they read as one wall of red text and the
+   count of separate things to try disappears. Scoped to this list rather than
+   fixed on `.error-container ul`, which is a list of card names and reads fine
+   as it is. */
+.error-container ul.error-fixes {
+  list-style: disc;
+  padding-left: 22px;
+}
+
+.error-container ul.error-fixes li {
+  padding-left: 2px;
+  line-height: 1.5;
+}
+
 /* A status code, for quoting in a bug report. Dimmed and last on purpose — it
    is the only part of this box a player is meant to be able to ignore. */
 .error-container .error-detail {

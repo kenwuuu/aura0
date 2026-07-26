@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { DeckImportProblem } from './url-import';
 
 /**
@@ -17,15 +17,37 @@ import { DeckImportProblem } from './url-import';
  * is the smaller half of this box.
  */
 export function DeckImportProblemNotice({ problem }: { problem: DeckImportProblem }) {
+  const notice = useRef<HTMLDivElement>(null);
+
+  /**
+   * Bring the notice into view when it appears.
+   *
+   * The dialog's body scrolls, and a pasted link sits above a 15-row textarea —
+   * so on an ordinary window this box lands below the fold and the player's
+   * whole experience is a link that quietly did nothing. An explanation nobody
+   * scrolls to is not an explanation.
+   *
+   * Keyed on the problem itself, so a second failed link scrolls again rather
+   * than only the first one being seen.
+   */
+  useEffect(() => {
+    notice.current?.scrollIntoView?.({ block: 'nearest' });
+  }, [problem]);
+
   return (
-    <div className="error-container" data-testid="deck-import-problem" data-reason={problem.reason}>
+    <div
+      ref={notice}
+      className="error-container"
+      data-testid="deck-import-problem"
+      data-reason={problem.reason}
+    >
       <h4>Couldn't import that deck</h4>
       <p className="error-message">{problem.message}</p>
 
       {problem.fixes.length > 0 && (
         <>
           <p className="error-fixes-heading">What to try:</p>
-          <ul>
+          <ul className="error-fixes">
             {problem.fixes.map((fix) => (
               <li key={fix}>{fix}</li>
             ))}
