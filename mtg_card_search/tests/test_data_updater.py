@@ -10,6 +10,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
+import block_store
 import data_updater
 from data_updater import DataSanityError
 
@@ -46,6 +47,18 @@ def _download_path(folder: Path, name: str) -> Path:
     return folder / f"{name}{data_updater.DOWNLOAD_SUFFIX}"
 
 
+def _stored_path(folder: Path, name: str) -> Path:
+    return folder / f"{name}{block_store.DATA_EXT}"
+
+
+def _stored_text(folder: Path, name: str) -> str:
+    """Rows as the API would read them back out of the block store."""
+    return "".join(
+        line.decode("utf-8") + "\n"
+        for _voffset, line in block_store.iter_lines(_stored_path(folder, name))
+    )
+
+
 def _write_fixture(folder: Path, name: str, count: int) -> None:
     """Write a gzipped JSON Lines download, the way Scryfall now serves it."""
     lines = "".join(json.dumps({"name": f"Card {i}"}) + "\n" for i in range(count))
@@ -64,18 +77,18 @@ def test_unpack_rejects_sharp_drop(tmp_path, monkeypatch):
     dataset_name = _isolate(tmp_path, monkeypatch)
 
     _write_fixture(tmp_path, dataset_name, 10)
-    baseline_counts = data_updater.unpack_jsonl_to_ndjson()
+    baseline_counts = data_updater.unpack_jsonl_to_blocks()
     assert baseline_counts[dataset_name] == 10
-    ndjson_before = (tmp_path / f"{dataset_name}.ndjson").read_text()
+    stored_before = _stored_text(tmp_path, dataset_name)
     counts_before = json.loads((tmp_path / ".dataset_counts.json").read_text())
 
     _write_fixture(tmp_path, dataset_name, 1)
     with pytest.raises(DataSanityError):
-        data_updater.unpack_jsonl_to_ndjson()
+        data_updater.unpack_jsonl_to_blocks()
 
-    assert (tmp_path / f"{dataset_name}.ndjson").read_text() == ndjson_before
+    assert _stored_text(tmp_path, dataset_name) == stored_before
     assert json.loads((tmp_path / ".dataset_counts.json").read_text()) == counts_before
-    assert not (tmp_path / f"{dataset_name}.ndjson_new").exists()
+    assert not Path(str(_stored_path(tmp_path, dataset_name)) + "_new").exists()
     # A rejected download is NOT deleted — we didn't promote it, so keep it for
     # debugging rather than silently discarding it.
     assert _download_path(tmp_path, dataset_name).exists()
@@ -85,14 +98,14 @@ def test_unpack_accepts_growth(tmp_path, monkeypatch):
     dataset_name = _isolate(tmp_path, monkeypatch)
 
     _write_fixture(tmp_path, dataset_name, 10)
-    first_counts = data_updater.unpack_jsonl_to_ndjson()
+    first_counts = data_updater.unpack_jsonl_to_blocks()
     assert first_counts[dataset_name] == 10
 
     _write_fixture(tmp_path, dataset_name, 12)
-    second_counts = data_updater.unpack_jsonl_to_ndjson()
+    second_counts = data_updater.unpack_jsonl_to_blocks()
     assert second_counts[dataset_name] == 12
     assert json.loads((tmp_path / ".dataset_counts.json").read_text())[dataset_name] == 12
-    assert len((tmp_path / f"{dataset_name}.ndjson").read_text().splitlines()) == 12
+    assert len(_stored_text(tmp_path, dataset_name).splitlines()) == 12
 
 
 def test_unpack_removes_compressed_download_after_success(tmp_path, monkeypatch):
@@ -103,15 +116,16 @@ def test_unpack_removes_compressed_download_after_success(tmp_path, monkeypatch)
     _write_fixture(tmp_path, dataset_name, 10)
     assert _download_path(tmp_path, dataset_name).exists()
 
-    data_updater.unpack_jsonl_to_ndjson()
+    data_updater.unpack_jsonl_to_blocks()
 
-    assert (tmp_path / f"{dataset_name}.ndjson").exists()
+    assert _stored_path(tmp_path, dataset_name).exists()
     assert not _download_path(tmp_path, dataset_name).exists()
 
 
 def test_unpack_preserves_jsonl_lines_verbatim(tmp_path, monkeypatch):
-    # JSONL *is* NDJSON: unpacking must not re-serialize (and so must not reorder
-    # keys, drop unicode, or turn Scryfall's numbers into floats).
+    # Lines go in and come back out byte-identical: compressing into blocks must
+    # not re-serialize (and so must not reorder keys, drop unicode, or turn
+    # Scryfall's numbers into floats).
     dataset_name = _isolate(tmp_path, monkeypatch)
     rows = [
         {"name": "Pântano", "printed_name": "Pântano", "cmc": 0.0, "prices": {"usd": "0.15"}},
@@ -121,9 +135,9 @@ def test_unpack_preserves_jsonl_lines_verbatim(tmp_path, monkeypatch):
     with gzip.open(_download_path(tmp_path, dataset_name), "wb") as f:
         f.write(source.encode("utf-8"))
 
-    data_updater.unpack_jsonl_to_ndjson()
+    data_updater.unpack_jsonl_to_blocks()
 
-    assert (tmp_path / f"{dataset_name}.ndjson").read_text(encoding="utf-8") == source
+    assert _stored_text(tmp_path, dataset_name) == source
 
 
 def test_unpack_rejects_truncated_gzip(tmp_path, monkeypatch):
@@ -132,22 +146,22 @@ def test_unpack_rejects_truncated_gzip(tmp_path, monkeypatch):
     dataset_name = _isolate(tmp_path, monkeypatch)
 
     _write_fixture(tmp_path, dataset_name, 10)
-    data_updater.unpack_jsonl_to_ndjson()
-    good_ndjson = (tmp_path / f"{dataset_name}.ndjson").read_text()
+    data_updater.unpack_jsonl_to_blocks()
+    good_rows = _stored_text(tmp_path, dataset_name)
 
     _write_fixture(tmp_path, dataset_name, 500)
     download = _download_path(tmp_path, dataset_name)
     download.write_bytes(download.read_bytes()[:-40])  # chop the tail
 
     with pytest.raises(DataSanityError):
-        data_updater.unpack_jsonl_to_ndjson()
+        data_updater.unpack_jsonl_to_blocks()
 
-    assert (tmp_path / f"{dataset_name}.ndjson").read_text() == good_ndjson
-    assert not (tmp_path / f"{dataset_name}.ndjson_new").exists()
+    assert _stored_text(tmp_path, dataset_name) == good_rows
+    assert not Path(str(_stored_path(tmp_path, dataset_name)) + "_new").exists()
 
 
 def test_unpack_rejects_malformed_json_line(tmp_path, monkeypatch):
-    # Caught here, before the swap — otherwise the bad NDJSON is already live and
+    # Caught here, before the swap — otherwise the bad rows are already live and
     # it's build_all_indices that explodes.
     dataset_name = _isolate(tmp_path, monkeypatch)
 
@@ -155,10 +169,10 @@ def test_unpack_rejects_malformed_json_line(tmp_path, monkeypatch):
         f.write(b'{"name": "Fine"}\n{"name": "Broken"\n')
 
     with pytest.raises(DataSanityError):
-        data_updater.unpack_jsonl_to_ndjson()
+        data_updater.unpack_jsonl_to_blocks()
 
-    assert not (tmp_path / f"{dataset_name}.ndjson").exists()
-    assert not (tmp_path / f"{dataset_name}.ndjson_new").exists()
+    assert not _stored_path(tmp_path, dataset_name).exists()
+    assert not Path(str(_stored_path(tmp_path, dataset_name)) + "_new").exists()
 
 
 def test_download_uses_the_jsonl_uri(tmp_path, monkeypatch):
@@ -209,7 +223,7 @@ def test_download_uses_the_jsonl_uri(tmp_path, monkeypatch):
 
     assert requested[-1].endswith(".jsonl.gz")
     # And the bytes landed compressed, ready for the unpack step to read.
-    counts = data_updater.unpack_jsonl_to_ndjson()
+    counts = data_updater.unpack_jsonl_to_blocks()
     assert counts[dataset_name] == 1
 
 

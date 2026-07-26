@@ -1,7 +1,7 @@
 """
-This file is responsible for pulling card data and unpacking it into NDJSON
-and then generating a 'name -> row number' index file to enable fast lookups
-of the NDJSON
+This file is responsible for pulling card data and unpacking it into the
+block-compressed row store, then generating a 'name -> row' index file to
+enable fast lookups of it
 We pull card data from Scryfall by downloading their bulk card JSONL file
 This file is stateless and does not manage its own update frequency, use a
 cron scheduler for scheduling tasks. I think that updating every 5 or 7 days
@@ -11,8 +11,9 @@ before physical release.
 
 Scryfall retired the old "one giant JSON array" bulk files in July 2026 in
 favor of gzipped JSON Lines (`jsonl_download_uri`, `*.jsonl.gz`). JSONL *is*
-NDJSON, so there is no longer a format conversion at all — we gunzip the
-download straight into the `.ndjson` the API and index already expect.
+NDJSON, so there is no format conversion — we stream the download straight into
+the block-compressed `.zndjson` the API serves from (see `block_store`, which
+explains why rows are stored compressed rather than as plain NDJSON).
 """
 import fcntl
 import gzip
@@ -30,6 +31,7 @@ import posthog
 import requests
 
 from settings import settings
+import block_store
 import card_index
 
 BULK_DATA_TYPES = settings.dataset_names
@@ -47,7 +49,7 @@ LOCK_PATH = Path(FOLDER) / ".data_updater.lock"
 
 # Per-dataset entry counts from the last run that passed the sanity check
 # below, so a new run can tell "smaller than before" without re-scanning the
-# (large) previous .ndjson file.
+# (large) previous data file.
 COUNTS_PATH = Path(FOLDER) / ".dataset_counts.json"
 
 # Scryfall's gzipped JSON Lines bulk files: the download is a real .gz on disk
@@ -217,26 +219,31 @@ def download_bulk_data():
                         f.flush()
 
 
-@time_it(title="Unpacking JSONL to NDJSON")
-def unpack_jsonl_to_ndjson():
+@time_it(title="Unpacking JSONL into block-compressed rows")
+def unpack_jsonl_to_blocks():
     """
-    Un-gzips each `.jsonl.gz` download into the `.ndjson` the API serves,
-    rejecting any file whose entry count drops sharply from the last known-good
-    run (see MIN_COUNT_RATIO) instead of promoting a truncated/corrupt download.
+    Transcodes each `.jsonl.gz` download into the block-compressed `.zndjson` the
+    API serves, rejecting any file whose entry count drops sharply from the last
+    known-good run (see MIN_COUNT_RATIO) instead of promoting a truncated/corrupt
+    download.
 
-    JSONL and NDJSON are the same format, so this is a decompress-and-count, not
-    a parse-and-re-serialize. Two things still have to hold before we promote the
-    file, because the swap is what the API picks up:
+    Line in, line out — no re-serialization, so Scryfall's exact bytes are what
+    we store (key order, unicode, number formatting all preserved). The only
+    transformation is which block a line lands in. Three things must hold before
+    we promote the file, because the swap is what the API picks up:
 
-    - gzip's own CRC32/length trailer must check out (`gzip` raises on a
-      truncated or corrupt member), which is a stricter integrity guarantee than
-      the old count heuristic gave us on a half-finished download; and
+    - gzip's CRC32/length trailer must check out (`gzip` raises on a truncated or
+      corrupt member), a stricter integrity guarantee than the count heuristic
+      ever gave us on a half-finished download;
     - every line must parse as JSON, which the old ijson-based conversion
       enforced implicitly. Without it a malformed line would sail through here
-      and blow up later in `build_all_indices` — *after* the NDJSON had already
-      been promoted, leaving the API pointed at data it can't index.
+      and blow up later in `build_all_indices` — *after* the data file had
+      already been promoted, leaving the API pointed at rows it can't index; and
+    - the entry count must not have collapsed versus the last good run.
 
-    On all_cards this runs in ~20s at <50MB RSS.
+    Streaming both sides means peak memory is one block (~256 KB), not one
+    dataset: all_cards runs in ~40s at <50MB RSS regardless of its 2.86 GB
+    uncompressed size.
     :return: per-dataset entry counts
     """
     counts = _load_counts()
@@ -244,23 +251,24 @@ def unpack_jsonl_to_ndjson():
     for data_type in BULK_DATA_TYPES:
         filename = f"{data_type}{DOWNLOAD_SUFFIX}"
         input_path = os.path.join(FOLDER, filename)
-        output_path = os.path.join(FOLDER, f"{data_type}.ndjson")
+        output_path = os.path.join(FOLDER, f"{data_type}{card_index.DATA_EXT}")
         temp_path = output_path + "_new"
 
         logger.info(f"Unpacking {filename} -> {os.path.basename(output_path)}")
 
         count = 0
         try:
-            with gzip.open(input_path, "rb") as inp, open(temp_path, "wb") as out:
-                for line in inp:
-                    if not line.strip():  # tolerate a trailing newline
-                        continue
-                    json.loads(line)  # validate before we can promote it
-                    out.write(line if line.endswith(b"\n") else line + b"\n")
-                    count += 1
+            with gzip.open(input_path, "rb") as inp, open(temp_path, "wb") as raw_out:
+                with block_store.BlockWriter(raw_out) as out:
+                    for line in inp:
+                        if not line.strip():  # tolerate a trailing newline
+                            continue
+                        json.loads(line)  # validate before we can promote it
+                        out.add_line(line)
+                        count += 1
         except (OSError, EOFError, json.JSONDecodeError) as exc:
-            # A partial `.ndjson_new` is worthless and multi-GB — don't leave it
-            # on the disk we just proved we care about.
+            # A partial output is worthless — don't leave it on the disk we just
+            # proved we care about.
             if os.path.exists(temp_path):
                 os.remove(temp_path)
             raise DataSanityError(
@@ -278,29 +286,65 @@ def unpack_jsonl_to_ndjson():
             )
 
         os.replace(temp_path, output_path)
-        # The compressed download is only needed for this unpack. Delete it so it
-        # doesn't accumulate (~390 MB for all_cards) and fill the disk — an
-        # uncleaned raw download filling `/` is what wedged the prod droplet.
+        # The download is only needed for this unpack. Delete it so it doesn't
+        # accumulate (~390 MB for all_cards) and fill the disk — an uncleaned raw
+        # download filling `/` is what wedged the prod droplet.
         # Best-effort: a failed cleanup shouldn't fail an otherwise-good run.
         try:
             os.remove(input_path)
         except OSError:
             logger.warning(f"Could not remove raw download {input_path}", exc_info=True)
-        logger.info(f"{data_type}: {count} entries (previous: {previous})")
+        stored = os.path.getsize(output_path)
+        logger.info(
+            f"{data_type}: {count} entries (previous: {previous}), "
+            f"{stored / 1e6:.0f} MB stored"
+        )
         counts[data_type] = count
 
     _save_counts(counts)
     return counts
 
 
+@time_it(title="Recompressing legacy NDJSON")
+def recompress_legacy_ndjson():
+    """Convert a plain `<name>.ndjson` left by an older version into `.zndjson`.
+
+    A migration path only: it lets a server that already holds the right dataset
+    adopt block storage without re-downloading it. Needs the plain file's full
+    size free on disk transiently, same as any other rewrite.
+    """
+    for data_type in BULK_DATA_TYPES:
+        legacy_path = os.path.join(FOLDER, f"{data_type}.ndjson")
+        output_path = os.path.join(FOLDER, f"{data_type}{card_index.DATA_EXT}")
+        if not os.path.exists(legacy_path):
+            logger.info(f"{data_type}: no legacy .ndjson to recompress; skipping")
+            continue
+        temp_path = output_path + "_new"
+        count = 0
+        with open(legacy_path, "rb") as inp, open(temp_path, "wb") as raw_out:
+            with block_store.BlockWriter(raw_out) as out:
+                for line in inp:
+                    if not line.strip():
+                        continue
+                    out.add_line(line)
+                    count += 1
+        os.replace(temp_path, output_path)
+        logger.info(
+            f"{data_type}: recompressed {count} entries, "
+            f"{os.path.getsize(legacy_path) / 1e6:.0f} MB -> "
+            f"{os.path.getsize(output_path) / 1e6:.0f} MB. "
+            f"Delete {legacy_path} once the server is verified."
+        )
+
+
 @time_it(title="Building indices")
 def build_all_indices():
     """Build the mmap index artifacts (`<name>.marisa` / `.offsets` /
-    `.index.json`) the API loads, one per dataset, from the NDJSON on disk.
+    `.index.json`) the API loads, one per dataset, from the data file on disk.
 
-    Doing this here — offline, right after the NDJSON is refreshed — is what keeps
+    Doing this here — offline, right after the data is refreshed — is what keeps
     the API's cold start fast: it maps a prebuilt index instead of scanning the
-    multi-GB file, and never pays the build's transient memory spike.
+    whole dataset, and never pays the build's transient memory spike.
     """
     for data_type in BULK_DATA_TYPES:
         card_index.build_artifacts(Path(FOLDER), data_type)
@@ -308,9 +352,14 @@ def build_all_indices():
 
 if __name__ == '__main__':
     # `--build-index` (alias `--index-only`) rebuilds the index artifacts from the
-    # NDJSON already on disk, skipping the Scryfall download — used by a deploy or
-    # rollback to (re)generate the index a new code version expects, fast.
+    # data file already on disk, skipping the Scryfall download — used by a deploy
+    # or rollback to (re)generate the index a new code version expects, fast.
     index_only = "--build-index" in sys.argv or "--index-only" in sys.argv
+
+    # `--recompress` converts a plain `<name>.ndjson` from before block storage
+    # into `<name>.zndjson` and reindexes, so a server holding the right dataset
+    # can adopt the new format without re-downloading it.
+    recompress = "--recompress" in sys.argv
 
     lock_file = acquire_lock()
     if lock_file is None:
@@ -327,11 +376,14 @@ if __name__ == '__main__':
     run_start = perf_counter()
 
     try:
-        if index_only:
+        if recompress:
+            recompress_legacy_ndjson()
+            counts = _load_counts()
+        elif index_only:
             counts = _load_counts()
         else:
             download_bulk_data()
-            counts = unpack_jsonl_to_ndjson()
+            counts = unpack_jsonl_to_blocks()
         build_all_indices()
     except Exception as exc:
         logger.exception("data_updater run failed")

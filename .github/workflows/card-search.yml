@@ -73,7 +73,7 @@ jobs:
       - name: Walk every card against a live server
         env:
           CARD_API_BASE_URL: http://127.0.0.1:8000
-          CARD_NDJSON_PATH: ${{ github.workspace }}/mtg_card_search/cards/all_cards.ndjson
+          CARD_DATA_PATH: ${{ github.workspace }}/mtg_card_search/cards/all_cards.zndjson
         run: |
           uvicorn api:app --host 127.0.0.1 --port 8000 &
           server=$!

@@ -55,18 +55,28 @@ if you'd rather do it by hand or understand what it's doing. Either way, step
    python3 data_updater.py
    ```
    This downloads Scryfall's gzipped JSON Lines bulk file
-   (`<name>.jsonl.gz`), un-gzips it into the `<name>.ndjson` the server reads,
-   and builds the memory-mapped index artifacts (`<name>.marisa` / `.offsets` /
-   `.index.json`) the server loads at startup. Expect it to take roughly a
-   minute depending on dataset size and network speed.
+   (`<name>.jsonl.gz`), transcodes it into the block-compressed
+   `<name>.zndjson` the server reads, and builds the memory-mapped index
+   artifacts (`<name>.marisa` / `.offsets` / `.index.json`) the server loads at
+   startup. Expect it to take roughly a minute depending on dataset size and
+   network speed.
 
-   **Budget the disk before you run this.** The production dataset is
-   `all_cards` (every card in every language — see the note below), which needs
-   **~2.9 GB** for the `.ndjson` plus a transient **~390 MB** for the download,
-   and keeps the *previous* `.ndjson` in place until the new one is promoted:
-   budget ~6.5 GB free. An uncleaned bulk download filling `/` is what wedged
-   the droplet once already. The index artifacts themselves are tiny (~10 MB)
-   and the build peaks under 200 MB RSS, so RAM is not the constraint — disk is.
+   **Disk budget.** The production dataset is `all_cards` — every card in every
+   language (see the note below). Raw, that is 2.9 GB of JSON, which the
+   droplet does not have room for; rows are therefore stored block-compressed
+   (~8x, see [`block_store.py`](block_store.py)):
+
+   | | on disk |
+   |---|---|
+   | `all_cards.zndjson` (steady state) | **~355 MB** |
+   | `.jsonl.gz` download (transient) | ~390 MB |
+   | index artifacts | ~10 MB |
+   | **peak during a refresh** | **~1.15 GB** |
+
+   A refresh keeps the previous `.zndjson` until the new one is promoted, hence
+   the peak. Budget ~1.5 GB free. An uncleaned bulk download filling `/` is
+   what wedged the droplet once already. RAM is not the constraint: the index
+   build peaks under 200 MB RSS and the loaded trie is ~5 MB.
 
    > **Why `all_cards`.** Anything narrower (`default_cards`, `oracle_cards`) is
    > English-only, so a decklist pasted in Portuguese resolves nothing and the
@@ -201,17 +211,17 @@ restart again to roll back.
 ### Switching an existing server to a different `BULK_DATA_TYPES`
 
 Changing the dataset is not just an `.env` edit — the server refuses to start
-until the new `<name>.ndjson` exists, and the old dataset's files are left
+until the new `<name>.zndjson` exists, and the old dataset's files are left
 behind. To move a running server from `default_cards` to `all_cards`:
 
 ```
-df -h /                                  # need ~6.5 GB free; see step 4 above
+df -h /                                  # need ~1.5 GB free; see step 4 above
 vim .env                                 # BULK_DATA_TYPES=all_cards
 python3 data_updater.py                  # downloads + unpacks + indexes the new dataset
 sudo systemctl restart mtg-card-search
 ./scripts/smoke_test.sh
-rm cards/default_cards.ndjson cards/default_cards.marisa \
-   cards/default_cards.offsets cards/default_cards.index.json
+curl -s localhost:8000/v1/health         # confirm the dataset name switched
+rm cards/default_cards.*                 # only after the smoke test passes
 ```
 
 Delete the old dataset's files **after** the smoke test passes, not before —
@@ -220,6 +230,22 @@ sanity check doesn't compare the new dataset against the old one's size.
 
 `scripts/push_env.sh -h HOST` pushes the local `.env` if you'd rather not edit
 it on the server.
+
+### Migrating a server from plain `.ndjson` to block-compressed rows
+
+Rows used to be stored as plain `<name>.ndjson`. A server carrying the dataset
+it already wants can adopt the new format without re-downloading it:
+
+```
+python3 data_updater.py --recompress      # <name>.ndjson -> <name>.zndjson, then reindex
+sudo systemctl restart mtg-card-search
+./scripts/smoke_test.sh
+rm cards/<name>.ndjson                    # only after the smoke test passes
+```
+
+This needs the plain file's size free transiently, since both exist until you
+delete the old one. If you're changing datasets anyway, skip it — a normal
+`data_updater.py` run writes the new format directly.
 
 ## Zero-downtime deploys (blue-green)
 
