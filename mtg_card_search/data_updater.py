@@ -1,27 +1,31 @@
 """
-This file is responsible for pulling card data and converting it into NDJSON
+This file is responsible for pulling card data and unpacking it into NDJSON
 and then generating a 'name -> row number' index file to enable fast lookups
 of the NDJSON
-We pull card data from Scryfall by downloading their bulk card JSON file
+We pull card data from Scryfall by downloading their bulk card JSONL file
 This file is stateless and does not manage its own update frequency, use a
 cron scheduler for scheduling tasks. I think that updating every 5 or 7 days
 should be relatively safe. MTG releases full data on new sets about 3 weeks
 before physical release. Worst case, we'd get the cards updated ~2 weeks
 before physical release.
+
+Scryfall retired the old "one giant JSON array" bulk files in July 2026 in
+favor of gzipped JSON Lines (`jsonl_download_uri`, `*.jsonl.gz`). JSONL *is*
+NDJSON, so there is no longer a format conversion at all — we gunzip the
+download straight into the `.ndjson` the API and index already expect.
 """
 import fcntl
+import gzip
 import json
 import logging
 import os
 import sys
 import tracemalloc
-from decimal import Decimal
 from functools import wraps
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
 from time import perf_counter
 
-import ijson
 import posthog
 import requests
 
@@ -45,6 +49,11 @@ LOCK_PATH = Path(FOLDER) / ".data_updater.lock"
 # below, so a new run can tell "smaller than before" without re-scanning the
 # (large) previous .ndjson file.
 COUNTS_PATH = Path(FOLDER) / ".dataset_counts.json"
+
+# Scryfall's gzipped JSON Lines bulk files: the download is a real .gz on disk
+# (Content-Type: application/gzip, no Content-Encoding), so `requests` hands us
+# the compressed bytes and we un-gzip them ourselves.
+DOWNLOAD_SUFFIX = ".jsonl.gz"
 
 # DESIGN DECISION: a new dataset file is rejected if it has fewer than this
 # fraction of the previous known-good entry count. Scryfall's card count only
@@ -162,7 +171,7 @@ def init_sentry():
 @time_it(title="Downloading new cards")
 def download_bulk_data():
     """
-    Downloads Scryfall bulk cards to `cards.json`.
+    Downloads Scryfall bulk cards to `<data_type>.jsonl.gz`.
     This generally takes ~12 seconds to run; memory usage <5MB.
     :return: None
     """
@@ -174,7 +183,18 @@ def download_bulk_data():
     def get_bulk_download_urls(bulk_data, bulk_data_type):
         for file in bulk_data['data']:
             if file['type'] == bulk_data_type:
-                return file['download_uri']
+                # `download_uri` (the pre-July-2026 JSON array) is deliberately
+                # not accepted as a fallback: Scryfall is retiring it, and
+                # silently reading it would mean the unpack step below hands the
+                # index a single-line `[{...},{...}]` file instead of NDJSON.
+                url = file.get('jsonl_download_uri')
+                if not url:
+                    raise ValueError(
+                        f"Bulk data type '{bulk_data_type}' has no "
+                        f"'jsonl_download_uri'. Scryfall's JSONL bulk files are "
+                        f"required; see https://scryfall.com/docs/api/bulk-data"
+                    )
+                return url
 
         raise ValueError(
             f"No bulk data type '{bulk_data_type}' found. "
@@ -190,44 +210,63 @@ def download_bulk_data():
         with requests.get(url, stream=True) as response:
             response.raise_for_status()
 
-            with open(f'{FOLDER}/{data_type}.json', 'wb') as f:
+            with open(f'{FOLDER}/{data_type}{DOWNLOAD_SUFFIX}', 'wb') as f:
                 for chunk in response.iter_content(chunk_size=CHUNK_SIZE):
                     if chunk:  # filter out keep-alive chunks
                         f.write(chunk)
                         f.flush()
 
-@time_it(title="Converting JSON to NDJSON")
-def convert_json_to_ndjson():
-    """
-    Converts all `.json` files to `.ndjson` files, rejecting any file whose
-    entry count drops sharply from the last known-good run (see
-    MIN_COUNT_RATIO) instead of promoting a truncated/corrupt download.
-    This generally takes ~20 seconds to run; memory usage <1MB.
-    :return:
-    """
-    class DecimalEncoder(json.JSONEncoder):
-        def default(self, o):
-            if isinstance(o, Decimal):
-                return float(o)
-            return super().default(o)
 
+@time_it(title="Unpacking JSONL to NDJSON")
+def unpack_jsonl_to_ndjson():
+    """
+    Un-gzips each `.jsonl.gz` download into the `.ndjson` the API serves,
+    rejecting any file whose entry count drops sharply from the last known-good
+    run (see MIN_COUNT_RATIO) instead of promoting a truncated/corrupt download.
+
+    JSONL and NDJSON are the same format, so this is a decompress-and-count, not
+    a parse-and-re-serialize. Two things still have to hold before we promote the
+    file, because the swap is what the API picks up:
+
+    - gzip's own CRC32/length trailer must check out (`gzip` raises on a
+      truncated or corrupt member), which is a stricter integrity guarantee than
+      the old count heuristic gave us on a half-finished download; and
+    - every line must parse as JSON, which the old ijson-based conversion
+      enforced implicitly. Without it a malformed line would sail through here
+      and blow up later in `build_all_indices` — *after* the NDJSON had already
+      been promoted, leaving the API pointed at data it can't index.
+
+    On all_cards this runs in ~20s at <50MB RSS.
+    :return: per-dataset entry counts
+    """
     counts = _load_counts()
 
     for data_type in BULK_DATA_TYPES:
-        filename = f"{data_type}.json"
+        filename = f"{data_type}{DOWNLOAD_SUFFIX}"
         input_path = os.path.join(FOLDER, filename)
         output_path = os.path.join(FOLDER, f"{data_type}.ndjson")
         temp_path = output_path + "_new"
 
-        logger.info(f"Converting {filename} -> {os.path.basename(output_path)}")
+        logger.info(f"Unpacking {filename} -> {os.path.basename(output_path)}")
 
         count = 0
-        with open(input_path, "rb") as inp, open(temp_path, "w") as out:
-            for item in ijson.items(inp, "item"):
-                out.write(
-                    json.dumps(item, cls=DecimalEncoder) + "\n"
-                )
-                count += 1
+        try:
+            with gzip.open(input_path, "rb") as inp, open(temp_path, "wb") as out:
+                for line in inp:
+                    if not line.strip():  # tolerate a trailing newline
+                        continue
+                    json.loads(line)  # validate before we can promote it
+                    out.write(line if line.endswith(b"\n") else line + b"\n")
+                    count += 1
+        except (OSError, EOFError, json.JSONDecodeError) as exc:
+            # A partial `.ndjson_new` is worthless and multi-GB — don't leave it
+            # on the disk we just proved we care about.
+            if os.path.exists(temp_path):
+                os.remove(temp_path)
+            raise DataSanityError(
+                f"{data_type}: {filename} is corrupt or truncated ({exc}); "
+                f"refusing to replace {output_path}"
+            ) from exc
 
         previous = counts.get(data_type)
         if previous and count < previous * MIN_COUNT_RATIO:
@@ -239,8 +278,8 @@ def convert_json_to_ndjson():
             )
 
         os.replace(temp_path, output_path)
-        # The raw .json download is only needed for this conversion. Delete it so
-        # it doesn't accumulate (~1-2 GB per dataset) and fill the disk — an
+        # The compressed download is only needed for this unpack. Delete it so it
+        # doesn't accumulate (~390 MB for all_cards) and fill the disk — an
         # uncleaned raw download filling `/` is what wedged the prod droplet.
         # Best-effort: a failed cleanup shouldn't fail an otherwise-good run.
         try:
@@ -292,7 +331,7 @@ if __name__ == '__main__':
             counts = _load_counts()
         else:
             download_bulk_data()
-            counts = convert_json_to_ndjson()
+            counts = unpack_jsonl_to_ndjson()
         build_all_indices()
     except Exception as exc:
         logger.exception("data_updater run failed")
