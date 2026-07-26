@@ -91,3 +91,71 @@ def test_load_rebuilds_when_ndjson_is_stale(tmp_path):
     ds2 = card_index.load_dataset(tmp_path, "mini")     # must notice staleness and rebuild
     assert ds2.get_offset("fireball") is not None
     assert len(ds2.offsets) == 4
+
+
+# ---------------------------------------------------------------------------
+# Multilingual keys — what the `all_cards` dataset (#173) needs to be correct.
+# A non-English printing carries the English `name` AND a localized
+# `printed_name`, so both spellings must resolve, and the English printing has to
+# win the name they share.
+# ---------------------------------------------------------------------------
+
+MULTILINGUAL = [
+    # The Portuguese printing is listed FIRST, so plain first-wins would hand
+    # "swamp" to it and an English lookup would come back as a Portuguese card.
+    {"id": "pt", "name": "Swamp", "printed_name": "Pântano", "lang": "pt",
+     "set": "roe", "collector_number": "241", "layout": "normal"},
+    {"id": "en", "name": "Swamp", "lang": "en",
+     "set": "jmp", "collector_number": "68", "layout": "normal"},
+    {"id": "es", "name": "Avacyn's Pilgrim", "printed_name": "Peregrino de Avacyn",
+     "lang": "es", "set": "mic", "collector_number": "70", "layout": "normal"},
+]
+
+
+def test_english_printing_wins_a_contested_name(tmp_path):
+    ds = build_and_load(tmp_path, MULTILINGUAL, name="multi")
+    card = read_card_at(ds.ndjson_path, ds.get_offset("swamp"))
+    assert card["id"] == "en", "an English lookup must return the English printing"
+
+
+def test_localized_printed_name_resolves(tmp_path):
+    ds = build_and_load(tmp_path, MULTILINGUAL, name="multi")
+    # No English printing claims these keys, so the localized rows keep them.
+    assert read_card_at(ds.ndjson_path, ds.get_offset("pantano"))["id"] == "pt"
+    assert read_card_at(ds.ndjson_path, ds.get_offset("peregrinodeavacyn"))["id"] == "es"
+
+
+def test_normalize_key_folds_diacritics_case_and_spaces():
+    # The decklists in #173 are typed without accents; Scryfall stores them with.
+    assert card_index.normalize_key("Pântano") == card_index.normalize_key("Pantano")
+    assert card_index.normalize_key("Planície") == "planicie"
+    assert card_index.normalize_key("Itzquinth, Primogênito de Gishath") == (
+        "itzquinth,primogenitodegishath"
+    )
+    # Same for English names players can't easily type.
+    assert card_index.normalize_key("Juzám Djinn") == "juzamdjinn"
+    # Pre-existing behavior is preserved.
+    assert card_index.normalize_key("  Lightning Bolt ") == "lightningbolt"
+
+
+def test_unaccented_spelling_resolves_an_accented_name(tmp_path):
+    ds = build_and_load(tmp_path, MULTILINGUAL, name="multi")
+    # "Pantano" (as typed) and "Pântano" (as printed) are the same lookup.
+    assert ds.get_offset(card_index.normalize_key("Pantano")) is not None
+    assert ds.get_offset(card_index.normalize_key("Pântano")) == ds.get_offset(
+        card_index.normalize_key("Pantano")
+    )
+
+
+def test_is_preferred_printing_is_injectable(tmp_path):
+    # The tie-break is a policy, not a hardcoded language check. English is listed
+    # FIRST here, so a "prefer pt" policy can only win by actually overriding the
+    # incumbent — first-wins alone would give this key to the English row.
+    en_first = [MULTILINGUAL[1], MULTILINGUAL[0]]
+    prefer_pt = lambda data: data.get("lang") == "pt"  # noqa: E731
+
+    write_ndjson(tmp_path / "pref.ndjson", en_first)
+    card_index.build_artifacts(tmp_path, "pref", is_preferred=prefer_pt)
+    ds = card_index.load_dataset(tmp_path, "pref", is_preferred=prefer_pt)
+
+    assert read_card_at(ds.ndjson_path, ds.get_offset("swamp"))["id"] == "pt"

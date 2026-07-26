@@ -48,12 +48,17 @@ jobs:
     # Tier 2 fidelity: every real card resolves by name + set/collector. Slow and
     # Scryfall-network-dependent, so nightly/manual and advisory — never blocks a
     # PR (mirrors the Node e2e-full advisory tier).
+    #
+    # Walks `all_cards` because that is what production serves. It is ~5x the
+    # cards of `default_cards` (~533k printings across 19 languages, so ~1.1M
+    # requests) and ~2.9 GB on disk — both fine for a nightly runner, and the
+    # point of the job is to exercise the real dataset, not a smaller stand-in.
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     continue-on-error: true
     env:
       CARD_JSON_DIR: ${{ github.workspace }}/mtg_card_search/cards
-      BULK_DATA_TYPES: default_cards
+      BULK_DATA_TYPES: all_cards
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -63,12 +68,12 @@ jobs:
           cache-dependency-path: mtg_card_search/requirements.txt
       - name: Install dependencies
         run: pip install -r requirements.txt
-      - name: Download + convert the real Scryfall dataset
+      - name: Download + unpack the real Scryfall dataset
         run: python data_updater.py
       - name: Walk every card against a live server
         env:
           CARD_API_BASE_URL: http://127.0.0.1:8000
-          CARD_NDJSON_PATH: ${{ github.workspace }}/mtg_card_search/cards/default_cards.ndjson
+          CARD_NDJSON_PATH: ${{ github.workspace }}/mtg_card_search/cards/all_cards.ndjson
         run: |
           uvicorn api:app --host 127.0.0.1 --port 8000 &
           server=$!

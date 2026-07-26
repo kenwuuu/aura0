@@ -3,7 +3,14 @@
 A small FastAPI service for fast Magic: The Gathering card lookups. It indexes
 Scryfall bulk-data NDJSON files by byte offset in memory, then serves single and
 bulk card lookups by name, flavor/printed name, or set + collector number.
-`data_updater.py` refreshes the underlying data from Scryfall on a cron.
+`data_updater.py` refreshes the underlying data from Scryfall on a cron —
+downloading their gzipped JSON Lines bulk file and un-gzipping it straight into
+the `.ndjson` the index reads.
+
+Lookups are diacritic-, case- and space-insensitive, and the production dataset
+is `all_cards` (every printing in every language), so a card resolves by its
+English name *or* by the localized name printed on it — `Pantano`, `Pântano`,
+and `Swamp` are all the same lookup.
 
 Requires Python 3.12+.
 

@@ -29,6 +29,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import unicodedata
 from array import array
 from dataclasses import dataclass
 from pathlib import Path
@@ -44,7 +45,8 @@ TRIE_FMT = "<Q"
 OFFSETS_TYPECODE = "Q"
 
 
-# Bump this whenever `default_key_extractor` changes which keys it yields.
+# Bump this whenever the key schema changes — which keys `default_key_extractor`
+# yields, how `normalize_key` folds them, or which card wins a contested key.
 #
 # A prebuilt index is otherwise only invalidated by the NDJSON's mtime/size, so a
 # key-schema change would ship against a stale trie and the new keys would simply
@@ -52,16 +54,50 @@ OFFSETS_TYPECODE = "Q"
 # the artifacts self-invalidating.
 #
 # v2: also index the full "Front // Back" name of two-faced cards.
-KEY_SCHEMA_VERSION = 2
+# v3: fold diacritics in normalize_key; English printings win contested keys.
+KEY_SCHEMA_VERSION = 3
 
 
 def normalize_key(raw: str) -> str:
-    return raw.strip().lower().replace(" ", "")
+    """Fold a card name to its lookup key: diacritic-, case- and space-insensitive.
+
+    Dropping accents is what makes localized names actually reachable. Scryfall
+    stores `printed_name` exactly as printed — `Planície`, `Pântano`, `Itzquinth,
+    Primogênito de Gishath` — but players type what their keyboard gives them, and
+    the Portuguese decklists in #173 are full of bare `Planicie` / `Pantano`. This
+    runs on both the build and the query side (`api.lookup` normalizes the
+    incoming id through here), so the two spellings collapse to one key. It buys
+    the same thing for English names players can't easily type: `Juzam Djinn`,
+    `Jotun Grunt`, `Lim-Dul the Necromancer`.
+
+    Measured on the real all_cards dataset, folding merges no two distinct
+    English card names that weren't already merged by the space-stripping above
+    it (the one pre-existing collision is `Waste Land` / `Wasteland`).
+    """
+    decomposed = unicodedata.normalize("NFKD", raw)
+    unaccented = "".join(ch for ch in decomposed if not unicodedata.combining(ch))
+    return unaccented.strip().lower().replace(" ", "")
 
 
 def default_should_skip(data: dict) -> bool:
     # Art cards (e.g. art_series printings) are not legal cards — don't index them.
     return data.get("layout") == "art_series"
+
+
+def default_is_preferred_printing(data: dict) -> bool:
+    """Whether this card should win a key another card also claims.
+
+    Matters because of the `all_cards` dataset (every card in every language,
+    which is how #173's localized names get indexed at all): a non-English
+    printing carries the *English* `name` alongside its localized `printed_name`,
+    so every printing of Sol Ring in all 19 languages claims the key `solring`.
+    First-wins alone hands that key to whichever language the file happens to
+    list first — measured on the real dataset, English lost most of them, so a
+    plain English lookup came back as a French or Japanese card (foreign image,
+    foreign `printed_name`). That is ~all of our traffic, so English wins ties;
+    localized names, which no English printing claims, are unaffected.
+    """
+    return data.get("lang") == "en"
 
 
 def default_key_extractor(data: dict) -> Iterable[str]:
@@ -89,6 +125,7 @@ def default_key_extractor(data: dict) -> Iterable[str]:
 
 SkipFn = Callable[[dict], bool]
 KeyFn = Callable[[dict], Iterable[str]]
+PreferFn = Callable[[dict], bool]
 
 
 def artifact_paths(data_dir: Path, name: str):
@@ -107,6 +144,7 @@ def build_artifacts(
     *,
     should_skip: SkipFn = default_should_skip,
     extract_keys: KeyFn = default_key_extractor,
+    is_preferred: PreferFn = default_is_preferred_printing,
 ) -> dict:
     """(Re)build the mmap artifacts for one dataset from its NDJSON.
 
@@ -120,6 +158,10 @@ def build_artifacts(
     start = perf_counter()
 
     key_to_offset: dict[str, int] = {}
+    # Keys already claimed by a preferred (English) printing. Holds the same
+    # string objects as `key_to_offset`, so it costs a hash table and no new
+    # strings — worth it to keep this a single pass over a multi-GB file.
+    preferred_keys: set[str] = set()
     offsets = array(OFFSETS_TYPECODE)
 
     with ndjson_path.open("rb") as f:
@@ -132,9 +174,18 @@ def build_artifacts(
             if should_skip(data):
                 continue
             offsets.append(offset)
+            preferred = is_preferred(data)
             for key in extract_keys(data):
-                if key not in key_to_offset:  # first-wins, like the old in-RAM build
+                # First-wins within a tier, but a preferred printing outranks a
+                # non-preferred incumbent (see default_is_preferred_printing).
+                if preferred:
+                    if key not in preferred_keys:
+                        key_to_offset[key] = offset
+                        preferred_keys.add(key)
+                elif key not in key_to_offset:
                     key_to_offset[key] = offset
+
+    del preferred_keys  # release before marisa's build allocates
 
     trie = marisa_trie.RecordTrie(
         TRIE_FMT, ((k, (v,)) for k, v in key_to_offset.items())
@@ -218,6 +269,7 @@ def load_dataset(
     *,
     should_skip: SkipFn = default_should_skip,
     extract_keys: KeyFn = default_key_extractor,
+    is_preferred: PreferFn = default_is_preferred_printing,
 ) -> Dataset:
     """Load a dataset's mmap index.
 
@@ -237,7 +289,13 @@ def load_dataset(
             "(one-time and slow; run `data_updater.py --build-index` to avoid this).",
             name,
         )
-        build_artifacts(data_dir, name, should_skip=should_skip, extract_keys=extract_keys)
+        build_artifacts(
+            data_dir,
+            name,
+            should_skip=should_skip,
+            extract_keys=extract_keys,
+            is_preferred=is_preferred,
+        )
 
     trie = marisa_trie.RecordTrie(TRIE_FMT)
     # load (not mmap): mmap'd marisa tries segfault at interpreter shutdown on
