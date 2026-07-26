@@ -456,3 +456,151 @@ describe('DeckImportModal — import flow', () => {
     expect(screen.getByRole('button', { name: 'Importing...' })).toBeDisabled();
   });
 });
+
+/**
+ * The dialog's half of #174: what a player actually sees when a pasted deck link
+ * fails.
+ *
+ * Driven through the real `fetch` boundary rather than by mocking
+ * `fetchImportedDeck`, because the thing under test is the whole chain — the
+ * endpoint's reply, the reason it carries, and the fixes rendered from it. A
+ * mock at the module seam would still pass with the fixes thrown away in
+ * between, which is exactly the bug this is here to prevent.
+ */
+describe('DeckImportModal — a deck link that fails', () => {
+  const onClose = vi.fn();
+  const onDeckImported = vi.fn();
+
+  const ARCHIDEKT_LINK = 'https://archidekt.com/decks/24664944';
+
+  const renderModal = () =>
+    render(<DeckImportModal isOpen onClose={onClose} onDeckImported={onDeckImported} />);
+
+  /** Reply as the endpoint does for a deck Archidekt won't show us. */
+  const endpointReplies = (body: unknown, status: number) =>
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response(JSON.stringify(body), {
+          status,
+          headers: { 'content-type': 'application/json' },
+        }),
+      ),
+    );
+
+  const pasteLink = async (link = ARCHIDEKT_LINK) => {
+    const user = userEvent.setup();
+    await user.click(screen.getByLabelText('Deck List'));
+    await user.paste(link);
+    return user;
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('reads back the endpoint’s explanation and everything worth trying', async () => {
+    endpointReplies(
+      {
+        error: 'Aura couldn’t find that deck on Archidekt.',
+        reason: 'deck_not_found',
+        fixes: ['Open the link in a new tab.', 'If it opens for you, the deck is private.'],
+      },
+      404,
+    );
+    renderModal();
+
+    await pasteLink();
+
+    expect(await screen.findByText('Aura couldn’t find that deck on Archidekt.')).toBeInTheDocument();
+    expect(screen.getByText('Open the link in a new tab.')).toBeInTheDocument();
+    expect(screen.getByText('If it opens for you, the deck is private.')).toBeInTheDocument();
+  });
+
+  /**
+   * A failure with no way forward is what sent two players into three identical
+   * retries each. The heading is part of the fix: the box has to read as advice,
+   * not as a verdict.
+   */
+  it('offers a way forward rather than a bare error', async () => {
+    endpointReplies(
+      {
+        error: 'Aura couldn’t find that deck on Archidekt.',
+        reason: 'deck_not_found',
+        fixes: ['Open the link in a new tab.'],
+      },
+      404,
+    );
+    renderModal();
+
+    await pasteLink();
+
+    const notice = await screen.findByTestId('deck-import-problem');
+    expect(within(notice).getByText(/what to try/i)).toBeInTheDocument();
+    expect(within(notice).getAllByRole('listitem').length).toBeGreaterThan(0);
+  });
+
+  /** A status code is worth quoting in a bug report and worthless as a headline. */
+  it('keeps the technical detail out of the sentence a player reads first', async () => {
+    endpointReplies(
+      {
+        error: 'Archidekt is having trouble right now.',
+        reason: 'source_unavailable',
+        fixes: ['Try again in a few minutes.'],
+        detail: 'Archidekt replied with status 503.',
+      },
+      502,
+    );
+    renderModal();
+
+    await pasteLink();
+
+    const notice = await screen.findByTestId('deck-import-problem');
+    expect(within(notice).getByText('Archidekt is having trouble right now.')).toBeInTheDocument();
+    expect(within(notice).getByText('Archidekt replied with status 503.')).toBeInTheDocument();
+  });
+
+  /**
+   * The player pasted a link, was told the deck was private, fixed it on
+   * Archidekt and pasted again. The stale failure must not still be on screen
+   * while the second attempt is in flight.
+   */
+  it('clears a previous failure when a new link is pasted', async () => {
+    endpointReplies(
+      { error: 'Aura couldn’t find that deck on Archidekt.', reason: 'deck_not_found', fixes: ['x'] },
+      404,
+    );
+    renderModal();
+    await pasteLink();
+    expect(await screen.findByTestId('deck-import-problem')).toBeInTheDocument();
+
+    endpointReplies({ name: 'Fixed Deck', source: 'archidekt', cards: [] }, 200);
+    const user = userEvent.setup();
+    await user.clear(screen.getByLabelText('Deck List'));
+    await user.click(screen.getByLabelText('Deck List'));
+    await user.paste('https://archidekt.com/decks/24665254');
+
+    await waitFor(() =>
+      expect(screen.queryByTestId('deck-import-problem')).not.toBeInTheDocument(),
+    );
+  });
+
+  /**
+   * A `TypeError` message is a sentence about our source code. Shown as-is, the
+   * player reads our bug as something they did wrong.
+   */
+  it('never shows an unexpected internal error verbatim', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('Failed to fetch')));
+    renderModal();
+
+    await pasteLink();
+
+    const notice = await screen.findByTestId('deck-import-problem');
+    expect(notice).not.toHaveTextContent(/TypeError|Failed to fetch/);
+    expect(within(notice).getAllByRole('listitem').length).toBeGreaterThan(0);
+  });
+});

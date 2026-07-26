@@ -1,5 +1,12 @@
 import { trackDeckUrlImport } from '@/infrastructure/analytics/PosthogFunctions';
-import { DeckUrlRef, sourceLabel } from './deckUrls';
+import { DeckUrlRef } from './deckUrls';
+import {
+  DeckImportError,
+  DeckImportProblem,
+  DeckImportReason,
+  deckImportProblem,
+  problemFromBody,
+} from './importErrors';
 import { ImportedDeck, totalCardCount } from './importedDeck';
 
 /**
@@ -79,19 +86,46 @@ export async function fetchImportedDeck(
   // the number that says whether one request per second is actually enough.
   let wasRateLimited = false;
 
-  const report = (outcome: 'succeeded' | 'failed', deck?: ImportedDeck) =>
+  const reportSuccess = (deck: ImportedDeck) =>
     trackDeckUrlImport({
       source: ref.source,
       deckId: ref.deckId,
-      outcome,
+      outcome: 'succeeded',
       durationMs: Date.now() - startedAt,
       wasRateLimited,
-      sourceCardCount: deck?.sourceCardCount,
+      sourceCardCount: deck.sourceCardCount,
       // Measured from the deck we are about to hand back, so the comparison is
       // against what the player actually receives rather than what we intended
       // to build.
-      extractedCardCount: deck === undefined ? undefined : totalCardCount(deck),
+      extractedCardCount: totalCardCount(deck),
     });
+
+  /**
+   * Record a failure and return the error to throw for it.
+   *
+   * Recording and explaining are one step because they must not be able to
+   * disagree. A binary `succeeded`/`failed` metric lumps "somebody pasted a
+   * private deck" — inherent, and unfixable in code — together with "the adapter
+   * broke", so a spike in the first is indistinguishable from the second at
+   * exactly the moment you would want to tell them apart. That is what made the
+   * headline Archidekt failure rate untrustworthy in #174, and `failure_reason`
+   * is what separates the two.
+   */
+  const failed = (problem: DeckImportProblem): DeckImportError => {
+    trackDeckUrlImport({
+      source: ref.source,
+      deckId: ref.deckId,
+      outcome: 'failed',
+      failureReason: problem.reason,
+      durationMs: Date.now() - startedAt,
+      wasRateLimited,
+    });
+    return new DeckImportError(problem);
+  };
+
+  /** The same, for a failure this side of the network diagnosed itself. */
+  const failedBecause = (reason: DeckImportReason): DeckImportError =>
+    failed(deckImportProblem(reason, { source: ref.source }));
 
   const endpoint = `/api/deck-import?url=${encodeURIComponent(deckPageUrl(ref))}`;
 
@@ -116,30 +150,33 @@ export async function fetchImportedDeck(
     if (error instanceof DOMException && error.name === 'AbortError') {
       throw error;
     }
-    report('failed');
-    throw new Error("Couldn't reach Aura to look that deck up. Check your connection.");
+    // The request never left the browser: no connection, or an extension
+    // blocking it. Nothing upstream was involved, so nothing upstream is at
+    // fault and the fixes must not send the player off to check their deck.
+    throw failedBecause('aura_unreachable');
   }
 
-  // Errors carry a player-facing `error` string; anything else means the
-  // endpoint itself is broken, and a status code is the most we can say.
-  const payload = (await response.json().catch(() => null)) as
-    | (ImportedDeck & { error?: string })
-    | null;
+  const payload: unknown = await response.json().catch(() => null);
 
   if (!response.ok) {
-    report('failed');
-    throw new Error(
-      payload?.error ?? `Couldn't import that ${sourceLabel(ref.source)} deck (${response.status}).`,
+    // The endpoint knows the upstream status and has already turned it into a
+    // reason and its fixes, so its answer is repeated rather than re-diagnosed
+    // here from a status code.
+    throw failed(
+      problemFromBody(payload, {
+        source: ref.source,
+        detail: `Aura's deck importer replied with status ${response.status}.`,
+      }),
     );
   }
 
-  if (payload === null || !Array.isArray(payload.cards)) {
-    report('failed');
-    throw new Error("Aura returned a deck we couldn't read. Please try again.");
+  const deck = payload as ImportedDeck | null;
+  if (deck === null || !Array.isArray(deck.cards)) {
+    throw failedBecause('aura_error');
   }
 
-  report('succeeded', payload);
-  return payload;
+  reportSuccess(deck);
+  return deck;
 }
 
 /** Rebuild the canonical deck page URL, which is what the endpoint expects. */

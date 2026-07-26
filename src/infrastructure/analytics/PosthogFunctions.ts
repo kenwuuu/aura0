@@ -580,6 +580,19 @@ export function trackDeckUrlImport(props: {
    * players complaining.
    */
   wasRateLimited?: boolean;
+  /**
+   * Why a failed import failed, at the granularity a player could act on
+   * (`DeckImportReason`). Absent on success.
+   *
+   * Without it the outcome is binary, and a binary outcome conflates two things
+   * that call for opposite responses: a private or deleted deck — inherent, the
+   * player's to fix, and never going away — with an adapter or infrastructure
+   * failure, which is ours and worth alerting on. Archidekt's headline 18%
+   * failure rate turned out to be almost entirely the first kind (#174), and
+   * there was no way to see that from the metric itself. Break the failure rate
+   * down by this before drawing any conclusion from it.
+   */
+  failureReason?: string;
 }): void {
   const { sourceCardCount, extractedCardCount } = props;
 
@@ -593,6 +606,8 @@ export function trackDeckUrlImport(props: {
     outcome: props.outcome,
     duration_ms: props.durationMs,
     was_rate_limited: props.wasRateLimited === true,
+
+    ...(props.failureReason === undefined ? {} : { failure_reason: props.failureReason }),
 
     ...(typeof sourceCardCount === 'number' ? { source_card_count: sourceCardCount } : {}),
     ...(typeof extractedCardCount === 'number' ? { extracted_card_count: extractedCardCount } : {}),

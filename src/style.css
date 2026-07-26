@@ -607,6 +607,30 @@ body {
   margin: 4px 0;
 }
 
+/* Brighter than the list beneath it: this is the one sentence that says what
+   happened, and it has to read as prose rather than as the first bullet. */
+.error-container .error-message {
+  color: #fecaca;
+  font-size: 13px;
+  margin: 0 0 10px 0;
+  line-height: 1.5;
+}
+
+.error-container .error-fixes-heading {
+  color: #ef4444;
+  font-size: 13px;
+  font-weight: 600;
+  margin: 0 0 4px 0;
+}
+
+/* A status code, for quoting in a bug report. Dimmed and last on purpose — it
+   is the only part of this box a player is meant to be able to ignore. */
+.error-container .error-detail {
+  color: #9ca3af;
+  font-size: 11px;
+  margin: 10px 0 0 0;
+}
+
 /* Amber, not red: the import worked. The deck is just an unusual size, which is
    a question for the player, not a failure on our side. */
 .warning-container {
