@@ -73,6 +73,19 @@ describe('deckImportProblem', () => {
     expect(problem.message).toMatch(/Archidekt|TappedOut|MTGGoldfish|EDHREC|Moxfield/);
   });
 
+  /**
+   * A fix opening with "Or" is an alternative to something, so it cannot be the
+   * first thing offered. `source_not_configured` shipped exactly that — a list
+   * whose only entries were "Or copy the deck list…" and one other — and every
+   * other assertion passed, because each fix is fine in isolation and only the
+   * ordering is wrong. Caught by rendering all twelve and reading them.
+   */
+  it.each(REASONS)('does not open %s with an alternative to nothing', (reason) => {
+    const [first] = deckImportProblem(reason, { source: 'moxfield' }).fixes;
+
+    expect(first).not.toMatch(/^Or\b/);
+  });
+
   /** An unrecognized link has no source, and must still read as a sentence. */
   it('falls back to a stand-in when there is no source yet', () => {
     const problem = deckImportProblem('link_not_supported');

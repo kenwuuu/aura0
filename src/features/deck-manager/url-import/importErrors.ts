@@ -235,9 +235,11 @@ function describe(
       // problem, so nobody spends ten minutes making a public deck more public.
       return {
         message: `${site} imports aren't switched on in this version of Aura. Nothing you did caused this.`,
+        // `pasteTheListInstead` opens with "Or", so it can only ever be the last
+        // resort in a list — never the first thing offered.
         fixes: [
-          pasteTheListInstead(site),
           'Try a link from another deck site — the rest still work.',
+          pasteTheListInstead(site),
         ],
       };
 
