@@ -16,6 +16,7 @@ import React, { useState } from 'react';
 import { useGameInstance } from '@/app/stores/gameInstanceStore';
 import { playerColorToHex } from '@/features/player/playerColor';
 import { Input } from '@/shared/ui/input';
+import { ChangeSeatSetting, useHasClaimedSeat } from '@/features/session-transfer/ChangeSeatSetting';
 import { SettingRow } from '../components/SettingRow';
 import { SettingGroup } from '../components/SettingGroup';
 import styles from './ProfileSection.module.css';
@@ -25,6 +26,7 @@ export function ProfileSection() {
 
   const [name, setName] = useState(() => player?.getName() ?? '');
   const [color, setColor] = useState(() => playerColorToHex(player?.getColor() ?? '#888888'));
+  const hasSeat = useHasClaimedSeat();
 
   // Bootstrap always sets `player` before React mounts, so this is a
   // type-narrowing guard rather than a state the user can actually see.
@@ -72,6 +74,17 @@ export function ProfileSection() {
             }}
           />
         </SettingRow>
+
+        {/* Only in a game restored from a file — an ordinary room has no seat
+            to change, and an empty row invites the question of what it does. */}
+        {hasSeat && (
+          <SettingRow
+            label="Seat"
+            description="Which player you are in a game restored from a saved file. Change it if you took the wrong seat."
+          >
+            <ChangeSeatSetting />
+          </SettingRow>
+        )}
       </SettingGroup>
     </div>
   );

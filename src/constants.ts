@@ -23,6 +23,11 @@ export const YSTATE_HAND = 'hand';
 export const YSTATE_EXILE_PILE = 'exile-pile';
 export const YSTATE_DISCARD_PILE = 'discard-pile';
 export const YSTATE_DECK_CARD_COUNT = 'deck-card-count';
+// Name of the deck this player loaded, e.g. "Krenko Goblins". Shared state
+// rather than local because it identifies a *seat* to other people — it is how
+// someone resuming a saved game recognises which seat was theirs (see
+// features/session-transfer). Written by Player.loadNewDeck.
+export const YSTATE_DECK_NAME = 'deck-name';
 export const YSTATE_CUSTOM_COUNTERS = 'custom-counters';
 export const YSTATE_CAN_VIEW_HAND = 'allowViewHand';
 export const YSTATE_SCRY = 'scry';

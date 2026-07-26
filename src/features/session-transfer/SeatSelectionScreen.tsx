@@ -2,7 +2,9 @@ import { useEffect, useState } from 'react';
 import * as Y from 'yjs';
 import { PreGameScreen, PreGameSubtitle } from '@/shared/components/PreGameScreen';
 import { YDOC_SESSION, YDOC_SEAT_CLAIMS } from '@/constants';
-import { readSessionSeats, claimedSeatIds, type SeatOffer } from './importSession';
+import { readSessionSeats, readSeatClaims } from './importSession';
+import { isAmbiguous, seatHeadline, type SeatIdentity } from './seatIdentity';
+import { SeatIdentityDetails } from './SeatIdentityDetails';
 
 /**
  * "Which of these players are you?" — shown to someone opening a link into a
@@ -29,6 +31,8 @@ type Phase = 'waiting' | 'choosing' | 'unreachable';
 
 export interface SeatSelectionScreenProps {
   yDoc: Y.Doc;
+  /** This device's peer id, so a seat it already claimed is offered back to it. */
+  peerId: string;
   onClaim: (seatId: string) => void;
   onJoinAsNew: () => void;
   /** Overridable so a test does not have to wait out the real timeout. */
@@ -37,13 +41,17 @@ export interface SeatSelectionScreenProps {
 
 export function SeatSelectionScreen({
   yDoc,
+  peerId,
   onClaim,
   onJoinAsNew,
   timeoutMs = SEAT_ROSTER_TIMEOUT_MS,
 }: SeatSelectionScreenProps) {
-  const [seats, setSeats] = useState<SeatOffer[] | null>(() => readSessionSeats(yDoc));
-  const [claimed, setClaimed] = useState<Set<string>>(() => claimedSeatIds(yDoc));
+  const [seats, setSeats] = useState<SeatIdentity[] | null>(() => readSessionSeats(yDoc));
+  const [claims, setClaims] = useState<Map<string, string>>(() => readSeatClaims(yDoc));
   const [timedOut, setTimedOut] = useState(false);
+  // The seat awaiting confirmation. Claiming is a one-way door into somebody's
+  // hand, so it takes a deliberate second step rather than a single click.
+  const [pending, setPending] = useState<SeatIdentity | null>(null);
 
   // The roster and the claims both arrive from peers, and a claim can land while
   // this screen is open — that is the case a poll or a one-shot read would miss,
@@ -53,7 +61,7 @@ export function SeatSelectionScreen({
     const claims = yDoc.getMap(YDOC_SEAT_CLAIMS);
 
     const syncSeats = () => setSeats(readSessionSeats(yDoc));
-    const syncClaims = () => setClaimed(claimedSeatIds(yDoc));
+    const syncClaims = () => setClaims(readSeatClaims(yDoc));
 
     session.observe(syncSeats);
     claims.observe(syncClaims);
@@ -100,6 +108,35 @@ export function SeatSelectionScreen({
     );
   }
 
+  if (pending) {
+    return (
+      <PreGameScreen title={`Take ${seatHeadline(pending)}?`} data-testid="seat-selection">
+        <PreGameSubtitle>
+          You'll see this seat's hand, so make sure it's yours — picking someone else's shows you
+          their cards.
+        </PreGameSubtitle>
+        <div
+          style={{
+            border: '1px solid #404040',
+            borderRadius: 8,
+            padding: '10px 14px',
+            marginBottom: 16,
+            textAlign: 'left',
+            maxWidth: 380,
+          }}
+        >
+          <SeatIdentityDetails identity={pending} />
+        </div>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <SeatButton label="Not me — go back" onClick={() => setPending(null)} />
+          <SeatButton label="Yes, this is me" onClick={() => onClaim(pending.seatId)} />
+        </div>
+      </PreGameScreen>
+    );
+  }
+
+  const identities = seats!;
+
   return (
     <PreGameScreen title="Resume your game" data-testid="seat-selection">
       <PreGameSubtitle>Which seat is yours?</PreGameSubtitle>
@@ -108,15 +145,23 @@ export function SeatSelectionScreen({
         aria-live="polite"
         style={{ listStyle: 'none', padding: 0, margin: '0 0 16px', width: '100%', maxWidth: 380 }}
       >
-        {seats!.map((seat) => (
-          <li key={seat.seatId} style={{ marginBottom: 8 }}>
-            <SeatRow
-              seat={seat}
-              taken={claimed.has(seat.seatId)}
-              onClick={() => onClaim(seat.seatId)}
-            />
-          </li>
-        ))}
+        {identities.map((seat) => {
+          const claimant = claims.get(seat.seatId);
+          return (
+            <li key={seat.seatId} style={{ marginBottom: 8 }}>
+              <SeatRow
+                seat={seat}
+                // A seat this device already claimed stays pickable, and says so.
+                // Someone who changed seat to escape the wrong one would
+                // otherwise find their own previous seat locked against them.
+                taken={Boolean(claimant) && claimant !== peerId}
+                yours={Boolean(claimant) && claimant === peerId}
+                ambiguous={isAmbiguous(seat, identities)}
+                onClick={() => setPending(seat)}
+              />
+            </li>
+          );
+        })}
       </ul>
 
       <JoinAsNewButton onClick={onJoinAsNew} />
@@ -127,10 +172,9 @@ export function SeatSelectionScreen({
 /**
  * One seat.
  *
- * The zone counts are the real identifier, not the name: names are often an
- * unset default (a sliced player id), so "97 in deck · 7 in hand · 40 life" next
- * to the colour someone has been looking at all game is what actually lets them
- * recognise their own board.
+ * What identifies it lives in `SeatIdentityDetails`, shared with the import
+ * modal — the name alone is often an unset default (a sliced player id), and
+ * picking the wrong seat reveals an opponent's hand.
  *
  * A taken seat stays visible and disabled rather than disappearing — a row
  * vanishing mid-decision is disorienting, while one greying out explains itself.
@@ -138,10 +182,14 @@ export function SeatSelectionScreen({
 function SeatRow({
   seat,
   taken,
+  yours,
+  ambiguous,
   onClick,
 }: {
-  seat: SeatOffer;
+  seat: SeatIdentity;
   taken: boolean;
+  yours: boolean;
+  ambiguous: boolean;
   onClick: () => void;
 }) {
   return (
@@ -176,12 +224,10 @@ function SeatRow({
         }}
       />
       <span style={{ flex: 1, minWidth: 0 }}>
-        <span style={{ display: 'block', fontSize: 14 }}>{seat.name}</span>
-        <span style={{ display: 'block', fontSize: 12, color: '#a3a3a3' }}>
-          {seat.deckCount} in deck · {seat.handCount} in hand · {seat.health} life
-        </span>
+        <SeatIdentityDetails identity={seat} ambiguous={ambiguous} />
       </span>
       {taken && <span style={{ fontSize: 12, color: '#a3a3a3', flexShrink: 0 }}>Taken</span>}
+      {yours && <span style={{ fontSize: 12, color: '#a3a3a3', flexShrink: 0 }}>Was yours</span>}
     </button>
   );
 }

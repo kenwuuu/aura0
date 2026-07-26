@@ -499,3 +499,15 @@ export async function importSessionFile(
 
   await healthInput(page).waitFor({ state: 'visible', timeout: 30000 });
 }
+
+/**
+ * Take a seat from the picker: choose it, then confirm it is yours.
+ *
+ * Two steps by design — claiming a seat is the one action that can show you
+ * another player's hand, so a single click is not enough to do it.
+ */
+export async function claimOfferedSeat(page: Page, seat: Locator): Promise<void> {
+  await seat.click();
+  await page.getByRole('button', { name: 'Yes, this is me' }).click();
+  await healthInput(page).waitFor({ state: 'visible', timeout: 30000 });
+}

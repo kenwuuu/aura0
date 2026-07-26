@@ -42,6 +42,25 @@ describe('parseSnapshot', () => {
     }
   });
 
+  it('carries the deck name through, the seat\'s strongest identifier', () => {
+    // Dropped once already: parseSeat listed every other field, so every
+    // restored seat quietly became harder to tell apart than the file it
+    // came from — and telling seats apart is what stops a hand being revealed.
+    const result = parseSnapshot(
+      serialize({ seats: [{ ...validSeat, deckName: 'Krenko Goblins' }] }),
+    );
+
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(result.snapshot.seats[0].deckName).toBe('Krenko Goblins');
+  });
+
+  it('leaves the deck name absent when the file has none', () => {
+    const result = parseSnapshot(serialize());
+
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(result.snapshot.seats[0].deckName).toBeUndefined();
+  });
+
   it('rejects a file that is not JSON', () => {
     const result = parseSnapshot('this is my grocery list');
 

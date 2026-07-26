@@ -19,6 +19,7 @@ import {
   YSTATE_SCRY,
   YSTATE_SIDEBOARD,
   YSTATE_DECK_REVEAL_COUNT,
+  YSTATE_DECK_NAME,
   YSTATE_REMOVED,
 } from "@/constants";
 import {
@@ -254,6 +255,13 @@ export class Player {
   }
 
   public async loadNewDeck(newDeck: SavedDeck): Promise<void> {
+    // Record which deck this is, as shared state. It names the *seat* to other
+    // people: when a saved game is resumed on new devices, the deck name is how
+    // a player recognises which seat was theirs (see features/session-transfer).
+    // Set here rather than at the call site so every future way of loading a
+    // deck identifies the seat without having to remember to.
+    this.yPlayerState.set(YSTATE_DECK_NAME, newDeck.metadata.name);
+
     // Replace deck cards with new deck
     this.deck.setCards(newDeck.cards);
     // A deck saved before sideboards existed has no `sideboard` — that's an

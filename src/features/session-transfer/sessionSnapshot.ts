@@ -82,6 +82,12 @@ export interface SeatSnapshot {
    */
   name: string;
   color: string;
+  /**
+   * The deck this seat was playing, when it has a name. Absent for games saved
+   * before `YSTATE_DECK_NAME` existed and for seats that never loaded a named
+   * deck — see `seatIdentity.ts`, which is why it is worth carrying.
+   */
+  deckName?: string;
   joinedAt: number;
   health: number;
   customCounters: CustomCounter[];

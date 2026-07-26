@@ -48,7 +48,9 @@ import {
   YSTATE_PLAYER_NAME,
   YSTATE_PLAYER_COLOR,
   YSTATE_JOINED_AT,
+  YSTATE_DECK_NAME,
 } from '@/constants';
+import { seatIdentities, type SeatIdentity } from './seatIdentity';
 import type { CardLookupService } from '@/infrastructure/cards';
 import type { Card } from '@/features/player/types';
 import { stripBackFace, type DeckLineItem } from '@/features/deck-manager/DeckListParser';
@@ -232,6 +234,10 @@ export async function applySessionSnapshot(
       // treats localStorage as authoritative for the local player's identity.
       map.set(YSTATE_PLAYER_NAME, seat.name);
       map.set(YSTATE_PLAYER_COLOR, seat.color);
+      // Unlike name and colour, the deck name is not reseeded from the claiming
+      // device — it describes the game, not the person — so it has to survive
+      // the restore or the seat loses its strongest identifier.
+      if (seat.deckName) map.set(YSTATE_DECK_NAME, seat.deckName);
       // The *visible* deck count is its own Yjs key, not derived from the pile.
       // Forgetting it leaves a full library reading zero on the dock.
       map.set(YSTATE_DECK_CARD_COUNT, seat.zones.deck.length);
@@ -255,17 +261,10 @@ export async function applySessionSnapshot(
     const session = yDoc.getMap<any>(YDOC_SESSION);
     session.set(YSESSION_SCHEMA_VERSION, snapshot.schemaVersion);
     session.set(YSESSION_IMPORTED_AT, Date.now());
-    session.set(
-      YSESSION_SEATS,
-      snapshot.seats.map((seat) => ({
-        seatId: seat.seatId,
-        name: seat.name,
-        color: seat.color,
-        health: seat.health,
-        deckCount: seat.zones.deck.length,
-        handCount: seat.zones.hand.length,
-      })),
-    );
+    // The full identity, not just names: the picker reads this doc rather than
+    // the file, and it is what a player uses to recognise their own seat. See
+    // seatIdentity.ts for why guessing here is the thing to avoid.
+    session.set(YSESSION_SEATS, seatIdentities(snapshot.seats, snapshot.board));
   });
 
   return { unresolved: [...unresolved] };
@@ -276,23 +275,50 @@ export function claimSeat(yDoc: Y.Doc, seatId: string, peerId: string): void {
   yDoc.getMap<string>(YDOC_SEAT_CLAIMS).set(seatId, peerId);
 }
 
+/**
+ * Give a seat back, so it stops reading as taken to everyone including its own
+ * claimant. Best-effort: the picker also recognises this device's own claim
+ * (see `readSeatClaims`), so a delete that never reaches disk costs nothing.
+ */
+export function releaseSeat(yDoc: Y.Doc, seatId: string): void {
+  yDoc.getMap<string>(YDOC_SEAT_CLAIMS).delete(seatId);
+}
+
+/**
+ * seatId → the peer holding it.
+ *
+ * The peer id matters, not just the fact of a claim: a seat this device already
+ * claimed must stay pickable. Someone who changed seat to escape the wrong one
+ * would otherwise find their previous seat locked — by themselves — with no way
+ * back and nothing saying why.
+ */
+export function readSeatClaims(yDoc: Y.Doc): Map<string, string> {
+  return new Map(yDoc.getMap<string>(YDOC_SEAT_CLAIMS).entries());
+}
+
 /** Seat ids already claimed by some device. */
 export function claimedSeatIds(yDoc: Y.Doc): Set<string> {
   return new Set(yDoc.getMap<string>(YDOC_SEAT_CLAIMS).keys());
 }
 
-export interface SeatOffer {
-  seatId: string;
-  name: string;
-  color: string;
-  health: number;
-  deckCount: number;
-  handCount: number;
-}
-
 /** The seats a restored game is offering, or null if this doc was never imported. */
-export function readSessionSeats(yDoc: Y.Doc): SeatOffer[] | null {
+export function readSessionSeats(yDoc: Y.Doc): SeatIdentity[] | null {
   const session = yDoc.getMap<any>(YDOC_SESSION);
-  const seats = session.get(YSESSION_SEATS) as SeatOffer[] | undefined;
-  return Array.isArray(seats) ? seats : null;
+  const seats = session.get(YSESSION_SEATS) as Partial<SeatIdentity>[] | undefined;
+  if (!Array.isArray(seats)) return null;
+
+  // A roster written by an older build carries no commanders or in-play list.
+  // Normalise here so the picker renders one shape rather than branching on
+  // which version of the app restored the game.
+  return seats.map((seat) => ({
+    seatId: seat.seatId ?? '',
+    name: seat.name ?? '',
+    color: seat.color ?? '',
+    health: seat.health ?? 40,
+    deckCount: seat.deckCount ?? 0,
+    handCount: seat.handCount ?? 0,
+    ...(seat.deckName ? { deckName: seat.deckName } : {}),
+    commanders: seat.commanders ?? [],
+    inPlay: seat.inPlay ?? [],
+  }));
 }

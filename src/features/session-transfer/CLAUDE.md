@@ -37,6 +37,26 @@ A card whose name resolves to nothing is still placed, with its name and no art,
 `unresolved`. Losing a card silently changes the game; a card without a picture is visibly wrong and
 the player can fix it.
 
+## Picking the right seat is a safety feature
+
+Claiming the wrong seat hands you an opponent's hand — the UI reveals it as if it were yours. So
+the picker's job is to make the answer obvious, and the claim reversible.
+
+`seatIdentity.ts` derives what identifies a seat, strongest first: **deck name** (`YSTATE_DECK_NAME`,
+written by `Player.loadNewDeck`), then **commander** (public information by the rules of Commander),
+then **cards in play** (public during the game). Hand contents are never used — they are the thing
+being protected. `SeatIdentityDetails` renders this and is shared by both surfaces that ask the
+question, because a seat identifiable on one and not the other is the gap.
+
+**Not board position.** Every client centres its camera on its own mat (`computeLocalMatOrigin`), so
+every player experiences themselves as sitting in the same place. "The left seat" is not a memory
+anybody has.
+
+When two seats read the same, `isAmbiguous` makes the picker say so rather than letting the rows
+look informative. Claiming then takes a second, confirming step, and `ChangeSeatSetting`
+(Settings → Profile) undoes it. A seat claimed by *this device's own peer* stays pickable and reads
+"Was yours" — locking it would strand the very player trying to correct a mistake.
+
 ## Seat identity
 
 Snapshots keep the seat ids they were exported with, because every `ownerId`, token `attachedTo`,

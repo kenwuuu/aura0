@@ -23,6 +23,7 @@ import {
   YSTATE_PLAYER_NAME,
   YSTATE_PLAYER_COLOR,
   YSTATE_JOINED_AT,
+  YSTATE_DECK_NAME,
 } from '@/constants';
 import { listSeats } from '@/features/player/listSeats';
 import type { Card, CustomCounter } from '@/features/player/types';
@@ -58,10 +59,13 @@ function exportSeat(playerId: string, map: Y.Map<any>): SeatSnapshot {
     zones[zone] = cards.map((card) => toCardRef(card));
   }
 
+  const deckName = map.get(YSTATE_DECK_NAME) as string | undefined;
+
   return {
     seatId: playerId,
     name: (map.get(YSTATE_PLAYER_NAME) as string | undefined) ?? playerId.slice(0, 9),
     color: (map.get(YSTATE_PLAYER_COLOR) as string | undefined) ?? '',
+    ...(deckName ? { deckName } : {}),
     joinedAt: (map.get(YSTATE_JOINED_AT) as number | undefined) ?? 0,
     health: (map.get(YSTATE_HEALTH) as number | undefined) ?? 40,
     customCounters: (map.get(YSTATE_CUSTOM_COUNTERS) as CustomCounter[] | undefined) ?? [],

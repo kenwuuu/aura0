@@ -18,6 +18,7 @@ function snapshot(): SessionSnapshot {
         seatId: 'alice',
         name: 'Alice',
         color: '#ff0000',
+        deckName: 'Krenko Goblins',
         joinedAt: 1,
         health: 40,
         customCounters: [],
@@ -33,6 +34,7 @@ function snapshot(): SessionSnapshot {
         seatId: 'bob',
         name: 'Bob',
         color: '#0000ff',
+        deckName: 'Atraxa Superfriends',
         joinedAt: 2,
         health: 33,
         customCounters: [],
@@ -47,6 +49,12 @@ function snapshot(): SessionSnapshot {
   };
 }
 
+/** Walk the picker's two steps: choose a seat, then confirm it is yours. */
+async function pickAndConfirmSeat(user: ReturnType<typeof userEvent.setup>, label: RegExp) {
+  await user.click(screen.getByRole('button', { name: label }));
+  await user.click(screen.getByRole('button', { name: /yes, this is me/i }));
+}
+
 /** A doc that already holds a restored game, the way a peer's would. */
 async function restoredDoc(): Promise<Y.Doc> {
   const yDoc = new Y.Doc();
@@ -54,11 +62,19 @@ async function restoredDoc(): Promise<Y.Doc> {
   return yDoc;
 }
 
+const OWN_PEER = 'peer-self';
+
 function renderScreen(yDoc: Y.Doc, overrides: Partial<Parameters<typeof SeatSelectionScreen>[0]> = {}) {
   const onClaim = vi.fn();
   const onJoinAsNew = vi.fn();
   render(
-    <SeatSelectionScreen yDoc={yDoc} onClaim={onClaim} onJoinAsNew={onJoinAsNew} {...overrides} />,
+    <SeatSelectionScreen
+      yDoc={yDoc}
+      peerId={OWN_PEER}
+      onClaim={onClaim}
+      onJoinAsNew={onJoinAsNew}
+      {...overrides}
+    />,
   );
   return { onClaim, onJoinAsNew };
 }
@@ -67,27 +83,58 @@ describe('<SeatSelectionScreen>', () => {
   it('offers one seat per player in the restored game', async () => {
     renderScreen(await restoredDoc());
 
-    expect(screen.getByRole('button', { name: /alice/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /bob/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /krenko goblins/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /atraxa superfriends/i })).toBeInTheDocument();
   });
 
-  it('identifies a seat by its board state, not just its name', async () => {
-    // Names are often an unset default, so the counts are what actually let
-    // someone recognise their own game.
+  it('leads with the deck name — what the player themselves called it', async () => {
+    // The name alone is often an unset default (a sliced player id), and picking
+    // the wrong seat reveals an opponent's hand.
     renderScreen(await restoredDoc());
 
-    expect(screen.getByRole('button', { name: /97 in deck/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /7 in hand/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /40 life/i })).toBeInTheDocument();
+    const seat = screen.getByRole('button', { name: /krenko goblins/i });
+    expect(seat).toHaveTextContent('97 in deck');
+    expect(seat).toHaveTextContent('7 in hand');
+    expect(seat).toHaveTextContent('40 life');
   });
 
-  it('claims the seat the player picks', async () => {
+  it('never names a card in anyone\'s hand', async () => {
+    // The one thing the picker exists to protect.
+    renderScreen(await restoredDoc());
+
+    expect(screen.queryByText(/lightning bolt/i)).not.toBeInTheDocument();
+  });
+
+  it('claims the seat once the player confirms it is theirs', async () => {
     const user = userEvent.setup();
     const { onClaim } = renderScreen(await restoredDoc());
 
-    await user.click(screen.getByRole('button', { name: /alice/i }));
+    await pickAndConfirmSeat(user, /krenko goblins/i);
 
     expect(onClaim).toHaveBeenCalledWith('alice');
+  });
+
+  it('does not claim on the first click — the choice is confirmed first', async () => {
+    // Claiming is a one-way door into somebody's hand, so a misclick must not
+    // be enough to walk through it.
+    const user = userEvent.setup();
+    const { onClaim } = renderScreen(await restoredDoc());
+
+    await user.click(screen.getByRole('button', { name: /krenko goblins/i }));
+
+    expect(onClaim).not.toHaveBeenCalled();
+    expect(screen.getByText(/make sure it's yours/i)).toBeInTheDocument();
+  });
+
+  it('lets a player back out of the wrong seat before committing', async () => {
+    const user = userEvent.setup();
+    const { onClaim } = renderScreen(await restoredDoc());
+    await user.click(screen.getByRole('button', { name: /krenko goblins/i }));
+
+    await user.click(screen.getByRole('button', { name: /not me/i }));
+
+    expect(onClaim).not.toHaveBeenCalled();
+    expect(screen.getByRole('button', { name: /atraxa superfriends/i })).toBeInTheDocument();
   });
 
   it('shows an already-claimed seat as taken, rather than hiding it', async () => {
@@ -110,6 +157,18 @@ describe('<SeatSelectionScreen>', () => {
     act(() => claimSeat(yDoc, 'bob', 'peer-2'));
 
     expect(await screen.findByRole('button', { name: /bob.*taken/is })).toBeDisabled();
+  });
+
+  it('offers back a seat this device itself claimed', async () => {
+    // The way out of the wrong seat runs through here: after Change Seat, the
+    // seat you just left is still claimed — by you. Locking it would strand the
+    // player who was trying to correct a mistake.
+    const yDoc = await restoredDoc();
+    claimSeat(yDoc, 'alice', OWN_PEER);
+
+    renderScreen(yDoc);
+
+    expect(screen.getByRole('button', { name: /krenko goblins.*was yours/is })).toBeEnabled();
   });
 
   it('lets a third player decline both seats and join as themselves', async () => {

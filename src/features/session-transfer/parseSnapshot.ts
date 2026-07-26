@@ -53,6 +53,11 @@ function parseSeat(value: unknown): SeatSnapshot | null {
     seatId: value.seatId,
     name: typeof value.name === 'string' ? value.name : value.seatId.slice(0, 9),
     color: typeof value.color === 'string' ? value.color : '',
+    // Optional, and the seat's strongest identifier when present — dropping it
+    // here would quietly make every restored seat harder to tell apart.
+    ...(typeof value.deckName === 'string' && value.deckName
+      ? { deckName: value.deckName }
+      : {}),
     joinedAt: typeof value.joinedAt === 'number' ? value.joinedAt : 0,
     health: typeof value.health === 'number' ? value.health : 40,
     customCounters: Array.isArray(value.customCounters) ? (value.customCounters as any[]) : [],

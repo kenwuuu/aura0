@@ -22,7 +22,7 @@ import {
   SeatSelectionScreen,
   SessionImportProgress,
 } from '@/features/session-transfer';
-import { getOrCreatePlayerId } from '@/infrastructure/networking';
+import { getOrCreatePlayerId, getOrCreatePeerId } from '@/infrastructure/networking';
 import { trackSeatClaimed } from '@/infrastructure/analytics/PosthogFunctions';
 import '../style.css';
 
@@ -157,6 +157,7 @@ async function boot(options: BootstrapOptions = {}): Promise<void> {
     root.render(
       React.createElement(SeatSelectionScreen, {
         yDoc: result.yDoc,
+        peerId: getOrCreatePeerId(),
         onClaim: (seatId: string) => decide(seatId, true),
         // Joining as yourself still writes an alias — a no-op for identity, but
         // it marks the room decided so the picker never asks twice.

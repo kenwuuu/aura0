@@ -10,10 +10,13 @@ import {
   YDOC_CARDS_ON_BOARD,
   YDOC_KEYWORD_TOKENS,
   YDOC_PLAYER,
+  YDOC_SESSION,
+  YSESSION_SEATS,
   YSTATE_HAND,
   YSTATE_DECK,
   YSTATE_HEALTH,
   YSTATE_DECK_CARD_COUNT,
+  YSTATE_DECK_NAME,
 } from '@/constants';
 import { SESSION_SCHEMA_VERSION, emptyZones, toCardRef, type SessionSnapshot } from './sessionSnapshot';
 
@@ -218,14 +221,60 @@ describe('applySessionSnapshot', () => {
     expect(transactions).toBe(1);
   });
 
-  it('records the seat roster the picker offers', async () => {
+  it('records the seat roster the picker offers, with what identifies each seat', async () => {
     const yDoc = new Y.Doc();
     const { service } = createFakeCardLookup();
+    const snapshot = snapshotWith();
+    snapshot.seats[0].deckName = 'Krenko Goblins';
 
-    await applySessionSnapshot(yDoc, snapshotWith(), service);
+    await applySessionSnapshot(yDoc, snapshot, service);
 
     expect(readSessionSeats(yDoc)).toEqual([
-      { seatId: 'alice', name: 'Alice', color: '#ff0000', health: 33, deckCount: 0, handCount: 1 },
+      {
+        seatId: 'alice',
+        name: 'Alice',
+        color: '#ff0000',
+        deckName: 'Krenko Goblins',
+        health: 33,
+        deckCount: 0,
+        handCount: 1,
+        commanders: [],
+        inPlay: [],
+      },
+    ]);
+  });
+
+  it('keeps the deck name, which the claiming device cannot reseed', async () => {
+    // Name and colour are reseeded from localStorage by Player's constructor,
+    // but the deck name describes the game rather than the person — so if the
+    // restore drops it, the seat loses its strongest identifier for good.
+    const yDoc = new Y.Doc();
+    const snapshot = snapshotWith();
+    snapshot.seats[0].deckName = 'Krenko Goblins';
+
+    await applySessionSnapshot(yDoc, snapshot, createFakeCardLookup().service);
+
+    expect(yDoc.getMap(YDOC_PLAYER('alice')).get(YSTATE_DECK_NAME)).toBe('Krenko Goblins');
+  });
+
+  it('normalises a roster written by an older build', async () => {
+    // A game restored before commanders and in-play were recorded still has to
+    // render, rather than the picker branching on which version wrote it.
+    const yDoc = new Y.Doc();
+    await applySessionSnapshot(yDoc, snapshotWith(), createFakeCardLookup().service);
+    yDoc.getMap<any>(YDOC_SESSION).set(YSESSION_SEATS, [{ seatId: 'alice', name: 'Alice' }]);
+
+    expect(readSessionSeats(yDoc)).toEqual([
+      {
+        seatId: 'alice',
+        name: 'Alice',
+        color: '',
+        health: 40,
+        deckCount: 0,
+        handCount: 0,
+        commanders: [],
+        inPlay: [],
+      },
     ]);
   });
 

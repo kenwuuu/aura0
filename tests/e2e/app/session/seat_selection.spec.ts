@@ -11,6 +11,7 @@ import { test, expect } from '../../fixtures';
 import {
   exportSessionToFile,
   importSessionFile,
+  claimOfferedSeat,
   seatSelectionScreen,
   seatOptions,
   playCreature,
@@ -62,8 +63,15 @@ test('a player sent the link picks their seat and gets their own game back', asy
     // The seat player one already took is spoken for.
     await expect(seatOptions(second).filter({ hasText: 'Taken' })).toHaveCount(1);
 
+    // Each seat is identified by the deck it was playing, not just a name —
+    // picking wrong would show this player somebody else's hand. Both seats
+    // here loaded the bundled "Krenko" deck, which is exactly the case the
+    // picker warns about rather than pretending the rows tell you anything.
+    await expect(seatOptions(second).first()).toContainText('Krenko');
+    await expect(seatOptions(second).first()).toContainText('Looks like the other seat');
+
     const free = seatOptions(second).filter({ hasNotText: 'Taken' });
-    await free.click();
+    await claimOfferedSeat(second, free);
 
     // They land in the restored game, not a fresh one: the board card that only
     // ever existed in the saved game is theirs again.

@@ -10,6 +10,8 @@ import { Button } from '@/shared/ui/button';
 import { parseSnapshot } from './parseSnapshot';
 import { countSnapshotCards } from './exportSession';
 import { startImport } from './startImport';
+import { seatIdentities, isAmbiguous } from './seatIdentity';
+import { SeatIdentityDetails } from './SeatIdentityDetails';
 import type { SessionSnapshot } from './sessionSnapshot';
 
 /**
@@ -44,6 +46,10 @@ export function ImportSessionModal({
     if (result.ok) setSnapshot(result.snapshot);
     else setError(result.error);
   };
+
+  // Same question the seat picker asks the other players, so it shows the same
+  // evidence — a seat identifiable on one screen but not the other is the gap.
+  const identities = snapshot ? seatIdentities(snapshot.seats, snapshot.board) : [];
 
   const resume = (seatId: string) => {
     try {
@@ -93,16 +99,22 @@ export function ImportSessionModal({
                 {snapshot.seats.length} players · {countSnapshotCards(snapshot)} cards · saved{' '}
                 {new Date(snapshot.exportedAt).toLocaleDateString()}
               </p>
-              <p style={{ fontSize: 13, margin: 0 }}>Which player are you?</p>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                {snapshot.seats.map((seat) => (
+              <p style={{ fontSize: 13, margin: 0 }}>
+                Which player are you? You'll see this seat's hand, so pick your own.
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {identities.map((identity) => (
                   <Button
-                    key={seat.seatId}
+                    key={identity.seatId}
                     variant="outline"
                     data-testid="import-seat-option"
-                    onClick={() => resume(seat.seatId)}
+                    onClick={() => resume(identity.seatId)}
+                    style={{ height: 'auto', textAlign: 'left', display: 'block', padding: '8px 12px' }}
                   >
-                    {seat.name}
+                    <SeatIdentityDetails
+                      identity={identity}
+                      ambiguous={isAmbiguous(identity, identities)}
+                    />
                   </Button>
                 ))}
               </div>
