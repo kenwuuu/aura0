@@ -1,4 +1,5 @@
 import { parseDecklistWithStats } from '@/features/deck-manager/DeckListParser';
+import { deckImportError } from './importErrors';
 import { ImportedCard, ImportedDeck } from './importedDeck';
 
 /**
@@ -49,9 +50,9 @@ export function splitOnBlankLine(body: string): { main: string; sideboard: strin
 
 export function extractMtgGoldfishDeck(body: string, deckName: string): ImportedDeck {
   if (looksLikeHtml(body)) {
-    throw new Error(
-      "That MTGGoldfish deck couldn't be read. Check the link, and that the deck is public.",
-    );
+    // A page where a text export should be: MTGGoldfish answers a missing or
+    // private deck with its own HTML rather than a status we could read.
+    throw deckImportError('deck_not_found', { source: 'mtggoldfish' });
   }
 
   const { main, sideboard } = splitOnBlankLine(body);
@@ -69,7 +70,7 @@ export function extractMtgGoldfishDeck(body: string, deckName: string): Imported
   }
 
   if (cards.length === 0) {
-    throw new Error('That MTGGoldfish deck has no cards we can import. It may be empty or private.');
+    throw deckImportError('deck_empty', { source: 'mtggoldfish' });
   }
 
   return { name: deckName, source: 'mtggoldfish', cards };

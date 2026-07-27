@@ -7,6 +7,17 @@ import { parseDecklistWithStats } from '@/features/deck-manager/DeckListParser';
 import deckPreviewPage from './__fixtures__/edhrecDeckPreview.html?raw';
 import averageDeck from './__fixtures__/edhrecAverageDeck.json';
 import averagePartners from './__fixtures__/edhrecAveragePartners.json';
+import { DeckImportReason } from './importErrors';
+
+/**
+ * The contract these throws carry is the *reason*, not the wording — the dialog
+ * keys its suggested fixes off it and the import metric breaks its failure rate
+ * down by it (#174). Copy is free to change; a reason changing is a behaviour
+ * change and should fail here.
+ */
+function failsWith(reason: DeckImportReason) {
+  return expect.objectContaining({ problem: expect.objectContaining({ reason }) });
+}
 
 /** Wrap deck data the way a Next.js page ships it. */
 function pageWith(data: unknown): string {
@@ -62,11 +73,21 @@ describe('extractEdhrecDeckPreview', () => {
   });
 
   it.each([
-    ['a page with no data script', '<html><body>Nothing here</body></html>'],
-    ['a script holding invalid JSON', '<script id="__NEXT_DATA__">{ not json</script>'],
-    ['a page whose data has no deck', pageWith({ header: 'Empty', commanders: [] })],
-  ])('rejects %s', (_label, html) => {
-    expect(() => extractEdhrecDeckPreview(html)).toThrow(/EDHREC/i);
+    // The first two never found a deck to read; the third found the page's data
+    // and there was no deck in it. Different problems, different advice.
+    ['a page with no data script', '<html><body>Nothing here</body></html>', 'deck_unreadable'],
+    [
+      'a script holding invalid JSON',
+      '<script id="__NEXT_DATA__">{ not json</script>',
+      'deck_unreadable',
+    ],
+    [
+      'a page whose data has no deck',
+      pageWith({ header: 'Empty', commanders: [] }),
+      'deck_empty',
+    ],
+  ] as const)('rejects %s', (_label, html, expectedReason) => {
+    expect(() => extractEdhrecDeckPreview(html)).toThrow(failsWith(expectedReason));
   });
 });
 
@@ -143,6 +164,6 @@ describe('extractEdhrecAverageDeck', () => {
   });
 
   it('throws when the document carries no decklist', () => {
-    expect(() => extractEdhrecAverageDeck({ header: 'Nothing' })).toThrow(/no decklist/i);
+    expect(() => extractEdhrecAverageDeck({ header: 'Nothing' })).toThrow(failsWith('deck_empty'));
   });
 });

@@ -14,12 +14,15 @@ import {
 } from "@/shared/ui/alert"
 import { randomIdSuffix } from '@/shared/utils/ids';
 import {
+  DeckImportProblem,
   DeckSource,
   fetchImportedDeck,
   parseDeckUrl,
+  problemOf,
   sourceLabel,
   toDecklistText,
 } from './url-import';
+import { DeckImportProblemNotice } from './DeckImportProblemNotice';
 
 interface DeckImportModalProps {
   isOpen: boolean;
@@ -193,6 +196,16 @@ export function DeckImportModal({ isOpen, onClose, onDeckImported }: DeckImportM
   // Set while a pasted deck link is being fetched and turned into a list.
   const [resolvingUrlFrom, setResolvingUrlFrom] = useState<DeckSource | null>(null);
   /**
+   * Why the last deck link failed, and what to suggest about it.
+   *
+   * Kept apart from `errors` because the two are different kinds of thing.
+   * `errors` is a list of cards a lookup couldn't find — genuinely many, and
+   * each one its own line. A link failure is one event with one explanation and
+   * a handful of suggested fixes, and flattening it into a list of strings is
+   * what threw the fixes away.
+   */
+  const [urlProblem, setUrlProblem] = useState<DeckImportProblem | null>(null);
+  /**
    * Whether the player has typed in the name field themselves.
    *
    * A name we filled in from a deck link has to stay replaceable — otherwise
@@ -221,6 +234,7 @@ export function DeckImportModal({ isOpen, onClose, onDeckImported }: DeckImportM
     const controller = new AbortController();
     setResolvingUrlFrom(ref.source);
     setErrors([]);
+    setUrlProblem(null);
 
     fetchImportedDeck(ref, controller.signal)
       .then((deck) => {
@@ -237,7 +251,10 @@ export function DeckImportModal({ isOpen, onClose, onDeckImported }: DeckImportM
         if (error instanceof DOMException && error.name === 'AbortError') {
           return;
         }
-        setErrors([error instanceof Error ? error.message : 'Failed to load that deck.']);
+        // `problemOf` is what keeps a stray `TypeError` from reaching the
+        // dialog: an unexpected throw becomes a generic failure described as
+        // ours, never a sentence about our source code shown to the player.
+        setUrlProblem(problemOf(error, { source: ref.source }));
       })
       .finally(() => setResolvingUrlFrom(null));
 
@@ -290,6 +307,7 @@ export function DeckImportModal({ isOpen, onClose, onDeckImported }: DeckImportM
 
     setIsImporting(true);
     setErrors([]);
+    setUrlProblem(null);
     setSuccessMessage('');
     setProgress({ current: 0, total: 0 });
 
@@ -342,6 +360,7 @@ export function DeckImportModal({ isOpen, onClose, onDeckImported }: DeckImportM
     setDeckName('');
     nameEditedByPlayer.current = false;
     setErrors([]);
+    setUrlProblem(null);
     setSuccessMessage('');
     setProgress({ current: 0, total: 0 });
     setDeckPreview(null);
@@ -416,6 +435,8 @@ export function DeckImportModal({ isOpen, onClose, onDeckImported }: DeckImportM
               </p>
             </div>
           )}
+
+          {urlProblem !== null && <DeckImportProblemNotice problem={urlProblem} />}
 
           {errors.length > 0 && (
             <div className="error-container" style={{ whiteSpace: 'pre-line' }}>

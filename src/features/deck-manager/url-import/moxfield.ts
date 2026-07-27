@@ -1,3 +1,4 @@
+import { deckImportError } from './importErrors';
 import { ImportedCard, ImportedDeck, ImportedSection, printing } from './importedDeck';
 
 /**
@@ -127,7 +128,7 @@ export function extractMoxfieldDeck(response: MoxfieldDeckResponse): ImportedDec
   }
 
   if (cards.length === 0) {
-    throw new Error('That Moxfield deck has no cards we can import. It may be private or empty.');
+    throw deckImportError('deck_empty', { source: 'moxfield' });
   }
 
   const name = typeof response?.name === 'string' ? response.name.trim() : '';

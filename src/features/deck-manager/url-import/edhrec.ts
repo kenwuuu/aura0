@@ -1,5 +1,6 @@
 import { parseDecklistWithStats } from '@/features/deck-manager/DeckListParser';
 import { DeckSource } from './deckUrls';
+import { deckImportError } from './importErrors';
 import { ImportedCard, ImportedDeck } from './importedDeck';
 
 /**
@@ -50,7 +51,7 @@ function buildDeck(
 ): ImportedDeck {
   const lines = asStringArray(data.deck);
   if (lines.length === 0) {
-    throw new Error("That EDHREC page has no decklist we can import.");
+    throw deckImportError('deck_empty', { source });
   }
 
   const commanderNames = new Set(asStringArray(data.commanders).map(normalize));
@@ -62,7 +63,7 @@ function buildDeck(
   }));
 
   if (cards.length === 0) {
-    throw new Error("That EDHREC page has no decklist we can import.");
+    throw deckImportError('deck_empty', { source });
   }
 
   const header = typeof data.header === 'string' ? data.header.trim() : '';
@@ -81,19 +82,19 @@ function buildDeck(
 export function extractEdhrecDeckPreview(html: string): ImportedDeck {
   const match = /<script id="__NEXT_DATA__"[^>]*>([\s\S]*?)<\/script>/.exec(html);
   if (match === null) {
-    throw new Error("Couldn't read that EDHREC deck. The page may have moved.");
+    throw deckImportError('deck_unreadable', { source: 'edhrec' });
   }
 
   let payload: { props?: { pageProps?: { data?: EdhrecDeckData } } };
   try {
     payload = JSON.parse(match[1]);
   } catch {
-    throw new Error("Couldn't read that EDHREC deck. The page may have moved.");
+    throw deckImportError('deck_unreadable', { source: 'edhrec' });
   }
 
   const data = payload.props?.pageProps?.data;
   if (data === undefined) {
-    throw new Error("Couldn't read that EDHREC deck. The page may have moved.");
+    throw deckImportError('deck_unreadable', { source: 'edhrec' });
   }
 
   return buildDeck(data, 'edhrec', 'EDHREC deck');
