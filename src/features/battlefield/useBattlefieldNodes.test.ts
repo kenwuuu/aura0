@@ -18,6 +18,7 @@ import type { NodeChange } from '@xyflow/react';
 import { useBattlefieldNodes } from './useBattlefieldNodes';
 import type { WhiteboardCard } from './types';
 import type { KeywordToken } from '@/features/keyword-tokens/types';
+import type { BoardTimer } from './timers/types';
 
 function makeCard(id: string, overrides: Partial<WhiteboardCard> = {}): WhiteboardCard {
   return {
@@ -40,9 +41,10 @@ function setup() {
   const yDoc = new Y.Doc();
   const yCards = yDoc.getMap<WhiteboardCard>('cards-on-board');
   const yTokens = yDoc.getMap<KeywordToken>('keyword-tokens');
+  const yTimers = yDoc.getMap<BoardTimer>('timers');
   yCards.set('c1', makeCard('c1'));
-  const hook = renderHook(() => useBattlefieldNodes(yCards, yTokens, 'p1', null));
-  return { yDoc, yCards, yTokens, ...hook };
+  const hook = renderHook(() => useBattlefieldNodes(yCards, yTokens, yTimers, 'p1', null));
+  return { yDoc, yCards, yTokens, yTimers, ...hook };
 }
 
 const selected = (nodes: { id: string; selected?: boolean }[], id: string) =>
@@ -115,8 +117,9 @@ describe('useBattlefieldNodes ownership', () => {
       id: 't-theirs', title: '+1/+1', backgroundColor: '#fff',
       x: 0, y: 0, zIndex: 1, ownerId: 'p2',
     } as KeywordToken);
+    const yTimers = yDoc.getMap<BoardTimer>('timers');
 
-    const { result } = renderHook(() => useBattlefieldNodes(yCards, yTokens, 'p1', null));
+    const { result } = renderHook(() => useBattlefieldNodes(yCards, yTokens, yTimers, 'p1', null));
 
     for (const id of ['mine', 'theirs', 't-theirs']) {
       const node = result.current.nodes.find((n) => n.id === id);
@@ -156,10 +159,11 @@ describe('useBattlefieldNodes drag helpers and peer motion', () => {
     const yDoc = new Y.Doc();
     const yCards = yDoc.getMap<WhiteboardCard>('cards-on-board');
     const yTokens = yDoc.getMap<KeywordToken>('keyword-tokens');
+    const yTimers = yDoc.getMap<BoardTimer>('timers');
     yCards.set('c1', makeCard('c1'));
     const awareness = new Awareness(yDoc);
     const { result, unmount } = renderHook(() =>
-      useBattlefieldNodes(yCards, yTokens, 'p1', awareness),
+      useBattlefieldNodes(yCards, yTokens, yTimers, 'p1', awareness),
     );
 
     // Inject a remote peer dragging c1, then fire the awareness 'change' with a

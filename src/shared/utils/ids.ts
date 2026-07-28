@@ -11,6 +11,10 @@ export function makeTokenId(): string {
   return `token-${randomIdSuffix(9)}`;
 }
 
+export function makeTimerId(): string {
+  return `timer-${randomIdSuffix(9)}`;
+}
+
 export function makeCounterId(): string {
   return `counter-${Date.now()}-${randomIdSuffix(7)}`;
 }

@@ -21,6 +21,7 @@ import { useSettingsModalStore } from '@/app/stores/settingsModalStore';
 import { useTourStore } from '@/features/onboarding';
 import { copyRoomLink } from '@/features/room/copyRoomLink';
 import { requestNewGame } from '@/features/room/startNewGame';
+import { createTimerFromScreenPoint } from '@/features/battlefield/timers/spawnTimer';
 import { getDepartedPlayers, requestRemovePlayer } from '@/features/player/removePlayer';
 
 // Duplicated (two-line) from Toolbar so the palette has no reason to import from
@@ -61,11 +62,17 @@ const GAME_COMMANDS: Array<{ action: string; label: string; keywords?: string[] 
   { action: 'loseHealth', label: 'Lose 1 life', keywords: ['life', 'health', 'damage'] },
 ];
 
-/** Action ids that are runnable here — the shortcut reference excludes these so
- *  a command never appears twice (once runnable, once as a bare key). */
-export const RUNNABLE_ACTION_IDS: ReadonlySet<string> = new Set(
-  GAME_COMMANDS.map((c) => c.action),
-);
+/** Bespoke Game commands that aren't backed by a HOTKEYS action (they need no
+ *  hovered target and carry no shortcut) — built directly in `getCommands`. */
+const EXTRA_GAME_COMMAND_IDS = ['create-timer'] as const;
+
+/** Ids of every runnable Game command — the shortcut reference excludes these so
+ *  a command never appears twice (once runnable, once as a bare key). Includes
+ *  the bespoke commands, which simply never match a HOTKEYS row. */
+export const RUNNABLE_ACTION_IDS: ReadonlySet<string> = new Set([
+  ...GAME_COMMANDS.map((c) => c.action),
+  ...EXTRA_GAME_COMMAND_IDS,
+]);
 
 /** Build the runnable command list. A function (not a constant) because it
  *  reads `window` for the board target and the live `HOTKEYS` key badges. */
@@ -80,6 +87,16 @@ export function getCommands(): AppCommand[] {
     shortcut: HOTKEYS.find((h) => h.action === action)?.key || undefined,
     run: () => dispatchGameAction(action, boardTarget()),
   }));
+
+  // Not a hotkey-catalog action (it needs no hovered target), so it's a bespoke
+  // command rather than a GAME_COMMANDS entry. Spawns at the board center.
+  game.push({
+    id: 'create-timer',
+    label: 'Add a timer / stopwatch',
+    keywords: ['timer', 'stopwatch', 'clock', 'countdown', 'count up', 'chess clock'],
+    section: 'Game',
+    run: () => void createTimerFromScreenPoint(),
+  });
 
   // One "Remove <name>" command per player who has left the room. Built live
   // from the doc + awareness (via the game instance), so it's empty when nobody

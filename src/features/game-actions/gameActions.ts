@@ -16,6 +16,7 @@ import { useSurveilStore } from '@/features/game-dock/surveilStore';
 import { useNumberPromptStore } from './numberPromptStore';
 import { useTokenCardSearchStore } from './tokenCardSearchStore';
 import { useConfirmStore } from '@/app/stores/confirmStore';
+import { createTimerFromScreenPoint } from '@/features/battlefield/timers/spawnTimer';
 import { logAction } from '@/features/action-log/actionLog';
 import { YDOC_KEYWORD_TOKENS } from '@/constants';
 import * as Y from 'yjs';
@@ -215,6 +216,17 @@ const createTokenCard: GameAction = {
   },
 };
 
+const createTimer: GameAction = {
+  id: 'create-timer',
+  label: 'Timer',
+  surface: 'create',
+  // Spawns at the viewport center; drag it wherever. Anyone at the table can
+  // control it — ownership gates nothing on the board.
+  perform() {
+    createTimerFromScreenPoint();
+  },
+};
+
 const createLabel: GameAction = {
   id: 'create-label',
   label: 'Label',
@@ -246,5 +258,6 @@ export const GAME_ACTIONS: GameAction[] = [
   // Create menu
   createToken,
   createTokenCard,
+  createTimer,
   createLabel,
 ];

@@ -1,0 +1,43 @@
+/* TimerNode hover affordances. State-dependent colors (running accent, overtime
+   red) stay inline in the component; only the hover feedback lives here so it
+   reads without JS hover state. Matches the HUD chrome (rgba whites on the dark
+   FloatingPanel surface). */
+
+.timer-btn {
+  transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+}
+.timer-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.95);
+}
+
+/* The Timer/Stopwatch segmented control. `.is-active` is set inline. */
+.timer-tab {
+  transition: background 0.12s ease, color 0.12s ease;
+}
+.timer-tab:hover:not(.is-active) {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+/* The × remove control: dim until the node (or it) is hovered. */
+.timer-remove {
+  opacity: 0.35;
+  transition: opacity 0.12s ease, color 0.12s ease;
+}
+.timer-node:hover .timer-remove {
+  opacity: 0.7;
+}
+.timer-remove:hover {
+  opacity: 1;
+  color: #f87171;
+}
+
+/* Click-to-edit digit segments (timer mode, stopped). Underline hints they're
+   editable on hover. */
+.timer-display-editable .timer-seg {
+  border-bottom: 1px solid transparent;
+  cursor: text;
+}
+.timer-display-editable:hover .timer-seg {
+  border-bottom-color: rgba(255, 255, 255, 0.25);
+}
