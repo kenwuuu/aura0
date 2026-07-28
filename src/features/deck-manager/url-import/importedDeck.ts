@@ -132,8 +132,12 @@ const SECTION_HEADERS: Record<ImportedSection, string> = {
  * The maybeboard is emitted rather than dropped so the parser reports it as
  * excluded — the import telemetry counts what the source really held, not what
  * this function chose to forward.
+ *
+ * Takes only `cards` rather than a whole `ImportedDeck` because that is all it
+ * reads, which lets a saved deck being reopened for editing render through this
+ * same emitter instead of growing a second one that could drift from it.
  */
-export function toDecklistText(deck: ImportedDeck): string {
+export function toDecklistText(deck: Pick<ImportedDeck, 'cards'>): string {
   const blocks: string[] = [];
 
   for (const section of SECTION_ORDER) {

@@ -23,11 +23,31 @@ import {
   toDecklistText,
 } from './url-import';
 import { DeckImportProblemNotice } from './DeckImportProblemNotice';
+import { decklistTextForEditing } from './savedDeckText';
 
 interface DeckImportModalProps {
   isOpen: boolean;
   onClose: () => void;
   onDeckImported: (deck: SavedDeck) => void;
+  /**
+   * The deck being edited, if this is an edit rather than a new import.
+   *
+   * Editing is the same dialog on purpose: a saved deck *is* its decklist, so
+   * "change my deck" and "import a deck" are the same act on the same text, with
+   * the same parser, preview, size warning and lookup behind them. The only
+   * differences are where the result lands — over this deck's id instead of a
+   * new one — and that the result is handed back through `onDeckUpdated`.
+   */
+  editing?: SavedDeck;
+  /**
+   * Called instead of `onDeckImported` when an edit is saved.
+   *
+   * Kept separate because the two mean different things to the caller: a fresh
+   * import is a deck the player just chose and wants in play, while an edit is a
+   * deck they were only correcting — loading that one would reset the board of
+   * whoever was mid-game when they fixed a typo.
+   */
+  onDeckUpdated?: (deck: SavedDeck) => void;
 }
 
 const styles: { [key: string]: React.CSSProperties } = {
@@ -182,7 +202,13 @@ export function describeUnusualDeckSize(preview: DeckPreview): string {
   );
 }
 
-export function DeckImportModal({ isOpen, onClose, onDeckImported }: DeckImportModalProps) {
+export function DeckImportModal({
+  isOpen,
+  onClose,
+  onDeckImported,
+  editing,
+  onDeckUpdated,
+}: DeckImportModalProps) {
   const [deckText, setDeckText] = useState('');
   const [deckName, setDeckName] = useState('');
   const [isImporting, setIsImporting] = useState(false);
@@ -213,6 +239,35 @@ export function DeckImportModal({ isOpen, onClose, onDeckImported }: DeckImportM
    * non-empty" cannot tell those apart, so we track who put the text there.
    */
   const nameEditedByPlayer = useRef(false);
+  /**
+   * The list this dialog opened with, when it opened on an existing deck.
+   *
+   * Kept so saving can tell a real edit from a deck the player opened, read, and
+   * left alone — see `handleImport`, where an untouched list skips the lookup
+   * entirely.
+   */
+  const openedWithText = useRef('');
+
+  /**
+   * Fill the fields when the dialog opens.
+   *
+   * Editing seeds the list the deck was saved from rather than starting empty,
+   * which is what makes "edit" a real edit: the player changes the line they
+   * came to change and the other ninety-nine arrive back exactly as they were.
+   */
+  useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+
+    const seed = editing === undefined ? '' : decklistTextForEditing(editing);
+    setDeckText(seed);
+    setDeckName(editing === undefined ? '' : editing.metadata.name);
+    openedWithText.current = seed;
+    // A name carried in from a saved deck is the player's own, not a default we
+    // filled in — so a link pasted into the box must not overwrite it.
+    nameEditedByPlayer.current = editing !== undefined;
+  }, [isOpen, editing]);
 
   /**
    * Turn a pasted deck link into a decklist, in place.
@@ -274,15 +329,30 @@ export function DeckImportModal({ isOpen, onClose, onDeckImported }: DeckImportM
     return () => clearTimeout(timer);
   }, [deckText]);
 
+  /**
+   * Write the deck and hand it back.
+   *
+   * `saveDeck` is a put keyed on `metadata.id`, so an edit overwrites the record
+   * it came from for the same reason a new import creates one — the id decides,
+   * and nothing else has to know which of the two happened.
+   */
   const commitImport = async (deck: SavedDeck) => {
     const storage = new DeckStorageService();
     await storage.saveDeck(deck);
 
-    setSuccessMessage(`Successfully imported ${deck.cards.length} cards!`);
+    setSuccessMessage(
+      editing === undefined
+        ? `Successfully imported ${deck.cards.length} cards!`
+        : `Saved "${deck.metadata.name}" — ${deck.cards.length} cards.`,
+    );
 
     // Wait a moment to show success message, then call the callback
     setTimeout(() => {
-      onDeckImported(deck);
+      if (editing === undefined) {
+        onDeckImported(deck);
+      } else {
+        onDeckUpdated?.(deck);
+      }
       handleClose();
     }, 1000);
   };
@@ -290,6 +360,19 @@ export function DeckImportModal({ isOpen, onClose, onDeckImported }: DeckImportM
   const handleImport = async () => {
     if (!deckText.trim() || !deckName.trim()) {
       setErrors(['Please provide both a deck name and deck list']);
+      return;
+    }
+
+    // An edit that left the list alone is a rename, and a rename has no cards to
+    // look up. Re-importing here would spend a minute resolving names that are
+    // already resolved — and worse, it would put a working deck back through a
+    // lookup that can fail, so a deck could come back smaller than it went in.
+    // The saved cards are the ones this text produced; keep them.
+    if (editing !== undefined && deckText.trim() === openedWithText.current.trim()) {
+      await commitImport({
+        ...editing,
+        metadata: { ...editing.metadata, name: deckName, lastModified: new Date() },
+      });
       return;
     }
 
@@ -332,8 +415,6 @@ export function DeckImportModal({ isOpen, onClose, onDeckImported }: DeckImportM
 
       const savedDeck: SavedDeck = {
         metadata: {
-          id: `deck-${Date.now()}-${randomIdSuffix(7)}`,
-          name: deckName,
           source: 'scryfall',
           // The deck's size, not the import's: the sideboard is saved alongside
           // the deck, never counted as part of it.
@@ -341,9 +422,22 @@ export function DeckImportModal({ isOpen, onClose, onDeckImported }: DeckImportM
           importedAt: new Date(),
           lastModified: new Date(),
           ...result.metadata,
+          // After the spread, not before it: the importer sets its own
+          // `importedAt`/`lastModified`, so anything that must survive an edit
+          // has to be written last or the spread quietly puts it back.
+          //
+          // Reusing the id is the whole of "overwrite": the store is keyed on it.
+          id: editing?.metadata.id ?? `deck-${Date.now()}-${randomIdSuffix(7)}`,
+          name: deckName,
+          // When this deck first entered the collection, not when it was last
+          // corrected — that is what `lastModified` is for.
+          ...(editing ? { importedAt: editing.metadata.importedAt } : {}),
         },
         cards: result.cards,
         ...(result.sideboard ? { sideboard: result.sideboard } : {}),
+        // Kept so the next edit reopens this exact list, printings and all,
+        // instead of a version rebuilt from cards that no longer names them.
+        decklistText: deckText,
       };
 
       await commitImport(savedDeck);
@@ -359,6 +453,7 @@ export function DeckImportModal({ isOpen, onClose, onDeckImported }: DeckImportM
     setDeckText('');
     setDeckName('');
     nameEditedByPlayer.current = false;
+    openedWithText.current = '';
     setErrors([]);
     setUrlProblem(null);
     setSuccessMessage('');
@@ -373,7 +468,9 @@ export function DeckImportModal({ isOpen, onClose, onDeckImported }: DeckImportM
         <Dialog.Overlay style={styles.overlay} />
         <Dialog.Content style={styles.content} data-testid="deck-import-modal">
           <div style={styles.header}>
-            <Dialog.Title style={styles.title}>Import Deck</Dialog.Title>
+            <Dialog.Title style={styles.title}>
+              {editing === undefined ? 'Import Deck' : 'Edit Deck'}
+            </Dialog.Title>
             <Dialog.Close style={styles.closeButton} onClick={handleClose}>×</Dialog.Close>
           </div>
 
@@ -491,8 +588,12 @@ export function DeckImportModal({ isOpen, onClose, onDeckImported }: DeckImportM
                 label: isImporting
                   ? 'Importing...'
                   : deckPreview && isUnusualDeckSize(deckPreview.total)
-                    ? 'Import Anyway'
-                    : 'Import Deck',
+                    ? editing === undefined
+                      ? 'Import Anyway'
+                      : 'Save Anyway'
+                    : editing === undefined
+                      ? 'Import Deck'
+                      : 'Save Changes',
                 onClick: handleImport,
                 disabled: isImporting || !deckText.trim() || !deckName.trim(),
                 variant: 'primary' as const,
