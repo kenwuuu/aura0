@@ -184,10 +184,13 @@ const resetDeck: GameAction = {
   perform({ player }) {
     useConfirmStore.getState().open({
       title: 'Reset Deck?',
-      description: 'Moves your battlefield, hand, discard, and exile back into your deck, shuffles it, and resets your health.',
+      description:
+        'Moves your battlefield, hand, discard, and exile back into your deck, shuffles it, resets your health, and deals a new opening hand.',
       confirmLabel: 'Reset',
       destructive: true,
-      onConfirm: () => player.reset(),
+      // reset() deals the opening hand one card at a time, so it's async; the
+      // dialog closes immediately either way and nothing here awaits it.
+      onConfirm: () => void player.reset(),
     });
   },
 };
