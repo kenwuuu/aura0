@@ -1,5 +1,5 @@
 import { Page, Locator, expect } from '@playwright/test';
-import { boardCard, boardCardIds, boardCardNode, cardPreview, pileTile, whiteboard, deckImportOpenButton, deckImportModal, boardTokens, transformPosition } from './pageObjects';
+import { boardCard, boardCardIds, boardCardNode, cardPreview, pileTile, whiteboard, deckImportOpenButton, deckImportModal, boardTokens, transformPosition, sessionMenuButton, sessionImportModal, healthInput } from './pageObjects';
 import { TESTID, PileKind } from './selectors';
 
 export async function centerOf(locator: Locator): Promise<{ x: number; y: number }> {
@@ -458,4 +458,56 @@ export async function importDeck(page: Page, name: string, decklist: string): Pr
   }
 
   await deckImportModal(page).waitFor({ state: 'hidden', timeout: 15000 });
+}
+
+/**
+ * Save the current game to a file and return the path it was written to.
+ *
+ * Goes through the real download, rather than reaching into the doc, because
+ * the file is the product here — a snapshot the app cannot re-read is a broken
+ * feature however correct the in-memory shape was.
+ */
+export async function exportSessionToFile(page: Page): Promise<string> {
+  await sessionMenuButton(page).click();
+  const download = page.waitForEvent('download');
+  await page.getByRole('menuitem', { name: 'Save game to file' }).click();
+  const saved = await download;
+
+  const path = await saved.path();
+  if (!path) throw new Error('The saved game produced no file on disk.');
+  return path;
+}
+
+/**
+ * Restore a saved game, taking the seat at `seatIndex`.
+ *
+ * By index rather than by name because a player who never renamed themselves is
+ * labelled with a slice of their random player id — there is no stable name to
+ * ask for. Returns once the restored board is interactive: the app performs a
+ * real navigation into a new room and re-fetches every card on the way.
+ */
+export async function importSessionFile(
+  page: Page,
+  filePath: string,
+  seatIndex = 0,
+): Promise<void> {
+  await sessionMenuButton(page).click();
+  await page.getByRole('menuitem', { name: 'Load saved game…' }).click();
+
+  await sessionImportModal(page).getByLabel('Saved game file').setInputFiles(filePath);
+  await page.getByTestId(TESTID.importSeatOption).nth(seatIndex).click();
+
+  await healthInput(page).waitFor({ state: 'visible', timeout: 30000 });
+}
+
+/**
+ * Take a seat from the picker: choose it, then confirm it is yours.
+ *
+ * Two steps by design — claiming a seat is the one action that can show you
+ * another player's hand, so a single click is not enough to do it.
+ */
+export async function claimOfferedSeat(page: Page, seat: Locator): Promise<void> {
+  await seat.click();
+  await page.getByRole('button', { name: 'Yes, this is me' }).click();
+  await healthInput(page).waitFor({ state: 'visible', timeout: 30000 });
 }

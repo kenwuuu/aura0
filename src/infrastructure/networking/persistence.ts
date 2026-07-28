@@ -44,6 +44,10 @@ const STORAGE_KEYS = {
   PEER_ID: 'aura:peerId',
 } as const;
 
+/** Per-room seat alias keys: `aura:seat:<roomName>` → the player id to play as there. */
+const SEAT_PREFIX = 'aura:seat:';
+const seatKey = (roomName: string) => `${SEAT_PREFIX}${roomName}`;
+
 export interface AwarenessState {
   name?: string;
   playerId?: string;
@@ -98,6 +102,44 @@ export function getStoredPlayerColor(): string | null {
  */
 export function setStoredPlayerColor(color: string): void {
   localStorage.setItem(STORAGE_KEYS.PLAYER_COLOR, color);
+}
+
+/**
+ * The player id this device plays as *in this room*.
+ *
+ * Normally the device's own id — one identity, every room. The exception is a
+ * game restored from a file (see features/session-transfer): a snapshot keeps
+ * the seat ids it was exported with, because every `ownerId` on the board,
+ * every token `attachedTo`, and every action-log `actorId` in it refers to
+ * them. The device that claims a seat therefore adopts its id here, and one
+ * indirection at boot replaces rewriting every id in the game.
+ *
+ * Call this instead of {@link getOrCreatePlayerId} anywhere the answer means
+ * "who am I in this game" rather than "which browser is this".
+ */
+export function resolvePlayerIdForRoom(roomName: string): string {
+  return localStorage.getItem(seatKey(roomName)) ?? getOrCreatePlayerId();
+}
+
+/** The seat this device claimed in `roomName`, or null if it hasn't claimed one. */
+export function getSeatAlias(roomName: string): string | null {
+  return localStorage.getItem(seatKey(roomName));
+}
+
+/**
+ * Bind this device to `seatId` for `roomName`.
+ *
+ * Also used to record "I joined this restored game as myself" — the alias is
+ * then simply the device's own id. That is a no-op for identity, and the point:
+ * it marks the room as decided so the seat picker never asks twice.
+ */
+export function setSeatAlias(roomName: string, seatId: string): void {
+  localStorage.setItem(seatKey(roomName), seatId);
+}
+
+/** Forget this device's seat in `roomName`, so the picker offers a choice again. */
+export function clearSeatAlias(roomName: string): void {
+  localStorage.removeItem(seatKey(roomName));
 }
 
 /**
@@ -170,4 +212,14 @@ export function clearPersistedSession(): void {
   localStorage.removeItem(STORAGE_KEYS.PLAYER_NAME);
   localStorage.removeItem(STORAGE_KEYS.AWARENESS_STATE);
   localStorage.removeItem(STORAGE_KEYS.PEER_ID);
+
+  // Seat aliases are keyed per room, so there is no fixed list to remove —
+  // sweep the prefix. Leaving one behind would keep this browser bound to a
+  // seat id whose player id we just threw away.
+  const seatKeys: string[] = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key?.startsWith(SEAT_PREFIX)) seatKeys.push(key);
+  }
+  seatKeys.forEach((key) => localStorage.removeItem(key));
 }

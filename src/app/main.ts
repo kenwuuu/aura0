@@ -16,6 +16,14 @@ import { bootstrapGame, type BootstrapOptions } from './bootstrap';
 import { App } from './App';
 import { CrashFallback } from './CrashFallback';
 import { DuplicateTabNotice } from './DuplicateTabNotice';
+import {
+  claimSeatOnThisDevice,
+  isResumeLink,
+  SeatSelectionScreen,
+  SessionImportProgress,
+} from '@/features/session-transfer';
+import { getOrCreatePlayerId, getOrCreatePeerId } from '@/infrastructure/networking';
+import { trackSeatClaimed } from '@/infrastructure/analytics/PosthogFunctions';
 import '../style.css';
 
 // ── Deploy identity ───────────────────────────────────────────────────────────
@@ -115,6 +123,15 @@ const root = createRoot(rootEl);
  * propagate to the screen, which is what reports a failed takeover.
  */
 async function boot(options: BootstrapOptions = {}): Promise<void> {
+  // A resumed game has real work to do before there is anything to show — every
+  // distinct card has to be looked up again — so put a screen up first rather
+  // than leaving the page blank through it. Covers both halves of a resume: the
+  // player restoring the file, and the one who was sent the link and is about to
+  // be offered a seat.
+  if (isResumeLink()) {
+    root.render(React.createElement(SessionImportProgress));
+  }
+
   const result = await bootstrapGame(options);
 
   if (result.status === 'duplicate-tab') {
@@ -122,6 +139,29 @@ async function boot(options: BootstrapOptions = {}): Promise<void> {
       React.createElement(DuplicateTabNotice, {
         roomName: result.roomName,
         onTakeOver: () => boot({ takeOverOtherTab: true }),
+      }),
+    );
+    return;
+  }
+
+  if (result.status === 'seat-selection') {
+    // Both answers reload rather than re-entering boot(): the doc and its
+    // providers are already live by this point and have to be torn down. This is
+    // the same move the tab-takeover path makes (see bootstrap.ts).
+    const decide = (seatId: string, claimedExisting: boolean) => {
+      claimSeatOnThisDevice(result.roomName, seatId);
+      trackSeatClaimed({ claimedExisting });
+      window.location.reload();
+    };
+
+    root.render(
+      React.createElement(SeatSelectionScreen, {
+        yDoc: result.yDoc,
+        peerId: getOrCreatePeerId(),
+        onClaim: (seatId: string) => decide(seatId, true),
+        // Joining as yourself still writes an alias — a no-op for identity, but
+        // it marks the room decided so the picker never asks twice.
+        onJoinAsNew: () => decide(getOrCreatePlayerId(), false),
       }),
     );
     return;

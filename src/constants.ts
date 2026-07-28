@@ -23,6 +23,11 @@ export const YSTATE_HAND = 'hand';
 export const YSTATE_EXILE_PILE = 'exile-pile';
 export const YSTATE_DISCARD_PILE = 'discard-pile';
 export const YSTATE_DECK_CARD_COUNT = 'deck-card-count';
+// Name of the deck this player loaded, e.g. "Krenko Goblins". Shared state
+// rather than local because it identifies a *seat* to other people — it is how
+// someone resuming a saved game recognises which seat was theirs (see
+// features/session-transfer). Written by Player.loadNewDeck.
+export const YSTATE_DECK_NAME = 'deck-name';
 export const YSTATE_CUSTOM_COUNTERS = 'custom-counters';
 export const YSTATE_CAN_VIEW_HAND = 'allowViewHand';
 export const YSTATE_SCRY = 'scry';
@@ -46,6 +51,19 @@ export const YSTATE_JOINED_AT = 'joinedAt';
 // Player's constructor on rejoin, so removal is a kick, not a ban. See
 // features/player/removePlayer.ts.
 export const YSTATE_REMOVED = 'removed';
+
+// Session transfer: provenance for a game restored from an exported file.
+// Written once at import and never mutated. Its presence is what makes a room a
+// *resumed* game rather than a fresh one — the seat picker reads it to learn who
+// was playing. See features/session-transfer/.
+export const YDOC_SESSION = 'session';
+export const YSESSION_SCHEMA_VERSION = 'schemaVersion';
+export const YSESSION_IMPORTED_AT = 'importedAt';
+export const YSESSION_SEATS = 'seats';
+// seatId -> peerId of the device that claimed it. A Y.Map rather than an array
+// on YDOC_SESSION so two players claiming two *different* seats never conflict:
+// per-key last-write-wins is exactly the semantics wanted here.
+export const YDOC_SEAT_CLAIMS = 'seat-claims';
 
 // Action log: shared append-only Y.Array of ActionLogEntry objects.
 // Using Y.Array (not a JS-array-in-a-Y.Map) so concurrent appends from different
