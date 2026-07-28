@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import * as Y from 'yjs';
-import { Player } from './Player';
+import { OPENING_HAND_SIZE, Player } from './Player';
 import {Card, SavedDeck} from './types';
 import {YDOC_CARDS_ON_BOARD} from "@/constants";
 import { seededRandom } from '@/test/seededRandom';
@@ -37,7 +37,7 @@ describe('Player.reset()', () => {
   });
 
   describe('Reset with cards in hand only', () => {
-    it('should move hand cards back to deck and reset health', () => {
+    it('should move hand cards back to deck and reset health', async () => {
       // Draw 3 cards to hand
       player.drawCard();
       player.drawCard();
@@ -52,20 +52,21 @@ describe('Player.reset()', () => {
       expect(player.getState().health).toBe(15);
 
       // Reset
-      player.reset();
+      await player.reset();
 
-      // Verify reset state
+      // Verify reset state. A reset is a fresh start, so the 3 drawn cards go
+      // back and the player is dealt a new opening hand out of the full 10.
       const state = player.getState();
-      expect(state.hand).toEqual([]);
+      expect(state.hand.length).toBe(OPENING_HAND_SIZE);
       expect(state.discardPile).toEqual([]);
       expect(state.exilePile).toEqual([]);
       expect(state.health).toBe(40); // Reset to initial
-      expect(player.getDeck().getCardCount()).toBe(10); // All cards back in deck
+      expect(player.getDeck().getCardCount()).toBe(10 - OPENING_HAND_SIZE);
     });
   });
 
   describe('Reset with cards in multiple zones', () => {
-    it('should move cards from hand, discard, and exile back to deck', () => {
+    it('should move cards from hand, discard, and exile back to deck', async () => {
       // Draw 5 cards
       const card1 = player.drawCard();
       const card2 = player.drawCard();
@@ -97,19 +98,19 @@ describe('Player.reset()', () => {
       expect(player.getDeck().getCardCount()).toBe(5); // 10 - 5 drawn
 
       // Reset
-      player.reset();
+      await player.reset();
 
-      // Verify all cards back in deck
-      const stateAfter = player.getState();
-      expect(player.getHand().getCards()).toEqual([]);
+      // Verify all cards left the piles. They land in the deck, minus the fresh
+      // opening hand dealt back off the top of it.
       expect(player.getDiscardPile().getCards()).toEqual([]);
       expect(player.getExilePile().getCards()).toEqual([]);
-      expect(player.getDeck().getCardCount()).toBe(10); // All 10 cards back
+      expect(player.getHand().getCardCount()).toBe(OPENING_HAND_SIZE);
+      expect(player.getDeck().getCardCount() + player.getHand().getCardCount()).toBe(10);
     });
   });
 
   describe('Reset with cards on battlefield', () => {
-    it('should remove player\'s cards from battlefield and return to deck', () => {
+    it('should remove player\'s cards from battlefield and return to deck', async () => {
       const yCards = yDoc.getMap(YDOC_CARDS_ON_BOARD);
 
       // Draw 3 cards
@@ -144,18 +145,17 @@ describe('Player.reset()', () => {
       expect(player.getDeck().getCardCount()).toBe(7); // 10 - 3 drawn
 
       // Reset
-      player.reset();
+      await player.reset();
 
       // Verify battlefield is cleared of player's cards
       expect(yCards.size).toBe(0);
 
-      // Verify all cards back in deck
-      const state = player.getState();
-      expect(state.hand).toEqual([]);
-      expect(player.getDeck().getCardCount()).toBe(10);
+      // Verify all cards accounted for between deck and the new opening hand
+      expect(player.getState().hand.length).toBe(OPENING_HAND_SIZE);
+      expect(player.getDeck().getCardCount() + player.getState().hand.length).toBe(10);
     });
 
-    it('should NOT remove opponent\'s cards from battlefield', () => {
+    it('should NOT remove opponent\'s cards from battlefield', async () => {
       const yCards = yDoc.getMap(YDOC_CARDS_ON_BOARD);
       const opponentId = 'opponent-456';
 
@@ -193,7 +193,7 @@ describe('Player.reset()', () => {
       expect(yCards.size).toBe(2);
 
       // Reset player
-      player.reset();
+      await player.reset();
 
       // Verify only player's card removed, opponent's remains
       expect(yCards.size).toBe(1);
@@ -203,7 +203,7 @@ describe('Player.reset()', () => {
   });
 
   describe('Reset with complex game state', () => {
-    it('should handle full game scenario: battlefield, hand, piles, modified health', () => {
+    it('should handle full game scenario: battlefield, hand, piles, modified health', async () => {
       const yCards = yDoc.getMap(YDOC_CARDS_ON_BOARD);
 
       // Draw 8 cards
@@ -245,40 +245,74 @@ describe('Player.reset()', () => {
       expect(player.getDeck().getCardCount()).toBe(2); // 10 - 8 drawn
 
       // Reset
-      player.reset();
+      await player.reset();
 
       // Verify complete reset
       const stateAfter = player.getState();
       expect(yCards.size).toBe(0); // Battlefield cleared
-      expect(stateAfter.hand).toEqual([]);
       expect(stateAfter.discardPile).toEqual([]);
       expect(stateAfter.exilePile).toEqual([]);
       expect(stateAfter.health).toBe(40); // Back to initial
-      expect(player.getDeck().getCardCount()).toBe(10); // All cards back
+      // All 10 cards back, split between the deck and a fresh opening hand
+      expect(stateAfter.hand.length).toBe(OPENING_HAND_SIZE);
+      expect(player.getDeck().getCardCount() + stateAfter.hand.length).toBe(10);
+    });
+  });
+
+  describe('Reset deals a fresh opening hand', () => {
+    it('deals seven when the deck has no commander', async () => {
+      await player.reset();
+
+      expect(player.getState().hand.length).toBe(OPENING_HAND_SIZE);
+      expect(player.getDeck().getCardCount()).toBe(10 - OPENING_HAND_SIZE);
+    });
+
+    it('auto-draws the commander, same as loading the deck does', async () => {
+      // The reason this matters: after a reset the commander must be in hand to
+      // be cast, not shuffled somewhere into the library.
+      const commanderDeck = makeCards(10, (i) => ({ id: `c${i}`, commander: i === 4 }));
+      const commanderPlayer = new Player('cmdr-player', new Y.Doc(), commanderDeck, {
+        initialHealth: 40,
+      });
+
+      await commanderPlayer.reset();
+
+      const hand = commanderPlayer.getState().hand;
+      expect(hand.length).toBe(OPENING_HAND_SIZE + 1); // commander + 7
+      expect(hand.some((c) => c.id === 'c4')).toBe(true);
+    });
+
+    it('deals what it can when the deck is smaller than an opening hand', async () => {
+      const shortPlayer = new Player('short-player', new Y.Doc(), makeCards(3), {
+        initialHealth: 40,
+      });
+
+      await shortPlayer.reset();
+
+      expect(shortPlayer.getState().hand.length).toBe(3);
+      expect(shortPlayer.getDeck().getCardCount()).toBe(0);
     });
   });
 
   describe('Reset empty state', () => {
-    it('should handle reset when no cards have been drawn', () => {
-      // Don't draw any cards
-      expect(player.getState().hand).toEqual([]);
-      expect(player.getDeck().getCardCount()).toBe(10);
+    it('should handle reset when no cards have been drawn', async () => {
+      // A player who never loaded a deck. Reset must not throw or invent cards.
+      const emptyPlayer = new Player('empty-player', new Y.Doc(), [], { initialHealth: 40 });
+      expect(emptyPlayer.getDeck().getCardCount()).toBe(0);
 
-      // Reset should work without errors
-      player.reset();
+      await emptyPlayer.reset();
 
-      // State should remain valid
-      const state = player.getState();
+      const state = emptyPlayer.getState();
       expect(state.hand).toEqual([]);
       expect(state.discardPile).toEqual([]);
       expect(state.exilePile).toEqual([]);
       expect(state.health).toBe(40);
-      expect(player.getDeck().getCardCount()).toBe(10);
+      expect(emptyPlayer.getDeck().getCardCount()).toBe(0);
     });
   });
 
   describe('Deck shuffling after reset', () => {
-    it('should shuffle the deck after reset', () => {
+    it('should shuffle the deck after reset', async () => {
       // Draw all cards in order
       const drawnCards: Card[] = [];
       let card = player.drawCard();
@@ -295,23 +329,21 @@ describe('Player.reset()', () => {
       // resulting order is deterministic rather than relying on true
       // randomness landing on a different permutation.
       const randomSpy = vi.spyOn(Math, 'random').mockImplementation(seededRandom(42));
-      player.reset();
+      await player.reset();
       randomSpy.mockRestore();
 
-      // Deck should have all cards back
-      expect(player.getDeck().getCardCount()).toBe(10);
+      // Reset deals an opening hand off the top of the shuffled deck, so the
+      // post-reset library order is what's left in the deck (bottom-up) plus
+      // the hand read back the way it was dealt. Same cards, new order.
+      const orderAfter = [
+        ...player.getDeck().getCards().map(c => c.id),
+        ...player.getState().hand.map(c => c.id).reverse(),
+      ];
+      // drawnCards is top-down, so reverse it to get the original bottom-up order.
+      const orderBefore = drawnCards.map(c => c.id).reverse();
 
-      // Draw cards again - order should be different (shuffled)
-      const redrawnCards: Card[] = [];
-      card = player.drawCard();
-      while (card) {
-        redrawnCards.push(card);
-        card = player.drawCard();
-      }
-
-      const sameOrder = drawnCards.every((c, i) => c.id === redrawnCards[i].id);
-      expect(sameOrder).toBe(false);
-      expect(redrawnCards.map(c => c.id).sort()).toEqual(drawnCards.map(c => c.id).sort());
+      expect(orderAfter).not.toEqual(orderBefore);
+      expect(orderAfter.slice().sort()).toEqual(orderBefore.slice().sort());
     });
   });
 });
@@ -538,31 +570,18 @@ describe('Player.shuffleDeck()', () => {
   });
 
   it('should change card order', () => {
-    // Draw all cards to record order
-    const firstOrder: string[] = [];
-    let card = player.drawCard();
-    while (card) {
-      firstOrder.push(card.id);
-      card = player.drawCard();
-    }
+    const firstOrder = player.getDeck().getCards().map(c => c.id);
 
-    // Reset to get cards back. Pin Math.random so the shuffle produces a
-    // deterministic, guaranteed-different permutation instead of relying on
-    // true randomness happening to land on a new order.
+    // Pin Math.random so the shuffle produces a deterministic,
+    // guaranteed-different permutation instead of relying on true randomness
+    // happening to land on a new order.
     const randomSpy = vi.spyOn(Math, 'random').mockImplementation(seededRandom(42));
-    player.reset();
+    player.shuffleDeck();
     randomSpy.mockRestore();
 
-    // Draw again after shuffle
-    const secondOrder: string[] = [];
-    card = player.drawCard();
-    while (card) {
-      secondOrder.push(card.id);
-      card = player.drawCard();
-    }
+    const secondOrder = player.getDeck().getCards().map(c => c.id);
 
-    const sameOrder = firstOrder.every((id, i) => id === secondOrder[i]);
-    expect(sameOrder).toBe(false);
+    expect(secondOrder).not.toEqual(firstOrder);
     expect(secondOrder.slice().sort()).toEqual(firstOrder.slice().sort());
   });
 });

@@ -43,9 +43,8 @@ export async function seedDefaultDeckIfFirstLoad(storage: DeckStorageService): P
 export function loadDeck(player: Player, roomManager: RoomManager, savedDeck: SavedDeck): void {
   console.log(`Loading deck: ${savedDeck.metadata.name} (${savedDeck.cards.length} cards)`);
 
-  // Reset player state: move all cards back to deck, clear piles, reset health
-  player.reset();
-
+  // loadNewDeck sweeps the previous game off the board and out of the piles
+  // before swapping the list in, so there is nothing to reset here first.
   player.loadNewDeck(savedDeck).then(() => {
     // Sync the visible deck-count Yjs state
     player.yPlayerState.set(YSTATE_DECK_CARD_COUNT, player.getDeck().getCardCount());

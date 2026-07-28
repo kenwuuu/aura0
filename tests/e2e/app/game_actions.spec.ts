@@ -122,7 +122,7 @@ test('Actions > Mulligan returns hand and redraws 7', async ({ page }) => {
 
 // ── Actions: Reset Deck ───────────────────────────────────────────────────────
 
-test('Actions > Reset Deck confirms, then returns all cards to the deck', async ({ page }) => {
+test('Actions > Reset Deck confirms, then restarts with a fresh opening hand', async ({ page }) => {
   // Build up some non-deck state: one card milled to discard, one exiled.
   await toolbar(page).getByText('Actions').click();
   await page.getByRole('menuitem', { name: 'Mill' }).click();
@@ -142,7 +142,9 @@ test('Actions > Reset Deck confirms, then returns all cards to the deck', async 
   await dialog.getByRole('button', { name: 'Reset' }).click();
   await expect(dialog).not.toBeVisible({ timeout: 3000 });
 
-  await expectHandCount(page, 0);
+  // The milled and exiled cards go back, and the player is dealt a new opening
+  // hand — 8 for the default deck (Krenko + 7), the same as on first boot.
+  await expectHandCount(page, 8);
   await expectPileCount(page, 'discard', 0);
   await expectPileCount(page, 'exile', 0);
 });

@@ -179,10 +179,10 @@ describe('mulligan', () => {
 });
 
 describe('reset-deck', () => {
-  it('opens a confirmation, and onConfirm moves hand/discard/exile back into the deck', () => {
+  it('opens a confirmation, and onConfirm restarts the game with a fresh opening hand', async () => {
     const ctx = makeContext({
       hand: [{ id: 'c1' } as any],
-      deck: Array.from({ length: 5 }, (_, i) => ({ id: `c${i}` } as any)),
+      deck: Array.from({ length: 12 }, (_, i) => ({ id: `d${i}` } as any)),
     });
 
     getAction('reset-deck').perform(ctx);
@@ -191,8 +191,14 @@ describe('reset-deck', () => {
     expect(request).not.toBeNull();
     expect(request!.title).toBe('Reset Deck?');
 
+    // reset() deals the hand one card at a time, so onConfirm kicks off async
+    // work the store's void-returning signature can't hand back — wait on the
+    // observable end state instead.
     request!.onConfirm();
-    expect(ctx.player.getState().hand).toHaveLength(0);
+    await vi.waitFor(() => expect(ctx.player.getState().hand).toHaveLength(7));
+
+    // All 13 cards still accounted for: the old hand card went back in and
+    // seven came off the top of the reshuffled deck.
     expect(ctx.player.getDeck().getCardCount()).toBe(6);
   });
 });

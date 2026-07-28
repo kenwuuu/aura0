@@ -68,11 +68,12 @@ describe('Player sideboard', () => {
     it('leaves the sideboard alone rather than sweeping it into the deck', async () => {
       await player.loadNewDeck(savedDeck(makeCards(60), makeCards(15)));
 
-      player.reset();
+      await player.reset();
 
       expect(player.getSideboardCards()).toHaveLength(15);
       // Sweeping the sideboard in would hand the player a 75-card deck.
-      expect(player.getDeckCards()).toHaveLength(60);
+      // Counted across deck + hand, because a reset deals a new opening hand.
+      expect(player.getDeckCards().length + player.getState().hand.length).toBe(60);
     });
   });
 

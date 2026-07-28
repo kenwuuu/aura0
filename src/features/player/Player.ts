@@ -37,6 +37,9 @@ import { makeCounterId } from '@/shared/utils/ids';
 import { toBaseCard } from './toBaseCard';
 import { resolvePlayerName } from '@/shared/utils/resolvePlayerName';
 
+/** Cards dealt at the start of a game, and after a mulligan. */
+export const OPENING_HAND_SIZE = 7;
+
 export class Player {
   private playerId: string;
   private yDoc: Y.Doc;
@@ -253,7 +256,16 @@ export class Player {
     return this.sideboard.getCards();
   }
 
+  /**
+   * Start a game with this deck: sweep whatever the last game left lying around
+   * back where it belongs, swap in the new list, and deal an opening hand.
+   * Loading a deck *is* starting over, so the sweep belongs here rather than at
+   * the call site — otherwise every caller has to remember to reset first and
+   * the last game's cards linger on the battlefield.
+   */
   public async loadNewDeck(newDeck: SavedDeck): Promise<void> {
+    this.returnAllCardsToDeck();
+
     // Replace deck cards with new deck
     this.deck.setCards(newDeck.cards);
     // A deck saved before sideboards existed has no `sideboard` — that's an
@@ -261,28 +273,38 @@ export class Player {
     // without one clears whatever the previous deck left behind.
     this.sideboard.setCards(newDeck.sideboard ?? []);
 
-    // get cards
-    const deckCards: Card[] = this.deck.getCards();
+    await this.dealOpeningHand();
+  }
 
-    if (deckCards.length === 0) {
+  /**
+   * Shuffle up and deal: every flagged commander first, then a shuffle, then
+   * seven. Commanders are flagged at import time from a COMMANDER section
+   * header (see DeckListParser) and are drawn *before* the shuffle so they are
+   * guaranteed in the opening hand rather than left to chance; a deck with none
+   * — a standard deck, or a list pasted without headers — just gets a plain
+   * 7-card hand.
+   *
+   * Shared by deck-load and reset, because both mean "start a game": a reset
+   * that only swept cards into the deck would leave the player staring at an
+   * empty hand and having to deal themselves back in by hand.
+   */
+  public async dealOpeningHand(): Promise<void> {
+    if (this.deck.getCardCount() === 0) {
       return;
     }
 
-    // Auto-draw the commander(s) into the opening hand. Commanders are flagged
-    // at import time from a COMMANDER section header (see DeckListParser); a
-    // deck with none — a standard deck, or a list pasted without headers —
-    // just gets a normal 7-card opening hand.
-    const commanders = deckCards.filter((card) => card.commander);
+    const commanders = this.deck.getCards().filter((card) => card.commander);
     for (const commander of commanders) {
       this.deck.removeCardById(commander.id);
       this.deck.addCardToTop(commander);
-      this.drawCard(false); // opening hand draws suppressed; deck-load is its own event
+      this.drawCard(false); // opening hand draws suppressed; the deal is its own event
     }
 
     this.deck.shuffle();
 
-    // draw 7 — suppressed from action log; deck-load is its own event
-    for (let i = 0; i < 7; i++) {
+    // Staggered so the hand fills in one card at a time instead of appearing
+    // all at once. Suppressed from the action log — the deal is one event.
+    for (let i = 0; i < OPENING_HAND_SIZE; i++) {
       this.drawCard(false);
       await new Promise(r => setTimeout(r, 20));
     }
@@ -310,10 +332,26 @@ export class Player {
     return card;
   }
 
-  // move board to hand. move hand, discard, and exile to deck. keep deck loaded. reset health
-  // equivalent to resetting in IRL game
-  public reset() {
+  /**
+   * Start the game over with the deck already loaded — the tabletop equivalent
+   * of scooping up the board and shuffling up again. Everything goes back into
+   * the deck, health returns to its starting value, and the player is dealt a
+   * fresh opening hand (commander included), because a reset that stopped at
+   * "all cards are in the deck" leaves them mid-setup rather than ready to play.
+   */
+  public async reset(): Promise<void> {
     posthog.capture('game_reset');
+    this.returnAllCardsToDeck();
+    await this.dealOpeningHand();
+  }
+
+  /**
+   * The sweep half of a reset: this player's battlefield cards and tokens, hand,
+   * discard, and exile all back into the deck, and health back to its starting
+   * value. Leaves the deck unshuffled and undealt — callers decide what happens
+   * next (`reset` deals a new hand, `loadNewDeck` throws the deck away).
+   */
+  private returnAllCardsToDeck(): void {
     // Step 1: Move all battlefield cards owned by this player back to deck
     const battlefieldCards: Card[] = [];
     this.yCardsOnBoard.forEach((card: any, cardId: string) => {
@@ -346,9 +384,6 @@ export class Player {
 
     // Step 4: Reset health to initial value
     this.yPlayerState.set(YSTATE_HEALTH, this.config.initialHealth);
-
-    // Step 5: Shuffle deck and sync
-    this.deck.shuffle();
   }
 
   public removeCardFromHand(cardId: string): Card | null {
@@ -568,7 +603,7 @@ export class Player {
     });
   }
 
-  public mulligan(cardsToDraw: number = 7): void {
+  public mulligan(cardsToDraw: number = OPENING_HAND_SIZE): void {
     const handSizeBefore = this.hand.getCards().length;
     posthog.capture('mulligan_taken', {
       hand_size_before: handSizeBefore,
