@@ -118,6 +118,11 @@ test('Actions > Mulligan returns hand and redraws 7', async ({ page }) => {
   await toolbar(page).getByText('Actions').click();
   await page.getByRole('menuitem', { name: 'Mulligan' }).click();
   await expect(page.locator('text=took a mulligan')).toBeVisible({ timeout: 3000 });
+
+  // Still commander + 7. The commander is in the command zone, not the library,
+  // so a mulligan redraws around it — a hand of 7 would mean Krenko got
+  // shuffled into the deck where he can never be cast.
+  await expectHandCount(page, 8);
 });
 
 // ── Actions: Reset Deck ───────────────────────────────────────────────────────

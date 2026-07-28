@@ -754,6 +754,46 @@ describe('Player.mulligan()', () => {
 
     expect(player.getDeck().getCardCount()).toBe(13); // 20 - 7
   });
+
+  describe('with a commander in hand', () => {
+    let commanderPlayer: Player;
+
+    beforeEach(async () => {
+      const deck = makeCards(20, (i) => ({ id: `m${i}`, commander: i === 9 }));
+      commanderPlayer = new Player('cmdr-player', new Y.Doc(), deck, { initialHealth: 40 });
+      await commanderPlayer.dealOpeningHand();
+    });
+
+    it('keeps the commander rather than shuffling it into the deck', () => {
+      expect(commanderPlayer.getState().hand.some((c) => c.id === 'm9')).toBe(true);
+
+      commanderPlayer.mulligan(7);
+
+      // The command zone is not the library: a mulligan must never bury the
+      // commander somewhere in the deck, where it can never be cast.
+      expect(commanderPlayer.getState().hand.some((c) => c.id === 'm9')).toBe(true);
+      expect(commanderPlayer.getDeck().getCards().some((c) => c.id === 'm9')).toBe(false);
+    });
+
+    it('deals a full new hand alongside the kept commander', () => {
+      commanderPlayer.mulligan(7);
+
+      // Commander + 7, the same shape as the opening hand a deck load deals.
+      expect(commanderPlayer.getState().hand.length).toBe(OPENING_HAND_SIZE + 1);
+      expect(commanderPlayer.getDeck().getCardCount()).toBe(20 - OPENING_HAND_SIZE - 1);
+    });
+
+    it('replaces the non-commander cards', () => {
+      const before = commanderPlayer.getState().hand.filter((c) => !c.commander).map((c) => c.id);
+
+      const randomSpy = vi.spyOn(Math, 'random').mockImplementation(seededRandom(42));
+      commanderPlayer.mulligan(7);
+      randomSpy.mockRestore();
+
+      const after = commanderPlayer.getState().hand.filter((c) => !c.commander).map((c) => c.id);
+      expect(after).not.toEqual(before);
+    });
+  });
 });
 
 describe('Player.loadNewDeck()', () => {

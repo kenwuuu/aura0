@@ -615,13 +615,19 @@ export class Player {
       text: `took a mulligan (drew ${cardsToDraw} cards)`,
     });
 
-    // Move all cards from hand back to deck
-    this.hand.getCards().forEach((card: Card) => {
-      this.deck.addCardToBottom(card);
-    });
+    // Everything but the commander goes back. A commander lives in the command
+    // zone, not the library — Aura models that zone as "it starts in your
+    // hand", so shuffling it away on a mulligan would strand it somewhere in
+    // the deck and leave the player unable to cast it for the rest of the game.
+    const hand = this.hand.getCards();
+    const commanders = hand.filter((card) => card.commander);
+    hand
+      .filter((card) => !card.commander)
+      .forEach((card: Card) => {
+        this.deck.addCardToBottom(card);
+      });
 
-    // Clear hand
-    this.hand.clear();
+    this.hand.setCards(commanders);
 
     // Shuffle deck
     this.deck.shuffle();
