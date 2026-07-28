@@ -100,6 +100,25 @@ describe('GameActionsToolbar', () => {
   });
 
   /**
+   * Reset Deck wipes the board, every pile and your health. It sits at the
+   * bottom of Actions ▾ directly under ordinary rows like Shuffle, so colour is
+   * the only thing separating "reorder my library" from "throw the game away".
+   * `destructive` is a catalog property, so the toolbar has to honour it the
+   * same way the context menu already does.
+   */
+  it('Actions dropdown: Reset Deck is styled destructive, ordinary rows are not', async () => {
+    const user = userEvent.setup();
+    renderWithGame(<GameActionsToolbar />);
+
+    await user.click(screen.getByRole('button', { name: /Actions/ }));
+
+    expect(await screen.findByRole('menuitem', { name: 'Reset Deck' }))
+      .toHaveAttribute('data-variant', 'destructive');
+    expect(screen.getByRole('menuitem', { name: 'Shuffle' }))
+      .toHaveAttribute('data-variant', 'default');
+  });
+
+  /**
    * Regression: the "Token" create item hosts a popover (the drag-to-board
    * keyword grid) rather than performing an action. It once used a
    * `PopoverTrigger` wrapped around the `DropdownMenuItem` while *also*

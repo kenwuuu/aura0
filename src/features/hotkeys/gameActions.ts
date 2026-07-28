@@ -38,6 +38,7 @@ import { YDOC_CARDS_ON_BOARD, YDOC_KEYWORD_TOKENS } from '@/constants';
 import type * as Y from 'yjs';
 import type { WhiteboardCard } from '@/features/battlefield/types';
 import type { KeywordToken } from '@/features/keyword-tokens/types';
+import { OPENING_HAND_SIZE } from '@/features/player';
 import type { PileType } from '@/features/player';
 import type { MenuTarget } from './hotkeys';
 
@@ -182,8 +183,8 @@ function executeBoardAction(action: string, cursor: { x: number; y: number }): v
       break;
     case 'mulligan':
       if (player) {
-        triggerConfirmation('Mulligan? Draws 7 new cards.', 'm').then((confirmed) => {
-          if (confirmed) { player.mulligan(7); saveDeck(); }
+        triggerConfirmation(`Mulligan? Draws ${OPENING_HAND_SIZE} new cards.`, 'm').then((confirmed) => {
+          if (confirmed) { player.mulligan(OPENING_HAND_SIZE); saveDeck(); }
         });
       }
       break;

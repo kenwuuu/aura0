@@ -207,6 +207,10 @@ export function GameActionsContent({ style }: { style?: React.CSSProperties } = 
             <React.Fragment key={hotkey.action}>
               {i > 0 && ACTIONS_GROUP_STARTS.has(hotkey.action) && <DropdownMenuSeparator />}
               <DropdownMenuItem
+                // `destructive` is a catalog property, so it has to mean the
+                // same thing on every surface that renders the catalog — the
+                // context menu already styles its rows this way.
+                variant={hotkey.destructive ? 'destructive' : 'default'}
                 disabled={hotkey.disabled}
                 onSelect={() => performAction(hotkey)}
               >
@@ -237,6 +241,7 @@ export function GameActionsContent({ style }: { style?: React.CSSProperties } = 
             return (
               <DropdownMenuItem
                 key={hotkey.action}
+                variant={hotkey.destructive ? 'destructive' : 'default'}
                 disabled={hotkey.disabled}
                 onSelect={() => performAction(hotkey)}
               >

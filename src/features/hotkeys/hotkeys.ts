@@ -101,7 +101,12 @@ export interface Hotkey {
   shortDescription: string;
   longDescription: string;
   action: string; // Unique action identifier (e.g., "tap", "draw", "addCounter")
-  /** Rendered in the danger/destructive style in the context menu (GameContextMenu). */
+  /**
+   * Rendered in the danger style by every surface that draws catalog rows — the
+   * context menu (`GameContextMenu`) and the toolbar's dropdowns
+   * (`GameActionsToolbar`). Reserved for actions that discard state the player
+   * can't get back.
+   */
   destructive?: boolean;
   /**
    * Show this row in the context menu only when it was opened by touch (a tap),
@@ -274,6 +279,11 @@ export const HOTKEYS: Hotkey[] = [
     longDescription: 'Return every zone to your deck, shuffle, and reset health',
     action: 'resetDeck',
     toolbar: { surface: 'actions', target: 'board', order: 100 },
+    // Wipes the board, every pile and your health in one click. It sits at the
+    // bottom of Actions ▾ directly under ordinary rows like Shuffle, so the
+    // colour is the only thing distinguishing "reorder my library" from "throw
+    // the game away". The confirm dialog is the backstop, not the warning.
+    destructive: true,
   },
   // Create ▾. `createToken` performs no dispatch — the toolbar renders it as a
   // sub-popover hosting the drag-to-board keyword grid (see CreateTokenGridItem)
