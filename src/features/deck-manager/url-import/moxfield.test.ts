@@ -1,6 +1,17 @@
 import { describe, expect, it } from 'vitest';
 import { extractMoxfieldDeck, MoxfieldDeckResponse } from './moxfield';
 import { toDecklistText, totalCardCount } from './importedDeck';
+import { DeckImportReason } from './importErrors';
+
+/**
+ * The contract these throws carry is the *reason*, not the wording — the dialog
+ * keys its suggested fixes off it and the import metric breaks its failure rate
+ * down by it (#174). Copy is free to change; a reason changing is a behaviour
+ * change and should fail here.
+ */
+function failsWith(reason: DeckImportReason) {
+  return expect.objectContaining({ problem: expect.objectContaining({ reason }) });
+}
 
 /**
  * Shapes here mirror a real `api.moxfield.com/v3/decks/all/<id>` response:
@@ -130,7 +141,7 @@ describe('extractMoxfieldDeck', () => {
   ])('reports %s as an error the player can act on', (_label, response) => {
     // A private or deleted deck arrives looking exactly like this. Returning an
     // empty deck would import silently and leave the player with nothing.
-    expect(() => extractMoxfieldDeck(response)).toThrow(/no cards we can import/i);
+    expect(() => extractMoxfieldDeck(response)).toThrow(failsWith('deck_empty'));
   });
 
   /**

@@ -12,3 +12,5 @@ export {
 } from './mtggoldfish';
 export { extractEdhrecDeckPreview, extractEdhrecAverageDeck } from './edhrec';
 export { fetchImportedDeck } from './fetchImportedDeck';
+export { DeckImportError, deckImportError, deckImportProblem, problemOf } from './importErrors';
+export type { DeckImportProblem, DeckImportReason } from './importErrors';

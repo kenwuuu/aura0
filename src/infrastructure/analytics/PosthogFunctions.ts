@@ -457,10 +457,14 @@ export function trackFallbackOutcome(props: {
   failedCount: number;
   totalCount: number;
   auraFailures: LookupFailure[];
+  /** Why the *fallback* then failed — see `fallback_failed_*` below. */
+  fallbackFailures: LookupFailure[];
   deadItems: DeckLineItem[];
 }): void {
   const byReason = (reason: LookupFailureReason) =>
     props.auraFailures.filter((f) => f.reason === reason);
+  const fallbackByReason = (reason: LookupFailureReason) =>
+    props.fallbackFailures.filter((f) => f.reason === reason).length;
 
   const notFound = byReason('not_found');
   const infraFailed = props.auraFailures.filter((f) => f.reason !== 'not_found');
@@ -487,6 +491,20 @@ export function trackFallbackOutcome(props: {
     aura_failed_timeout: byReason('timeout').length,
     aura_failed_unknown: byReason('unknown').length,
     aura_dominant_failure_reason: mostCommonReason(props.auraFailures),
+
+    // --- Why the fallback failed. Same argument as the Aura split above, for
+    // the backend that is supposed to be the safety net. Without this, a
+    // fallback throttled into uselessness and a fallback that genuinely lacks
+    // the card are one number — which is how a client-side rate-limit bug spent
+    // weeks reading as "Scryfall doesn't have these cards either".
+    fallback_failed_not_found: fallbackByReason('not_found'),
+    fallback_failed_rate_limited: fallbackByReason('rate_limited'),
+    fallback_failed_blocked: fallbackByReason('blocked'),
+    fallback_failed_server_error: fallbackByReason('server_error'),
+    fallback_failed_network_or_blocked: fallbackByReason('network_or_blocked'),
+    fallback_failed_timeout: fallbackByReason('timeout'),
+    fallback_failed_unknown: fallbackByReason('unknown'),
+    fallback_dominant_failure_reason: mostCommonReason(props.fallbackFailures),
 
     // The honest split of the old `aura_miss_rate`. Index misses are a data
     // problem (reindex); infra failures are an availability problem (page someone).
@@ -612,6 +630,19 @@ export function trackDeckUrlImport(props: {
    * players complaining.
    */
   wasRateLimited?: boolean;
+  /**
+   * Why a failed import failed, at the granularity a player could act on
+   * (`DeckImportReason`). Absent on success.
+   *
+   * Without it the outcome is binary, and a binary outcome conflates two things
+   * that call for opposite responses: a private or deleted deck — inherent, the
+   * player's to fix, and never going away — with an adapter or infrastructure
+   * failure, which is ours and worth alerting on. Archidekt's headline 18%
+   * failure rate turned out to be almost entirely the first kind (#174), and
+   * there was no way to see that from the metric itself. Break the failure rate
+   * down by this before drawing any conclusion from it.
+   */
+  failureReason?: string;
 }): void {
   const { sourceCardCount, extractedCardCount } = props;
 
@@ -625,6 +656,8 @@ export function trackDeckUrlImport(props: {
     outcome: props.outcome,
     duration_ms: props.durationMs,
     was_rate_limited: props.wasRateLimited === true,
+
+    ...(props.failureReason === undefined ? {} : { failure_reason: props.failureReason }),
 
     ...(typeof sourceCardCount === 'number' ? { source_card_count: sourceCardCount } : {}),
     ...(typeof extractedCardCount === 'number' ? { extracted_card_count: extractedCardCount } : {}),

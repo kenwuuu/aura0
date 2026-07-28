@@ -35,13 +35,50 @@ export type LookupFailure = {
 export class CardApiError extends Error {
   readonly reason: LookupFailureReason;
   readonly status?: number;
+  /** Parsed `Retry-After`, when the backend said how long to stay away. */
+  readonly retryAfterMs?: number;
 
-  constructor(message: string, reason: LookupFailureReason, status?: number) {
+  constructor(
+    message: string,
+    reason: LookupFailureReason,
+    status?: number,
+    retryAfterMs?: number,
+  ) {
     super(message);
     this.name = 'CardApiError';
     this.reason = reason;
     this.status = status;
+    this.retryAfterMs = retryAfterMs;
   }
+}
+
+/** How many times one request waits out a 429 before surfacing it, by default. */
+const DEFAULT_THROTTLE_RETRIES = 4;
+/** First wait after a 429, doubling each time, by default. */
+const DEFAULT_THROTTLE_BACKOFF_MS = 500;
+/**
+ * Ceiling on a single wait. A backend that wants us gone for longer than this is
+ * having an outage, and an import that stalls that long has already failed the
+ * player — better to report the cards than to hang.
+ */
+const MAX_THROTTLE_BACKOFF_MS = 8000;
+
+const delay = (ms: number): Promise<void> =>
+  new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
+
+/**
+ * `Retry-After` is either a delay in seconds or an HTTP date. Absent, malformed,
+ * and implausible values all fall through to our own backoff, so a bad header
+ * can't stall an import.
+ */
+function parseRetryAfter(header: string | null): number | undefined {
+  if (header === null) return undefined;
+  const seconds = Number(header);
+  const ms = Number.isFinite(seconds) ? seconds * 1000 : Date.parse(header) - Date.now();
+  if (!Number.isFinite(ms) || ms <= 0) return undefined;
+  return Math.min(ms, MAX_THROTTLE_BACKOFF_MS);
 }
 
 function reasonForStatus(status: number): LookupFailureReason {
@@ -111,6 +148,10 @@ export type CardApiClientConfig = {
     interval: number;
     intervalCap: number;
     timeout?: number;
+    /** How many times a request waits out a 429 before giving up. */
+    throttleRetries?: number;
+    /** First wait after a 429; doubles on each subsequent one. */
+    throttleBackoffMs?: number;
   };
   endpoints: CardApiEndpoints;
 };
@@ -154,6 +195,10 @@ export type FetchListResult = {
 export class CardApiClient {
   private readonly queue: PQueue;
   private readonly config: CardApiClientConfig;
+  /** Non-null while the client is sitting out a 429. Shared by every waiter. */
+  private throttleGate: Promise<void> | null = null;
+  /** When the current pause lifts. A later 429 can push it further out. */
+  private throttledUntil = 0;
 
   constructor(config: CardApiClientConfig) {
     this.config = config;
@@ -165,27 +210,19 @@ export class CardApiClient {
   }
 
   fetchById(scryfallId: string, retries = 3): Promise<ScryfallCard> {
-    const url = this.config.endpoints.byId(scryfallId);
-    return this.fetchWithRetry(url, retries, `ID "${scryfallId}"`);
+    return this.lookup(
+      () => this.config.endpoints.byId(scryfallId),
+      retries,
+      `ID "${scryfallId}"`,
+    );
   }
 
   fetchByName(name: string, retries = 3): Promise<ScryfallCard> {
-    return this.queue.add(() =>
-      pRetry(
-        async (attemptNumber) => {
-          const url = this.config.endpoints.byName(name, attemptNumber);
-          return this.requestJson(url, `Card "${name}"`);
-        },
-        {
-          retries,
-          onFailedAttempt: (error) => {
-            console.error(
-              `[${this.config.name}] byName attempt ${error.attemptNumber} failed for "${name}". ${error.retriesLeft} retries left.`,
-            );
-          },
-        },
-      ),
-    ) as Promise<ScryfallCard>;
+    return this.lookup(
+      (attemptNumber) => this.config.endpoints.byName(name, attemptNumber),
+      retries,
+      `Card "${name}"`,
+    );
   }
 
   fetchBySet(
@@ -194,9 +231,8 @@ export class CardApiClient {
     retries = 3,
     nameForLogging?: string,
   ): Promise<ScryfallCard> {
-    const url = this.config.endpoints.bySet(setCode, collectorNumber);
-    return this.fetchWithRetry(
-      url,
+    return this.lookup(
+      () => this.config.endpoints.bySet(setCode, collectorNumber),
       retries,
       `Card "${nameForLogging ?? `${setCode}/${collectorNumber}`}"`,
     );
@@ -347,21 +383,91 @@ export class CardApiClient {
     }
   }
 
-  private fetchWithRetry(
-    url: string,
+  /**
+   * Runs a lookup, retrying it *through* the queue rather than around it.
+   *
+   * `attemptNumber` is which question to ask — Scryfall wants an exact name
+   * first and a fuzzy one after — so it may only advance once the backend has
+   * actually answered. Being throttled is not an answer, which is why 429s are
+   * absorbed by {@link request} below and never reach this counter.
+   */
+  private lookup(
+    urlForAttempt: (attemptNumber: number) => string,
     retries: number,
     label: string,
   ): Promise<ScryfallCard> {
-    return this.queue.add(() =>
-      pRetry(() => this.requestJson(url, label), {
-        retries,
-        onFailedAttempt: (error) => {
-          console.warn(
-            `[${this.config.name}] attempt ${error.attemptNumber} failed for ${label}. ${error.retriesLeft} retries left.`,
-          );
-        },
-      }),
-    ) as Promise<ScryfallCard>;
+    return pRetry((attemptNumber) => this.request(urlForAttempt(attemptNumber), label), {
+      retries,
+      onFailedAttempt: (error) => {
+        console.warn(
+          `[${this.config.name}] attempt ${error.attemptNumber} failed for ${label}. ${error.retriesLeft} retries left.`,
+        );
+      },
+    });
+  }
+
+  /**
+   * One logical request: queued, and transparently waiting out any throttling.
+   *
+   * Every attempt goes through `queue`, retries included. The version this
+   * replaces queued the whole retry chain as a single task, so one slot could
+   * fire several requests and the real rate ran at a multiple of the configured
+   * cap. That earned 429s on exactly the imports that needed the backend most —
+   * and since a 429 then consumed the exact→fuzzy retry budget, names the
+   * backend would have resolved came back as "not found" and the cards were
+   * silently dropped.
+   */
+  private async request(url: string, label: string): Promise<ScryfallCard> {
+    const limit = this.config.rateLimit.throttleRetries ?? DEFAULT_THROTTLE_RETRIES;
+
+    for (let waited = 0; ; waited++) {
+      try {
+        return (await this.queue.add(() => this.requestJson(url, label))) as ScryfallCard;
+      } catch (err) {
+        if (waited >= limit || classifyError(err) !== 'rate_limited') throw err;
+        await this.waitOutThrottle(err, waited);
+      }
+    }
+  }
+
+  /**
+   * Pauses the whole queue until the backend is ready for us again.
+   *
+   * A 429 is a statement about this client, not about one card: everything
+   * queued behind the throttled request is over the same budget, so letting it
+   * through while this one sleeps just earns more 429s. Overlapping 429s share
+   * one pause and push its deadline out rather than cutting each other short.
+   */
+  private waitOutThrottle(err: unknown, waited: number): Promise<void> {
+    const base = this.config.rateLimit.throttleBackoffMs ?? DEFAULT_THROTTLE_BACKOFF_MS;
+    const backoff =
+      err instanceof CardApiError && err.retryAfterMs !== undefined
+        ? err.retryAfterMs
+        : Math.min(base * 2 ** waited, MAX_THROTTLE_BACKOFF_MS);
+
+    this.throttledUntil = Math.max(this.throttledUntil, Date.now() + backoff);
+    this.queue.pause();
+
+    // `.finally` runs on a later microtask, so the field is always assigned
+    // before anything can clear it.
+    this.throttleGate ??= this.sleepUntilThrottleLifts().finally(() => {
+      this.throttleGate = null;
+      this.throttledUntil = 0;
+      this.queue.start();
+    });
+
+    return this.throttleGate;
+  }
+
+  /** Re-reads the deadline on each pass, so a later 429 extends the wait. */
+  private async sleepUntilThrottleLifts(): Promise<void> {
+    for (
+      let remaining = this.throttledUntil - Date.now();
+      remaining > 0;
+      remaining = this.throttledUntil - Date.now()
+    ) {
+      await delay(remaining);
+    }
   }
 
   private async requestJson(url: string, label: string): Promise<ScryfallCard> {
@@ -385,6 +491,9 @@ export class CardApiClient {
           : `[${this.config.name}] ${response.status} ${response.statusText} for ${url}`,
         reason,
         response.status,
+        reason === 'rate_limited'
+          ? parseRetryAfter(response.headers.get('Retry-After'))
+          : undefined,
       );
     }
     return (await response.json()) as ScryfallCard;

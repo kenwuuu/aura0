@@ -3,6 +3,17 @@ import { ArchidektDeckResponse, extractArchidektDeck } from './archidekt';
 import { toDecklistText } from './importedDeck';
 import { parseDecklistWithStats } from '@/features/deck-manager/DeckListParser';
 import realDeck from './__fixtures__/archidektDeck.json';
+import { DeckImportReason } from './importErrors';
+
+/**
+ * The contract these throws carry is the *reason*, not the wording — the dialog
+ * keys its suggested fixes off it and the import metric breaks its failure rate
+ * down by it (#174). Copy is free to change; a reason changing is a behaviour
+ * change and should fail here.
+ */
+function failsWith(reason: DeckImportReason) {
+  return expect.objectContaining({ problem: expect.objectContaining({ reason }) });
+}
 
 /** Build a response with one category list and the given cards. */
 function deckResponse(
@@ -118,7 +129,7 @@ describe('extractArchidektDeck', () => {
     ['only unusable entries', { name: 'Custom', cards: [{ quantity: 1, card: null }] }],
   ])('throws on %s', (_label, response) => {
     expect(() => extractArchidektDeck(response as ArchidektDeckResponse)).toThrow(
-      /no cards we can import/i,
+      failsWith('deck_empty'),
     );
   });
 

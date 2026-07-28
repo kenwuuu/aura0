@@ -1,4 +1,5 @@
 import { isSideboardCard, parseDecklistWithStats } from '@/features/deck-manager/DeckListParser';
+import { deckImportError } from './importErrors';
 import { ImportedCard, ImportedDeck } from './importedDeck';
 
 /**
@@ -23,9 +24,9 @@ function looksLikeHtml(body: string): boolean {
 
 export function extractTappedOutDeck(slug: string, body: string): ImportedDeck {
   if (looksLikeHtml(body)) {
-    throw new Error(
-      "That TappedOut deck couldn't be read. Check the link, and that the deck is public.",
-    );
+    // A page where a text export should be: TappedOut answers a missing or
+    // private deck with its own HTML rather than a status we could read.
+    throw deckImportError('deck_not_found', { source: 'tappedout' });
   }
 
   const parsed = parseDecklistWithStats(body);
@@ -46,7 +47,7 @@ export function extractTappedOutDeck(slug: string, body: string): ImportedDeck {
   }
 
   if (cards.length === 0) {
-    throw new Error('That TappedOut deck has no cards we can import. It may be empty or private.');
+    throw deckImportError('deck_empty', { source: 'tappedout' });
   }
 
   return { name: deckNameFromSlug(slug), source: 'tappedout', cards };
