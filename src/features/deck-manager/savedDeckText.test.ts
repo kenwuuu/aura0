@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { decklistTextForEditing } from './savedDeckText';
 import { parseDecklist } from './DeckListParser';
+import { DEFAULT_DECK } from './defaultDeck';
 import type { Card, SavedDeck } from '@/features/player/types';
 
 /** A saved card. Only the fields a decklist can carry actually matter here. */
@@ -100,5 +101,16 @@ describe('decklistTextForEditing', () => {
       }),
       expect.objectContaining({ count: 20, name: 'Forest', section: 'main' }),
     ]);
+  });
+
+  // The deck every new player is seeded with, and so the one most likely to be
+  // the first anyone edits. It predates saved decklists, which makes it the real
+  // test of the rebuild — 100 cards of genuine imported data, not a fixture.
+  it('rebuilds the starter deck back to the size it was saved at', () => {
+    const items = parseDecklist(decklistTextForEditing(DEFAULT_DECK));
+
+    const total = items.reduce((sum, item) => sum + item.count, 0);
+    expect(total).toBe(DEFAULT_DECK.metadata.cardCount);
+    expect(items.every((item) => item.name.length > 0)).toBe(true);
   });
 });
