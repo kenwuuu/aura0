@@ -51,6 +51,13 @@ describe('DeckImportModal — editing a saved deck', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    // Fake timers for every test, not only the ones that advance them.
+    // `commitImport` schedules a 1s handoff after each save, and on real timers
+    // that callback outlives the test that started it and fires partway through
+    // a later one — which shows up as a mock this test never touched having
+    // been called, and only ever under load. Fake timers are discarded wholesale
+    // in afterEach, so nothing escapes the test that scheduled it.
+    vi.useFakeTimers({ shouldAdvanceTime: true });
     saveDeckMock.mockResolvedValue(undefined);
     importFromTextMock.mockImplementation(
       () => new Promise<DeckImportResult>((resolve) => { resolveImport = resolve; }),
@@ -170,7 +177,6 @@ describe('DeckImportModal — editing a saved deck', () => {
   });
 
   it('hands the deck back as an update, never as a deck to load into the game', async () => {
-    vi.useFakeTimers({ shouldAdvanceTime: true });
     const user = userEvent.setup();
     renderEditing();
 
