@@ -6,6 +6,7 @@ import { WhiteboardCard } from './types';
 import type { BattlefieldAwareness } from './awareness';
 import { easePoint } from './peerMotion';
 import { KeywordToken } from '@/features/keyword-tokens/types';
+import { NODE_SIZES } from './nodeAttachment';
 
 export interface DragNodeState {
   id: string;
@@ -22,6 +23,37 @@ function sameDragNodes(a: Map<string, DragNodeState>, b: Map<string, DragNodeSta
   }
   return true;
 }
+
+/**
+ * A first-paint size for every board node, so React Flow's `nodeHasDimensions()`
+ * is true the moment a node object is created.
+ *
+ * Without it, one Yjs write hides the entire board. `buildNodes` regenerates
+ * every node object from scratch on every observer fire, and React Flow's
+ * `adoptUserNodes` only carries a node's measured size forward when the object
+ * is *reference-identical* to the previous one (`checkEquality: true`) —
+ * otherwise it re-reads `measured` from the node we just handed it, which has
+ * none. `nodeHasDimensions()` goes false and every card and token renders
+ * `visibility: hidden` until a ResizeObserver round-trip puts it back. Measured
+ * on a 7-card/30-token board: one write hid 36 of 36 card and token nodes.
+ *
+ * The usual React Flow contract keeps `measured` alive because `applyNodeChanges`
+ * writes it back into the node on each `dimensions` change; rebuilding from a
+ * CRDT bypasses that entirely. `usePlaymatNodes` hit the same wall and fixed it
+ * the same way — that's why playmats, health widgets and pile tiles never
+ * flickered while the cards on top of them did.
+ *
+ * `initialWidth`/`initialHeight` rather than `width`/`height` for the reason
+ * spelled out on the health widget: a hard size pins the React Flow wrapper to a
+ * fixed box regardless of what the node actually renders, leaving a transparent
+ * `pointer-events: all` strip that swallows drags aimed at the board underneath.
+ * `nodeHasDimensions()` accepts `measured ?? width ?? initialWidth`, so a hint is
+ * all it takes — React Flow still measures the truth on the next frame.
+ */
+const NODE_DIMENSION_HINT = {
+  card: { initialWidth: NODE_SIZES.card.width, initialHeight: NODE_SIZES.card.height },
+  token: { initialWidth: NODE_SIZES.token.width, initialHeight: NODE_SIZES.token.height },
+} as const;
 
 function buildNodes(
   yCards: Y.Map<WhiteboardCard>,
@@ -45,6 +77,7 @@ function buildNodes(
       zIndex: card.zIndex,
       draggable: true,
       selectable: true,
+      ...NODE_DIMENSION_HINT.card,
     });
   });
 
@@ -57,6 +90,7 @@ function buildNodes(
       zIndex: token.zIndex,
       draggable: true,
       selectable: true,
+      ...NODE_DIMENSION_HINT.token,
     });
   });
 
