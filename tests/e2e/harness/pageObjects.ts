@@ -210,6 +210,19 @@ export function floatingPanel(page: Page, key: 'game-actions-toolbar' | 'action-
   return page.locator(`[data-floating-panel="${key}"]`);
 }
 
+/**
+ * A row in the right-click/tap game context menu, addressed by its **action id**
+ * (`draw`, `drawX`, `viewPile`, …) rather than its visible label.
+ *
+ * Labels are not unique and cannot be made unique by regex: the deck menu shows
+ * both "Draw" and "Draw X", and a row's accessible name also carries its key
+ * badge — so the plain Draw row reads "Draw C", which is the same
+ * label-space-character shape as "Draw X". Match on identity instead.
+ */
+export function contextMenuRow(page: Page, action: string): Locator {
+  return page.locator(`[role="menuitem"][data-action="${action}"]`);
+}
+
 /** The game-actions button row (hosted by the desktop FloatingPanel or the phone HUD stack). */
 export function gameActionsContent(page: Page): Locator {
   return page.getByTestId(TESTID.gameActionsToolbar);
