@@ -65,6 +65,22 @@ export interface SavedDeck {
    * don't carry it — treat absent as empty, never as "not yet loaded".
    */
   sideboard?: Card[];
+  /**
+   * The list this deck was imported from, kept verbatim so editing can reopen
+   * exactly what the player last saved.
+   *
+   * `cards` cannot stand in for it. A `Card` records the printing it resolved
+   * to but not the printing the list *asked* for — there is no set code or
+   * collector number on it — so a decklist rebuilt from cards is names and
+   * quantities only. Re-importing that would quietly repick every card's
+   * printing, and re-run a lookup that can fail: the round trip through the
+   * edit dialog would be free to lose cards a working deck already had.
+   *
+   * Optional because decks saved before editing existed don't carry it. Absent
+   * means "rebuild from cards" — see `decklistTextForEditing`, which is the one
+   * place that decides — never "this deck has no list".
+   */
+  decklistText?: string;
 }
 
 export interface CustomCounter {
