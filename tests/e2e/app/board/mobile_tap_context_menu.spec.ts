@@ -4,6 +4,7 @@ import {
   boardTokens,
   cardPreview,
   connectSecondPlayer,
+  contextMenuRow,
   dragCountedTokenToBoard,
   parkMouseAwayFromBoard,
   revealPile,
@@ -136,12 +137,13 @@ test('tapping a pile opens its menu, and "View" opens the viewer', async ({ page
   await pileTile(page, 'deck').tap({ position: { x: 31, y: 18 } });
 
   // A tap opens the menu rather than opening the viewer directly.
-  await expect(page.getByRole('menuitem', { name: /^View\b/ })).toBeVisible();
-  await expect(page.getByRole('menuitem', { name: /^Draw\b/ })).toBeVisible();
+  await expect(contextMenuRow(page, 'viewPile')).toBeVisible();
+  // By action id: the deck menu carries both "Draw" and "Draw X".
+  await expect(contextMenuRow(page, 'draw')).toBeVisible();
   await expect(pileViewer(page, 'deck')).toBeHidden();
 
   // The new "View" row still gets the viewer, one extra tap away.
-  await page.getByRole('menuitem', { name: /^View\b/ }).tap();
+  await contextMenuRow(page, 'viewPile').tap();
   await expect(pileViewer(page, 'deck')).toBeVisible();
   await waitForPileViewerReady(page);
 });
