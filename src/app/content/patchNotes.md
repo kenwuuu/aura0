@@ -1,125 +1,46 @@
-## 2025 December 6
-
-### Changes
-- Remove restrictions on manipulating opponent cards. We want to provide just a 
-smooth, fast tabletop, not a rules engine.
-- Remove transparent cards from when boards used to be overlaid 
-
----
-
-## 2025 December 4
+## 2026 July 15–16
 
 ### Features
-- Increase max zoom for hand. Cards now overlap at higher zoom levels 
-- Add card preview to card pile windows
-- Add hand count to dock, will make it clickable in the future
+- Redesigned every pile viewer (deck, hand, discard, exile, scry) for desktop and mobile: tap to select multiple cards, then move them all at once with a new destination bar (Hand / Grave / Exile / Deck top / Deck bottom).
+- Added a "Create token" grid to the board menu for quickly making common tokens and counters, including a tap-to-add sheet on mobile.
+- Context menus now follow your cursor — right-click a second time and the menu re-opens at the new position instead of staying pinned where you first opened it.
 
 ### Changes
-- Began testing network fix for large groups
-- Improve help/patch notes text formatting
+- "View" moved to the top of the deck/pile context menu, since it's the action you use most.
+- Renamed "Token" to "Counter" in the token grid, and decrementing a counter to 0 no longer deletes it.
+- Sideboard cards now import alongside your main deck and get their own pile on the board — the pile stays hidden if you didn't import a sideboard.
+- Onboarding now teaches by walking new players through real actions instead of just describing them.
 
 ### Bug Fixes
-- Cards in hand now align to the top of the card when zoomed all the way in.
-- Tooltips no longer show up after dragging a card.
-- Card language now defaults English when importing by set code & collector number. Fixes French issue 🇫🇷🥖
-- Hide tooltip after using a hotkey in a card pile window
+- Fixed the pile viewer rendering off-screen on mobile in the production build.
+- Fixed dragging a token out of the board's context-menu token grid.
+- Fixed players behind an ad blocker getting stranded alone on a different connection type than the rest of the table.
 
 ---
 
-## 2025 December 2
+## 2026 July 11–14
 
-### Beta Test
-Some players have been having issues with larger groups. If this happens to you,
-try making a game with this link instead: https://y-websocket-test.aura-dqp.pages.dev/
-
----
-
-## 2025 November 30
+### Features
+- Deck import now accepts quantity-less lists and `//` / `#` section markers, and tolerates section headers like "Sideboard:" without breaking.
+- Only a legendary card can be set as your commander, and fixed a bug where your whole deck could end up in the command zone instead of your library.
 
 ### Changes
-- Added a lot of automated quality checks and tests that run before 
-deploying a new patch.
-- Centralize hotkey logic to clear a path towards adding custom hotkeys.
+- Live cursor movement and dragging cards feel noticeably smoother.
+- The action log now announces when a player joins the room.
+- Removed the repeat-usage nag modal.
 
 ### Bug Fixes
-- Fix interactive tooltip when viewing card piles.
-- Fix "Copy Game Link" using old URL. Now copies link directly from browser instead of generating it.
-- Fix card duplication when closing Scry with cards still in the window.
+- Fixed a duplicate-tab bug that could clobber your hand.
+- Fixed the action log dragging with noticeable lag.
 
 ---
 
-## 2025 November 24
+## 2026 July 9–10
 
 ### Features
-- You can now move cards to top and bottom of deck using hotkeys while viewing your deck.
+- New mobile-responsive shell: safe-area aware layout, a phone-sized HUD, and a dedicated mobile hand view.
+- Right-click (or tap, on touch devices) context menus on every game item — cards, tokens, piles, and the empty board.
 
-### Changes
-- Bought a domain, aura0.app
-- Changed how hotkeys work
-
----
-
-## 2025 November 23
-
-### Features
-- Card text is now searchable when searching a card pile.
-- Hand cards now align to top of card when zooming in.
-- Enemy cards now show copy/clone tooltip.
-
-### Changes
-- Moved blue label on hand cards down to show mana cost when zoomed in.
-- Consolidate popup/modal window styling.
-- Fix windows that were clipping under the dock.
-- Simplify deck logic.
-- Improve automated testing.
-
----
-
-## 2025 November 22
-
-### Features
-- Cards can be rearranged when scrying. Remaining cards will be put in order
-onto top of deck when window is closed. First card will be on top.
-
----
-
-## 2025 November 21
-
-### Features
-- Typing to search deck now automatically reveals all
-
-### Changes
-- Made deck import a little more resilient when entering bad set codes
-- Changed how decks are handled in the code. Moving cards should be faster
-
----
-
-## 2025 November 20
-
-### Features
-- Add "Copy Game Link" button
-
-### Changes
-- Change how deck viewers work. Opening deck and revealing cards are now much faster.
-
----
-
-## 2025 November 19
-
-### Features
-- Add ability to import cards by set, example: `1 Rhystic Study (WOT) 71`
-- Add keyword tokens and mana tokens
-
-### Bug fixes
-- Fix tooltip disappearing after hovering a card on board
-
----
-
-## 2025 November 18
-
-### Features
-- Add keyword tokens
-
-### Changes
-- Move add card and scry actions into a dock menu
-
+### Bug Fixes
+- Fixed a dropdown that wouldn't reopen after selecting an item.
+- Fixed the mobile board-card context menu so it opens on the first tap.
