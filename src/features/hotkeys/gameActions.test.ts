@@ -21,6 +21,10 @@ import { useSettingsStore } from '@/app/stores/settingsStore';
 import { useCardPreviewStore } from '@/features/card-preview/cardPreviewStore';
 import { usePileViewerHotkeyStore } from '@/features/game-dock/pileViewerHotkeyStore';
 import { usePileViewerOpenStore } from '@/features/game-dock/pileViewerOpenStore';
+import { useScryStore } from '@/features/game-dock/scryStore';
+import { useSurveilStore } from '@/features/game-dock/surveilStore';
+import { useNumberPromptStore } from '@/features/game-actions/numberPromptStore';
+import { useTokenCardSearchStore } from '@/features/game-actions/tokenCardSearchStore';
 import { HotkeyContext } from './hotkeys';
 import { getActionLog } from '@/features/action-log/actionLog';
 import { seedGame } from '@/test/seedGame';
@@ -601,6 +605,160 @@ describe('dispatchGameAction', () => {
       const tokens = Array.from(yTokens.values());
       expect(tokens).toHaveLength(1);
       expect(tokens[0].title).toBe('-1/-1');
+    });
+  });
+
+  /**
+   * The Game Actions toolbar is the catalog's third surface. It has no hover, so
+   * it dispatches against a stand-in target declared per catalog entry: a
+   * screen-centre `board` point for the globals, or the deck pile for the rows
+   * that act blind on the top of the library.
+   *
+   * These cases came over from the deleted `game-actions/gameActions.test.ts`
+   * when the toolbar's parallel registry was folded into `HOTKEYS` — same
+   * behavior, now asserted against the one executor all three surfaces share.
+   */
+  describe('board target — toolbar actions', () => {
+    const board = { kind: 'board', x: 0, y: 0 } as const;
+
+    /** `seed()` plus deck/hand contents, which these actions need. */
+    function seedWith(overrides: { deck?: any[]; hand?: any[] } = {}) {
+      const { yDoc, player, playerId } = seedGame({ playerId: 'p1', ...overrides });
+      useGameInstance.getState().setYDoc(yDoc);
+      useGameInstance.getState().setPlayer(player);
+      useGameInstance.getState().setPlayerId(playerId);
+      useGameInstance.getState().setScreenToFlowPosition((p) => p);
+      return { yDoc, player, playerId };
+    }
+
+    it('pass logs a pass_turn entry without touching player state', () => {
+      const { yDoc, player } = seedWith();
+      const healthBefore = player.getState().health;
+
+      dispatchGameAction('pass', board);
+
+      const entry = getActionLog(yDoc).toArray().find((e) => e.type === 'pass_turn');
+      expect(entry?.text).toBe('passed their turn');
+      expect(player.getState().health).toBe(healthBefore);
+    });
+
+    it('drawX prompts for a count scoped to the deck, and draws it on confirm', () => {
+      const { player } = seedWith({ deck: [{ id: 'c1' }, { id: 'c2' }, { id: 'c3' }] });
+
+      dispatchGameAction('drawX', board);
+
+      const request = useNumberPromptStore.getState().request;
+      expect(request?.max).toBe(3);
+      request!.onConfirm(2);
+      expect(player.getState().hand).toHaveLength(2);
+    });
+
+    it('mill prompts for a count scoped to the deck, and mills it on confirm', () => {
+      const { player } = seedWith({ deck: [{ id: 'c1' }, { id: 'c2' }] });
+
+      dispatchGameAction('mill', board);
+
+      const request = useNumberPromptStore.getState().request;
+      expect(request?.max).toBe(2);
+      request!.onConfirm(2);
+      expect(player.getState().discardPile).toHaveLength(2);
+    });
+
+    it('scry and surveil request their respective viewers', () => {
+      seedWith();
+
+      dispatchGameAction('scry', board);
+      expect(useScryStore.getState().requested).toBe(true);
+
+      dispatchGameAction('surveil', board);
+      expect(useSurveilStore.getState().requested).toBe(true);
+    });
+
+    it('randomDiscard moves a random hand card to the discard', () => {
+      const { player } = seedWith({ hand: [{ id: 'c1' }] });
+
+      dispatchGameAction('randomDiscard', board);
+
+      expect(player.getState().hand).toHaveLength(0);
+      expect(player.getState().discardPile).toHaveLength(1);
+    });
+
+    it('revealHand toggles hand visibility, logging both directions', () => {
+      const { yDoc, player } = seedWith();
+
+      dispatchGameAction('revealHand', board);
+      expect(player.getAllowViewHand()).toBe(true);
+
+      dispatchGameAction('revealHand', board);
+      expect(player.getAllowViewHand()).toBe(false);
+
+      const reveals = getActionLog(yDoc).toArray().filter((e) => e.type === 'reveal');
+      expect(reveals.some((e) => e.text.includes('revealed'))).toBe(true);
+      expect(reveals.some((e) => e.text.includes('stopped revealing'))).toBe(true);
+    });
+
+    it('resetDeck confirms first, then restarts with a fresh opening hand', async () => {
+      const { player } = seedWith({
+        hand: [{ id: 'c1' }],
+        deck: Array.from({ length: 12 }, (_, i) => ({ id: `d${i}` })),
+      });
+
+      dispatchGameAction('resetDeck', board);
+
+      const request = useConfirmStore.getState().request;
+      expect(request?.title).toBe('Reset Deck?');
+
+      // reset() deals the hand one card at a time, so onConfirm kicks off async
+      // work the store's void-returning signature can't hand back — wait on the
+      // observable end state instead.
+      request!.onConfirm();
+      await vi.waitFor(() => expect(player.getState().hand).toHaveLength(7));
+
+      // All 13 cards still accounted for: the old hand card went back in and
+      // seven came off the top of the reshuffled deck.
+      expect(player.getDeck().getCardCount()).toBe(6);
+    });
+
+    it('createTokenCard opens the token card search', () => {
+      seedWith();
+
+      dispatchGameAction('createTokenCard', board);
+
+      expect(useTokenCardSearchStore.getState().isOpen).toBe(true);
+    });
+
+    it('createToken and createLabel are safe no-ops', () => {
+      seedWith();
+
+      expect(() => dispatchGameAction('createToken', board)).not.toThrow();
+      expect(() => dispatchGameAction('createLabel', board)).not.toThrow();
+    });
+
+    /**
+     * The two rows the toolbar aims at the deck. Before unification each was a
+     * second implementation under a different name — "Exile Top" duplicated
+     * `moveToExile`, and "Look at Top" duplicated `viewPile` while claiming to
+     * show only the top card. Both now resolve to the deck node's own row.
+     */
+    describe('deck target', () => {
+      const deck = { kind: 'pile', pileType: 'deck' } as const;
+
+      it('moveToExile ("Exile Top") exiles the top card of the deck', () => {
+        const { player } = seedWith({ deck: [{ id: 'c1' }] });
+
+        dispatchGameAction('moveToExile', deck);
+
+        expect(player.getState().exilePile).toHaveLength(1);
+        expect(player.getDeck().getCardCount()).toBe(0);
+      });
+
+      it('viewPile ("View Deck") opens the local deck viewer', () => {
+        seedWith();
+
+        dispatchGameAction('viewPile', deck);
+
+        expect(usePileViewerOpenStore.getState().request).toEqual({ scope: 'local', pile: 'deck' });
+      });
     });
   });
 

@@ -25,6 +25,10 @@ import { playCardFromPile } from '@/features/battlefield/battlefieldActions';
 import { applyTokenDelta } from '@/features/battlefield/nodes/tokenNodeLogic';
 import { usePileViewerHotkeyStore } from '@/features/game-dock/pileViewerHotkeyStore';
 import { usePileViewerOpenStore } from '@/features/game-dock/pileViewerOpenStore';
+import { useScryStore } from '@/features/game-dock/scryStore';
+import { useSurveilStore } from '@/features/game-dock/surveilStore';
+import { useNumberPromptStore } from '@/features/game-actions/numberPromptStore';
+import { useTokenCardSearchStore } from '@/features/game-actions/tokenCardSearchStore';
 import { DeckPersistenceService } from '@/infrastructure/persistence';
 import { triggerConfirmation } from '@/shared/utils/confirmation';
 import { logAction, cardLogName } from '@/features/action-log/actionLog';
@@ -48,6 +52,10 @@ const GLOBAL_ACTIONS = new Set([
   'draw', 'shuffle', 'mulligan', 'addCard',
   'gainHealth', 'loseHealth', 'untapAll',
   'addCounter', 'removeCounter',
+  // Deck-library actions. They read/spend the top of the library themselves, so
+  // on the deck node they must reach the board executor rather than
+  // executePileAction, which would try to resolve them as a top-card move.
+  'drawX', 'scry', 'surveil', 'mill',
 ]);
 
 /** dest pile + insert position for the shared moveTo* action family. `position`
@@ -204,6 +212,98 @@ function executeBoardAction(action: string, cursor: { x: number; y: number }): v
       spawnTokenAtPosition(template, screenToFlowPosition(cursor), yCards, yTokens, playerId);
       break;
     }
+
+    // ── Deck-library actions ────────────────────────────────────────────────
+    // Reached from the Game Actions toolbar and, since the registries were
+    // unified, from the deck node's context menu too (they carry the 'deck'
+    // context and are listed in GLOBAL_ACTIONS so the pile branch routes here
+    // rather than into executePileAction's top-card move).
+    case 'drawX':
+      if (player) {
+        useNumberPromptStore.getState().open({
+          title: 'Draw Cards',
+          label: 'How many cards?',
+          min: 1,
+          max: player.getDeck().getCardCount(),
+          defaultValue: 1,
+          confirmLabel: 'Draw',
+          onConfirm: (n) => player.drawCards(n),
+        });
+      }
+      break;
+    case 'scry':
+      useScryStore.getState().request();
+      break;
+    case 'surveil':
+      useSurveilStore.getState().request();
+      break;
+    case 'mill':
+      if (player) {
+        useNumberPromptStore.getState().open({
+          title: 'Mill',
+          label: 'How many cards?',
+          min: 1,
+          max: player.getDeck().getCardCount(),
+          defaultValue: 1,
+          confirmLabel: 'Mill',
+          onConfirm: (n) => player.mill(n),
+        });
+      }
+      break;
+
+    // ── Hand and whole-game actions (toolbar-only) ──────────────────────────
+    case 'pass':
+      if (yDoc && playerId) {
+        logAction(yDoc, {
+          actorId: playerId,
+          type: 'pass_turn',
+          text: 'passed their turn',
+          // Soft amber: stands out but is not glaring.
+          tone: 'rgba(250,200,80,0.95)',
+        });
+      }
+      break;
+    case 'randomDiscard':
+      player?.randomDiscard();
+      break;
+    case 'revealHand':
+      if (player && yDoc && playerId) {
+        const isRevealing = !player.getAllowViewHand();
+        player.setAllowViewHand(isRevealing);
+        logAction(yDoc, {
+          actorId: playerId,
+          type: 'reveal',
+          text: isRevealing ? 'revealed their hand' : 'stopped revealing their hand',
+        });
+      }
+      break;
+    case 'resetDeck':
+      if (player) {
+        useConfirmStore.getState().open({
+          title: 'Reset Deck?',
+          description:
+            'Moves your battlefield, hand, discard, and exile back into your deck, shuffles it, resets your health, and deals a new opening hand.',
+          confirmLabel: 'Reset',
+          destructive: true,
+          // reset() deals the opening hand one card at a time, so it's async; the
+          // dialog closes immediately either way and nothing here awaits it.
+          onConfirm: () => void player.reset(),
+        });
+      }
+      break;
+
+    // ── Create ▾ ────────────────────────────────────────────────────────────
+    case 'createTokenCard':
+      useTokenCardSearchStore.getState().open();
+      break;
+    case 'createToken':
+      // No dispatch: the toolbar renders this row as a sub-popover hosting the
+      // drag-to-board keyword grid. It's in the catalog to be described, not run.
+      break;
+    case 'createLabel':
+      // Not built yet; the catalog marks it `disabled`, so this is unreachable
+      // from the UI and exists only to keep the switch total.
+      break;
   }
 }
 

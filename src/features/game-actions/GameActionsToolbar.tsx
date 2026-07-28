@@ -4,25 +4,34 @@
  * Row of buttons for whole-game actions. On desktop it lives in a draggable
  * FloatingPanel (GameActionsToolbar); the buttons themselves are exported
  * separately as GameActionsContent so the phone HUD stack can host them too.
- * Renders three kinds of surfaces from the GAME_ACTIONS registry:
- *   - 'toolbar': plain buttons (Untap All, Draw, Pass)
+ *
+ * Its rows come from the one game-action catalog — `HOTKEYS`, the same table the
+ * keyboard and the right-click menus read — via `getToolbarActions(surface)`,
+ * and clicks go through `dispatchGameAction`, the same entry point those two
+ * surfaces use. So the toolbar cannot drift from them: it is a third *view* of
+ * the catalog, not a second copy of it. (It used to be exactly that second copy,
+ * with its own `perform()` bodies; the toolbar's Mulligan skipped the
+ * confirmation the M key showed, and it carried private re-implementations of
+ * rows the deck node already had.) Three surfaces render here:
+ *   - 'button': plain buttons (Untap All, Draw, Pass)
  *   - 'actions': items in an "Actions ▾" dropdown
  *   - 'create': items in a "Create ▾" dropdown
  *
- * The Token create item gets special treatment: it renders as a
+ * The Counter create item gets special treatment: it renders as a
  * `CreateTokenGridItem`, which opens a sub-popover hosting the KeywordTokenGrid
  * (drag-to-board ability tokens) — the same item the empty-board context menu
- * reuses.
- *
- * All game state access goes through useGameInstance; actions call into the
- * registry's perform(ctx) — this component stays generic.
+ * reuses. Its catalog entry dispatches nothing.
  */
 
-import React, { useMemo, useRef, useState } from 'react';
-import * as Y from 'yjs';
+import React, { useRef, useState } from 'react';
 import { ChevronDown } from 'lucide-react';
-import { GAME_ACTIONS } from './gameActions';
-import type { GameActionContext } from './gameActionTypes';
+import {
+  getToolbarActions,
+  type MenuTarget,
+  type ToolbarHotkey,
+  type ToolbarPlacement,
+} from '@/features/hotkeys/hotkeys';
+import { dispatchGameAction } from '@/features/hotkeys/gameActions';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -32,8 +41,6 @@ import {
 } from '@/shared/ui/dropdown-menu';
 import { FloatingPanel } from '@/shared/ui/FloatingPanel';
 import { useGameInstance } from '@/app/stores/gameInstanceStore';
-import { YDOC_CARDS_ON_BOARD, YDOC_KEYWORD_TOKENS } from '@/constants';
-import type { WhiteboardCard } from '@/features/battlefield/types';
 import { CreateTokenGridItem } from './CreateTokenGridItem';
 
 // ── Toolbar button style ─────────────────────────────────────────────────────
@@ -96,6 +103,49 @@ function ToolbarButton({ label, onClick, title }: { label: string; onClick: () =
   );
 }
 
+// ── Dispatch ─────────────────────────────────────────────────────────────────
+
+/**
+ * The target a toolbar click dispatches against. The toolbar has no hover, so
+ * unlike the keyboard and the context menus it can't read one off the cursor —
+ * each catalog entry declares the target its row means (see `ToolbarPlacement`).
+ * A screen-centre point stands in for the board cursor; every board action the
+ * toolbar offers ignores it (only the counter spawns use it, and they aren't
+ * on the toolbar).
+ */
+function targetFor(placement: ToolbarPlacement): MenuTarget {
+  if (placement.target === 'deck') return { kind: 'pile', pileType: 'deck' };
+  return {
+    kind: 'board',
+    x: typeof window !== 'undefined' ? window.innerWidth / 2 : 0,
+    y: typeof window !== 'undefined' ? window.innerHeight / 2 : 0,
+  };
+}
+
+function performAction(hotkey: ToolbarHotkey): void {
+  if (hotkey.disabled) return;
+  dispatchGameAction(hotkey.action, targetFor(hotkey.toolbar));
+}
+
+/** Toolbar label: `shortDescription` unless the row needs a targetless name. */
+const labelOf = (hotkey: ToolbarHotkey) => hotkey.toolbar.label ?? hotkey.shortDescription;
+
+/**
+ * Rows that open a new group in the Actions ▾ menu. Grouping is presentation, so
+ * it lives with the presentation: deck manipulation, then hand, then the
+ * deck-wide reset.
+ */
+const ACTIONS_GROUP_STARTS = new Set(['randomDiscard', 'shuffle', 'resetDeck']);
+
+function DisabledReason({ hotkey }: { hotkey: ToolbarHotkey }) {
+  if (!hotkey.disabled || !hotkey.disabledReason) return null;
+  return (
+    <span style={{ marginLeft: 'auto', opacity: 0.5, fontSize: 11 }}>
+      {hotkey.disabledReason}
+    </span>
+  );
+}
+
 // ── Main component ───────────────────────────────────────────────────────────
 
 /**
@@ -106,37 +156,20 @@ function ToolbarButton({ label, onClick, title }: { label: string; onClick: () =
  * cap).
  */
 export function GameActionsContent({ style }: { style?: React.CSSProperties } = {}) {
-  const player = useGameInstance((s) => s.player);
-  const yDoc = useGameInstance((s) => s.yDoc);
-  const playerId = useGameInstance((s) => s.playerId);
+  // The executors read player/yDoc/playerId from the store themselves, so this
+  // only needs to know whether they're wired yet.
+  const ready = useGameInstance((s) => Boolean(s.player && s.yDoc && s.playerId));
 
   // See keepTriggerInteractionsInside: needed so these non-modal menus reopen on
   // the first trigger click after an item was selected.
   const actionsTriggerRef = useRef<HTMLButtonElement>(null);
   const createTriggerRef = useRef<HTMLButtonElement>(null);
 
-  const ctx = useMemo<GameActionContext | null>(() => {
-    if (!player || !yDoc || !playerId) return null;
-    return {
-      player,
-      yDoc,
-      playerId,
-      yCards: yDoc.getMap<WhiteboardCard>(YDOC_CARDS_ON_BOARD),
-      yTokens: yDoc.getMap(YDOC_KEYWORD_TOKENS),
-    };
-  }, [player, yDoc, playerId]);
+  if (!ready) return null;
 
-  if (!ctx) return null;
-
-  const toolbarActions = GAME_ACTIONS.filter((a) => a.surface === 'toolbar');
-  const actionsDropdown = GAME_ACTIONS.filter((a) => a.surface === 'actions');
-  const createDropdown = GAME_ACTIONS.filter((a) => a.surface === 'create');
-
-  const performAction = (actionId: string) => {
-    const action = GAME_ACTIONS.find((a) => a.id === actionId);
-    if (!action || action.disabled) return;
-    action.perform(ctx);
-  };
+  const buttons = getToolbarActions('button');
+  const actionsDropdown = getToolbarActions('actions');
+  const createDropdown = getToolbarActions('create');
 
   return (
       <div
@@ -144,11 +177,12 @@ export function GameActionsContent({ style }: { style?: React.CSSProperties } = 
         style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 8px', ...style }}
       >
       {/* Toolbar buttons */}
-      {toolbarActions.map((action) => (
+      {buttons.map((hotkey) => (
         <ToolbarButton
-          key={action.id}
-          label={action.label}
-          onClick={() => performAction(action.id)}
+          key={hotkey.action}
+          label={labelOf(hotkey)}
+          title={hotkey.longDescription}
+          onClick={() => performAction(hotkey)}
         />
       ))}
 
@@ -169,31 +203,18 @@ export function GameActionsContent({ style }: { style?: React.CSSProperties } = 
           </button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start" side="bottom" onInteractOutside={keepTriggerInteractionsInside(actionsTriggerRef)}>
-          {actionsDropdown.map((action, i) => {
-            const prev = actionsDropdown[i - 1];
-            // Visual separator between certain groups
-            const addSep =
-              i > 0 &&
-              ((action.id === 'reveal-hand' && prev.id !== 'reveal-hand') ||
-               (action.id === 'shuffle' && prev.id !== 'shuffle') ||
-               (action.id === 'reset-deck' && prev.id !== 'reset-deck'));
-            return (
-              <React.Fragment key={action.id}>
-                {addSep && <DropdownMenuSeparator />}
-                <DropdownMenuItem
-                  disabled={action.disabled}
-                  onSelect={() => performAction(action.id)}
-                >
-                  {action.label}
-                  {action.disabled && action.disabledReason && (
-                    <span style={{ marginLeft: 'auto', opacity: 0.5, fontSize: 11 }}>
-                      {action.disabledReason}
-                    </span>
-                  )}
-                </DropdownMenuItem>
-              </React.Fragment>
-            );
-          })}
+          {actionsDropdown.map((hotkey, i) => (
+            <React.Fragment key={hotkey.action}>
+              {i > 0 && ACTIONS_GROUP_STARTS.has(hotkey.action) && <DropdownMenuSeparator />}
+              <DropdownMenuItem
+                disabled={hotkey.disabled}
+                onSelect={() => performAction(hotkey)}
+              >
+                {labelOf(hotkey)}
+                <DisabledReason hotkey={hotkey} />
+              </DropdownMenuItem>
+            </React.Fragment>
+          ))}
         </DropdownMenuContent>
       </DropdownMenu>
 
@@ -207,22 +228,20 @@ export function GameActionsContent({ style }: { style?: React.CSSProperties } = 
           </button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start" side="bottom" onInteractOutside={keepTriggerInteractionsInside(createTriggerRef)}>
-          {createDropdown.map((action) => {
-            if (action.id === 'create-token') {
-              return <CreateTokenGridItem key={action.id} columns={7} />;
+          {createDropdown.map((hotkey) => {
+            // Hosts the drag-to-board keyword grid instead of dispatching; its
+            // catalog entry is a deliberate no-op executor.
+            if (hotkey.action === 'createToken') {
+              return <CreateTokenGridItem key={hotkey.action} columns={7} />;
             }
             return (
               <DropdownMenuItem
-                key={action.id}
-                disabled={action.disabled}
-                onSelect={() => performAction(action.id)}
+                key={hotkey.action}
+                disabled={hotkey.disabled}
+                onSelect={() => performAction(hotkey)}
               >
-                {action.label}
-                {action.disabled && action.disabledReason && (
-                  <span style={{ marginLeft: 'auto', opacity: 0.5, fontSize: 11 }}>
-                    {action.disabledReason}
-                  </span>
-                )}
+                {labelOf(hotkey)}
+                <DisabledReason hotkey={hotkey} />
               </DropdownMenuItem>
             );
           })}
@@ -233,8 +252,8 @@ export function GameActionsContent({ style }: { style?: React.CSSProperties } = 
 }
 
 export function GameActionsToolbar() {
-  // Same readiness condition as GameActionsContent's ctx guard — don't render
-  // an empty window frame before the game instance is wired.
+  // Same readiness condition as GameActionsContent — don't render an empty
+  // window frame before the game instance is wired.
   const ready = useGameInstance((s) => Boolean(s.player && s.yDoc && s.playerId));
   if (!ready) return null;
 

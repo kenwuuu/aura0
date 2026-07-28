@@ -1,14 +1,35 @@
 Keyboard hotkeys and the right-click/tap context menu. They are one feature, not two.
 
-## One catalog, two surfaces
+## One catalog, three surfaces
 
-`HOTKEYS` in `hotkeys.ts` is the single source for both. Keyboard bindings read it via
-`getKeyBindingsForAction`; menu rows read it via `getMenuActionsForTarget`. Both then call
-`dispatchGameAction` (`gameActions.ts`), so keyboard and menu cannot drift — a new action or a
-bugfix is live on both surfaces at once. Add actions to the catalog, never to one surface.
+`HOTKEYS` in `hotkeys.ts` is the single source for all three. Keyboard bindings read it via
+`getKeyBindingsForAction`; menu rows via `getMenuActionsForTarget`; the Game Actions toolbar via
+`getToolbarActions`. All three then call `dispatchGameAction` (`gameActions.ts`), so they cannot
+drift — a new action or a bugfix is live everywhere at once. Add actions to the catalog, never
+to one surface.
 
 Executors read their instances from `useGameInstance.getState()`. This hook layer decides
 *which* action fires and *what it targets*; it never touches `yDoc`/`player` directly.
+
+**The toolbar was a second registry until it wasn't.** `features/game-actions/gameActions.ts`
+used to hold a parallel `GAME_ACTIONS` list with its own `perform(ctx)` bodies, and the copies
+drifted exactly as duplication predicts: the toolbar's Mulligan called `player.mulligan()`
+outright while the `M` key and the deck menu went through `triggerConfirmation` first, and
+"Exile Top"/"Look at Top" were second implementations of rows the deck node already had as
+"Exile"/"View". That file is gone. If you find yourself writing a `perform()` next to a UI
+component, that's the smell.
+
+### The toolbar has no hover
+
+It's the one surface with nothing under the cursor, so it can't derive a target the way the
+keyboard and menus do. Each entry's `toolbar: ToolbarPlacement` names the target its click
+dispatches against — `'board'` for the target-free globals, `'deck'` for rows that act blind on
+the top of the library. That's why "Exile Top" is not its own action: it is `moveToExile` with a
+deck-targeted placement and a toolbar-only label.
+
+`toolbar.order` is a second ordering system on purpose. Catalog order is semantic and drives
+context-menu rows; the toolbar's Actions ▾ groups for a different reader. One array can't sort
+both.
 
 ## The trap: `keys` and `context` are independent
 
