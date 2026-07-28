@@ -125,6 +125,61 @@ describe('useBattlefieldNodes ownership', () => {
   });
 });
 
+describe('useBattlefieldNodes node dimensions', () => {
+  /**
+   * React Flow's own `nodeHasDimensions()`, inlined rather than imported:
+   * it lives in `@xyflow/system`, which reaches us only as a transitive
+   * dependency of `@xyflow/react`. A node this returns false for is rendered
+   * `visibility: hidden` — invisible *and* not hit-testable.
+   */
+  const hasDimensions = (n: { measured?: { width?: number; height?: number }; width?: number; height?: number; initialWidth?: number; initialHeight?: number }) =>
+    (n.measured?.width ?? n.width ?? n.initialWidth) !== undefined &&
+    (n.measured?.height ?? n.height ?? n.initialHeight) !== undefined;
+
+  // Every rebuild produces brand-new node objects, and React Flow only carries a
+  // node's measured size forward when the object is reference-identical to the
+  // last one. Without a dimension hint of our own, one Yjs write hides every card
+  // and token on the board until a ResizeObserver round-trip lands — the board
+  // vanishing that only a *peer* could undo, since a hidden node can't be
+  // clicked, hovered or dragged by the player it vanished on.
+  it('gives every card and token a dimension hint, on the first build and after a write', () => {
+    const yDoc = new Y.Doc();
+    const yCards = yDoc.getMap<WhiteboardCard>('cards-on-board');
+    const yTokens = yDoc.getMap<KeywordToken>('keyword-tokens');
+    yCards.set('c1', makeCard('c1'));
+    yTokens.set('t1', {
+      id: 't1', title: '+1/+1', backgroundColor: '#fff',
+      x: 0, y: 0, zIndex: 1, ownerId: 'p1',
+    } as KeywordToken);
+
+    const { result } = renderHook(() => useBattlefieldNodes(yCards, yTokens, 'p1', null));
+    for (const node of result.current.nodes) {
+      expect(hasDimensions(node), `${node.id} on first build`).toBe(true);
+    }
+
+    // A peer's write rebuilds the whole array — the moment the board used to go dark.
+    act(() => {
+      yCards.set('c2', makeCard('c2', { ownerId: 'p2' }));
+    });
+    expect(result.current.nodes).toHaveLength(3);
+    for (const node of result.current.nodes) {
+      expect(hasDimensions(node), `${node.id} after a Yjs write`).toBe(true);
+    }
+  });
+
+  // A hard `width`/`height` would pin the React Flow wrapper to a fixed box no
+  // matter what the node renders, leaving a transparent `pointer-events: all`
+  // strip over the board — the trap `HealthNode` documents. The hint has to stay
+  // a hint so React Flow measures the real size on the next frame.
+  it('hints the size rather than fixing it', () => {
+    const { result } = setup();
+    const card = result.current.nodes.find((n) => n.id === 'c1');
+    expect(card).toMatchObject({ initialWidth: expect.any(Number), initialHeight: expect.any(Number) });
+    expect(card).not.toHaveProperty('width');
+    expect(card).not.toHaveProperty('height');
+  });
+});
+
 describe('useBattlefieldNodes drag helpers and peer motion', () => {
   it('elevateNodes updates zIndex for matching nodes only', () => {
     const { result } = setup();

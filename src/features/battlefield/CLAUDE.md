@@ -26,6 +26,24 @@ stayed owner-only, which left an opponent's card draggable but invisible to a
 Shift box-drag — and therefore to every group action, since those route through
 the selection. If you add a third such flag, it goes the same way as the other two.
 
+## Every node needs a dimension hint
+
+`buildNodes` and `buildPlaymatNodes` both regenerate every node object from Yjs
+on each rebuild, and React Flow only carries a node's *measured* size forward
+across objects that are reference-identical (`adoptUserNodes`, `checkEquality:
+true`). A node it can't get dimensions for renders `visibility: hidden` — not
+just invisible but not hit-testable, so the player it happened to can't click
+their way out of it. One board write used to hide all 36 cards and tokens on a
+test board while the playmats underneath stayed put, because only the playmat
+side had ever been given a size.
+
+So every node here carries `initialWidth`/`initialHeight` (or `width`/`height`
+for the fixed-size mats and pile tiles). Prefer `initialWidth` unless the node
+really is a fixed box: a hard size pins the wrapper regardless of what the node
+renders and leaves a transparent `pointer-events: all` strip over the board.
+Add it in the same breath as a new node type — the failure looks like a sync
+bug, not a layout one.
+
 ## Two sync channels
 
 **Yjs document** — durable shared game state. Card/token positions are written here on drag-stop and survive reload. Peers who join late get the full state. Use this for anything that should persist.
