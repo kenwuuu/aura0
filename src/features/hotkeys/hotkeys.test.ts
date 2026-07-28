@@ -189,6 +189,14 @@ describe('toolbar surface', () => {
     }
   });
 
+  it('flags the one toolbar row that throws the game away', () => {
+    // Reset Deck is the only toolbar action that discards state you can't get
+    // back. If a second one ever earns the flag, it should be a deliberate edit
+    // here rather than something that quietly inherits the red styling.
+    const destructive = HOTKEYS.filter((h) => h.toolbar && h.destructive).map((h) => h.action);
+    expect(destructive).toEqual(['resetDeck']);
+  });
+
   it('has no leftover duplicate of a row the deck node already owns', () => {
     // "Exile Top" and "Look at Top" were the duplicates; they are now the deck-
     // targeted toolbar placements of moveToExile and viewPile.
