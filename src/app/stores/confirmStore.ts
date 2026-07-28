@@ -18,6 +18,16 @@ export interface ConfirmRequest {
   cancelLabel?: string;
   /** Styles the confirm button as a destructive (red) action. Default false. */
   destructive?: boolean;
+  /**
+   * Shows a "don't ask again" checkbox with this label. Requires `onSuppress`
+   * — a checkbox that can't turn anything off would be a lie.
+   */
+  dontAskAgainLabel?: string;
+  /**
+   * Called when the user confirms *with* the checkbox ticked, just before
+   * `onConfirm`. Never called on cancel (see the ConfirmDialog header).
+   */
+  onSuppress?: () => void;
   onConfirm: () => void;
   onCancel?: () => void;
 }

@@ -111,7 +111,27 @@ describe('handleDeckImport — the gate seam', () => {
 
     const body = await response.text();
     expect(body).not.toMatch(/SyntaxError|at async|file:\/\/\//);
-    expect(JSON.parse(body).error).toMatch(/busy right now/i);
+    expect(JSON.parse(body)).toMatchObject({ reason: 'import_queue_busy' });
+  });
+
+  /**
+   * Every failure a player can reach carries a reason and something to try, not
+   * just a sentence. Without the fixes the only move left is to paste the same
+   * link again, which for most of these fails identically forever (#174).
+   */
+  it('explains a failure with a reason and suggested fixes', async () => {
+    const response = await handleDeckImport(request(), CREDENTIALED);
+    const body = (await response.json()) as {
+      error: string;
+      reason: string;
+      fixes: string[];
+    };
+
+    expect(body.reason).toBe('import_queue_busy');
+    expect(body.error).toMatch(/Moxfield/);
+    expect(body.fixes.length).toBeGreaterThan(0);
+    // No status codes, no internals — this is what a player reads.
+    expect(body.error).not.toMatch(/\b[45]\d\d\b|upstream|endpoint/i);
   });
 
   it('tells the caller how long to wait', async () => {
@@ -149,6 +169,69 @@ describe('handleDeckImport — the gate seam', () => {
 
     expect(response.status).toBe(503);
     expect(upstream).not.toHaveBeenCalled();
+  });
+
+  /**
+   * The status a deck site answers with is not the status we answer with, and
+   * two of those translations are load-bearing.
+   *
+   * A 429 from the site becomes a 502 from us, because a 429 *from* this
+   * endpoint means something else entirely — our own gate shed the request and
+   * a retry is worth waiting for (`fetchImportedDeck` acts on exactly that). Let
+   * the site's 429 through and the client retries into a throttle it has no slot
+   * in.
+   */
+  it.each([
+    ['a deleted, mistyped or private deck', 404, 404, 'deck_not_found'],
+    ['a deck the site refuses us', 403, 403, 'deck_private'],
+    ['a deck behind a login', 401, 403, 'deck_private'],
+    ['the site throttling us', 429, 502, 'source_rate_limited'],
+    ['the site being down', 503, 502, 'source_unavailable'],
+    ['the site erroring', 500, 502, 'source_unavailable'],
+  ])('reports %s', async (_label, upstreamStatus, ourStatus, reason) => {
+    upstream.mockResolvedValue(new Response('nope', { status: upstreamStatus }));
+
+    const response = await handleDeckImport(request('https://archidekt.com/decks/24664944'), {});
+    const body = (await response.json()) as { reason: string; fixes: string[]; detail?: string };
+
+    expect(response.status).toBe(ourStatus);
+    expect(body.reason).toBe(reason);
+    expect(body.fixes.length).toBeGreaterThan(0);
+    // The status a player would otherwise have had to read as the headline.
+    expect(body.detail).toMatch(String(upstreamStatus));
+  });
+
+  /**
+   * Deck `24664944` from #174: Archidekt 404s a private deck to anonymous
+   * callers, so its owner sees it perfectly and we cannot. Telling that player
+   * only "not found" is what sent them into three identical retries — the fix
+   * they needed was the deck's visibility setting.
+   */
+  it('names the private-deck case in the fixes for a 404, not just "not found"', async () => {
+    upstream.mockResolvedValue(new Response('{"error":"Deck not found."}', { status: 404 }));
+
+    const response = await handleDeckImport(request('https://archidekt.com/decks/24664944'), {});
+    const { fixes } = (await response.json()) as { fixes: string[] };
+
+    expect(fixes.join(' ')).toMatch(/private/i);
+    expect(fixes.join(' ')).toMatch(/public or unlisted/i);
+  });
+
+  /**
+   * A player who fixes a deck and pastes the link again has to be able to see
+   * the fix. Under the old 5-minute TTL the retry replayed the same broken
+   * document — both #174 decks were retried inside a 277-second window, so every
+   * attempt after the first was served from cache no matter what changed.
+   */
+  it('caches an upstream deck document only briefly', async () => {
+    upstream.mockResolvedValue(
+      Response.json({ name: 'x', cards: [{ quantity: 1, card: { oracleCard: { name: 'Sol Ring' } } }] }),
+    );
+
+    await handleDeckImport(request('https://archidekt.com/decks/24569510'), {});
+
+    const { cf } = upstream.mock.calls[0][1] as { cf: { cacheTtl: number } };
+    expect(cf.cacheTtl).toBeLessThanOrEqual(30);
   });
 
   it.each([

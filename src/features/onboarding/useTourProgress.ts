@@ -12,14 +12,14 @@ import { YDOC_CARDS_ON_BOARD, YDOC_PLAYER } from '@/constants';
 import { isTourEnabled, resolveTourStepOrder } from '@/infrastructure/analytics/FeatureFlags';
 import { registerTourOutcome } from '@/infrastructure/analytics/PosthogFunctions';
 import { countPlayersInRoom } from '@/infrastructure/networking/roomOccupancy';
-import { usePhoneLayout } from '@/shared/hooks';
 import { isOnboardingAudience } from '@/shared/services/visitCount';
 import type { WhiteboardCard } from '@/features/battlefield/types';
 import { buildTourSnapshot, isStepComplete, readCounts } from './tourProgress';
+import { useShowTouchCopy } from './useShowTouchCopy';
 import { useTourStore } from './tourStore';
 
 export function useTourProgress(): void {
-  const isPhone = usePhoneLayout();
+  const showTouchCopy = useShowTouchCopy();
   const yDoc = useGameInstance((s) => s.yDoc);
   const playerId = useGameInstance((s) => s.playerId);
   const awareness = useGameInstance((s) => s.awareness);
@@ -57,7 +57,7 @@ export function useTourProgress(): void {
       useTourStore.getState().start({
         tourId: 'intro',
         variant,
-        layout: isPhone ? 'phone' : 'desktop',
+        layout: showTouchCopy ? 'phone' : 'desktop',
         // The store re-reads this on every step transition, so each step is
         // measured against the game as it stood when *that step* appeared.
         readCounts: () => readCounts(yDoc, playerId),
@@ -67,8 +67,8 @@ export function useTourProgress(): void {
     return () => {
       cancelled = true;
     };
-    // `isPhone` is the analytics label only — re-running on a device rotation
-    // would restart the tour, so it is deliberately not a dependency.
+    // `showTouchCopy` is the analytics label only — re-running on a device
+    // rotation would restart the tour, so it is deliberately not a dependency.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [yDoc, playerId, tourOutcome, replayRequested]);
 

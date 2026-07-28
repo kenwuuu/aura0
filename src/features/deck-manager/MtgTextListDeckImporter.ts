@@ -116,6 +116,7 @@ export class MtgTextListDeckImporter extends DeckImporter {
           failedCount: lookup.fallbackFailedCount,
           totalCount: lookupEntries.length,
           auraFailures: lookup.auraFailures,
+          fallbackFailures: lookup.failures,
           deadItems: lookup.failedItems,
         });
       }

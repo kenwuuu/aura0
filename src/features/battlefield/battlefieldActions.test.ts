@@ -172,6 +172,42 @@ describe('battlefieldActions.playCardFromPile', () => {
     expect([yCards.get('next')!.x, yCards.get('next')!.y]).toEqual([x, y]);
   });
 
+  it('plays face down on request, and keeps the hidden card\'s tokens off the board', async () => {
+    const { yDoc, player, playerId } = seedGame();
+    useGameInstance.getState().setYDoc(yDoc);
+    useGameInstance.getState().setPlayer(player);
+    useGameInstance.getState().setPlayerId(playerId);
+    useGameInstance.getState().setScreenToFlowPosition(({ x, y }) => ({ x, y }));
+    useGameInstance.getState().setTokenService({
+      createTokensForCard: async () => ({ tokens: [makeCard({ id: 'goblin-token' })], errors: [] }),
+    } as unknown as TokenService);
+
+    const card = makeCard({ id: 'manifested', scryfallId: 'sf-1' });
+    await playCardFromPile(card, { facedown: true });
+
+    const yCards = yDoc.getMap<WhiteboardCard>(YDOC_CARDS_ON_BOARD);
+    expect(yCards.get('manifested')!.isFlipped).toBe(true);
+    // The caller's card object is left alone — only the played copy is hidden.
+    expect(card.isFlipped).toBe(false);
+    // A related token sitting on the board would give away what the face-down
+    // card is, so it goes to hand instead.
+    expect(yCards.has('goblin-token')).toBe(false);
+    expect(player.getState().hand.map((c) => c.id)).toEqual(['goblin-token']);
+  });
+
+  it('plays face up by default', async () => {
+    const { yDoc, player, playerId } = seedGame();
+    useGameInstance.getState().setYDoc(yDoc);
+    useGameInstance.getState().setPlayer(player);
+    useGameInstance.getState().setPlayerId(playerId);
+    useGameInstance.getState().setTokenService(fakeTokenService());
+    useGameInstance.getState().setScreenToFlowPosition(({ x, y }) => ({ x, y }));
+
+    await playCardFromPile(makeCard({ id: 'face-up' }));
+
+    expect(yDoc.getMap<WhiteboardCard>(YDOC_CARDS_ON_BOARD).get('face-up')!.isFlipped).toBe(false);
+  });
+
   it('falls back to a default position when no board is mounted yet', async () => {
     const card = makeCard({ id: 'card-5' });
     const { yDoc, player, playerId } = seedGame();

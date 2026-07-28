@@ -9,5 +9,13 @@ Aura first and fall back to Scryfall for any items it can't resolve; `fetchCardB
 and goes straight to Scryfall because Scryfall IDs are canonical to Scryfall. `CardApiClient` is 
 generic — endpoint URL shapes, rate limit, and the optional exact→fuzzy name retry are config, 
 not code. The Aura base URL is hardcoded to production with a commented `localhost:8000/v1` 
-sentinel in `clients.ts`; uncomment to test against a local backend. To add a third backend, 
+sentinel in `clients.ts`; uncomment to test against a local backend.
+
+Every request goes through the client's `PQueue`, **retries included** — nesting them the other 
+way round (one queued task owning a whole retry chain) lets a single slot fire several requests 
+and runs the real rate at a multiple of the configured cap. A 429 is then absorbed rather than 
+returned: it says this client is asking too fast, not that the card is missing, so it pauses the 
+whole queue for `Retry-After` (or a capped backoff) and re-asks the *same* question. Letting a 
+429 count as an attempt is what used to spend the fuzzy retry before it ran, turning throttling 
+into "card not found". To add a third backend, 
 write a new `createFooClient()` and inject it into `CardLookupService`'s constructor.

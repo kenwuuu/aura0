@@ -5,7 +5,8 @@ import { DeckLineItem } from '@/features/deck-manager/DeckListParser';
 const CONFIG: CardApiClientConfig = {
   name: 'test',
   baseUrl: 'https://cards.test',
-  rateLimit: { interval: 10, intervalCap: 100 },
+  // `throttleBackoffMs: 1` keeps the 429 waits from making tests sleep for real.
+  rateLimit: { interval: 10, intervalCap: 100, throttleBackoffMs: 1 },
   endpoints: {
     byId: (id) => `https://cards.test/cards/${id}`,
     byName: (name) => `https://cards.test/cards/${encodeURIComponent(name)}`,
@@ -16,11 +17,12 @@ const CONFIG: CardApiClientConfig = {
 
 const entry = (name: string): DeckLineItem => ({ count: 1, name });
 
-function httpResponse(status: number): Response {
+function httpResponse(status: number, headers: Record<string, string> = {}): Response {
   return {
     ok: status >= 200 && status < 300,
     status,
     statusText: `status ${status}`,
+    headers: new Headers(headers),
     json: async () => ({ id: 'card-id', name: 'Sol Ring' }),
   } as Response;
 }
@@ -98,12 +100,12 @@ describe('CardApiClient — why a lookup failed', () => {
   });
 
   it('reports the name lookup’s reason when a set lookup falls back to it and both fail', async () => {
-    // bySet 404s (wrong collector number), then byName is rate-limited. The reason
-    // that decided the outcome is the second one.
+    // bySet 404s (wrong collector number), then byName is rate-limited for good.
+    // The reason that decided the outcome is the second one.
     const fetchMock = vi
       .fn()
       .mockResolvedValueOnce(httpResponse(404))
-      .mockResolvedValueOnce(httpResponse(429));
+      .mockResolvedValue(httpResponse(429));
     vi.stubGlobal('fetch', fetchMock);
 
     const client = new CardApiClient(CONFIG);
@@ -114,6 +116,103 @@ describe('CardApiClient — why a lookup failed', () => {
     );
 
     expect(result.failures[0]).toMatchObject({ reason: 'rate_limited', status: 429 });
+  });
+});
+
+/**
+ * The July 2026 card-loss regression. Being throttled is not an answer about a
+ * card, but the client used to spend a retry on it anyway — and since retries
+ * are also what escalates an exact name lookup to a fuzzy one, a burst of 429s
+ * consumed the fuzzy attempt before it ever ran. Scryfall resolves localized
+ * names on `fuzzy` and not on `exact`, so an import of a Portuguese decklist —
+ * the case that generates enough misses to trigger the burst in the first
+ * place — reported ~70% of its cards as "not found" for cards Scryfall knew.
+ */
+describe('CardApiClient — when the backend throttles us', () => {
+  /** Mirrors Scryfall: exact on the first attempt, fuzzy on later ones. */
+  const ESCALATING: CardApiClientConfig = {
+    ...CONFIG,
+    endpoints: {
+      ...CONFIG.endpoints,
+      byName: (name, attemptNumber) =>
+        `https://cards.test/named?${attemptNumber >= 2 ? 'fuzzy' : 'exact'}=${encodeURIComponent(name)}`,
+    },
+  };
+
+  const urlsFrom = (mock: ReturnType<typeof vi.fn>) =>
+    mock.mock.calls.map(([url]) => String(url));
+
+  it('re-asks the same question after a 429 instead of escalating to fuzzy', async () => {
+    // Throttled on exact, then answered on exact. Fuzzy is for a card the
+    // backend does not have — it is not the answer to "you are asking too fast".
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(httpResponse(429))
+      .mockResolvedValue(httpResponse(200));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const result = await new CardApiClient(ESCALATING).fetchImagesForList(
+      [entry('Tutor Diabolico')],
+      undefined,
+      1,
+    );
+
+    expect(result.failures).toEqual([]);
+    expect(urlsFrom(fetchMock).filter((url) => url.includes('fuzzy='))).toEqual([]);
+    expect(urlsFrom(fetchMock)).toHaveLength(2);
+  });
+
+  it('still reaches the fuzzy attempt for a card that 404s after a 429', async () => {
+    // The exact shape of the lost Portuguese cards: throttled, then a genuine
+    // miss on the exact name, and only fuzzy has the card.
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(httpResponse(429))
+      .mockResolvedValueOnce(httpResponse(404))
+      .mockResolvedValue(httpResponse(200));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const result = await new CardApiClient(ESCALATING).fetchImagesForList(
+      [entry('Necropole Despedacada')],
+      undefined,
+      1,
+    );
+
+    const urls = urlsFrom(fetchMock);
+    expect(result.failures).toEqual([]);
+    expect(urls[urls.length - 1]).toContain('fuzzy=');
+  });
+
+  it('waits out the delay the backend asked for', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(httpResponse(429, { 'Retry-After': '0.05' }))
+      .mockResolvedValue(httpResponse(200));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const startedAt = Date.now();
+    const result = await new CardApiClient(ESCALATING).fetchImagesForList(
+      [entry('Sol Ring')],
+      undefined,
+      0,
+    );
+
+    expect(result.failures).toEqual([]);
+    expect(Date.now() - startedAt).toBeGreaterThanOrEqual(50);
+  });
+
+  it('gives up on a backend that throttles forever, and says so', async () => {
+    // Bounded, so a backend having an outage cannot hang an import — and
+    // reported as `rate_limited`, never as a card that does not exist.
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(httpResponse(429)));
+
+    const result = await new CardApiClient({
+      ...ESCALATING,
+      rateLimit: { ...ESCALATING.rateLimit, throttleRetries: 2 },
+    }).fetchImagesForList([entry('Sol Ring')], undefined, 0);
+
+    expect(result.failures[0]).toMatchObject({ reason: 'rate_limited', status: 429 });
+    expect(result.failures[0].reason).not.toBe('not_found');
   });
 });
 

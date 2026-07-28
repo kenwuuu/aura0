@@ -89,7 +89,7 @@ test('testInteractiveTooltip', async ({ page }) => {
   // pointer events for any further right-clicks on it.
   const tokensBefore = await boardTokens(page).count();
   await openCardMenu(page, firstBoardCard);
-  await page.getByText('CounterU').click();
+  await page.getByText('+1 counterU').click();
   await expect(boardTokens(page)).toHaveCount(tokensBefore + 1);
   const counterToken = boardTokens(page).last();
   await expect(counterToken).toHaveText('1');
@@ -101,7 +101,7 @@ test('testRemoveCounterContextMenuItem', async ({ page }) => {
   const card = await playCreature(page);
   const tokensBefore = await boardTokens(page).count();
   await card.click({ button: 'right' });
-  await page.getByText('-1/-1 counterI').click();
+  await page.getByText('-1 counterI').click();
   await expect(boardTokens(page)).toHaveCount(tokensBefore + 1);
   const counterToken = boardTokens(page).last();
   await expect(counterToken).toHaveText('-1');

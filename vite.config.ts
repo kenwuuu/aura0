@@ -109,6 +109,14 @@ const appVersion =
   process.env.WORKERS_CI_COMMIT_SHA ||
   process.env.CF_PAGES_COMMIT_SHA;
 
+// The moment this build ran. On a deploy that's the Cloudflare build machine's
+// clock, which for a merge-and-deploy is effectively the release date — a
+// better proxy for "when did this ship" than the commit date, since a commit
+// can sit unmerged for days. Evaluated here at config load (build time), frozen
+// into the bundle via `define` below, and surfaced in Settings > About. No CI
+// change needed: `new Date()` on the builder is the release timestamp.
+const buildDate = new Date().toISOString();
+
 export default defineConfig({
   plugins: [
     react(),
@@ -128,6 +136,13 @@ export default defineConfig({
   server: {
     port: 5173,
     open: true,
+  },
+  // Freeze the build timestamp into the bundle as a compile-time constant.
+  // Declared for TypeScript in src/vite-env.d.ts. The commit SHA travels
+  // separately, as import.meta.env.VITE_APP_VERSION (see the appVersion note
+  // above), so it needs no entry here.
+  define: {
+    __BUILD_DATE__: JSON.stringify(buildDate),
   },
   build: {
     outDir: 'dist',

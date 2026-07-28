@@ -64,6 +64,17 @@ describe('resolvePileOpenRequest', () => {
     ).toBeNull();
   });
 
+  it("never opens an opponent's deck, whatever the hand-share flag", () => {
+    // The deck's full order is private to its owner; only they open it (locally).
+    // There is no opponent-scope deck viewer, so a click must resolve to nothing.
+    expect(
+      resolvePileOpenRequest({ ownerId: 'p2', isLocal: false, pileKind: 'deck', allowViewHand: false }),
+    ).toBeNull();
+    expect(
+      resolvePileOpenRequest({ ownerId: 'p2', isLocal: false, pileKind: 'deck', allowViewHand: true }),
+    ).toBeNull();
+  });
+
   it('opens the local viewer for the local sideboard', () => {
     expect(
       resolvePileOpenRequest({ ownerId: 'p1', isLocal: true, pileKind: 'sideboard', allowViewHand: false }),

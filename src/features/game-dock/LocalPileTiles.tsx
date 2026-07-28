@@ -83,9 +83,9 @@ export function LocalPileTiles() {
     };
 
     const callbacks: PileViewerCallbacks = {
-      onPlayToBattlefield: (card) => {
+      onPlayToBattlefield: (card, options) => {
         player.removeCardFromPileById(card.id, pile);
-        playCardFromPile(card);
+        playCardFromPile(card, { facedown: options?.facedown });
         refresh();
       },
       onMoveToHand: (card) => move(card, 'hand'),

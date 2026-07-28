@@ -1,5 +1,6 @@
 /**
- * Display settings section — zoom preferences for in-game UI elements.
+ * Display settings section — how big things are drawn. Nothing here changes
+ * what an interaction does; that's Gameplay.
  *
  * Live demo: while a slider is being dragged, the real CardPreview popup or
  * FloatingHand in the main window responds live. The demo appears on first
@@ -8,8 +9,6 @@
  */
 import React from 'react';
 import { Slider } from '@/shared/ui/slider';
-import { Checkbox } from '@/shared/ui/checkbox';
-import { Button } from '@/shared/ui/button';
 import {
   useSettingsStore,
   HAND_ZOOM_MIN,
@@ -17,12 +16,11 @@ import {
   PREVIEW_ZOOM_MIN,
   PREVIEW_ZOOM_MAX,
 } from '@/app/stores/settingsStore';
-import { useSettingsModalStore } from '@/app/stores/settingsModalStore';
-import { useTourStore } from '@/features/onboarding';
 import { useCardPreviewStore } from '@/features/card-preview/cardPreviewStore';
 import { DEFAULT_CARD_BACK } from '@/constants';
 import type { Card } from '@/features/player/types';
 import { SettingRow } from '../components/SettingRow';
+import { SettingGroup } from '../components/SettingGroup';
 import styles from './DisplaySection.module.css';
 
 const DEMO_HAND_CARDS: Card[] = [
@@ -84,76 +82,44 @@ export function DisplaySection() {
   const previewZoom = useSettingsStore((s) => s.previewZoom);
   const setHandZoom = useSettingsStore((s) => s.setHandZoom);
   const setPreviewZoom = useSettingsStore((s) => s.setPreviewZoom);
-  const snapToGridEnabled = useSettingsStore((s) => s.snapToGridEnabled);
-  const setSnapToGridEnabled = useSettingsStore((s) => s.setSnapToGridEnabled);
 
   return (
-    <div className={styles.section}>
-      <p className={styles.sectionTitle}>Zoom</p>
-      <SettingRow
-        label="Hand card size"
-        description="Scale of cards in your hand at the bottom of the screen."
-      >
-        <ZoomSlider
-          ariaLabel="Hand card size"
-          value={handZoom}
-          min={HAND_ZOOM_MIN}
-          max={HAND_ZOOM_MAX}
-          step={0.1}
-          onChange={setHandZoom}
-          onStart={() => useSettingsStore.getState().setDemoHandCards(DEMO_HAND_CARDS)}
-          onEnd={() => useSettingsStore.getState().setDemoHandCards(null)}
-        />
-      </SettingRow>
-      <SettingRow
-        label="Card preview size"
-        description="Scale of the card hover-preview that appears when you mouse over a card."
-      >
-        <ZoomSlider
-          ariaLabel="Card preview size"
-          value={previewZoom}
-          min={PREVIEW_ZOOM_MIN}
-          max={PREVIEW_ZOOM_MAX}
-          step={0.1}
-          onChange={setPreviewZoom}
-          onStart={() => {
-            useCardPreviewStore.getState().show(DEMO_PREVIEW_CARD);
-            useCardPreviewStore.getState().updatePosition(0, 0);
-          }}
-          onEnd={() => useCardPreviewStore.getState().hide()}
-        />
-      </SettingRow>
-
-      <p className={styles.sectionTitle}>Board</p>
-      <SettingRow
-        label="Always snap to grid"
-        description="Cards and tokens snap to the grid while dragging. When off, hold Alt during a drag to snap instead."
-      >
-        <Checkbox
-          aria-label="Always snap to grid"
-          checked={snapToGridEnabled}
-          onCheckedChange={(checked) => setSnapToGridEnabled(checked === true)}
-        />
-      </SettingRow>
-
-      <p className={styles.sectionTitle}>Onboarding</p>
-      <SettingRow
-        label="Replay tour"
-        description="Walk through playing, tapping, and drawing a card again."
-      >
-        <Button
-          variant="secondary"
-          size="sm"
-          data-testid="replay-tour"
-          onClick={() => {
-            useTourStore.getState().requestReplay();
-            // Get the dialog off the board the tour is about to point at.
-            useSettingsModalStore.getState().close();
-          }}
+    <div>
+      <SettingGroup title="Zoom">
+        <SettingRow
+          label="Hand card size"
+          description="Scale of cards in your hand at the bottom of the screen."
         >
-          Replay
-        </Button>
-      </SettingRow>
+          <ZoomSlider
+            ariaLabel="Hand card size"
+            value={handZoom}
+            min={HAND_ZOOM_MIN}
+            max={HAND_ZOOM_MAX}
+            step={0.1}
+            onChange={setHandZoom}
+            onStart={() => useSettingsStore.getState().setDemoHandCards(DEMO_HAND_CARDS)}
+            onEnd={() => useSettingsStore.getState().setDemoHandCards(null)}
+          />
+        </SettingRow>
+        <SettingRow
+          label="Card preview size"
+          description="Scale of the card hover-preview that appears when you mouse over a card."
+        >
+          <ZoomSlider
+            ariaLabel="Card preview size"
+            value={previewZoom}
+            min={PREVIEW_ZOOM_MIN}
+            max={PREVIEW_ZOOM_MAX}
+            step={0.1}
+            onChange={setPreviewZoom}
+            onStart={() => {
+              useCardPreviewStore.getState().show(DEMO_PREVIEW_CARD);
+              useCardPreviewStore.getState().updatePosition(0, 0);
+            }}
+            onEnd={() => useCardPreviewStore.getState().hide()}
+          />
+        </SettingRow>
+      </SettingGroup>
     </div>
   );
 }

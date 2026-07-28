@@ -55,7 +55,7 @@ export const RoomConnectionStatus: React.FC<ConnectionStatusProps> = ({ yjsNetwo
     <Tooltip>
       <TooltipTrigger asChild>
         <button
-          onClick={() => openSettings('network')}
+          onClick={() => openSettings('advanced')}
           style={{ background: 'none', border: 'none', padding: 0, font: 'inherit' }}
           aria-label={`${event.message ?? 'Connection error'}. Click to open network settings.`}
         >

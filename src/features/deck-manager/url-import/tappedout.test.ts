@@ -5,6 +5,17 @@ import { parseDecklistWithStats } from '@/features/deck-manager/DeckListParser';
 // Captured from tappedout.net/mtg-decks/05-06-24-here-kitty-kitty/?fmt=txt.
 // Its job is to fail loudly if the export format changes.
 import realExport from './__fixtures__/tappedoutDeck.txt?raw';
+import { DeckImportReason } from './importErrors';
+
+/**
+ * The contract these throws carry is the *reason*, not the wording — the dialog
+ * keys its suggested fixes off it and the import metric breaks its failure rate
+ * down by it (#174). Copy is free to change; a reason changing is a behaviour
+ * change and should fail here.
+ */
+function failsWith(reason: DeckImportReason) {
+  return expect.objectContaining({ problem: expect.objectContaining({ reason }) });
+}
 
 describe('extractTappedOutDeck', () => {
   it('reads a plain decklist as the deck', () => {
@@ -42,11 +53,11 @@ describe('extractTappedOutDeck', () => {
     ['a doctype', '<!DOCTYPE html>\n<html><body>Not found</body></html>'],
     ['an html tag', '<html lang="en"><body>Login required</body></html>'],
   ])('rejects a response that is really a web page (%s)', (_label, body) => {
-    expect(() => extractTappedOutDeck('my-deck', body)).toThrow(/couldn't be read/i);
+    expect(() => extractTappedOutDeck('my-deck', body)).toThrow(failsWith('deck_not_found'));
   });
 
   it('throws when the export holds no cards', () => {
-    expect(() => extractTappedOutDeck('my-deck', '   \n\n')).toThrow(/no cards we can import/i);
+    expect(() => extractTappedOutDeck('my-deck', '   \n\n')).toThrow(failsWith('deck_empty'));
   });
 });
 

@@ -1,6 +1,8 @@
 import { expect, test } from '../../fixtures';
 import { Page } from '@playwright/test';
 import {
+  boardCardIds,
+  boardCardNode,
   expectPileCount,
   handCards,
   mouseDrag,
@@ -28,6 +30,40 @@ async function millCardsFromDeck(page: Page, key: 'd' | 's', count: number) {
     await page.keyboard.press(key);
   }
 }
+
+/**
+ * "Play to board facedown" is pile-viewer-only: it plays the *picked* card
+ * hidden, so it exists on a viewer card's menu and nowhere else. Face-down is
+ * asserted through what the board actually renders — a hidden card shows the
+ * generic card back — rather than through internal state.
+ */
+test('testDeckViewerPlayCardFacedownToBoard', async ({ page }) => {
+  const before = new Set(await boardCardIds(page));
+
+  await openPileViewer(page, 'deck');
+  await waitForPileViewerReady(page);
+  await secondCard(page).click({ button: 'right' });
+  await page.getByRole('menuitem', { name: /^Play to board facedown/ }).click();
+
+  await expectPileCount(page, 'deck', 91);
+
+  // Close the viewer to inspect the board it was covering.
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('dialog', { name: 'Search Deck' })).toBeHidden();
+
+  const added = (await boardCardIds(page)).filter((id) => !before.has(id));
+  expect(added).toHaveLength(1);
+  await expect(boardCardNode(page, added[0]).getByAltText('Card Back')).toBeVisible();
+});
+
+test('testPilePlayFacedownIsNotOfferedOnThePileItself', async ({ page }) => {
+  // The pile's own menu acts blind on the top card; playing face down is always
+  // a deliberate pick, so the row belongs to the viewer only.
+  await pileTile(page, 'deck').click({ button: 'right' });
+  // The pile's own play row (label + its `P` shortcut) is there; the viewer's is not.
+  await expect(page.getByText('Play to boardP')).toBeVisible();
+  await expect(page.getByRole('menuitem', { name: /facedown/i })).toHaveCount(0);
+});
 
 test('testDeckViewerCardToExileHotkey', async ({ page }) => {
   await openPileViewer(page, 'deck');

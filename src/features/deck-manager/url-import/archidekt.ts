@@ -1,3 +1,4 @@
+import { deckImportError } from './importErrors';
 import { ImportedCard, ImportedDeck, ImportedSection, printing } from './importedDeck';
 
 /**
@@ -104,7 +105,7 @@ export function extractArchidektDeck(response: ArchidektDeckResponse): ImportedD
   }
 
   if (cards.length === 0) {
-    throw new Error('That Archidekt deck has no cards we can import. It may be private or empty.');
+    throw deckImportError('deck_empty', { source: 'archidekt' });
   }
 
   const name = typeof response.name === 'string' ? response.name.trim() : '';

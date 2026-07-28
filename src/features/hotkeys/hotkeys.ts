@@ -15,6 +15,17 @@ export const HotkeyContext = {
   Scry: 'scry',
   Discard: 'discard',
   Sideboard: 'sideboard',
+  /**
+   * Rows every *card inside a pile viewer* offers, whatever pile it came from.
+   *
+   * The per-pile contexts above are shared by two surfaces: the board pile node
+   * ('exile' is both the exile PileNode's menu and an exile-viewer card's menu).
+   * So a row that belongs to a picked card — but must never appear on the pile
+   * node, which acts blind on the top card — cannot be expressed by them. This
+   * context is appended for every pile-viewer card (see
+   * `getMenuActionsForTarget`) and reached by no other target kind.
+   */
+  PileViewerCard: 'pileviewercard',
   Health: 'health',
   KeywordToken: 'kwToken',
   KeywordTokenStack: 'kwTokenStack',
@@ -91,6 +102,21 @@ export const HOTKEYS: Hotkey[] = [
     shortDescription: 'Play to board',
     longDescription: 'Play the top card of your deck to the battlefield',
     action: 'playToBattlefield',
+  },
+  {
+    // Pointer-only (no key binding), pile-viewer cards only: puts the *picked*
+    // card straight onto the battlefield face down (manifest, cloak, foretell,
+    // "exile face down until…"), skipping the hand — the card stays hidden, so
+    // routing it through the hand would show it in your own hand for no reason
+    // and lose the whole point. Face-down play is only ever a deliberate pick,
+    // never a blind top-of-pile action, which is why this lives in the
+    // pile-viewer-card context rather than beside `playToBattlefield`.
+    key: '',
+    keys: [],
+    context: ['pileviewercard'],
+    shortDescription: 'Play to board facedown',
+    longDescription: 'Play this card to the battlefield face down',
+    action: 'playFacedown',
   },
   // Not in 'global' context: shuffle/mulligan are deck-pile actions, so they
   // stay off the empty-board menu (they remain on the deck menu). The v/m keys
@@ -200,20 +226,15 @@ export const HOTKEYS: Hotkey[] = [
     key: 'U',
     keys: ['u'],
     context: ['global', 'battlefield'],
-    shortDescription: 'Counter',
+    shortDescription: '+1 counter',
     longDescription: 'Spawn +1/+1 counter token at cursor',
     action: 'addCounter',
   },
   {
-    // Not in 'global' context: the empty-board (Global) menu shows the
-    // drag-to-board "Create counter" grid in this slot instead (see
-    // GameContextMenu). The 'i' key still spawns a -1/-1 counter at the cursor —
-    // that binding is registered directly in useAllGameHotkeys, independent of
-    // this context list — and the row still appears on the battlefield-card menu.
     key: 'I',
     keys: ['i'],
-    context: ['battlefield'],
-    shortDescription: '-1/-1 counter',
+    context: ['global', 'battlefield'],
+    shortDescription: '-1 counter',
     longDescription: 'Spawn -1/-1 counter token at cursor',
     action: 'removeCounter',
   },
@@ -351,6 +372,7 @@ const ZONE_ORDER: Array<{ zone: string; contexts: HotkeyContext[] }> = [
       HotkeyContext.Sideboard,
       HotkeyContext.DeckCard,
       HotkeyContext.Scry,
+      HotkeyContext.PileViewerCard,
     ],
   },
   { zone: 'Tokens', contexts: [HotkeyContext.KeywordToken, HotkeyContext.KeywordTokenStack] },
@@ -418,6 +440,13 @@ export function getMenuActionsForTarget(target: MenuTarget): Hotkey[] {
     case 'board':
       return getHotkeysForContext(HotkeyContext.Global);
     case 'pileViewerCard':
-      return getHotkeysForContext(target.context);
+      // Shared viewer-card rows first (they're the notable ones), then the
+      // pile's own move set. Whether a row can actually do anything in *this*
+      // viewer still depends on the callbacks it was given — GameContextMenu
+      // drops the ones the open viewer can't perform.
+      return [
+        ...getHotkeysForContext(HotkeyContext.PileViewerCard),
+        ...getHotkeysForContext(target.context),
+      ];
   }
 }

@@ -16,6 +16,7 @@
  * at (x, y), with `Content` positioned relative to it via Radix Popper.
  */
 
+import { Fragment } from 'react';
 import { useContextMenuStore } from './contextMenuStore';
 import { getMenuActionsForTarget, type MenuTarget } from './hotkeys';
 import { dispatchGameAction } from './gameActions';
@@ -23,10 +24,12 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuShortcut,
   DropdownMenuTrigger,
 } from '@/shared/ui/dropdown-menu';
 import { CreateTokenGridItem } from '@/features/game-actions/CreateTokenGridItem';
+import { usePileViewerHotkeyStore } from '@/features/game-dock/pileViewerHotkeyStore';
 import { useGameInstance } from '@/app/stores/gameInstanceStore';
 import { requestRemovePlayer } from '@/features/player/removePlayer';
 import { isHiddenFacedown } from '@/features/battlefield/nodes/cardNodeLogic';
@@ -50,6 +53,10 @@ function canPeekTarget(target: MenuTarget): boolean {
 
 export function GameContextMenu() {
   const isOpen = useContextMenuStore((s) => s.isOpen);
+  // Which rows the open pile viewer can actually perform (see
+  // pileViewerHotkeyStore) — a scry pile has no face-down play, an exile pile
+  // has nothing to view from inside its own viewer.
+  const pileViewerActions = usePileViewerHotkeyStore((s) => s.availableActions);
   const x = useContextMenuStore((s) => s.x);
   const y = useContextMenuStore((s) => s.y);
   const target = useContextMenuStore((s) => s.target);
@@ -74,7 +81,14 @@ export function GameContextMenu() {
     .filter((row) => row.action !== 'peek' || (!!target && canPeekTarget(target)))
     // Opponent-health menus drop the self-targeting life rows; they show only
     // the Remove row appended below.
-    .filter(() => !isOpponentHealth);
+    .filter(() => !isOpponentHealth)
+    // Pile-viewer rows are presence-driven, exactly like the destination bar and
+    // the desktop key legend: the open viewer publishes the actions it was given
+    // callbacks for, so a row it can't perform is dropped instead of rendering
+    // as a no-op ("Play to board facedown" in the scry viewer, "View" from
+    // inside the pile you're already viewing). A read-only viewer (an opponent's
+    // pile) publishes none, so its cards get no menu at all.
+    .filter((row) => target?.kind !== 'pileViewerCard' || pileViewerActions.has(row.action));
   const open = isOpen && (rows.length > 0 || isOpponentHealth);
 
   // The hand is anchored to the bottom of the screen (both desktop and phone),
@@ -163,19 +177,26 @@ export function GameContextMenu() {
         onFocusOutside={(e) => e.preventDefault()}
       >
         {target && rows.map((hotkey, index) => (
-          <DropdownMenuItem
-            key={`${hotkey.action}-${index}`}
-            variant={hotkey.destructive ? 'destructive' : 'default'}
-            onSelect={() => dispatchGameAction(hotkey.action, target)}
-          >
-            {hotkey.shortDescription}
-            <DropdownMenuShortcut>{hotkey.key}</DropdownMenuShortcut>
-          </DropdownMenuItem>
+          <Fragment key={`${hotkey.action}-${index}`}>
+            <DropdownMenuItem
+              variant={hotkey.destructive ? 'destructive' : 'default'}
+              onSelect={() => dispatchGameAction(hotkey.action, target)}
+            >
+              {hotkey.shortDescription}
+              <DropdownMenuShortcut>{hotkey.key}</DropdownMenuShortcut>
+            </DropdownMenuItem>
+            {/* Destructive rows (Delete) get a divider after them so a
+                misclick can't slide from Delete straight into the next
+                action (Hand, on the battlefield-card menu). Skipped when
+                destructive is the last row (e.g. the token menu). */}
+            {hotkey.destructive && index < rows.length - 1 && <DropdownMenuSeparator />}
+          </Fragment>
         ))}
-        {/* The empty-board menu offers token creation via the same drag-to-board
-            grid as the toolbar's Create ▾ menu (it took the "-1/-1 counter"
-            slot). It performs no dispatchable action, so it lives here rather
-            than in the HOTKEYS catalog and carries no keyboard shortcut. */}
+        {/* The empty-board menu also offers keyword-token creation via the same
+            drag-to-board grid as the toolbar's Create ▾ menu, appended after the
+            +1/-1 counter rows above. It performs no dispatchable action, so it
+            lives here rather than in the HOTKEYS catalog and carries no keyboard
+            shortcut. */}
         {target?.kind === 'board' && (
           <CreateTokenGridItem
             label="Keyword counters"

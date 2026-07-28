@@ -28,10 +28,13 @@ export const TOUR_STEPS: Record<TourStepId, TourStep> = {
     tail: false,
     // There is no left-click-to-tap: tapping is the Space hotkey (routed by
     // hoverTarget) or the card's context menu. A board card is `menuFirst`, so on
-    // touch a single tap opens that menu straight away — no preview first.
+    // touch the *first* tap opens that menu (pick Tap there to finish the step),
+    // and a *second* tap on the same card swaps the menu for its preview — which
+    // is the two-tap read gesture the phone copy teaches as the follow-up. Naming
+    // "zoom in" first would be a lie: tap one is the menu, not the preview.
     copy: {
       desktop: '**Tap it.** Hover and press Space, or right-click and pick Tap.',
-      phone: '**Tap it.** Zoom in, press it, then pick Tap.',
+      phone: '**Tap the card** to open its menu, then pick Tap. (Tap it again to zoom in and read it.)',
     },
     advance: 'action',
   },

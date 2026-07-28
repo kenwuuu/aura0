@@ -118,6 +118,37 @@ describe('fetchImportedDeck', () => {
     await expect(promise).resolves.toMatchObject({ name: 'Winota: Snowball Stax' });
   });
 
+  /**
+   * The endpoint has already turned the deck site's answer into a reason and
+   * the fixes for it. Re-deriving that here from a status code would only be a
+   * worse guess, so the explanation travels intact to the dialog.
+   */
+  it('carries the endpoint’s explanation and its fixes through to the caller', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            error: 'Aura couldn’t find that deck on Moxfield.',
+            reason: 'deck_not_found',
+            fixes: ['Open the link in a new tab.', 'Or make the deck public.'],
+            detail: 'Moxfield replied with status 404.',
+          }),
+          { status: 404, headers: { 'content-type': 'application/json' } },
+        ),
+      ),
+    );
+
+    await expect(fetchImportedDeck(REF)).rejects.toMatchObject({
+      problem: {
+        reason: 'deck_not_found',
+        message: 'Aura couldn’t find that deck on Moxfield.',
+        fixes: ['Open the link in a new tab.', 'Or make the deck public.'],
+        detail: 'Moxfield replied with status 404.',
+      },
+    });
+  });
+
   /** The player closed the dialog. Waiting out a retry must not outlive that. */
   it('abandons the retry wait when the caller aborts', async () => {
     const fetchMock = vi.fn().mockResolvedValue(shed('5'));
@@ -183,6 +214,57 @@ describe('fetchImportedDeck', () => {
       expect(captures().find(([name]) => name === 'deck_url_import')![1]).toMatchObject({
         was_rate_limited: false,
       });
+    });
+
+    /**
+     * A binary succeeded/failed metric cannot tell "somebody pasted a private
+     * deck" — inherent, and unfixable in code — from "the adapter broke", which
+     * is ours and worth alerting on. That is what made Archidekt's headline 18%
+     * failure rate untrustworthy in #174.
+     */
+    it('records why a failed import failed', async () => {
+      vi.stubGlobal(
+        'fetch',
+        vi.fn().mockResolvedValue(
+          new Response(
+            JSON.stringify({
+              error: 'Aura couldn’t find that deck on Moxfield.',
+              reason: 'deck_not_found',
+              fixes: ['Open the link in a new tab.'],
+            }),
+            { status: 404, headers: { 'content-type': 'application/json' } },
+          ),
+        ),
+      );
+
+      await expect(fetchImportedDeck(REF)).rejects.toThrow();
+
+      expect(captures().find(([name]) => name === 'deck_url_import')![1]).toMatchObject({
+        outcome: 'failed',
+        failure_reason: 'deck_not_found',
+      });
+    });
+
+    /** A blocked or offline request never reached us, let alone the deck site. */
+    it('separates a failure to reach Aura from a failure at the deck site', async () => {
+      vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('Failed to fetch')));
+
+      await expect(fetchImportedDeck(REF)).rejects.toThrow();
+
+      expect(captures().find(([name]) => name === 'deck_url_import')![1]).toMatchObject({
+        outcome: 'failed',
+        failure_reason: 'aura_unreachable',
+      });
+    });
+
+    it('records no reason on a success', async () => {
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue(ok()));
+
+      await fetchImportedDeck(REF);
+
+      expect(
+        captures().find(([name]) => name === 'deck_url_import')![1],
+      ).not.toHaveProperty('failure_reason');
     });
 
     /** An abort never reached the network, so it spent no rate budget to record. */

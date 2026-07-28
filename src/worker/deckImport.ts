@@ -18,6 +18,14 @@ import {
   sourceLabel,
   upstreamApiUrl,
 } from '../features/deck-manager/url-import/deckUrls';
+import {
+  DeckImportErrorBody,
+  DeckImportProblem,
+  DeckImportReason,
+  deckImportError,
+  deckImportProblem,
+  problemOf,
+} from '../features/deck-manager/url-import/importErrors';
 import { GATE_NAME, SlotReservation } from './moxfieldGate';
 
 /**
@@ -40,8 +48,20 @@ import { GATE_NAME, SlotReservation } from './moxfieldGate';
  */
 const UPSTREAM_TIMEOUT_MS = 10_000;
 
-/** Edge-cache upstream deck documents briefly — a shared link is often opened by a whole pod at once. */
-const UPSTREAM_CACHE_TTL_SECONDS = 300;
+/**
+ * Edge-cache upstream deck documents briefly — a shared link is often opened by
+ * a whole pod at once.
+ *
+ * Short on purpose. The cache exists for the burst where four players paste the
+ * same link within a few seconds of each other, and 30s covers all of that. Five
+ * minutes did too, but it also broke the loop this feature actually runs in:
+ * paste a link, get told the deck is private or half-saved, fix it on the site,
+ * paste again. Under a 5-minute TTL that second paste replayed the *same broken
+ * document* and the player was told nothing had changed — which is exactly the
+ * dead end two players hit in #174, each retrying one deck three times inside a
+ * 277-second window. A retry has to be able to see a fix.
+ */
+const UPSTREAM_CACHE_TTL_SECONDS = 30;
 
 /**
  * What each source actually serves. A deck preview is an HTML page rather than
@@ -89,9 +109,53 @@ function jsonResponse(body: unknown, status = 200): Response {
  * An error the player should read verbatim. Anything not raised as one of these
  * is reported generically, so an upstream failure can't leak internals into the
  * import dialog.
+ *
+ * Used only for the replies no player is meant to see — a wrong method, a path
+ * under `/api/` that isn't ours. Everything reachable from the import dialog
+ * goes out through `problemResponse` instead, which carries the reason and the
+ * suggested fixes alongside the sentence.
  */
 export function errorResponse(message: string, status: number): Response {
   return jsonResponse({ error: message }, status);
+}
+
+/**
+ * A failure the import dialog can render in full: what happened, and what to
+ * try next.
+ *
+ * The message stays under `error` so that a browser holding a cached older
+ * build — which knew only that field — still shows a real sentence rather than
+ * a status code.
+ */
+function problemResponse(
+  problem: DeckImportProblem,
+  status: number,
+  extraHeaders: Record<string, string> = {},
+): Response {
+  const body: DeckImportErrorBody = {
+    error: problem.message,
+    reason: problem.reason,
+    fixes: problem.fixes,
+    ...(problem.detail === undefined ? {} : { detail: problem.detail }),
+  };
+
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...JSON_HEADERS, ...extraHeaders },
+  });
+}
+
+/** Shorthand for the common case: build a problem and send it. */
+function failWith(
+  reason: DeckImportReason,
+  status: number,
+  options: { source?: DeckSource; detail?: string; headers?: Record<string, string> } = {},
+): Response {
+  return problemResponse(
+    deckImportProblem(reason, { source: options.source, detail: options.detail }),
+    status,
+    options.headers,
+  );
 }
 
 export async function handleDeckImport(request: Request, env: DeckImportEnv = {}): Promise<Response> {
@@ -105,7 +169,9 @@ export async function handleDeckImport(request: Request, env: DeckImportEnv = {}
 
   const requested = new URL(request.url).searchParams.get('url');
   if (requested === null || requested.trim().length === 0) {
-    return errorResponse('Missing deck URL.', 400);
+    // Our own client always sends one, so this is a bug on our side rather than
+    // anything the player did — and it is described that way.
+    return failWith('aura_error', 400);
   }
 
   // The client's URL is re-parsed here rather than trusted. What comes back is a
@@ -114,10 +180,7 @@ export async function handleDeckImport(request: Request, env: DeckImportEnv = {}
   // host handed to it by a caller.
   const ref = parseDeckUrl(requested);
   if (ref === null) {
-    return errorResponse(
-      "That doesn't look like a deck link we support. Paste an Archidekt, Moxfield, TappedOut, MTGGoldfish or EDHREC deck link, e.g. https://archidekt.com/decks/24569510/my-deck",
-      400,
-    );
+    return failWith('link_not_supported', 400);
   }
 
   let headers: Record<string, string>;
@@ -127,27 +190,16 @@ export async function handleDeckImport(request: Request, env: DeckImportEnv = {}
     // A credentialed source with no credential configured. This is a deployment
     // fault, not the player's, and it must be loud: sending the request anyway
     // would collect a 403 and look exactly like a private deck.
-    return errorResponse(
-      `${sourceLabel(ref.source)} imports aren't configured on this deployment.`,
-      503,
-    );
+    return failWith('source_not_configured', 503, { source: ref.source });
   }
 
   const reservation = await reserveUpstreamSlot(ref, env);
   if (!reservation.granted) {
-    return new Response(
-      JSON.stringify({
-        error: `${sourceLabel(ref.source)} imports are busy right now. Try again in a moment.`,
-      }),
-      {
-        status: 429,
-        headers: {
-          ...JSON_HEADERS,
-          // Seconds, rounded up — a `Retry-After` of 0 would invite an immediate retry.
-          'retry-after': String(Math.ceil(reservation.retryAfterMs / 1000)),
-        },
-      },
-    );
+    return failWith('import_queue_busy', 429, {
+      source: ref.source,
+      // Seconds, rounded up — a `Retry-After` of 0 would invite an immediate retry.
+      headers: { 'retry-after': String(Math.ceil(reservation.retryAfterMs / 1000)) },
+    });
   }
   if (reservation.waitMs > 0) {
     await sleep(reservation.waitMs);
@@ -163,22 +215,20 @@ export async function handleDeckImport(request: Request, env: DeckImportEnv = {}
     } as RequestInit);
   } catch {
     // Timeout or transport failure — the site is unreachable from here.
-    return errorResponse(`Couldn't reach ${sourceLabel(ref.source)}. Please try again.`, 504);
+    return failWith('source_unreachable', 504, { source: ref.source });
   }
 
   if (!upstream.ok) {
-    return errorResponse(upstreamMessage(ref, upstream.status), upstream.status === 404 ? 404 : 502);
+    return upstreamFailure(ref, upstream.status);
   }
 
   let deck: ImportedDeck;
   try {
     deck = await readDeck(ref, upstream);
   } catch (error) {
-    // The adapters throw only with player-facing text (an empty or private
-    // deck, or a shape they no longer recognize).
-    const message =
-      error instanceof Error ? error.message : `Couldn't read that ${sourceLabel(ref.source)} deck.`;
-    return errorResponse(message, 422);
+    // The adapters raise `DeckImportError`, which already carries the player's
+    // explanation. Anything else arrived by accident and is reported as ours.
+    return problemResponse(problemOf(error, { source: ref.source }), 422);
   }
 
   return jsonResponse(deck);
@@ -333,7 +383,7 @@ async function readDeck(ref: DeckUrlRef, upstream: Response): Promise<ImportedDe
       try {
         payload = await upstream.json();
       } catch {
-        throw new Error("Archidekt returned a response we couldn't read.");
+        throw deckImportError('deck_unreadable', { source: 'archidekt' });
       }
       return extractArchidektDeck(payload as Parameters<typeof extractArchidektDeck>[0]);
     }
@@ -353,7 +403,7 @@ async function readDeck(ref: DeckUrlRef, upstream: Response): Promise<ImportedDe
       try {
         payload = await upstream.json();
       } catch {
-        throw new Error("EDHREC returned a response we couldn't read.");
+        throw deckImportError('deck_unreadable', { source: 'edhrec-average' });
       }
       return extractEdhrecAverageDeck(payload);
     }
@@ -362,25 +412,44 @@ async function readDeck(ref: DeckUrlRef, upstream: Response): Promise<ImportedDe
       try {
         payload = await upstream.json();
       } catch {
-        throw new Error("Moxfield returned a response we couldn't read.");
+        throw deckImportError('deck_unreadable', { source: 'moxfield' });
       }
       return extractMoxfieldDeck(payload as Parameters<typeof extractMoxfieldDeck>[0]);
     }
   }
 }
 
-/** Turn an upstream status into something a player can act on. */
-function upstreamMessage(ref: DeckUrlRef, status: number): string {
-  const site = sourceLabel(ref.source);
+/**
+ * Turn a status from the deck site into something a player can act on.
+ *
+ * The status we answer with is *not* the status we received. Two of those
+ * translations are load-bearing:
+ *
+ *  - A 429 from the site becomes a 502 from us, because 429 is the client's
+ *    signal that *our own* gate shed the request and a retry is worth waiting
+ *    for (`fetchImportedDeck`). Passing the site's 429 through would start a
+ *    retry into a throttle we have no slot in.
+ *  - Everything else that isn't a missing or private deck becomes a 502, which
+ *    is the honest reading: our proxy asked and got a bad answer.
+ *
+ * A 404 is deliberately not called "private" even though a private Archidekt
+ * deck is exactly what produces one. The site refuses to distinguish them, so
+ * naming one would be a guess — the fixes name both instead.
+ */
+function upstreamFailure(ref: DeckUrlRef, status: number): Response {
+  const source = ref.source;
+  // Worth quoting in a bug report, and worthless as a headline — so it rides in
+  // `detail`, where the dialog shows it small and last.
+  const detail = `${sourceLabel(source)} replied with status ${status}.`;
 
   if (status === 404) {
-    return `That ${site} deck doesn't exist. Check the link, or make sure the deck isn't private.`;
+    return failWith('deck_not_found', 404, { source, detail });
   }
   if (status === 403 || status === 401) {
-    return `That ${site} deck is private, so we can't read it. Make it public or unlisted and try again.`;
+    return failWith('deck_private', 403, { source, detail });
   }
   if (status === 429) {
-    return `${site} is rate-limiting us right now. Wait a moment and try again.`;
+    return failWith('source_rate_limited', 502, { source, detail });
   }
-  return `${site} returned an error (${status}). Please try again later.`;
+  return failWith('source_unavailable', 502, { source, detail });
 }

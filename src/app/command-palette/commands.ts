@@ -17,6 +17,8 @@ import { HOTKEYS } from '@/features/hotkeys/hotkeys';
 import { dispatchGameAction } from '@/features/hotkeys/gameActions';
 import { useOverlayStore } from '@/app/stores/overlayStore';
 import { useGameInstance } from '@/app/stores/gameInstanceStore';
+import { useSettingsModalStore } from '@/app/stores/settingsModalStore';
+import { useTourStore } from '@/features/onboarding';
 import { copyRoomLink } from '@/features/room/copyRoomLink';
 import { requestNewGame } from '@/features/room/startNewGame';
 import { getDepartedPlayers, requestRemovePlayer } from '@/features/player/removePlayer';
@@ -109,6 +111,20 @@ export function getCommands(): AppCommand[] {
       keywords: ['instructions', 'guide', 'faq', 'shortcuts'],
       section: 'Navigation',
       run: () => overlay.open('help'),
+    },
+    {
+      id: 'nav-settings',
+      label: 'Open Settings',
+      keywords: ['preferences', 'options', 'zoom', 'profile', 'name', 'color'],
+      section: 'Navigation',
+      run: () => useSettingsModalStore.getState().open(),
+    },
+    {
+      id: 'nav-replay-tour',
+      label: 'Replay the tour',
+      keywords: ['onboarding', 'tutorial', 'walkthrough', 'how to play'],
+      section: 'Navigation',
+      run: () => useTourStore.getState().requestReplay(),
     },
     {
       id: 'nav-copy-link',

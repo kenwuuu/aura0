@@ -14,8 +14,8 @@
  * already a known footgun here — see the comment in Toolbar.tsx).
  */
 import React from 'react';
-import { usePhoneLayout } from '@/shared/hooks';
 import { useElementRect, useViewportWidth } from './useElementRect';
+import { useShowTouchCopy } from './useShowTouchCopy';
 import { useTourStore } from './tourStore';
 
 /** Above the deck-import dialogs (10004), which are the highest thing in the app. */
@@ -64,7 +64,7 @@ function Copy({ text }: { text: string }) {
 }
 
 export function TourOverlay() {
-  const isPhone = usePhoneLayout();
+  const showTouchCopy = useShowTouchCopy();
   const viewportWidth = useViewportWidth();
 
   const active = useTourStore((s) => s.active);
@@ -171,7 +171,7 @@ export function TourOverlay() {
         }
       >
         <p className="leading-snug">
-          <Copy text={isPhone ? step.copy.phone : step.copy.desktop} />
+          <Copy text={showTouchCopy ? step.copy.phone : step.copy.desktop} />
         </p>
 
         <div className="mt-3 flex items-center justify-between gap-3">

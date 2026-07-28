@@ -27,8 +27,11 @@ import { usePileViewerHotkeyStore } from '@/features/game-dock/pileViewerHotkeyS
 import { usePileViewerOpenStore } from '@/features/game-dock/pileViewerOpenStore';
 import { DeckPersistenceService } from '@/infrastructure/persistence';
 import { triggerConfirmation } from '@/shared/utils/confirmation';
-import { logAction } from '@/features/action-log/actionLog';
+import { logAction, cardLogName } from '@/features/action-log/actionLog';
+import { useConfirmStore } from '@/app/stores/confirmStore';
+import { useSettingsStore } from '@/app/stores/settingsStore';
 import { YDOC_CARDS_ON_BOARD, YDOC_KEYWORD_TOKENS } from '@/constants';
+import type * as Y from 'yjs';
 import type { WhiteboardCard } from '@/features/battlefield/types';
 import type { KeywordToken } from '@/features/keyword-tokens/types';
 import type { PileType } from '@/features/player';
@@ -236,6 +239,49 @@ function executePeek(cardId: string): void {
 }
 
 /**
+ * Ask before deleting, then run `performDelete` if the player says yes.
+ *
+ * Delete is the only battlefield action that destroys a card outright — every
+ * moveTo* puts it in a pile you can dig it back out of, and there is no undo
+ * stack — while sitting on Backspace, which is easy to hit by accident. Gated
+ * on the `confirmCardDelete` preference, which the dialog's "Don't ask again"
+ * checkbox turns off (same setting as Settings › Display).
+ *
+ * This lives at the dispatch layer rather than inside
+ * `executeBattlefieldCardAction` because confirmation is async and the
+ * executor is called inside a `yDoc.transact` once per selected card — the
+ * question is about the whole batch, and it has to be asked before the
+ * transaction opens.
+ */
+function confirmThenDelete(
+  ids: string[],
+  yCards: Y.Map<WhiteboardCard>,
+  performDelete: () => void,
+): void {
+  // The 'delete' executor closes the menu itself, but that now happens only
+  // after the dialog is answered — close it up front so it isn't left sitting
+  // under the modal (or, on cancel, sitting there forever).
+  useContextMenuStore.getState().close();
+
+  const first = yCards.get(ids[0]);
+  // cardLogName keeps a face-down card anonymous ("a face-down card"), which
+  // matters even in your own dialog: it may be an opponent's card.
+  const subject = ids.length > 1
+    ? `${ids.length} cards`
+    : (first ? cardLogName(first) : 'this card');
+
+  useConfirmStore.getState().open({
+    title: ids.length > 1 ? `Delete ${ids.length} cards?` : 'Delete card?',
+    description: `Removes ${subject} from the battlefield. Deleted cards don't go to a pile, and this can't be undone.`,
+    confirmLabel: 'Delete',
+    destructive: true,
+    dontAskAgainLabel: "Don't ask again",
+    onSuppress: () => useSettingsStore.getState().setConfirmCardDelete(false),
+    onConfirm: performDelete,
+  });
+}
+
+/**
  * Route an action id (from `hotkeys.ts`'s `Hotkey.action`) to the executor
  * for the given target. Called by keyboard bindings (`useAllGameHotkeys`)
  * and by `GameContextMenu` on item click — the only two callers, so both
@@ -260,9 +306,14 @@ export function dispatchGameAction(action: string, target: MenuTarget): void {
         : [target.id];
       // One transaction → one undo step and one observer rebuild for the batch
       // (also batches the hand/deck writes the moveTo* actions delegate to).
-      yDoc.transact(() => {
+      const perform = () => yDoc.transact(() => {
         for (const id of ids) executeBattlefieldCardAction(action, id, yCards, yTokens, playerId);
       });
+      if (action === 'delete' && useSettingsStore.getState().confirmCardDelete) {
+        confirmThenDelete(ids, yCards, perform);
+        return;
+      }
+      perform();
       return;
     }
     case 'handCard':

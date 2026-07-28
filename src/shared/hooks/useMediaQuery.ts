@@ -47,3 +47,15 @@ export function useBreakpoint(breakpoint: Breakpoint): boolean {
 export function usePhoneLayout(): boolean {
   return !useBreakpoint('sm');
 }
+
+/**
+ * True on a touch-primary device (the OS reports a coarse pointer). This is
+ * about *input type*, not screen size: a tablet or a landscape phone is wider
+ * than the phone breakpoint yet still can't hover, right-click, or press keys.
+ * Reach for this — not `usePhoneLayout()` — when the branch is about which
+ * gestures the user actually has (e.g. which instructions to show). Mirrors the
+ * per-interaction `wasLastInputTouch()` the pointer handlers use.
+ */
+export function useCoarsePointer(): boolean {
+  return useMediaQuery('(pointer: coarse)');
+}

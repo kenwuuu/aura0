@@ -34,7 +34,7 @@ afterEach(() => {
   });
   useContextMenuStore.setState({ isOpen: false, target: null, x: 0, y: 0 });
   usePileViewerOpenStore.setState({ request: null });
-  usePileViewerHotkeyStore.setState({ actionHandler: null });
+  usePileViewerHotkeyStore.setState({ actionHandler: null, availableActions: new Set() });
   useScryStore.setState({ requested: false });
   useSurveilStore.setState({ requested: false });
   useTokenCardSearchStore.setState({ isOpen: false });
