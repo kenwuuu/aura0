@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import posthog from 'posthog-js';
+import { Pencil, Trash2 } from 'lucide-react';
 import { DeckStorageService } from '@/infrastructure/persistence';
 import { DeckMetadata, SavedDeck } from '@/features/player/types';
 import { Alert, AlertDescription } from '@/shared/ui/alert';
@@ -183,6 +184,10 @@ export function DeckSelectionModal({
                       Last modified: {formatDate(deck.lastModified)}
                     </p>
                   </div>
+                  {/* Drawn icons, not emoji: an emoji is a fixed multicolor
+                      glyph from the OS font, so it can't take the row's text
+                      color, can't shift on hover with everything around it, and
+                      renders differently on every platform. */}
                   <button
                     className="ml-4 px-3 py-2 text-gray-400 hover:text-blue-400 hover:bg-[#2a2a2a] rounded transition-colors"
                     onClick={(e) => handleEditDeck(deck.id, e)}
@@ -190,7 +195,7 @@ export function DeckSelectionModal({
                     aria-label={`Edit ${deck.name}`}
                     data-testid="deck-edit"
                   >
-                    ✏️
+                    <Pencil size={18} aria-hidden="true" />
                   </button>
                   <button
                     className="px-3 py-2 text-gray-400 hover:text-red-400 hover:bg-[#2a2a2a] rounded transition-colors"
@@ -199,7 +204,7 @@ export function DeckSelectionModal({
                     aria-label={`Delete ${deck.name}`}
                     data-testid="deck-delete"
                   >
-                    🗑️
+                    <Trash2 size={18} aria-hidden="true" />
                   </button>
                 </div>
               ))}

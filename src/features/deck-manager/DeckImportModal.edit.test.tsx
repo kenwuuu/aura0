@@ -240,6 +240,79 @@ describe('DeckImportModal — editing a saved deck', () => {
     });
   });
 
+  describe('going back to the deck list', () => {
+    const backButton = () => screen.getByRole('button', { name: 'Back to deck list' });
+
+    const renderWithBack = (onBack: () => void, deck?: SavedDeck) =>
+      render(
+        <DeckImportModal
+          isOpen
+          onClose={onClose}
+          onDeckImported={onDeckImported}
+          onDeckUpdated={onDeckUpdated}
+          onBack={onBack}
+          editing={deck}
+        />,
+      );
+
+    it('offers no way back when the caller has nowhere to send the player', () => {
+      renderEditing();
+
+      expect(screen.queryByRole('button', { name: 'Back to deck list' })).not.toBeInTheDocument();
+    });
+
+    it('returns to the list without saving anything', async () => {
+      const onBack = vi.fn();
+      const user = userEvent.setup();
+      renderWithBack(onBack, savedDeck());
+
+      await user.clear(listBox());
+      await user.type(listBox(), '60 Forest');
+      await user.click(backButton());
+
+      expect(onBack).toHaveBeenCalled();
+      // Backing out is a decision not to import this list — nothing should have
+      // reached storage, and no deck should have been handed to the game.
+      expect(saveDeckMock).not.toHaveBeenCalled();
+      expect(onDeckUpdated).not.toHaveBeenCalled();
+      expect(onDeckImported).not.toHaveBeenCalled();
+    });
+
+    it('does not leave a half-typed list behind for the next visit', async () => {
+      const onBack = vi.fn();
+      const user = userEvent.setup();
+      const { rerender } = renderWithBack(onBack);
+
+      await user.type(listBox(), '4 Lightning Bolt');
+      await user.click(backButton());
+
+      // Reopening for a fresh import must start clean, not resume an abandoned
+      // list the player already walked away from.
+      rerender(
+        <DeckImportModal
+          isOpen
+          onClose={onClose}
+          onDeckImported={onDeckImported}
+          onDeckUpdated={onDeckUpdated}
+          onBack={onBack}
+        />,
+      );
+      expect(listBox()).toHaveValue('');
+    });
+
+    it('cannot be used to walk out of an import already underway', async () => {
+      const onBack = vi.fn();
+      const user = userEvent.setup();
+      renderWithBack(onBack);
+
+      await user.type(nameBox(), 'My Deck');
+      await user.type(listBox(), '60 Mountain');
+      await user.click(screen.getByRole('button', { name: 'Import Deck' }));
+
+      expect(backButton()).toBeDisabled();
+    });
+  });
+
   it('rebuilds a list for a deck saved before decklists were kept', () => {
     const legacy = savedDeck();
     delete (legacy as Partial<SavedDeck>).decklistText;

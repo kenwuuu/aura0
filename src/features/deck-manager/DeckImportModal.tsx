@@ -6,7 +6,7 @@ import { SavedDeck } from '@/features/player/types';
 import { DeckImportHelpDialog } from './DeckImportHelpDialog';
 import { isSideboardCard, parseDecklistWithStats } from './DeckListParser';
 import { ModalFooter } from '@/shared/components/ModalFooter';
-import {InfoIcon} from "lucide-react"
+import {ArrowLeft, InfoIcon} from "lucide-react"
 import {
   Alert,
   AlertDescription,
@@ -48,6 +48,16 @@ interface DeckImportModalProps {
    * whoever was mid-game when they fixed a typo.
    */
   onDeckUpdated?: (deck: SavedDeck) => void;
+  /**
+   * Return to the deck list this dialog was opened from.
+   *
+   * Distinct from `onClose`, which puts the player back in the game: both ways
+   * into this dialog come from the deck list, so "not this one" almost always
+   * means "let me pick another", not "forget the whole thing". Omit it and no
+   * back button is offered — a caller that opened this dialog from somewhere
+   * else has nowhere to send the player back to.
+   */
+  onBack?: () => void;
 }
 
 const styles: { [key: string]: React.CSSProperties } = {
@@ -103,6 +113,29 @@ const styles: { [key: string]: React.CSSProperties } = {
     justifyContent: 'center',
     transition: 'all 0.2s',
     lineHeight: '1',
+  },
+  // The back button and the title read as one unit — "← Import Deck" — so they
+  // share the left side and leave `space-between` to push Close to the right.
+  headerLeft: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '4px',
+  },
+  backButton: {
+    width: '32px',
+    height: '32px',
+    borderRadius: '4px',
+    border: 'none',
+    backgroundColor: 'transparent',
+    color: '#9ca3af',
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    transition: 'all 0.2s',
+    // Pull the arrow out to the panel's edge so it lines up with the body's
+    // padding rather than sitting indented from it.
+    marginLeft: '-8px',
   },
   formGroup: {
     marginBottom: '10px',
@@ -208,6 +241,7 @@ export function DeckImportModal({
   onDeckImported,
   editing,
   onDeckUpdated,
+  onBack,
 }: DeckImportModalProps) {
   const [deckText, setDeckText] = useState('');
   const [deckName, setDeckName] = useState('');
@@ -462,15 +496,42 @@ export function DeckImportModal({
     onClose();
   };
 
+  /**
+   * Leave for the deck list.
+   *
+   * Clears the form on the way out, exactly as closing does — going back is a
+   * decision not to import *this* list, so a half-typed one has no reason to
+   * still be sitting there on the next visit.
+   */
+  const handleBack = () => {
+    handleClose();
+    onBack?.();
+  };
+
   return (
     <Dialog.Root open={isOpen} onOpenChange={onClose}>
       <Dialog.Portal>
         <Dialog.Overlay style={styles.overlay} />
         <Dialog.Content style={styles.content} data-testid="deck-import-modal">
           <div style={styles.header}>
-            <Dialog.Title style={styles.title}>
-              {editing === undefined ? 'Import Deck' : 'Edit Deck'}
-            </Dialog.Title>
+            <div style={styles.headerLeft}>
+              {onBack !== undefined && (
+                <button
+                  type="button"
+                  style={styles.backButton}
+                  onClick={handleBack}
+                  disabled={isImporting}
+                  title="Back to deck list"
+                  aria-label="Back to deck list"
+                  data-testid="deck-import-back"
+                >
+                  <ArrowLeft size={20} aria-hidden="true" />
+                </button>
+              )}
+              <Dialog.Title style={styles.title}>
+                {editing === undefined ? 'Import Deck' : 'Edit Deck'}
+              </Dialog.Title>
+            </div>
             <Dialog.Close style={styles.closeButton} onClick={handleClose}>×</Dialog.Close>
           </div>
 

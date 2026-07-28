@@ -92,6 +92,13 @@ export function DeckManager({ onDeckSelected }: DeckManagerProps) {
         onDeckImported={handleDeckImported}
         editing={editingDeck}
         onDeckUpdated={handleDeckUpdated}
+        // Both ways into this dialog come from the deck list, so backing out of
+        // it should land there rather than dropping the player into the game.
+        onBack={() => {
+          setShowImportModal(false);
+          setEditingDeck(undefined);
+          setSelectionModalOpen(true);
+        }}
       />
     </>
   );
