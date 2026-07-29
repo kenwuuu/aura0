@@ -59,6 +59,50 @@ describe('PileViewerReact — tap-to-select + destination bar', () => {
   });
 });
 
+describe('PileViewerReact — play to board face up', () => {
+  it('routes the menu action to onPlayToBattlefield face up', () => {
+    const onPlayToBattlefield = vi.fn();
+    const { cards } = renderDeckViewer({ onPlayToBattlefield, onMoveToHand: () => {} });
+
+    act(() => {
+      usePileViewerHotkeyStore.getState().actionHandler!('playToBattlefield', cards[0].id);
+    });
+
+    expect(onPlayToBattlefield).toHaveBeenCalledTimes(1);
+    expect(onPlayToBattlefield.mock.calls[0][0]).toMatchObject({ id: cards[0].id });
+    // Explicitly face up, not merely "facedown omitted" — the callback branches
+    // on the flag, so an undefined here would be indistinguishable from a
+    // caller that forgot to pass it.
+    expect(onPlayToBattlefield.mock.calls[0][1]).toEqual({ facedown: false });
+  });
+
+  it('plays the whole selection face up when one exists', async () => {
+    const user = tapThroughModal();
+    const onPlayToBattlefield = vi.fn();
+    renderDeckViewer({ onPlayToBattlefield, onMoveToHand: () => {} });
+
+    const cardEls = await screen.findAllByTestId('pile-viewer-card');
+    await user.click(cardEls[0]);
+    await user.click(cardEls[1]);
+    const selectedIds = [idOf(cardEls[0]), idOf(cardEls[1])].sort();
+
+    act(() => {
+      usePileViewerHotkeyStore.getState().actionHandler!('playToBattlefield', idOf(cardEls[2])!);
+    });
+
+    const playedIds = onPlayToBattlefield.mock.calls.map((c) => (c[0] as { id: string }).id).sort();
+    expect(playedIds).toEqual(selectedIds);
+    expect(onPlayToBattlefield.mock.calls.every((c) => c[1]?.facedown === false)).toBe(true);
+  });
+
+  it('publishes both plays together — the one callback grants both', () => {
+    renderDeckViewer({ onPlayToBattlefield: () => {}, onMoveToHand: () => {} });
+
+    const published = usePileViewerHotkeyStore.getState().availableActions;
+    expect([...published].sort()).toEqual(['moveToHand', 'playFacedown', 'playToBattlefield']);
+  });
+});
+
 describe('PileViewerReact — play to board facedown', () => {
   it('routes the menu action to onPlayToBattlefield with the facedown flag', () => {
     const onPlayToBattlefield = vi.fn();
@@ -93,19 +137,14 @@ describe('PileViewerReact — play to board facedown', () => {
     expect(onPlayToBattlefield.mock.calls.every((c) => c[1]?.facedown === true)).toBe(true);
   });
 
-  it('publishes only the actions it was given callbacks for', () => {
-    renderDeckViewer({ onPlayToBattlefield: () => {}, onMoveToHand: () => {} });
-
-    const published = usePileViewerHotkeyStore.getState().availableActions;
-    expect([...published].sort()).toEqual(['moveToHand', 'playFacedown']);
-  });
-
-  it('publishes no facedown play for a viewer that cannot play to the board', () => {
+  it('publishes neither play for a viewer that cannot play to the board', () => {
     // The scry viewer only reorders the top of the library — it has no play
-    // callback, so the menu must not offer the row there.
+    // callback, so the menu must offer neither row there.
     renderDeckViewer({ onMoveToDeckTop: () => {}, onMoveToDeckBottom: () => {} });
 
-    expect(usePileViewerHotkeyStore.getState().availableActions.has('playFacedown')).toBe(false);
+    const published = usePileViewerHotkeyStore.getState().availableActions;
+    expect(published.has('playFacedown')).toBe(false);
+    expect(published.has('playToBattlefield')).toBe(false);
   });
 });
 

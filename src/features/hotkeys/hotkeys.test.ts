@@ -74,6 +74,43 @@ describe('pile-viewer context menus', () => {
       expect(actions, `the ${pileType} pile should not offer playFacedown`).not.toContain('playFacedown');
     }
   });
+
+  it('offers "play to board" face up on every pile-viewer card, above its facedown twin', () => {
+    for (const context of [
+      HotkeyContext.DeckCard,
+      HotkeyContext.Discard,
+      HotkeyContext.Exile,
+      HotkeyContext.Sideboard,
+      HotkeyContext.Scry,
+    ]) {
+      const actions = getMenuActionsForTarget({ kind: 'pileViewerCard', id: 'card-1', context })
+        .map((hotkey) => hotkey.action);
+
+      expect(actions, `${context} should offer playToBattlefield`).toContain('playToBattlefield');
+      // Face up is the common case, so it reads first. Catalog order decides
+      // menu order, which is the only reason these two entries are adjacent.
+      expect(actions.indexOf('playToBattlefield')).toBeLessThan(actions.indexOf('playFacedown'));
+      // One entry, not two: the row a viewer card shows must be the same
+      // catalog action the deck node's `P` fires, or they can drift apart.
+      expect(actions.filter((a) => a === 'playToBattlefield')).toHaveLength(1);
+    }
+  });
+
+  it('keeps "play to board" on the deck node and off the other pile nodes', () => {
+    // Unlike its face-down twin, playing face up *is* a blind top-of-deck
+    // action — but only for the deck. Exile/discard/sideboard are played from
+    // by picking a card in the viewer, so their nodes must not gain the row
+    // just because the pile-viewer context did.
+    expect(
+      getMenuActionsForTarget({ kind: 'pile', pileType: 'deck' }).map((h) => h.action),
+    ).toContain('playToBattlefield');
+
+    for (const pileType of ['exile', 'discard', 'sideboard'] as const) {
+      const actions = getMenuActionsForTarget({ kind: 'pile', pileType }).map((h) => h.action);
+      expect(actions, `the ${pileType} pile should not offer playToBattlefield`)
+        .not.toContain('playToBattlefield');
+    }
+  });
 });
 
 /**

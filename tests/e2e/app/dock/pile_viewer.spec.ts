@@ -56,6 +56,62 @@ test('testDeckViewerPlayCardFacedownToBoard', async ({ page }) => {
   await expect(boardCardNode(page, added[0]).getByAltText('Card Back')).toBeVisible();
 });
 
+/**
+ * The face-up twin of the row above, and the common case. It's the same catalog
+ * action the deck node's `P` fires, just aimed at the picked card instead of the
+ * top of the library — so the board is again the proof: face up means the card's
+ * own art, never the generic back.
+ */
+test('testDeckViewerPlayCardFaceupToBoard', async ({ page }) => {
+  const before = new Set(await boardCardIds(page));
+
+  await openPileViewer(page, 'deck');
+  await waitForPileViewerReady(page);
+  // The front <img> carries the card's name whether or not the deck is revealed
+  // (reveal only toggles which face is visible), so this reads it either way.
+  const playedName = await secondCard(page).locator('img').first().getAttribute('alt');
+  await secondCard(page).click({ button: 'right' });
+  // Label + its `P` shortcut: "Play to board facedown" is the neighbouring row.
+  await page.getByText('Play to boardP').click();
+
+  await expectPileCount(page, 'deck', 91);
+
+  // Close the viewer to inspect the board it was covering.
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('dialog', { name: 'Search Deck' })).toBeHidden();
+
+  const added = (await boardCardIds(page)).filter((id) => !before.has(id));
+  expect(added).toHaveLength(1);
+  await expect(boardCardNode(page, added[0]).getByAltText(playedName!)).toBeVisible();
+  await expect(boardCardNode(page, added[0]).getByAltText('Card Back')).toHaveCount(0);
+});
+
+/**
+ * Every pile viewer offers the play, not just the deck's — and the `P` the menu
+ * row advertises really fires inside the viewer (a second key binding, in the
+ * PileViewer scope, distinct from the deck node's).
+ */
+test('testDiscardViewerPlayCardFaceupHotkey', async ({ page }) => {
+  await millCardsFromDeck(page, 'd', 7);
+  await expectPileCount(page, 'discard', 7);
+  const before = new Set(await boardCardIds(page));
+
+  await openPileViewer(page, 'discard');
+  await waitForPileViewerReady(page);
+  const playedName = await secondCard(page).locator('img').first().getAttribute('alt');
+  await secondCard(page).hover();
+  await page.keyboard.press('p');
+
+  await expectPileCount(page, 'discard', 6);
+
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('dialog', { name: 'Discard Pile' })).toBeHidden();
+
+  const added = (await boardCardIds(page)).filter((id) => !before.has(id));
+  expect(added).toHaveLength(1);
+  await expect(boardCardNode(page, added[0]).getByAltText(playedName!)).toBeVisible();
+});
+
 test('testPilePlayFacedownIsNotOfferedOnThePileItself', async ({ page }) => {
   // The pile's own menu acts blind on the top card; playing face down is always
   // a deliberate pick, so the row belongs to the viewer only.

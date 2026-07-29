@@ -79,8 +79,8 @@ type SortOrder = 'top-to-bottom' | 'bottom-to-top' | 'alphabetical';
  * The 6 pile-viewer card moves, and the callback each dispatches to. Both the
  * right-click menu and the pile-viewer hotkey layer route through this one
  * table (see `dispatchPileCardAction`) instead of two mappings that can drift
- * apart. `playFacedown` is the one card action that isn't a pile→pile move, so
- * it sits beside this table rather than in it.
+ * apart. The two plays aren't pile→pile moves, so they sit in their own table
+ * below rather than in this one.
  */
 type PileMoveAction =
   | 'moveToHand'
@@ -97,6 +97,19 @@ const PILE_MOVE_CALLBACKS: Record<PileMoveAction, keyof PileViewerCallbacks> = {
   moveToDeckTop: 'onMoveToDeckTop',
   moveToDeckBottom: 'onMoveToDeckBottom',
   moveToSideboard: 'onMoveToSideboard',
+};
+
+/**
+ * The two ways a picked card goes straight to the battlefield: face up, or
+ * hidden (manifest, cloak, foretell). Both are the same play through the same
+ * `onPlayToBattlefield` callback — the flag is the entire difference — so one
+ * table drives both instead of two branches that could disagree about what
+ * "play from a pile" means. A viewer that can do either can do both, which is
+ * why `availableActions` publishes them together.
+ */
+const PILE_PLAY_ACTIONS: Record<string, { facedown: boolean }> = {
+  playToBattlefield: { facedown: false },
+  playFacedown: { facedown: true },
 };
 
 function pileTypeToHotkeyContext(pileType: PileType): HotkeyContext {
@@ -384,8 +397,9 @@ export function PileViewerReact({
   const dispatchPileCardAction = React.useCallback((action: string, cardId: string) => {
     const card = cards.find((c) => c.id === cardId);
     if (!card) return;
-    if (action === 'playFacedown') {
-      callbacks.onPlayToBattlefield?.(card, { facedown: true });
+    const play = PILE_PLAY_ACTIONS[action];
+    if (play) {
+      callbacks.onPlayToBattlefield?.(card, { facedown: play.facedown });
       return;
     }
     const callbackKey = PILE_MOVE_CALLBACKS[action as PileMoveAction];
@@ -402,14 +416,17 @@ export function PileViewerReact({
   // What this viewer can actually do, derived from the callbacks it was handed
   // — the same presence rule as the destination bar and the key legend. The
   // right-click menu reads this (via the hotkey store) so it only ever offers
-  // rows that will do something: no "Play to board facedown" in the scry
-  // viewer, and no menu at all on a read-only opponent pile.
+  // rows that will do something: neither play row in the scry viewer (it only
+  // reorders the top of the library), and no menu at all on a read-only
+  // opponent pile.
   const availableActions = React.useMemo(() => {
     const actions = new Set<string>();
     for (const [action, callbackKey] of Object.entries(PILE_MOVE_CALLBACKS)) {
       if (typeof callbacks[callbackKey] === 'function') actions.add(action);
     }
-    if (typeof callbacks.onPlayToBattlefield === 'function') actions.add('playFacedown');
+    if (typeof callbacks.onPlayToBattlefield === 'function') {
+      Object.keys(PILE_PLAY_ACTIONS).forEach((action) => actions.add(action));
+    }
     return actions;
   }, [callbacks]);
 
