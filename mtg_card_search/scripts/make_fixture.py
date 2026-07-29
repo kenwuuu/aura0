@@ -2,7 +2,7 @@
 """Generate the committed test fixture from the real Scryfall dataset.
 
 The lookup contract is "every real card resolves" — a fabricated fixture can't
-represent that, so this samples the *real* `default_cards.ndjson` instead. It
+represent that, so this samples the *real* dataset instead. It
 takes a stratified slice: at least a few real cards of every `layout` (so the
 `art_series` skip and every dfc/split/meld/etc. path is exercised), plus cards
 that carry the rarer keying fields (`flavor_name`, `printed_name`), `//` names,
@@ -14,7 +14,7 @@ fixture stays a faithful Scryfall object, not a re-serialized approximation.
 Rerun only when Scryfall introduces a new layout (rare — a few times a year):
 
     python3 scripts/make_fixture.py \
-        --input cards/default_cards.ndjson \
+        --input cards/all_cards.zndjson \
         --output tests/fixtures/sample_cards.ndjson
 
 Defaults resolve relative to the service root, so a bare `python3
@@ -24,10 +24,30 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from pathlib import Path
 
 SERVICE_ROOT = Path(__file__).resolve().parent.parent
-DEFAULT_INPUT = SERVICE_ROOT / "cards" / "default_cards.ndjson"
+sys.path.insert(0, str(SERVICE_ROOT))
+
+import block_store  # noqa: E402
+
+
+def _iter_source_lines(path: Path):
+    """Yield rows from either storage format.
+
+    The fixture's own output stays plain text (it is committed and reviewed as
+    a diff), but its *input* is whatever the server holds — block-compressed in
+    normal operation, plain .ndjson on an un-migrated box or an ad-hoc sample.
+    """
+    if path.suffix == block_store.DATA_EXT:
+        for _voffset, raw in block_store.iter_lines(path):
+            yield raw.decode("utf-8")
+        return
+    with path.open("r", encoding="utf-8") as f:
+        for line in f:
+            yield line.rstrip("\n")
+DEFAULT_INPUT = SERVICE_ROOT / "cards" / f"all_cards{block_store.DATA_EXT}"
 DEFAULT_OUTPUT = SERVICE_ROOT / "tests" / "fixtures" / "sample_cards.ndjson"
 
 # How many cards to keep per layout, and per edge-case bucket. Small on purpose:
@@ -59,9 +79,7 @@ def make_fixture(input_path: Path, output_path: Path) -> None:
     def keep(card_id: str, line: str) -> None:
         selected.setdefault(card_id, line)
 
-    with input_path.open("r", encoding="utf-8") as f:
-        for line in f:
-            line = line.rstrip("\n")
+    for line in _iter_source_lines(input_path):
             if not line:
                 continue
             card = json.loads(line)
@@ -121,7 +139,8 @@ def main() -> None:
     if not args.input.exists():
         raise SystemExit(
             f"Input not found: {args.input}\n"
-            "Point --input at a populated default_cards.ndjson "
+            "Point --input at a populated dataset — either a block-compressed "
+            f"*{block_store.DATA_EXT} or a plain *.ndjson "
             "(run data_updater.py, or use the copy on the server)."
         )
     make_fixture(args.input, args.output)

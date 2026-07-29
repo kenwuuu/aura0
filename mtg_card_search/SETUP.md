@@ -54,10 +54,36 @@ if you'd rather do it by hand or understand what it's doing. Either way, step
    mkdir -p cards   # or wherever CARD_JSON_DIR points
    python3 data_updater.py
    ```
-   This downloads Scryfall's bulk JSON, converts it to NDJSON, and builds the
-   memory-mapped index artifacts (`<name>.marisa` / `.offsets` / `.index.json`)
-   the server loads at startup. Expect it to take roughly a minute depending on
-   dataset size and network speed.
+   This downloads Scryfall's gzipped JSON Lines bulk file
+   (`<name>.jsonl.gz`), transcodes it into the block-compressed
+   `<name>.zndjson` the server reads, and builds the memory-mapped index
+   artifacts (`<name>.marisa` / `.offsets` / `.index.json`) the server loads at
+   startup. Expect it to take roughly a minute depending on dataset size and
+   network speed.
+
+   **Disk budget.** The production dataset is `all_cards` — every card in every
+   language (see the note below). Raw, that is 2.9 GB of JSON, which the
+   droplet does not have room for; rows are therefore stored block-compressed
+   (~8x, see [`block_store.py`](block_store.py)):
+
+   | | on disk |
+   |---|---|
+   | `all_cards.zndjson` (steady state) | **~355 MB** |
+   | `.jsonl.gz` download (transient) | ~390 MB |
+   | index artifacts | ~10 MB |
+   | **peak during a refresh** | **~1.15 GB** |
+
+   A refresh keeps the previous `.zndjson` until the new one is promoted, hence
+   the peak. Budget ~1.5 GB free. An uncleaned bulk download filling `/` is
+   what wedged the droplet once already. RAM is not the constraint: the index
+   build peaks under 200 MB RSS and the loaded trie is ~5 MB.
+
+   > **Why `all_cards`.** Anything narrower (`default_cards`, `oracle_cards`) is
+   > English-only, so a decklist pasted in Portuguese resolves nothing and the
+   > player silently gets a partial deck ([#173](https://github.com/kenwuuu/aura0/issues/173)).
+   > `all_cards` carries each printing's localized `printed_name`, which
+   > `card_index.default_key_extractor` already indexes, so localized names
+   > resolve to the right card with no lookup-path changes.
 
 5. Install [Caddy](https://caddyserver.com/docs/install) as a reverse proxy
    in front of uvicorn. Example `Caddyfile` (adjust the domain, or use
@@ -181,6 +207,45 @@ restart again to roll back.
 
 > Zero-downtime, two-instance blue-green deploys (no restart blip at all) are
 > documented in [Zero-downtime deploys (blue-green)](#zero-downtime-deploys-blue-green).
+
+### Switching an existing server to a different `BULK_DATA_TYPES`
+
+Changing the dataset is not just an `.env` edit — the server refuses to start
+until the new `<name>.zndjson` exists, and the old dataset's files are left
+behind. To move a running server from `default_cards` to `all_cards`:
+
+```
+df -h /                                  # need ~1.5 GB free; see step 4 above
+vim .env                                 # BULK_DATA_TYPES=all_cards
+python3 data_updater.py                  # downloads + unpacks + indexes the new dataset
+sudo systemctl restart mtg-card-search
+./scripts/smoke_test.sh
+curl -s localhost:8000/v1/health         # confirm the dataset name switched
+rm cards/default_cards.*                 # only after the smoke test passes
+```
+
+Delete the old dataset's files **after** the smoke test passes, not before —
+they are the rollback. `.dataset_counts.json` keeps a per-dataset count, so the
+sanity check doesn't compare the new dataset against the old one's size.
+
+`scripts/push_env.sh -h HOST` pushes the local `.env` if you'd rather not edit
+it on the server.
+
+### Migrating a server from plain `.ndjson` to block-compressed rows
+
+Rows used to be stored as plain `<name>.ndjson`. A server carrying the dataset
+it already wants can adopt the new format without re-downloading it:
+
+```
+python3 data_updater.py --recompress      # <name>.ndjson -> <name>.zndjson, then reindex
+sudo systemctl restart mtg-card-search
+./scripts/smoke_test.sh
+rm cards/<name>.ndjson                    # only after the smoke test passes
+```
+
+This needs the plain file's size free transiently, since both exist until you
+delete the old one. If you're changing datasets anyway, skip it — a normal
+`data_updater.py` run writes the new format directly.
 
 ## Zero-downtime deploys (blue-green)
 
