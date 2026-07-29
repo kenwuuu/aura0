@@ -4,7 +4,7 @@
  * Covers:
  * - Toolbar buttons: Untap All, Draw, Pass
  * - Actions dropdown: Draw X, Mill, Exile Top, Random Discard, Shuffle, Mulligan,
- *   Scry, Surveil, Look at Top, Reveal Hand, Reset Deck
+ *   Scry, Surveil, View Deck, Reveal Hand, Reset Deck
  * - Create dropdown: Token (grid visible), Token Card (search modal), Label (disabled)
  * - PileViewer: "Close & Shuffle" in deck viewer, "Exile All" in discard viewer
  */
@@ -114,15 +114,32 @@ test('Actions > Shuffle logs a shuffle', async ({ page }) => {
 
 // ── Actions: Mulligan ─────────────────────────────────────────────────────────
 
-test('Actions > Mulligan returns hand and redraws 7', async ({ page }) => {
+/**
+ * The toolbar used to mulligan outright while the `M` key and the deck menu both
+ * asked first — the drift that came out of the toolbar owning a second copy of
+ * this action. Now all three dispatch one executor, so the toolbar confirms too.
+ */
+test('Actions > Mulligan confirms, then returns hand and redraws 7', async ({ page }) => {
   await toolbar(page).getByText('Actions').click();
   await page.getByRole('menuitem', { name: 'Mulligan' }).click();
+
+  // triggerConfirmation's dialog is keyboard-driven; M is mulligan's confirm key.
+  await expect(page.getByRole('dialog').filter({ hasText: 'Mulligan?' })).toBeVisible({ timeout: 3000 });
+  await expect(page.locator('text=took a mulligan')).toBeHidden();
+
+  await page.keyboard.press('m');
+
   await expect(page.locator('text=took a mulligan')).toBeVisible({ timeout: 3000 });
+
+  // Still commander + 7. The commander is in the command zone, not the library,
+  // so a mulligan redraws around it — a hand of 7 would mean Krenko got
+  // shuffled into the deck where he can never be cast.
+  await expectHandCount(page, 8);
 });
 
 // ── Actions: Reset Deck ───────────────────────────────────────────────────────
 
-test('Actions > Reset Deck confirms, then returns all cards to the deck', async ({ page }) => {
+test('Actions > Reset Deck confirms, then restarts with a fresh opening hand', async ({ page }) => {
   // Build up some non-deck state: one card milled to discard, one exiled.
   await toolbar(page).getByText('Actions').click();
   await page.getByRole('menuitem', { name: 'Mill' }).click();
@@ -142,7 +159,9 @@ test('Actions > Reset Deck confirms, then returns all cards to the deck', async 
   await dialog.getByRole('button', { name: 'Reset' }).click();
   await expect(dialog).not.toBeVisible({ timeout: 3000 });
 
-  await expectHandCount(page, 0);
+  // The milled and exiled cards go back, and the player is dealt a new opening
+  // hand — 8 for the default deck (Krenko + 7), the same as on first boot.
+  await expectHandCount(page, 8);
   await expectPileCount(page, 'discard', 0);
   await expectPileCount(page, 'exile', 0);
 });
@@ -159,11 +178,13 @@ test('Actions > Reset Deck Cancel leaves state untouched', async ({ page }) => {
   await expectHandCount(page, 8);
 });
 
-// ── Actions: Look at Top ──────────────────────────────────────────────────────
+// ── Actions: View Deck ────────────────────────────────────────────────────────
 
-test('Actions > Look at Top opens deck viewer', async ({ page }) => {
+// Was "Look at Top", which opened the whole deck viewer regardless of the name.
+// It is now the deck-targeted toolbar placement of the deck node's own "View".
+test('Actions > View Deck opens deck viewer', async ({ page }) => {
   await toolbar(page).getByText('Actions').click();
-  await page.getByRole('menuitem', { name: 'Look at Top' }).click();
+  await page.getByRole('menuitem', { name: 'View Deck' }).click();
   await expect(page.getByRole('dialog', { name: 'Search Deck' })).toBeVisible({ timeout: 5000 });
   await page.keyboard.press('Escape');
 });

@@ -49,14 +49,64 @@ export const HotkeyScope = {
 
 export type HotkeyScope = typeof HotkeyScope[keyof typeof HotkeyScope];
 
+/** Which of the toolbar's three rows an action sits in. */
+export type ToolbarSurface = 'button' | 'actions' | 'create';
+
+/**
+ * Where an action appears in the Game Actions toolbar, if at all.
+ *
+ * The toolbar is the catalog's third surface (the keyboard and the context
+ * menus are the other two) and the only one with **no hover**: nothing is under
+ * the cursor when you click "Mill". So a placement has to name the target its
+ * dispatch runs against, which `context` cannot express — `context` says which
+ * menus show a row, not what a targetless click acts on.
+ */
+export interface ToolbarPlacement {
+  surface: ToolbarSurface;
+  /**
+   * The `MenuTarget` kind a toolbar click dispatches against.
+   * - `'board'` — the target-free globals (Draw, Shuffle, Scry…).
+   * - `'deck'`  — rows that act blind on the top of your library. "Exile Top"
+   *   is plain `moveToExile` aimed at the deck pile: the same action, and the
+   *   same executor, that the deck node lists as just "Exile".
+   */
+  target: 'board' | 'deck';
+  /**
+   * Sort key within `surface`. Sparse, so an insert doesn't renumber its
+   * neighbours. This exists because catalog order is *semantic* — it drives
+   * context-menu row order, grouped by zone — while the toolbar's Actions ▾ is
+   * grouped for a different reader (deck manipulation, then hand, then the
+   * destructive reset). One array can't sort both, so the toolbar carries its
+   * own key rather than bending the catalog's.
+   */
+  order: number;
+  /**
+   * Toolbar label, when `shortDescription` doesn't survive losing its target.
+   * Next to the deck node, "Exile" is unambiguous; alone in a toolbar it isn't,
+   * so that row reads "Exile Top" there. Defaults to `shortDescription`.
+   */
+  label?: string;
+}
+
 export interface Hotkey {
   key: string; // Display name for UI (e.g., "Space", "+  or  =")
   keys: string[]; // Actual key bindings for react-hotkeys-hook (e.g., ["space"], ["+", "="])
+  /**
+   * Which context menus offer this row. Empty means none — a toolbar-only
+   * action (Pass, Reset Deck) that no surface hovers, and so has no menu to
+   * belong to. Note this is independent of `keys`; see the CLAUDE.md in this
+   * directory.
+   */
   context: HotkeyContext[];
   shortDescription: string;
   longDescription: string;
   action: string; // Unique action identifier (e.g., "tap", "draw", "addCounter")
-  /** Rendered in the danger/destructive style in the context menu (GameContextMenu). */
+  /**
+   * Rendered in the danger style by every surface that draws catalog rows — the
+   * context menu (`GameContextMenu`) and the toolbar's dropdowns
+   * (`GameActionsToolbar`). Reserved for actions that discard state the player
+   * can't get back.
+   */
   destructive?: boolean;
   /**
    * Show this row in the context menu only when it was opened by touch (a tap),
@@ -67,6 +117,12 @@ export interface Hotkey {
    * way to adjust the count there. The keyboard ↑/↓ bindings are unaffected.
    */
   touchMenuOnly?: boolean;
+  /** Toolbar placement, if this action is offered there. See ToolbarPlacement. */
+  toolbar?: ToolbarPlacement;
+  /** Rendered but non-interactive — an action that isn't built yet. */
+  disabled?: boolean;
+  /** Shown beside a disabled row (e.g. "Coming soon"). */
+  disabledReason?: string;
 }
 
 export const HOTKEYS: Hotkey[] = [
@@ -82,6 +138,10 @@ export const HOTKEYS: Hotkey[] = [
     shortDescription: 'View',
     longDescription: 'View pile contents',
     action: 'viewPile',
+    // The toolbar aims this at the deck. It was previously a second action
+    // called "Look at Top", which opened the *whole* deck viewer despite the
+    // name — same store call, same result, misleading label.
+    toolbar: { surface: 'actions', target: 'deck', order: 50, label: 'View Deck' },
   },
   // Global shortcuts (work anywhere)
   {
@@ -91,6 +151,57 @@ export const HOTKEYS: Hotkey[] = [
     shortDescription: 'Draw',
     longDescription: 'Draw',
     action: 'draw',
+    toolbar: { surface: 'button', target: 'board', order: 20 },
+  },
+  {
+    // Toolbar-only: there is no surface to hover for "it's your turn now", so
+    // it carries no context and no key — it only ever logs.
+    key: '',
+    keys: [],
+    context: [],
+    shortDescription: 'Pass',
+    longDescription: 'Pass the turn to the next player',
+    action: 'pass',
+    toolbar: { surface: 'button', target: 'board', order: 30 },
+  },
+  // Deck-library actions. Each reads or spends the top of your library, so all
+  // four carry the 'deck' context and appear on the deck node's menu as well as
+  // in the toolbar — they were toolbar-only until the registries were unified.
+  {
+    key: '',
+    keys: [],
+    context: ['deck'],
+    shortDescription: 'Draw X',
+    longDescription: 'Draw a chosen number of cards',
+    action: 'drawX',
+    toolbar: { surface: 'actions', target: 'board', order: 10 },
+  },
+  {
+    key: '',
+    keys: [],
+    context: ['deck'],
+    shortDescription: 'Scry',
+    longDescription: 'Look at the top cards and reorder or bottom them',
+    action: 'scry',
+    toolbar: { surface: 'actions', target: 'board', order: 20 },
+  },
+  {
+    key: '',
+    keys: [],
+    context: ['deck'],
+    shortDescription: 'Surveil',
+    longDescription: 'Look at the top cards and keep or bin them',
+    action: 'surveil',
+    toolbar: { surface: 'actions', target: 'board', order: 30 },
+  },
+  {
+    key: '',
+    keys: [],
+    context: ['deck'],
+    shortDescription: 'Mill',
+    longDescription: 'Put a chosen number of cards from your deck into the discard',
+    action: 'mill',
+    toolbar: { surface: 'actions', target: 'board', order: 35 },
   },
   {
     // Deck-only: takes the top card of the deck straight onto the battlefield,
@@ -129,6 +240,7 @@ export const HOTKEYS: Hotkey[] = [
     shortDescription: 'Shuffle',
     longDescription: 'Shuffle deck',
     action: 'shuffle',
+    toolbar: { surface: 'actions', target: 'board', order: 80 },
   },
   {
     key: 'M',
@@ -137,6 +249,74 @@ export const HOTKEYS: Hotkey[] = [
     shortDescription: 'Mulligan',
     longDescription: 'Mulligan (draw new hand)',
     action: 'mulligan',
+    toolbar: { surface: 'actions', target: 'board', order: 90 },
+  },
+  // Hand-and-whole-game actions. Toolbar-only (empty `context`): none of them
+  // acts on a hoverable surface, so no menu has a place for them.
+  {
+    key: '',
+    keys: [],
+    context: [],
+    shortDescription: 'Random Discard',
+    longDescription: 'Discard a random card from your hand',
+    action: 'randomDiscard',
+    toolbar: { surface: 'actions', target: 'board', order: 60 },
+  },
+  {
+    key: '',
+    keys: [],
+    context: [],
+    shortDescription: 'Reveal Hand',
+    longDescription: 'Toggle whether opponents can see your hand',
+    action: 'revealHand',
+    toolbar: { surface: 'actions', target: 'board', order: 70 },
+  },
+  {
+    key: '',
+    keys: [],
+    context: [],
+    shortDescription: 'Reset Deck',
+    longDescription: 'Return every zone to your deck, shuffle, and reset health',
+    action: 'resetDeck',
+    toolbar: { surface: 'actions', target: 'board', order: 100 },
+    // Wipes the board, every pile and your health in one click. It sits at the
+    // bottom of Actions ▾ directly under ordinary rows like Shuffle, so the
+    // colour is the only thing distinguishing "reorder my library" from "throw
+    // the game away". The confirm dialog is the backstop, not the warning.
+    destructive: true,
+  },
+  // Create ▾. `createToken` performs no dispatch — the toolbar renders it as a
+  // sub-popover hosting the drag-to-board keyword grid (see CreateTokenGridItem)
+  // — but it lives here so the Create row is described in one place like
+  // everything else.
+  {
+    key: '',
+    keys: [],
+    context: [],
+    shortDescription: 'Counter',
+    longDescription: 'Drag a keyword counter onto the board',
+    action: 'createToken',
+    toolbar: { surface: 'create', target: 'board', order: 10 },
+  },
+  {
+    key: '',
+    keys: [],
+    context: [],
+    shortDescription: 'Token Card',
+    longDescription: 'Search for a token card and put it onto the battlefield',
+    action: 'createTokenCard',
+    toolbar: { surface: 'create', target: 'board', order: 20 },
+  },
+  {
+    key: '',
+    keys: [],
+    context: [],
+    shortDescription: 'Label',
+    longDescription: 'Place a text label on the board',
+    action: 'createLabel',
+    toolbar: { surface: 'create', target: 'board', order: 30 },
+    disabled: true,
+    disabledReason: 'Coming soon',
   },
   {
     // Not in 'deck' context: "Add any card" pulls a card from outside the game,
@@ -188,6 +368,7 @@ export const HOTKEYS: Hotkey[] = [
     shortDescription: 'Untap all',
     longDescription: 'Untap all your cards and clear summoning sickness',
     action: 'untapAll',
+    toolbar: { surface: 'button', target: 'board', order: 10, label: 'Untap All' },
   },
   {
     // Zzz = summoning-sick creature that can't act yet. Tilts the card 45°;
@@ -307,6 +488,9 @@ export const HOTKEYS: Hotkey[] = [
     shortDescription: 'Exile',
     longDescription: 'Move card from hand/deck to exile',
     action: 'moveToExile',
+    // Aimed at the deck, this *is* the old toolbar action "Exile Top" — it was a
+    // separate `exileTopOfDeck` implementation of the identical move.
+    toolbar: { surface: 'actions', target: 'deck', order: 40, label: 'Exile Top' },
   },
   {
     key: 'T',
@@ -342,6 +526,25 @@ export const HOTKEYS: Hotkey[] = [
  */
 export function getHotkeysForContext(context: HotkeyContext): Hotkey[] {
   return HOTKEYS.filter(hotkey => hotkey.context.includes(context));
+}
+
+/** A catalog entry that the toolbar offers, narrowed so `toolbar` is present. */
+export type ToolbarHotkey = Hotkey & { toolbar: ToolbarPlacement };
+
+/**
+ * The toolbar's entries for one of its surfaces, in `toolbar.order`.
+ *
+ * The third reader of `HOTKEYS`, after `getKeyBindingsForAction` (keyboard) and
+ * `getMenuActionsForTarget` (context menus). Before these registries were
+ * unified the toolbar had its own parallel list with its own `perform()`
+ * bodies, and the two drifted exactly as you'd expect: the toolbar's Mulligan
+ * skipped the confirmation the M key showed, and "Exile Top"/"Look at Top" were
+ * second implementations of rows the deck node already had.
+ */
+export function getToolbarActions(surface: ToolbarSurface): ToolbarHotkey[] {
+  return HOTKEYS
+    .filter((h): h is ToolbarHotkey => h.toolbar?.surface === surface)
+    .sort((a, b) => a.toolbar.order - b.toolbar.order);
 }
 
 /** A named group of hotkeys for the shortcut-reference UI (Help modal's

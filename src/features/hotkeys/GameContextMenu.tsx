@@ -180,6 +180,11 @@ export function GameContextMenu() {
           <Fragment key={`${hotkey.action}-${index}`}>
             <DropdownMenuItem
               variant={hotkey.destructive ? 'destructive' : 'default'}
+              // Addresses a row by action identity rather than by label. Labels
+              // collide as the catalog grows — "Draw" and "Draw X" both sit on
+              // the deck menu, and a row's accessible name also carries its key
+              // badge ("Draw C"), so no name-based locator can tell them apart.
+              data-action={hotkey.action}
               onSelect={() => dispatchGameAction(hotkey.action, target)}
             >
               {hotkey.shortDescription}

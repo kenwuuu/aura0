@@ -1,4 +1,4 @@
-export { Player } from './Player';
+export { Player, OPENING_HAND_SIZE } from './Player';
 export { CardPile } from './CardPile';
 export { createDeckCards } from './createDeckCards';
 export { colorFromPlayerId } from './playerColor';

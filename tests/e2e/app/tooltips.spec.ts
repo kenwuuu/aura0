@@ -1,5 +1,5 @@
 import { test, expect } from '../fixtures';
-import { pileTile } from '../harness';
+import { contextMenuRow, pileTile } from '../harness';
 
 /**
  * Piles used to show a hover tooltip listing their hotkeys (HotkeyTooltip).
@@ -9,9 +9,17 @@ import { pileTile } from '../harness';
 
 test('testDeckContextMenu', async ({ page }) => {
   await pileTile(page, 'deck').click({ button: 'right' });
-  await expect(page.getByRole('menuitem', { name: /^Draw\b/ })).toBeVisible();
-  await expect(page.getByRole('menuitem', { name: /^Shuffle\b/ })).toBeVisible();
-  await expect(page.getByRole('menuitem', { name: /^Mulligan\b/ })).toBeVisible();
+  // By action id, not label: "Draw" and "Draw X" both live on the deck menu.
+  await expect(contextMenuRow(page, 'draw')).toBeVisible();
+  await expect(contextMenuRow(page, 'shuffle')).toBeVisible();
+  await expect(contextMenuRow(page, 'mulligan')).toBeVisible();
+});
+
+test('the deck menu offers the library actions that used to be toolbar-only', async ({ page }) => {
+  await pileTile(page, 'deck').click({ button: 'right' });
+  for (const action of ['drawX', 'scry', 'surveil', 'mill']) {
+    await expect(contextMenuRow(page, action), `deck menu should offer ${action}`).toBeVisible();
+  }
 });
 
 test('testExileContextMenu', async ({ page }) => {

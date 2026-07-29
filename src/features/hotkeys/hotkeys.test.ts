@@ -3,8 +3,10 @@ import {
   getMenuActionsForTarget,
   getHotkeysForContext,
   getHotkeysGroupedByZone,
+  getToolbarActions,
   HOTKEYS,
   HotkeyContext,
+  type ToolbarSurface,
 } from './hotkeys';
 
 /**
@@ -120,5 +122,89 @@ describe('getHotkeysGroupedByZone', () => {
       'Tokens',
       'Life',
     ]);
+  });
+
+  it('omits the toolbar-only actions, which have no keystroke either', () => {
+    const flat = groups.flatMap((g) => g.hotkeys.map((h) => h.action));
+    for (const action of ['scry', 'mill', 'pass', 'resetDeck', 'createTokenCard']) {
+      expect(flat, `${action} has no key binding to reference`).not.toContain(action);
+    }
+  });
+});
+
+/**
+ * The Game Actions toolbar is the catalog's third surface, alongside the
+ * keyboard and the context menus. It used to be a *separate registry* with its
+ * own `perform()` bodies, and the copies drifted: the toolbar's Mulligan skipped
+ * the confirmation the M key showed, and "Exile Top"/"Look at Top" were second
+ * implementations of rows the deck node already offered as "Exile"/"View".
+ *
+ * These pin the properties that unification is supposed to guarantee.
+ */
+describe('toolbar surface', () => {
+  const SURFACES: ToolbarSurface[] = ['button', 'actions', 'create'];
+  const toolbarEntries = HOTKEYS.filter((h) => h.toolbar);
+
+  it('reaches every toolbar-flagged entry through exactly one surface', () => {
+    const rendered = SURFACES.flatMap((s) => getToolbarActions(s));
+    expect(rendered).toHaveLength(toolbarEntries.length);
+    expect(new Set(rendered.map((h) => h.action)).size).toBe(toolbarEntries.length);
+  });
+
+  it('returns each surface in ascending declared order', () => {
+    for (const surface of SURFACES) {
+      const orders = getToolbarActions(surface).map((h) => h.toolbar.order);
+      expect(orders, `${surface} is unsorted`).toEqual([...orders].sort((a, b) => a - b));
+      expect(new Set(orders).size, `${surface} has a duplicate order`).toBe(orders.length);
+    }
+  });
+
+  it('keeps the toolbar row order players already know', () => {
+    const label = (h: { toolbar: { label?: string }; shortDescription: string }) =>
+      h.toolbar.label ?? h.shortDescription;
+
+    expect(getToolbarActions('button').map(label)).toEqual(['Untap All', 'Draw', 'Pass']);
+    expect(getToolbarActions('actions').map(label)).toEqual([
+      'Draw X', 'Scry', 'Surveil', 'Mill', 'Exile Top', 'View Deck',
+      'Random Discard', 'Reveal Hand', 'Shuffle', 'Mulligan', 'Reset Deck',
+    ]);
+    expect(getToolbarActions('create').map(label)).toEqual(['Counter', 'Token Card', 'Label']);
+  });
+
+  it('gives the deck node the library actions the toolbar had to itself', () => {
+    const deckRows = getMenuActionsForTarget({ kind: 'pile', pileType: 'deck' })
+      .map((h) => h.action);
+
+    // The four that were toolbar-only before the registries were unified.
+    expect(deckRows).toEqual(expect.arrayContaining(['drawX', 'scry', 'surveil', 'mill']));
+  });
+
+  it('keeps toolbar-only actions off every context menu', () => {
+    // No surface hovers "pass" or "reset deck", so they carry no context — an
+    // empty list is the catalog's way of saying "toolbar only".
+    for (const action of ['pass', 'randomDiscard', 'revealHand', 'resetDeck', 'createToken', 'createTokenCard', 'createLabel']) {
+      const entry = HOTKEYS.find((h) => h.action === action);
+      expect(entry, `${action} is missing from the catalog`).toBeDefined();
+      expect(entry!.context, `${action} should be toolbar-only`).toEqual([]);
+    }
+  });
+
+  it('flags the one toolbar row that throws the game away', () => {
+    // Reset Deck is the only toolbar action that discards state you can't get
+    // back. If a second one ever earns the flag, it should be a deliberate edit
+    // here rather than something that quietly inherits the red styling.
+    const destructive = HOTKEYS.filter((h) => h.toolbar && h.destructive).map((h) => h.action);
+    expect(destructive).toEqual(['resetDeck']);
+  });
+
+  it('has no leftover duplicate of a row the deck node already owns', () => {
+    // "Exile Top" and "Look at Top" were the duplicates; they are now the deck-
+    // targeted toolbar placements of moveToExile and viewPile.
+    const actions = HOTKEYS.map((h) => h.action);
+    expect(actions).not.toContain('exileTop');
+    expect(actions).not.toContain('lookAtTop');
+
+    const deckTargeted = HOTKEYS.filter((h) => h.toolbar?.target === 'deck').map((h) => h.action);
+    expect(deckTargeted).toEqual(['viewPile', 'moveToExile']);
   });
 });

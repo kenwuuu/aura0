@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import posthog from 'posthog-js';
+import { Pencil, Trash2 } from 'lucide-react';
 import { DeckStorageService } from '@/infrastructure/persistence';
 import { DeckMetadata, SavedDeck } from '@/features/player/types';
 import { Alert, AlertDescription } from '@/shared/ui/alert';
@@ -18,6 +19,11 @@ interface DeckSelectionModalProps {
   onClose: () => void;
   onDeckSelected: (deck: SavedDeck) => void;
   onImportNewDeck: () => void;
+  /**
+   * Open a saved deck for editing. Handed the whole deck rather than its id
+   * because the editor needs the cards — the list view only ever loaded metadata.
+   */
+  onEditDeck: (deck: SavedDeck) => void;
 }
 
 export function DeckSelectionModal({
@@ -25,6 +31,7 @@ export function DeckSelectionModal({
   onClose,
   onDeckSelected,
   onImportNewDeck,
+  onEditDeck,
 }: DeckSelectionModalProps) {
   const [decks, setDecks] = useState<DeckMetadata[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -73,6 +80,31 @@ export function DeckSelectionModal({
     } catch (err) {
       console.error('Error loading deck:', err);
       setError('Failed to load deck');
+    }
+  };
+
+  /**
+   * Open a deck in the import dialog.
+   *
+   * Fetches the full record first: the list is built from metadata alone, and an
+   * editor with no cards behind it could only ever offer an empty box.
+   */
+  const handleEditDeck = async (deckId: string, e: React.MouseEvent) => {
+    // The row itself loads the deck into the game. Editing must not also do that.
+    e.stopPropagation();
+
+    try {
+      const storage = new DeckStorageService();
+      const deck = await storage.getDeck(deckId);
+
+      if (deck) {
+        onEditDeck(deck);
+      } else {
+        setError('Deck not found');
+      }
+    } catch (err) {
+      console.error('Error loading deck for editing:', err);
+      setError('Failed to open deck for editing');
     }
   };
 
@@ -152,12 +184,27 @@ export function DeckSelectionModal({
                       Last modified: {formatDate(deck.lastModified)}
                     </p>
                   </div>
+                  {/* Drawn icons, not emoji: an emoji is a fixed multicolor
+                      glyph from the OS font, so it can't take the row's text
+                      color, can't shift on hover with everything around it, and
+                      renders differently on every platform. */}
                   <button
-                    className="ml-4 px-3 py-2 text-gray-400 hover:text-red-400 hover:bg-[#2a2a2a] rounded transition-colors"
+                    className="ml-4 px-3 py-2 text-gray-400 hover:text-blue-400 hover:bg-[#2a2a2a] rounded transition-colors"
+                    onClick={(e) => handleEditDeck(deck.id, e)}
+                    title="Edit deck"
+                    aria-label={`Edit ${deck.name}`}
+                    data-testid="deck-edit"
+                  >
+                    <Pencil size={18} aria-hidden="true" />
+                  </button>
+                  <button
+                    className="px-3 py-2 text-gray-400 hover:text-red-400 hover:bg-[#2a2a2a] rounded transition-colors"
                     onClick={(e) => handleDeleteDeck(deck.id, e)}
                     title="Delete deck"
+                    aria-label={`Delete ${deck.name}`}
+                    data-testid="deck-delete"
                   >
-                    🗑️
+                    <Trash2 size={18} aria-hidden="true" />
                   </button>
                 </div>
               ))}

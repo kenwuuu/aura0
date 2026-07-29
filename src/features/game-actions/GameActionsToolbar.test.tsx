@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { GameActionsToolbar } from './GameActionsToolbar';
 import { renderWithGame } from '@/test/harness';
@@ -9,12 +9,14 @@ import { YDOC_CARDS_ON_BOARD } from '@/constants';
 import type { WhiteboardCard } from '@/features/battlefield/types';
 
 /**
- * GameActionsToolbar is a thin dispatcher: it builds a GameActionContext from
- * useGameInstance and routes clicks to GAME_ACTIONS by id. The dispatch
- * contract for every action is already covered at the logic tier
- * (gameActions.test.ts); these tests only confirm the wiring seam — one
- * representative action per surface (toolbar button, Actions dropdown,
- * Create dropdown) reaches the registry through real clicks.
+ * GameActionsToolbar is a thin view over the one game-action catalog: it reads
+ * its rows from `getToolbarActions(surface)` and routes clicks through
+ * `dispatchGameAction`, the same entry point the keyboard and context menus
+ * use. Each action's behavior is covered at the logic tier
+ * (`hotkeys/gameActions.test.ts`), and the catalog's own invariants in
+ * `hotkeys/hotkeys.test.ts`; these tests only confirm the wiring seam — one
+ * representative action per surface (button, Actions dropdown, Create
+ * dropdown) reaches the shared dispatcher through real clicks.
  */
 describe('GameActionsToolbar', () => {
   it('renders nothing until the game instance is seeded', () => {
@@ -49,7 +51,15 @@ describe('GameActionsToolbar', () => {
     expect(log.some((e) => e.type === 'untap_all')).toBe(true);
   });
 
-  it('Actions dropdown: Mulligan draws a fresh 7-card hand', async () => {
+  /**
+   * Regression from unifying the registries: the toolbar used to carry its own
+   * `mulligan` implementation that called `player.mulligan()` outright, while
+   * the M key and the deck menu — the other two views of the same action — went
+   * through `triggerConfirmation` first. Now that all three dispatch the one
+   * executor, the toolbar asks too. That the confirm is required is the point of
+   * this test, not incidental setup.
+   */
+  it('Actions dropdown: Mulligan confirms first, then draws a fresh 7-card hand', async () => {
     const user = userEvent.setup();
     const { player } = renderWithGame(<GameActionsToolbar />, {
       deck: Array.from({ length: 20 }, (_, i) => ({ id: `c${i}` }) as any),
@@ -58,7 +68,13 @@ describe('GameActionsToolbar', () => {
     await user.click(screen.getByRole('button', { name: /Actions/ }));
     await user.click(await screen.findByRole('menuitem', { name: 'Mulligan' }));
 
-    expect(player.getState().hand).toHaveLength(7);
+    expect(await screen.findByText(/Mulligan\? Draws 7 new cards\./i)).toBeInTheDocument();
+    expect(player.getState().hand, 'nothing should happen before confirming').toHaveLength(0);
+
+    // ConfirmationDialog is keyboard-driven: its `confirmKey` for mulligan is M.
+    await user.keyboard('m');
+
+    await waitFor(() => expect(player.getState().hand).toHaveLength(7));
   });
 
   it('Create dropdown: Token Card opens the token card search store', async () => {
@@ -81,6 +97,25 @@ describe('GameActionsToolbar', () => {
     const log = getActionLog(yDoc).toArray();
     expect(log.some((e) => e.type === 'pass_turn')).toBe(true);
     expect(player.getState().health).toBe(healthBefore);
+  });
+
+  /**
+   * Reset Deck wipes the board, every pile and your health. It sits at the
+   * bottom of Actions ▾ directly under ordinary rows like Shuffle, so colour is
+   * the only thing separating "reorder my library" from "throw the game away".
+   * `destructive` is a catalog property, so the toolbar has to honour it the
+   * same way the context menu already does.
+   */
+  it('Actions dropdown: Reset Deck is styled destructive, ordinary rows are not', async () => {
+    const user = userEvent.setup();
+    renderWithGame(<GameActionsToolbar />);
+
+    await user.click(screen.getByRole('button', { name: /Actions/ }));
+
+    expect(await screen.findByRole('menuitem', { name: 'Reset Deck' }))
+      .toHaveAttribute('data-variant', 'destructive');
+    expect(screen.getByRole('menuitem', { name: 'Shuffle' }))
+      .toHaveAttribute('data-variant', 'default');
   });
 
   /**
