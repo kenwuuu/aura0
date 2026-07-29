@@ -156,6 +156,34 @@ describe('GameContextMenu', () => {
     expect(screen.queryByRole('menuitem', { name: /^Peek\b/ })).not.toBeInTheDocument();
   });
 
+  it('offers "Play to board" face up on a pile-viewer card and dispatches it to the open viewer', async () => {
+    const user = userEvent.setup();
+    const actionHandler = vi.fn();
+    renderWithGame(<GameContextMenu />);
+
+    act(() => {
+      usePileViewerHotkeyStore.getState().setActionHandler(
+        actionHandler,
+        new Set(['moveToHand', 'playToBattlefield', 'playFacedown']),
+      );
+      useContextMenuStore.getState().openMenu({
+        target: { kind: 'pileViewerCard', id: 'card-1', context: HotkeyContext.DeckCard },
+        x: 10,
+        y: 10,
+      });
+    });
+
+    // Exact name, not a prefix: "Play to board facedown" is the neighbouring
+    // row, so `/^Play to board/` would match both.
+    const playItem = await screen.findByRole('menuitem', { name: /^Play to board\s*P?$/ });
+    // The row advertises `P`, and the PileViewer scope binds it (see
+    // useAllGameHotkeys) — a badge for a key that does nothing here would lie.
+    expect(playItem).toHaveTextContent(/^Play to boardP$/);
+
+    await user.click(playItem);
+    expect(actionHandler).toHaveBeenCalledWith('playToBattlefield', 'card-1');
+  });
+
   it('offers "Play to board facedown" on a pile-viewer card and dispatches it to the open viewer', async () => {
     const user = userEvent.setup();
     const actionHandler = vi.fn();

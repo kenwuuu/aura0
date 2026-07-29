@@ -175,9 +175,10 @@ export function useAllGameHotkeys() {
 
   // Play-to-board (P) — top card of the deck straight onto the battlefield.
   // Gated to the deck specifically (not every pile like the moveTo* keys) to
-  // match the catalog, which lists this row on the deck's menu only: exile and
-  // discard get played from by picking a card in the pile viewer, not blind off
-  // the top.
+  // match the catalog, which puts this row on the deck node and no other pile
+  // node: exile and discard are played from by picking a card in their viewer
+  // (the PileViewer-scope binding at the end of this hook), not blind off the
+  // top.
   useHotkeys(getKeyBindingsForAction('playToBattlefield'), () => dispatch('playToBattlefield'),
     { ...board, enabled: isPile && t?.pileType === 'deck' });
 
@@ -228,6 +229,12 @@ export function useAllGameHotkeys() {
   useHotkeys(getKeyBindingsForAction('moveToDeckBottom'), () => dispatch('moveToDeckBottom'),
     { ...pv, enabled: isPileViewer });
   useHotkeys(getKeyBindingsForAction('moveToSideboard'), () => dispatch('moveToSideboard'),
+    { ...pv, enabled: isPileViewer });
+  // Play-to-board (P) is bound in this scope too, on the *hovered* card rather
+  // than the top of the deck. Without it the menu row's "P" badge — the catalog
+  // renders one wherever the row appears — would promise a key that does
+  // nothing here, and every other viewer row (H/D/S/T/Y/B) does work by key.
+  useHotkeys(getKeyBindingsForAction('playToBattlefield'), () => dispatch('playToBattlefield'),
     { ...pv, enabled: isPileViewer });
 }
 

@@ -204,24 +204,27 @@ export const HOTKEYS: Hotkey[] = [
     toolbar: { surface: 'actions', target: 'board', order: 35 },
   },
   {
-    // Deck-only: takes the top card of the deck straight onto the battlefield,
-    // skipping the hand. Not in 'global' — it's a deck-pile action, so it stays
-    // off the empty-board menu, and the key only fires while the deck is hovered.
+    // Two surfaces, one move: the deck node plays the *top* card blind, a
+    // pile-viewer card plays the *picked* one. Both put it straight onto the
+    // battlefield skipping the hand, so they're one action rather than two that
+    // could drift. Not in 'global' — it's a pile action, so it stays off the
+    // empty-board menu, and the key only fires while a deck pile (Board scope)
+    // or a viewer card (PileViewer scope) is hovered.
     key: 'P',
     keys: ['p'],
-    context: ['deck'],
+    context: ['deck', 'pileviewercard'],
     shortDescription: 'Play to board',
-    longDescription: 'Play the top card of your deck to the battlefield',
+    longDescription: 'Play a card to the battlefield, skipping your hand',
     action: 'playToBattlefield',
   },
   {
-    // Pointer-only (no key binding), pile-viewer cards only: puts the *picked*
-    // card straight onto the battlefield face down (manifest, cloak, foretell,
-    // "exile face down until…"), skipping the hand — the card stays hidden, so
-    // routing it through the hand would show it in your own hand for no reason
-    // and lose the whole point. Face-down play is only ever a deliberate pick,
-    // never a blind top-of-pile action, which is why this lives in the
-    // pile-viewer-card context rather than beside `playToBattlefield`.
+    // Pointer-only (no key binding), pile-viewer cards only: the face-down twin
+    // of `playToBattlefield` above (manifest, cloak, foretell, "exile face down
+    // until…"). Skipping the hand matters even more here — the card stays
+    // hidden, so routing it through your hand would show it to you for no
+    // reason and lose the whole point. Unlike its face-up twin it never appears
+    // on a pile node: playing face down is always a deliberate pick, never a
+    // blind top-of-pile action.
     key: '',
     keys: [],
     context: ['pileviewercard'],
