@@ -147,6 +147,21 @@ export function deckImportModal(page: Page): Locator {
   return page.getByTestId(TESTID.deckImportModal);
 }
 
+/** The "Select a Deck" modal that "Choose Deck" opens. */
+export function deckSelectionModal(page: Page): Locator {
+  return page.getByTestId(TESTID.deckSelectionModal);
+}
+
+/** The search box that filters the saved-deck list. */
+export function deckSearchInput(page: Page): Locator {
+  return page.getByTestId(TESTID.deckSearch);
+}
+
+/** A saved-deck row in the selection modal, addressed by its deck name. */
+export function savedDeckRow(page: Page, name: string): Locator {
+  return deckSelectionModal(page).getByRole('heading', { name, exact: false });
+}
+
 /** The react-flow whiteboard surface (drop target for drags). */
 export function whiteboard(page: Page): Locator {
   return page.locator('#whiteboard');

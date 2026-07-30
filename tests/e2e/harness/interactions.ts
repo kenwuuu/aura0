@@ -1,5 +1,5 @@
 import { Page, Locator, expect } from '@playwright/test';
-import { boardCard, boardCardIds, boardCardNode, cardPreview, pileTile, whiteboard, deckImportOpenButton, deckImportModal, boardTokens, transformPosition } from './pageObjects';
+import { boardCard, boardCardIds, boardCardNode, cardPreview, pileTile, whiteboard, deckImportOpenButton, deckImportModal, deckSelectionModal, boardTokens, transformPosition } from './pageObjects';
 import { TESTID, PileKind } from './selectors';
 
 export async function centerOf(locator: Locator): Promise<{ x: number; y: number }> {
@@ -443,6 +443,12 @@ export async function drawCard(page: Page): Promise<void> {
  * through it rather than routing around it: a deck of an odd size takes two
  * clicks, and a legal one takes a single click and never sees the warning.
  */
+/** Open the "Select a Deck" modal from the dock and wait for it to be up. */
+export async function openDeckSelection(page: Page): Promise<void> {
+  await deckImportOpenButton(page).click();
+  await deckSelectionModal(page).waitFor({ state: 'visible' });
+}
+
 export async function importDeck(page: Page, name: string, decklist: string): Promise<void> {
   await deckImportOpenButton(page).click();
   await page.getByText('Import New Deck').click();
