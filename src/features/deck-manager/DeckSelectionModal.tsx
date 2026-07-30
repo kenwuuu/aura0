@@ -52,19 +52,12 @@ export function DeckSelectionModal({
     }
   }, [isOpen]);
 
-  /**
-   * Match against every field the row shows. Someone scanning this list is as
-   * likely to reach for "commander" or "moxfield" as for a deck's name, and a
-   * name-only filter would answer those with an empty list.
-   */
+  /** Match on the deck's name alone — the one thing a player knows it by. */
   const visibleDecks = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
     if (!query) return decks;
 
-    return decks.filter((deck) =>
-      [deck.name, deck.format, deck.source]
-        .some((field) => field?.toLowerCase().includes(query))
-    );
+    return decks.filter((deck) => deck.name.toLowerCase().includes(query));
   }, [decks, searchQuery]);
 
   const loadDecks = async () => {

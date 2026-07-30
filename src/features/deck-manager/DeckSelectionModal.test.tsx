@@ -138,21 +138,20 @@ describe('DeckSelectionModal', () => {
       expect(screen.queryByText('Mono Red')).not.toBeInTheDocument();
     });
 
-    it('matches the format and source shown on each row, not just the name', async () => {
+    it('matches on the deck name alone, not the format or source beside it', async () => {
       const user = userEvent.setup();
       renderModal();
       await screen.findByText('Mono Red');
 
-      // "commander" is the format and "moxfield" the source of deck 2 alone —
-      // both are on screen, so both are things a player may reasonably type.
+      // "Commander" is deck 2's format and "moxfield" its source. Both are on
+      // the row, but neither is what the deck is called — searching by them
+      // would turn a format filter into a name filter's silent side effect.
       await user.type(searchBox(), 'commander');
-      expect(screen.getByText('Atraxa Superfriends')).toBeInTheDocument();
-      expect(screen.queryByText('Mono Red')).not.toBeInTheDocument();
+      expect(screen.getByText(/No decks match/)).toBeInTheDocument();
 
       await user.clear(searchBox());
       await user.type(searchBox(), 'moxfield');
-      expect(screen.getByText('Atraxa Superfriends')).toBeInTheDocument();
-      expect(screen.queryByText('Mono Red')).not.toBeInTheDocument();
+      expect(screen.getByText(/No decks match/)).toBeInTheDocument();
     });
 
     it('says the query matched nothing rather than looking like an empty library', async () => {
