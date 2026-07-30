@@ -30,6 +30,15 @@ describe('DeckSelectionModal', () => {
     importedAt: new Date('2026-01-01T00:00:00Z'),
     lastModified: new Date('2026-01-02T00:00:00Z'),
   };
+  const otherMetadata: DeckMetadata = {
+    id: 'deck-2',
+    name: 'Atraxa Superfriends',
+    format: 'Commander',
+    source: 'moxfield',
+    cardCount: 100,
+    importedAt: new Date('2026-01-03T00:00:00Z'),
+    lastModified: new Date('2026-01-04T00:00:00Z'),
+  };
   const fullDeck = { metadata, cards: [], decklistText: 'Deck\n60 Mountain' } as SavedDeck;
 
   beforeEach(() => {
@@ -43,10 +52,10 @@ describe('DeckSelectionModal', () => {
     });
   });
 
-  const renderModal = () =>
+  const renderModal = (isOpen = true) =>
     render(
       <DeckSelectionModal
-        isOpen
+        isOpen={isOpen}
         onClose={onClose}
         onDeckSelected={onDeckSelected}
         onImportNewDeck={onImportNewDeck}
@@ -109,5 +118,96 @@ describe('DeckSelectionModal', () => {
 
     expect(await screen.findByText('Deck not found')).toBeInTheDocument();
     expect(onEditDeck).not.toHaveBeenCalled();
+  });
+
+  describe('search', () => {
+    const searchBox = () => screen.getByRole('searchbox', { name: 'Search decks' });
+
+    beforeEach(() => {
+      getAllDeckMetadata.mockResolvedValue([metadata, otherMetadata]);
+    });
+
+    it('narrows the list to decks matching the query', async () => {
+      const user = userEvent.setup();
+      renderModal();
+      await screen.findByText('Mono Red');
+
+      await user.type(searchBox(), 'atraxa');
+
+      expect(screen.getByText('Atraxa Superfriends')).toBeInTheDocument();
+      expect(screen.queryByText('Mono Red')).not.toBeInTheDocument();
+    });
+
+    it('matches on the deck name alone, not the format or source beside it', async () => {
+      const user = userEvent.setup();
+      renderModal();
+      await screen.findByText('Mono Red');
+
+      // "Commander" is deck 2's format and "moxfield" its source. Both are on
+      // the row, but neither is what the deck is called — searching by them
+      // would turn a format filter into a name filter's silent side effect.
+      await user.type(searchBox(), 'commander');
+      expect(screen.getByText(/No decks match/)).toBeInTheDocument();
+
+      await user.clear(searchBox());
+      await user.type(searchBox(), 'moxfield');
+      expect(screen.getByText(/No decks match/)).toBeInTheDocument();
+    });
+
+    it('says the query matched nothing rather than looking like an empty library', async () => {
+      const user = userEvent.setup();
+      renderModal();
+      await screen.findByText('Mono Red');
+
+      await user.type(searchBox(), 'zzzz');
+
+      expect(screen.getByText('No decks match "zzzz".')).toBeInTheDocument();
+      // The first-run prompt would be a lie here — there are decks, just hidden.
+      expect(screen.queryByText(/Import your first deck/)).not.toBeInTheDocument();
+    });
+
+    it('still loads the deck a filtered row points at', async () => {
+      const user = userEvent.setup();
+      getDeck.mockResolvedValue({ ...fullDeck, metadata: otherMetadata });
+      renderModal();
+      await screen.findByText('Mono Red');
+
+      await user.type(searchBox(), 'atraxa');
+      await user.click(screen.getByText('Atraxa Superfriends'));
+
+      await waitFor(() => expect(getDeck).toHaveBeenCalledWith('deck-2'));
+      expect(onDeckSelected).toHaveBeenCalled();
+    });
+
+    it('clears the query when the modal is reopened', async () => {
+      const user = userEvent.setup();
+      const { rerender } = renderModal();
+      await screen.findByText('Mono Red');
+
+      await user.type(searchBox(), 'atraxa');
+      expect(screen.queryByText('Mono Red')).not.toBeInTheDocument();
+
+      // Reopening on a stale query would hide most of the library with nothing
+      // on screen to explain why.
+      const props = {
+        onClose,
+        onDeckSelected,
+        onImportNewDeck,
+        onEditDeck,
+      };
+      rerender(<DeckSelectionModal isOpen={false} {...props} />);
+      rerender(<DeckSelectionModal isOpen {...props} />);
+
+      expect(await screen.findByText('Mono Red')).toBeInTheDocument();
+      expect(searchBox()).toHaveValue('');
+    });
+
+    it('offers no search box when there is nothing to search', async () => {
+      getAllDeckMetadata.mockResolvedValue([]);
+      renderModal();
+
+      expect(await screen.findByText(/Import your first deck/)).toBeInTheDocument();
+      expect(screen.queryByRole('searchbox')).not.toBeInTheDocument();
+    });
   });
 });

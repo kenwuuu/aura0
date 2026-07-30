@@ -17,6 +17,8 @@ export const TESTID = {
   pileDestinationCount: 'pile-destination-count',
   deckImportOpen: 'deck-import-open',
   deckImportModal: 'deck-import-modal',
+  deckSelectionModal: 'deck-selection-modal',
+  deckSearch: 'deck-search',
   toolbar: 'toolbar',
   toolbarMore: 'toolbar-more',
   gameActionsToolbar: 'game-actions-toolbar',
