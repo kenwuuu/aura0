@@ -12,6 +12,7 @@ import {
   playCreature,
   revealOnBoard,
   transformPosition,
+  pressHotkey,
 } from '../../harness';
 import type { Locator, Page } from '@playwright/test';
 
@@ -63,7 +64,7 @@ test.describe('opponent cards on the shared board', () => {
       // over it, and on Bob's because that is a real Yjs write, not a local
       // affordance.
       await parkMouseAwayFromBoard(page);
-      await page.keyboard.press('Space');
+      await pressHotkey(page, 'tap');
 
       expect(await getElementOrientation(mine)).toBe('landscape');
       expect(await getElementOrientation(theirs)).toBe('landscape');

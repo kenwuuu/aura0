@@ -1,0 +1,50 @@
+/**
+ * The key-capture control. Reads as a keycap at rest so a row of them scans as
+ * a keyboard reference, and switches to a clearly "armed" state while
+ * recording — the whole app's hotkeys are suppressed in that state, so it needs
+ * to be unmistakable.
+ */
+
+.capture {
+  min-width: 96px;
+  padding: 6px 10px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 13px;
+  font-weight: 600;
+  color: #e5e7eb;
+  background: #1c1c1c;
+  border: 1px solid #3d3d3d;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: border-color 120ms ease, background-color 120ms ease;
+}
+
+.capture:hover {
+  background: #262626;
+  border-color: #4d4d4d;
+}
+
+.capture:focus-visible {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+.capture[data-recording] {
+  color: #93c5fd;
+  background: #10243d;
+  border-color: #3b82f6;
+  /* Not decoration: while this is armed every game hotkey is disabled, so the
+     state has to be visible at a glance. */
+  animation: pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { border-color: #3b82f6; }
+  50% { border-color: #1d4ed8; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .capture[data-recording] {
+    animation: none;
+  }
+}

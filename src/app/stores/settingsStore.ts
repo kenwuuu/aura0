@@ -24,6 +24,8 @@ import type { Card } from '@/features/player/types';
 import type { NetworkTransport } from '@/infrastructure/networking/YjsNetworkFactory';
 import { isManualTransportOverrideEnabled, resolveNetworkTransport } from '@/infrastructure/analytics/FeatureFlags';
 import type { TourOutcome } from '@/features/onboarding/types';
+import { HotkeyPreset, type HotkeyPresetId } from '@/features/hotkeys/presets';
+import type { HotkeyOverrides } from '@/features/hotkeys/bindings';
 
 // --- Zoom bounds (duplicated from their original homes so the store is self-contained) ---
 export const HAND_ZOOM_MIN = 0.5;
@@ -33,7 +35,7 @@ export const PREVIEW_ZOOM_MAX = 2.5;
 
 // Bump on any change that should force-reset a persisted preference for all
 // users (see `migrate` below and the versioning note in the file header).
-const SETTINGS_VERSION = 1;
+const SETTINGS_VERSION = 2;
 
 function clampHandZoom(z: number): number {
   return Math.max(HAND_ZOOM_MIN, Math.min(HAND_ZOOM_MAX, z));
@@ -91,6 +93,52 @@ interface SettingsStore {
   // onto every event as a super property (see registerTourOutcome).
   tourOutcome: TourOutcome | null;
   setTourOutcome: (outcome: TourOutcome | null) => void;
+  // Which keyboard scheme the player is on. New installs start on `Default`
+  // (mnemonic keys); anyone with settings saved before hotkeys were
+  // customizable is pinned to `Untap` by the v2 migration, since that is what
+  // their fingers already know. See the `migrate` branch below.
+  hotkeyPreset: HotkeyPresetId;
+  setHotkeyPreset: (preset: HotkeyPresetId) => void;
+  // Per-action rebindings layered over the preset, keyed by action id. Sparse:
+  // an absent action means "whatever the preset says", which is what lets a
+  // preset switch move every key the player hasn't personally claimed.
+  hotkeyOverrides: HotkeyOverrides;
+  setHotkeyBinding: (action: string, keys: readonly string[]) => void;
+  resetHotkeyBinding: (action: string) => void;
+  resetAllHotkeys: () => void;
+}
+
+/**
+ * Upgrade a persisted blob to the current `SETTINGS_VERSION`.
+ *
+ * Runs once for anyone whose saved version predates it; a fresh install has
+ * nothing persisted and never reaches this, which is what makes it the right
+ * place to distinguish "existing player" from "new player".
+ *
+ * - **v1** — the board rewrite changed the default camera framing, so zoom
+ *   preferences reset to the new 1.0x baseline.
+ * - **v2** — hotkeys became customizable and new installs start on the mnemonic
+ *   `Default` scheme. Existing players are pinned to `Untap` instead: eight keys
+ *   differ between the two, and `D` flipping from discard to draw is the worst
+ *   kind of change, because it still does something — just not what you meant.
+ *
+ * The v2 branch is load-bearing rather than cosmetic. Zustand's `persist` merges
+ * the saved blob *over* the initializer's defaults, and a pre-v2 blob has no
+ * `hotkeyPreset` key at all, so without pinning it here every existing player
+ * would silently inherit `Default` on their next load.
+ *
+ * Exported for its test — the failure mode is invisible in the UI (settings look
+ * fine; the keys just moved) and only reproducible by hand with a stale blob.
+ */
+export function migrateSettings(persistedState: unknown, version: number): SettingsStore {
+  let state = persistedState as SettingsStore;
+  if (version < 1) {
+    state = { ...state, handZoom: 1, previewZoom: 1 };
+  }
+  if (version < 2) {
+    state = { ...state, hotkeyPreset: HotkeyPreset.Untap, hotkeyOverrides: {} };
+  }
+  return state;
 }
 
 export const useSettingsStore = create<SettingsStore>()(
@@ -116,20 +164,25 @@ export const useSettingsStore = create<SettingsStore>()(
       setSessionNetworkTransportOverride: (transport) => set({ sessionNetworkTransportOverride: transport }),
       tourOutcome: null,
       setTourOutcome: (outcome) => set({ tourOutcome: outcome }),
+      hotkeyPreset: HotkeyPreset.Default,
+      // Switching preset drops overrides: they were expressed against the old
+      // scheme, and keeping them would silently pin a few keys to the preset the
+      // player just moved away from.
+      setHotkeyPreset: (preset) => set({ hotkeyPreset: preset, hotkeyOverrides: {} }),
+      hotkeyOverrides: {},
+      setHotkeyBinding: (action, keys) =>
+        set((s) => ({ hotkeyOverrides: { ...s.hotkeyOverrides, [action]: [...keys] } })),
+      resetHotkeyBinding: (action) =>
+        set((s) => {
+          const { [action]: _removed, ...rest } = s.hotkeyOverrides;
+          return { hotkeyOverrides: rest };
+        }),
+      resetAllHotkeys: () => set({ hotkeyOverrides: {} }),
     }),
     {
       name: 'aura:settings',
       version: SETTINGS_VERSION,
-      // Runs once for anyone whose persisted version predates SETTINGS_VERSION.
-      // v1: board rewrite changed the default camera framing — reset zoom
-      // preferences so everyone starts from the new 1.0x baseline.
-      migrate: (persistedState, version): SettingsStore => {
-        const state = persistedState as SettingsStore;
-        if (version < 1) {
-          return { ...state, handZoom: 1, previewZoom: 1 };
-        }
-        return state;
-      },
+      migrate: (persistedState, version) => migrateSettings(persistedState, version),
       // Only persist durable user preferences — demo state and the session-only
       // transport override are deliberately excluded so they reset on reload.
       partialize: (state) => ({
@@ -140,6 +193,8 @@ export const useSettingsStore = create<SettingsStore>()(
         networkTransport: state.networkTransport,
         panelPositions: state.panelPositions,
         tourOutcome: state.tourOutcome,
+        hotkeyPreset: state.hotkeyPreset,
+        hotkeyOverrides: state.hotkeyOverrides,
       }),
     },
   ),

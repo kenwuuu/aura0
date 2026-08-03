@@ -3,8 +3,15 @@ import { BrowserContext, Page } from '@playwright/test';
 /** The localStorage key `settingsStore`'s zustand `persist` middleware writes. */
 const SETTINGS_KEY = 'aura:settings';
 
-/** Must track `SETTINGS_VERSION` in settingsStore.ts, or `migrate` runs on load. */
-const SETTINGS_VERSION = 1;
+/**
+ * Must track `SETTINGS_VERSION` in settingsStore.ts, or `migrate` runs on load.
+ *
+ * Concretely at v2: leaving this behind would stamp every seeded blob as an
+ * *existing* player, so the hotkey migration would quietly pin those specs to
+ * the Untap preset while unseeded specs booted on Default — two different
+ * keyboards inside one suite, and no error to say so.
+ */
+const SETTINGS_VERSION = 2;
 
 /**
  * Seed a persisted user preference before the app boots.

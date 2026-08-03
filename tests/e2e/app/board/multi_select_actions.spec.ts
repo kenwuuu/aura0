@@ -1,14 +1,5 @@
 import { expect, test } from '../../fixtures';
-import {
-  boxSelectNodes,
-  centerOf,
-  getElementOrientation,
-  mouseDrag,
-  openCardMenu,
-  parkMouseAwayFromBoard,
-  playCreature,
-  whiteboard,
-} from '../../harness';
+import { boxSelectNodes, centerOf, contextMenuRow, getElementOrientation, mouseDrag, openCardMenu, parkMouseAwayFromBoard, playCreature, pressHotkey, whiteboard } from '../../harness';
 import type { Locator, Page } from '@playwright/test';
 
 // A card carries `data-selected=""` on its node while part of the react-flow
@@ -64,7 +55,7 @@ test('a context-menu action applies to every selected card', async ({ page }) =>
 
   // Right-click a member of the group and Tap → the whole group taps.
   await openCardMenu(page, a);
-  await page.getByText('TapSpace').click();
+  await contextMenuRow(page, 'tap').click();
 
   expect(await getElementOrientation(a)).toBe('landscape');
   expect(await getElementOrientation(b)).toBe('landscape');
@@ -78,7 +69,7 @@ test('acting on a card outside the selection affects only that card', async ({ p
 
   // Right-click the UNSELECTED card → Tap acts on it alone (membership rule).
   await openCardMenu(page, c);
-  await page.getByText('TapSpace').click();
+  await contextMenuRow(page, 'tap').click();
 
   expect(await getElementOrientation(c)).toBe('landscape');
   expect(await getElementOrientation(a)).toBe('portrait');
@@ -118,7 +109,7 @@ test('a menu action fans out over a box-selected group without dismissing the bo
   // card) and nothing would tap. Acting straight after box-select — no click to
   // dismiss the box first — is the whole point of the assertion.
   await openCardMenu(page, a);
-  await page.getByText('TapSpace').click();
+  await contextMenuRow(page, 'tap').click();
 
   expect(await getElementOrientation(a)).toBe('landscape');
   expect(await getElementOrientation(b)).toBe('landscape');
@@ -135,7 +126,7 @@ test('a Space hotkey taps every card in a box-selected group', async ({ page }) 
   // hovered card, so this checks that a box-selected card is hoverable through
   // the selection overlay — the right-click menu path never needed hover.
   await a.hover();
-  await page.keyboard.press('Space');
+  await pressHotkey(page, 'tap');
 
   expect(await getElementOrientation(a)).toBe('landscape');
   expect(await getElementOrientation(b)).toBe('landscape');
@@ -150,7 +141,7 @@ test('a Space hotkey taps the whole selection with nothing hovered', async ({ pa
   // group must accept the action whether or not the cursor is over a member —
   // before, the battlefield hotkeys were disabled with nothing hovered.
   await parkMouseAwayFromBoard(page);
-  await page.keyboard.press('Space');
+  await pressHotkey(page, 'tap');
 
   expect(await getElementOrientation(a)).toBe('landscape');
   expect(await getElementOrientation(b)).toBe('landscape');
@@ -164,7 +155,7 @@ test('a move hotkey fans over the selection with nothing hovered', async ({ page
   // Discard (D) with nothing hovered removes every selected card from the board;
   // the unselected card stays put.
   await parkMouseAwayFromBoard(page);
-  await page.keyboard.press('d');
+  await pressHotkey(page, 'moveToDiscard');
 
   await expect(a).toHaveCount(0);
   await expect(b).toHaveCount(0);

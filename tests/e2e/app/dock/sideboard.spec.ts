@@ -7,6 +7,7 @@ import {
   pileTile,
   pileViewerCards,
   waitForPileViewerReady,
+  pressHotkey,
 } from '../../harness';
 
 /** Cards dealt to the opening hand on import. */
@@ -76,7 +77,7 @@ test('testSideboardCardMovesToHand', async ({ page }) => {
   await openPileViewer(page, 'sideboard');
   await waitForPileViewerReady(page);
   await pileViewerCards(page).first().click({ button: 'right' });
-  await page.keyboard.press('h');
+  await pressHotkey(page, 'moveToHand');
 
   await expectPileCount(page, 'sideboard', 1);
   await expectHandCount(page, OPENING_HAND + 1);
@@ -89,7 +90,7 @@ test('testDeckCardMovesToSideboard', async ({ page }) => {
   await openPileViewer(page, 'deck');
   await waitForPileViewerReady(page);
   await pileViewerCards(page).first().click({ button: 'right' });
-  await page.keyboard.press('b');
+  await pressHotkey(page, 'moveToSideboard');
 
   await expectPileCount(page, 'sideboard', 3);
 });

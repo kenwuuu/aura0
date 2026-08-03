@@ -1,10 +1,5 @@
 import { expect, test } from '../fixtures';
-import {
-  boardCards,
-  expectPileCount,
-  importOneCardDeck,
-  playCreature,
-} from '../harness';
+import { boardCards, contextMenuRow, expectPileCount, importOneCardDeck, playCreature } from '../harness';
 
 test('testImportDeck', async ({ page }) => {
   // import a one-card deck
@@ -18,14 +13,14 @@ test('testImportDeck', async ({ page }) => {
 
   // Right-click opens the action menu.
   await cards.last().click({ button: 'right' });
-  await expect(page.getByText('Copy/cloneK')).toBeVisible();
+  await expect(contextMenuRow(page, 'copy')).toBeVisible();
   await page.keyboard.press('Escape');
   await page.mouse.move(200, 200);
 
   // Clone twice → four cards to distribute to the four destinations.
   const cloneTopCard = async () => {
     await cards.last().click({ button: 'right' });
-    await page.getByText('Copy/cloneK').click();
+    await contextMenuRow(page, 'copy').click();
   };
   await cloneTopCard();
   await expect(cards).toHaveCount(3);
@@ -36,22 +31,22 @@ test('testImportDeck', async ({ page }) => {
   // previous menu instance to fully close first — right-clicking again while
   // Radix is still mid-close-animation from the last selection can race the
   // new open, leaving `getByText` waiting on a menu that never (re)appears.
-  const moveTopCard = async (menuText: string) => {
+  const moveTopCard = async (action: string) => {
     await expect(page.getByRole('menu')).toBeHidden();
     await cards.last().click({ button: 'right' });
-    await page.getByText(menuText).click();
+    await contextMenuRow(page, action).click();
   };
 
-  await moveTopCard('ExileS');
+  await moveTopCard('moveToExile');
   await expectPileCount(page, 'exile', 1);
 
-  await moveTopCard('DiscardD');
+  await moveTopCard('moveToDiscard');
   await expectPileCount(page, 'discard', 1);
 
-  await moveTopCard('To deck topT');
+  await moveTopCard('moveToDeckTop');
   await expectPileCount(page, 'deck', 1);
 
-  await moveTopCard('HandH');
+  await moveTopCard('moveToHand');
   await expect(page.locator('.hand-cards .hand-card')).toHaveCount(1);
 
   // All four cards have left the battlefield.

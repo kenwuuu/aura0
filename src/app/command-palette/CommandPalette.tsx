@@ -26,6 +26,8 @@ import {
   CommandShortcut,
 } from '@/shared/ui/command';
 import { getHotkeysGroupedByZone } from '@/features/hotkeys/hotkeys';
+import { useEffectiveBindings } from '@/features/hotkeys/useHotkeyBindings';
+import { formatKeyBinding, getBinding } from '@/features/hotkeys/bindings';
 import { useOverlayStore } from '@/app/stores/overlayStore';
 import { useHotkeyStore } from '@/app/stores/hotkeyStore';
 import { HELP_SECTIONS } from '@/app/content/help/sections';
@@ -100,7 +102,10 @@ export function CommandPalette() {
     setModalOpen(open);
   }, [open, setModalOpen]);
 
-  const commands = getCommands();
+  // Both the runnable commands' key badges and the reference rows below read the
+  // player's effective bindings, so the palette never advertises a stale key.
+  const bindings = useEffectiveBindings();
+  const commands = getCommands(bindings);
   const game = commands.filter((c) => c.section === 'Game');
   const players = commands.filter((c) => c.section === 'Players');
   const nav = commands.filter((c) => c.section === 'Navigation');
@@ -197,17 +202,23 @@ export function CommandPalette() {
             being broken. */}
         {referenceZones.map((z) => (
           <CommandGroup key={z.zone} heading={`${z.zone} shortcuts`}>
-            {z.hotkeys.map((h) => (
-              <CommandItem
-                key={h.action}
-                value={h.longDescription}
-                keywords={[h.key, h.action]}
-                onSelect={showShortcutReference}
-              >
-                <span>{h.longDescription}</span>
-                <CommandShortcut>{h.key}</CommandShortcut>
-              </CommandItem>
-            ))}
+            {z.hotkeys.map((h) => {
+              const shortcut = formatKeyBinding(getBinding(bindings, h.action));
+              return (
+                <CommandItem
+                  key={h.action}
+                  value={h.longDescription}
+                  // The key text stays searchable, so typing the letter you press
+                  // finds the action — which only works if it's the letter *this*
+                  // player presses.
+                  keywords={[shortcut, h.action]}
+                  onSelect={showShortcutReference}
+                >
+                  <span>{h.longDescription}</span>
+                  <CommandShortcut>{shortcut}</CommandShortcut>
+                </CommandItem>
+              );
+            })}
           </CommandGroup>
         ))}
       </CommandList>

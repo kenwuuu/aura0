@@ -1,0 +1,48 @@
+/**
+ * Styles for the Hotkeys settings section.
+ *
+ * Section/group layout lives in SettingGroup.module.css and the capture control
+ * styles itself — only this section's own chrome is here.
+ */
+
+.hint {
+  font-size: 12px;
+  color: #9ca3af;
+  line-height: 1.4;
+  padding-top: 8px;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 12px 0 4px;
+}
+
+.overrideCount {
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+/* A warning, not an error: two actions can legally share a key when their
+   hover targets are disjoint, so this informs rather than blocks. */
+.conflict {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 12px 0;
+  padding: 10px 14px;
+  font-size: 13px;
+  line-height: 1.4;
+  color: #fde68a;
+  background: #2a220c;
+  border: 1px solid #78550f;
+  border-radius: 8px;
+}
+
+.conflict strong {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: #fef3c7;
+}

@@ -31,6 +31,8 @@ import { useNumberPromptStore } from '@/features/game-actions/numberPromptStore'
 import { useTokenCardSearchStore } from '@/features/game-actions/tokenCardSearchStore';
 import { DeckPersistenceService } from '@/infrastructure/persistence';
 import { triggerConfirmation } from '@/shared/utils/confirmation';
+import { getEffectiveBindings } from '@/features/hotkeys/useHotkeyBindings';
+import { getBinding, getConfirmationKey } from '@/features/hotkeys/bindings';
 import { logAction, cardLogName } from '@/features/action-log/actionLog';
 import { useConfirmStore } from '@/app/stores/confirmStore';
 import { useSettingsStore } from '@/app/stores/settingsStore';
@@ -183,9 +185,15 @@ function executeBoardAction(action: string, cursor: { x: number; y: number }): v
       break;
     case 'mulligan':
       if (player) {
-        triggerConfirmation(`Mulligan? Draws ${OPENING_HAND_SIZE} new cards.`, 'm').then((confirmed) => {
-          if (confirmed) { player.mulligan(OPENING_HAND_SIZE); saveDeck(); }
-        });
+        // "Press M to confirm" was hard-coded here; M is only the mulligan key
+        // on the Untap and Default presets, and the dialog *matches* on the same
+        // string it renders — so a rebound mulligan used to open a dialog that
+        // could not be confirmed by keyboard at all.
+        const confirmKey = getConfirmationKey(getBinding(getEffectiveBindings(), 'mulligan'));
+        triggerConfirmation(`Mulligan? Draws ${OPENING_HAND_SIZE} new cards.`, confirmKey)
+          .then((confirmed) => {
+            if (confirmed) { player.mulligan(OPENING_HAND_SIZE); saveDeck(); }
+          });
       }
       break;
     case 'addCard':

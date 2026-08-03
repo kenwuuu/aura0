@@ -1,5 +1,12 @@
 import { test, expect } from '../../fixtures';
-import { expectHealth, expectPileCount, pileViewerCards } from '../../harness';
+import { expectHealth, expectPileCount, keysForAction, pileViewerCards } from '../../harness';
+
+// Life has two bindings each way — the plain key and its shifted twin — and
+// these specs exist to prove BOTH fire. Resolved from the player's bindings
+// rather than typed as '-'/'_' so the pair keeps meaning "the two alternates"
+// whatever they are bound to.
+const [loseKey, loseKeyShifted] = keysForAction('loseHealth');
+const [gainKeyShifted, gainKey] = keysForAction('gainHealth');
 
 test('testScryDoesNotDuplicateCards', async ({ page }) => {
   await expectPileCount(page, 'deck', 92);
@@ -40,25 +47,25 @@ test('testLoseHealthButton', async ({ page }) => {
 
 test('testLoseHealthHotkey1', async ({ page }) => {
   await expectHealth(page, 40);
-  await page.keyboard.press('-');
+  await page.keyboard.press(loseKey);
   await expectHealth(page, 39);
-  await page.keyboard.press('_');
+  await page.keyboard.press(loseKeyShifted);
   await expectHealth(page, 38);
-  await page.keyboard.press('-');
+  await page.keyboard.press(loseKey);
   await expectHealth(page, 37);
-  await page.keyboard.press('-');
+  await page.keyboard.press(loseKey);
   await expectHealth(page, 36);
 });
 
 test('testLoseHealthHotkey2', async ({ page }) => {
   await expectHealth(page, 40);
-  await page.keyboard.press('_');
+  await page.keyboard.press(loseKeyShifted);
   await expectHealth(page, 39);
-  await page.keyboard.press('_');
+  await page.keyboard.press(loseKeyShifted);
   await expectHealth(page, 38);
-  await page.keyboard.press('_');
+  await page.keyboard.press(loseKeyShifted);
   await expectHealth(page, 37);
-  await page.keyboard.press('_');
+  await page.keyboard.press(loseKeyShifted);
   await expectHealth(page, 36);
 });
 
@@ -77,24 +84,24 @@ test('testGainHealthButton', async ({ page }) => {
 
 test('testGainHealthHotkey', async ({ page }) => {
   await expectHealth(page, 40);
-  await page.keyboard.press('=');
+  await page.keyboard.press(gainKey);
   await expectHealth(page, 41);
-  await page.keyboard.press('=');
+  await page.keyboard.press(gainKey);
   await expectHealth(page, 42);
-  await page.keyboard.press('=');
+  await page.keyboard.press(gainKey);
   await expectHealth(page, 43);
-  await page.keyboard.press('=');
+  await page.keyboard.press(gainKey);
   await expectHealth(page, 44);
 });
 
 test('testGainHealthHotkey2', async ({ page }) => {
   await expectHealth(page, 40);
-  await page.keyboard.press('+');
+  await page.keyboard.press(gainKeyShifted);
   await expectHealth(page, 41);
-  await page.keyboard.press('+');
+  await page.keyboard.press(gainKeyShifted);
   await expectHealth(page, 42);
-  await page.keyboard.press('+');
+  await page.keyboard.press(gainKeyShifted);
   await expectHealth(page, 43);
-  await page.keyboard.press('+');
+  await page.keyboard.press(gainKeyShifted);
   await expectHealth(page, 44);
 });

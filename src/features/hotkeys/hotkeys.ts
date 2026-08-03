@@ -41,10 +41,19 @@ export type HotkeyContext = typeof HotkeyContext[keyof typeof HotkeyContext];
  * set makes scoped bindings fall back to "always on" with a console warning):
  * - `Board`      — normal play; all battlefield / hand / pile / token hotkeys.
  * - `PileViewer` — a modal (pile viewer) is open; only its card hotkeys fire.
+ * - `Capture`    — Settings is recording a new binding. **Nothing is registered
+ *   under this scope, and that is the point**: it is the "no game hotkeys" state,
+ *   expressed as a scope so the never-empty rule above still holds.
+ *
+ *   It has to exist because the Settings modal is not one of the surfaces that
+ *   sets `isModalOpen` (only the pile viewer, AddCard and the command palette
+ *   are), so board hotkeys stay live while Settings is open. Without it,
+ *   pressing `D` to *record* it would also draw a card.
  */
 export const HotkeyScope = {
   Board: 'board',
   PileViewer: 'pile-viewer',
+  Capture: 'capture',
 } as const;
 
 export type HotkeyScope = typeof HotkeyScope[keyof typeof HotkeyScope];
@@ -89,8 +98,21 @@ export interface ToolbarPlacement {
 }
 
 export interface Hotkey {
-  key: string; // Display name for UI (e.g., "Space", "+  or  =")
-  keys: string[]; // Actual key bindings for react-hotkeys-hook (e.g., ["space"], ["+", "="])
+  /**
+   * The action's **default** key bindings, in react-hotkeys-hook syntax
+   * (e.g. `['space']`, `['shift+equal', 'equal']`). Empty means pointer-only.
+   *
+   * Defaults, not the live bindings: a player's preset and per-action overrides
+   * sit on top of these (see `bindings.ts`). Never hand these to `useHotkeys` or
+   * render them — resolve through `useEffectiveBindings()` instead, or you will
+   * bind and display the Untap keys for everyone.
+   *
+   * There used to be a companion `key: string` holding a hand-written display
+   * string ('Space', '+  or  =', 'Back'). It was maintained in parallel with
+   * this array and could disagree with it; `formatKeyBinding` now derives the
+   * same labels from whatever is actually bound.
+   */
+  keys: string[];
   /**
    * Which context menus offer this row. Empty means none — a toolbar-only
    * action (Pass, Reset Deck) that no surface hovers, and so has no menu to
@@ -132,7 +154,6 @@ export const HOTKEYS: Hotkey[] = [
   // opening the viewer directly. Kept at the top of the catalog so "View" is
   // the first row on every pile's context menu (above "Draw" on the deck).
   {
-    key: '',
     keys: [],
     context: ['deck', 'exile', 'discard', 'sideboard'],
     shortDescription: 'View',
@@ -145,7 +166,6 @@ export const HOTKEYS: Hotkey[] = [
   },
   // Global shortcuts (work anywhere)
   {
-    key: 'C',
     keys: ['c'],
     context: ['global', 'deck'],
     shortDescription: 'Draw',
@@ -156,7 +176,6 @@ export const HOTKEYS: Hotkey[] = [
   {
     // Toolbar-only: there is no surface to hover for "it's your turn now", so
     // it carries no context and no key — it only ever logs.
-    key: '',
     keys: [],
     context: [],
     shortDescription: 'Pass',
@@ -168,7 +187,6 @@ export const HOTKEYS: Hotkey[] = [
   // four carry the 'deck' context and appear on the deck node's menu as well as
   // in the toolbar — they were toolbar-only until the registries were unified.
   {
-    key: '',
     keys: [],
     context: ['deck'],
     shortDescription: 'Draw X',
@@ -177,7 +195,6 @@ export const HOTKEYS: Hotkey[] = [
     toolbar: { surface: 'actions', target: 'board', order: 10 },
   },
   {
-    key: '',
     keys: [],
     context: ['deck'],
     shortDescription: 'Scry',
@@ -186,7 +203,6 @@ export const HOTKEYS: Hotkey[] = [
     toolbar: { surface: 'actions', target: 'board', order: 20 },
   },
   {
-    key: '',
     keys: [],
     context: ['deck'],
     shortDescription: 'Surveil',
@@ -195,7 +211,6 @@ export const HOTKEYS: Hotkey[] = [
     toolbar: { surface: 'actions', target: 'board', order: 30 },
   },
   {
-    key: '',
     keys: [],
     context: ['deck'],
     shortDescription: 'Mill',
@@ -207,7 +222,6 @@ export const HOTKEYS: Hotkey[] = [
     // Deck-only: takes the top card of the deck straight onto the battlefield,
     // skipping the hand. Not in 'global' — it's a deck-pile action, so it stays
     // off the empty-board menu, and the key only fires while the deck is hovered.
-    key: 'P',
     keys: ['p'],
     context: ['deck'],
     shortDescription: 'Play to board',
@@ -222,7 +236,6 @@ export const HOTKEYS: Hotkey[] = [
     // and lose the whole point. Face-down play is only ever a deliberate pick,
     // never a blind top-of-pile action, which is why this lives in the
     // pile-viewer-card context rather than beside `playToBattlefield`.
-    key: '',
     keys: [],
     context: ['pileviewercard'],
     shortDescription: 'Play to board facedown',
@@ -234,7 +247,6 @@ export const HOTKEYS: Hotkey[] = [
   // still fire — those bindings are registered directly in useAllGameHotkeys,
   // independent of this context list.
   {
-    key: 'V',
     keys: ['v'],
     context: ['deck'],
     shortDescription: 'Shuffle',
@@ -243,7 +255,6 @@ export const HOTKEYS: Hotkey[] = [
     toolbar: { surface: 'actions', target: 'board', order: 80 },
   },
   {
-    key: 'M',
     keys: ['m'],
     context: ['deck'],
     shortDescription: 'Mulligan',
@@ -254,7 +265,6 @@ export const HOTKEYS: Hotkey[] = [
   // Hand-and-whole-game actions. Toolbar-only (empty `context`): none of them
   // acts on a hoverable surface, so no menu has a place for them.
   {
-    key: '',
     keys: [],
     context: [],
     shortDescription: 'Random Discard',
@@ -263,7 +273,6 @@ export const HOTKEYS: Hotkey[] = [
     toolbar: { surface: 'actions', target: 'board', order: 60 },
   },
   {
-    key: '',
     keys: [],
     context: [],
     shortDescription: 'Reveal Hand',
@@ -272,7 +281,6 @@ export const HOTKEYS: Hotkey[] = [
     toolbar: { surface: 'actions', target: 'board', order: 70 },
   },
   {
-    key: '',
     keys: [],
     context: [],
     shortDescription: 'Reset Deck',
@@ -290,7 +298,6 @@ export const HOTKEYS: Hotkey[] = [
   // — but it lives here so the Create row is described in one place like
   // everything else.
   {
-    key: '',
     keys: [],
     context: [],
     shortDescription: 'Counter',
@@ -299,7 +306,6 @@ export const HOTKEYS: Hotkey[] = [
     toolbar: { surface: 'create', target: 'board', order: 10 },
   },
   {
-    key: '',
     keys: [],
     context: [],
     shortDescription: 'Token Card',
@@ -308,7 +314,6 @@ export const HOTKEYS: Hotkey[] = [
     toolbar: { surface: 'create', target: 'board', order: 20 },
   },
   {
-    key: '',
     keys: [],
     context: [],
     shortDescription: 'Label',
@@ -324,7 +329,6 @@ export const HOTKEYS: Hotkey[] = [
     // on the empty-board (Global) menu, and the 'a' key still works — that
     // binding is registered directly in useAllGameHotkeys, independent of this
     // context list.
-    key: 'A',
     keys: ['a'],
     context: ['global'],
     shortDescription: 'Add any card',
@@ -336,7 +340,6 @@ export const HOTKEYS: Hotkey[] = [
   // menu). The +/- keys still adjust life — those bindings are registered
   // directly in useAllGameHotkeys, independent of this context list.
   {
-    key: '+  or  =',
     keys: ['shift+equal', 'equal'],
     context: ['health'],
     shortDescription: '+1 life',
@@ -344,7 +347,6 @@ export const HOTKEYS: Hotkey[] = [
     action: 'gainHealth',
   },
   {
-    key: '-  or  _',
     keys: ['minus', 'shift+minus'],
     context: ['health'],
     shortDescription: '-1 life',
@@ -354,7 +356,6 @@ export const HOTKEYS: Hotkey[] = [
 
   // Battlefield card shortcuts
   {
-    key: 'Space',
     keys: ['space'],
     context: ['battlefield'],
     shortDescription: 'Tap',
@@ -362,7 +363,6 @@ export const HOTKEYS: Hotkey[] = [
     action: 'tap',
   },
   {
-    key: 'X',
     keys: ['x'],
     context: ['global', 'battlefield'],
     shortDescription: 'Untap all',
@@ -373,7 +373,6 @@ export const HOTKEYS: Hotkey[] = [
   {
     // Zzz = summoning-sick creature that can't act yet. Tilts the card 45°;
     // mutually exclusive with tap (see the `sick`/`tap` executors).
-    key: 'Z',
     keys: ['z'],
     context: ['battlefield'],
     shortDescription: 'Summoning sick',
@@ -381,7 +380,6 @@ export const HOTKEYS: Hotkey[] = [
     action: 'sick',
   },
   {
-    key: 'F',
     keys: ['f'],
     context: ['battlefield', 'hand'],
     shortDescription: 'Flip',
@@ -395,7 +393,6 @@ export const HOTKEYS: Hotkey[] = [
     // (see CardNode.showPreview); the menu row exists only for touch, which has
     // no hover. No key binding (like `viewPile`). GameContextMenu only shows the
     // row on your own hidden-facedown cards; `executePeek` gates it the same way.
-    key: '',
     keys: [],
     context: ['battlefield'],
     shortDescription: 'Peek',
@@ -404,7 +401,6 @@ export const HOTKEYS: Hotkey[] = [
     touchMenuOnly: true,
   },
   {
-    key: 'U',
     keys: ['u'],
     context: ['global', 'battlefield'],
     shortDescription: '+1 counter',
@@ -412,7 +408,6 @@ export const HOTKEYS: Hotkey[] = [
     action: 'addCounter',
   },
   {
-    key: 'I',
     keys: ['i'],
     context: ['global', 'battlefield'],
     shortDescription: '-1 counter',
@@ -420,7 +415,6 @@ export const HOTKEYS: Hotkey[] = [
     action: 'removeCounter',
   },
   {
-    key: 'K',
     keys: ['k'],
     context: ['battlefield'],
     shortDescription: 'Copy/clone',
@@ -428,7 +422,6 @@ export const HOTKEYS: Hotkey[] = [
     action: 'copy',
   },
   {
-    key: 'Back', // leaving this icon here: ⌫
     keys: ['backspace'],
     context: ['battlefield'],
     shortDescription: 'Delete',
@@ -437,7 +430,6 @@ export const HOTKEYS: Hotkey[] = [
     destructive: true,
   },
   {
-    key: 'H',
     keys: ['h'],
     context: ['battlefield', 'deck', 'exile', 'discard', 'deckcard', 'sideboard'],
     shortDescription: 'Hand',
@@ -445,7 +437,6 @@ export const HOTKEYS: Hotkey[] = [
     action: 'moveToHand',
   },
   {
-    key: '↑',
     keys: ['arrowup'],
     context: ['kwToken'],
     shortDescription: '+1',
@@ -454,7 +445,6 @@ export const HOTKEYS: Hotkey[] = [
     touchMenuOnly: true,
   },
   {
-    key: '↓',
     keys: ['arrowdown'],
     context: ['kwToken'],
     shortDescription: '-1',
@@ -463,7 +453,6 @@ export const HOTKEYS: Hotkey[] = [
     touchMenuOnly: true,
   },
   {
-    key: 'Back',
     keys: ['backspace'],
     context: ['kwToken'],
     shortDescription: 'Delete token',
@@ -474,7 +463,6 @@ export const HOTKEYS: Hotkey[] = [
 
   // Hand and pile shortcuts
   {
-    key: 'D',
     keys: ['d'],
     context: ['battlefield', 'hand', 'exile', 'deck', 'deckcard', 'scry', 'sideboard'],
     shortDescription: 'Discard',
@@ -482,7 +470,6 @@ export const HOTKEYS: Hotkey[] = [
     action: 'moveToDiscard',
   },
   {
-    key: 'S',
     keys: ['s'],
     context: ['battlefield', 'hand', 'deck', 'discard', 'deckcard', 'sideboard'],
     shortDescription: 'Exile',
@@ -493,7 +480,6 @@ export const HOTKEYS: Hotkey[] = [
     toolbar: { surface: 'actions', target: 'deck', order: 40, label: 'Exile Top' },
   },
   {
-    key: 'T',
     keys: ['t'],
     context: ['battlefield', 'hand', 'exile', 'discard', 'deckcard', 'scry', 'sideboard'],
     shortDescription: 'To deck top',
@@ -501,7 +487,6 @@ export const HOTKEYS: Hotkey[] = [
     action: 'moveToDeckTop',
   },
   {
-    key: 'Y',
     keys: ['y'],
     context: ['battlefield', 'hand', 'exile', 'discard', 'deckcard', 'scry', 'sideboard'],
     shortDescription: 'To deck bottom',
@@ -512,7 +497,6 @@ export const HOTKEYS: Hotkey[] = [
     // Sideboarding runs both ways: deck → sideboard between games, sideboard →
     // deck (or hand, for a wish or a companion) once play starts. So this is
     // offered from every zone a card can be sitting in, not just the deck.
-    key: 'B',
     keys: ['b'],
     context: ['battlefield', 'hand', 'deck', 'exile', 'discard', 'deckcard'],
     shortDescription: 'Sideboard',
@@ -534,7 +518,7 @@ export type ToolbarHotkey = Hotkey & { toolbar: ToolbarPlacement };
 /**
  * The toolbar's entries for one of its surfaces, in `toolbar.order`.
  *
- * The third reader of `HOTKEYS`, after `getKeyBindingsForAction` (keyboard) and
+ * The third reader of `HOTKEYS`, after `resolveBindings` (keyboard) and
  * `getMenuActionsForTarget` (context menus). Before these registries were
  * unified the toolbar had its own parallel list with its own `perform()`
  * bodies, and the two drifted exactly as you'd expect: the toolbar's Mulligan
@@ -583,11 +567,17 @@ const ZONE_ORDER: Array<{ zone: string; contexts: HotkeyContext[] }> = [
 ];
 
 /**
- * Group the catalog into ordered, deduplicated zones for the shortcut
- * reference. Pointer-only rows (empty `key`, e.g. `viewPile`) are omitted since
- * there is no keystroke to show, and each action appears in exactly one zone
- * (see `ZONE_ORDER`). Reads live from `HOTKEYS`, so the reference can never
- * drift from the actual bindings.
+ * Group the catalog into ordered, deduplicated zones for the shortcut reference
+ * and the Settings hotkey editor. Pointer-only rows (no default `keys`, e.g.
+ * `viewPile`) are omitted since there is no keystroke to show or rebind, and
+ * each action appears in exactly one zone (see `ZONE_ORDER`).
+ *
+ * The filter is on the *default* bindings on purpose. It answers "is this action
+ * reachable from the keyboard at all", which is a property of the catalog and of
+ * `useAllGameHotkeys` having a registration for it — not of what the current
+ * player happens to have bound. Filtering on effective bindings instead would
+ * make a row vanish from Settings the moment someone cleared its key, leaving
+ * them no way to put it back.
  */
 export function getHotkeysGroupedByZone(): HotkeyZone[] {
   const seen = new Set<string>();
@@ -595,7 +585,7 @@ export function getHotkeysGroupedByZone(): HotkeyZone[] {
   for (const { zone, contexts } of ZONE_ORDER) {
     const hotkeys = HOTKEYS.filter(
       (h) =>
-        h.key !== '' &&
+        h.keys.length > 0 &&
         !seen.has(h.action) &&
         contexts.some((c) => h.context.includes(c)),
     );
@@ -605,13 +595,15 @@ export function getHotkeysGroupedByZone(): HotkeyZone[] {
   return groups;
 }
 
-/**
- * Get key bindings for a specific action (for react-hotkeys-hook)
- */
-export function getKeyBindingsForAction(action: string): string[] {
-  const hotkey = HOTKEYS.find((h) => h.action === action);
-  return hotkey?.keys ?? [];
-}
+// `getKeyBindingsForAction` used to live here, returning a catalog entry's
+// `keys` straight to react-hotkeys-hook. It is gone deliberately rather than
+// left unused: since bindings became customizable, the catalog is only the
+// *fallback* layer under the player's preset and overrides, so a caller reading
+// it directly would quietly bind the Untap keys for someone on Default or
+// Moxfield — a bug that works perfectly on the author's machine.
+//
+// Read bindings through `useEffectiveBindings()` (or `getEffectiveBindings()`
+// outside React) in `useHotkeyBindings.ts`.
 
 /**
  * The catalog entry for an action, or `undefined` if there is no such action.

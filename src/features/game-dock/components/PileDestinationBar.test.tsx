@@ -19,23 +19,33 @@ const deckCallbacks: PileViewerCallbacks = {
 // can use — no per-pile branching in the bar. This is what makes scry (1e) and
 // discard (1f) "just work".
 describe('getAvailableDestinations — targets flex per pile', () => {
-  it('a deck viewer offers all five targets, in H/D/S/T/Y order', () => {
-    expect(getAvailableDestinations(deckCallbacks).map((d) => d.key)).toEqual(['H', 'D', 'S', 'T', 'Y']);
+  // Asserted by action, not by key letter: the letters are per-player now
+  // (preset + overrides), so 'H'/'D'/'S'/'T'/'Y' would pin one player's
+  // keyboard rather than the bar's actual contract, which is about *which
+  // destinations* a viewer offers.
+  it('a deck viewer offers all five targets, in hand/grave/exile/top/bottom order', () => {
+    expect(getAvailableDestinations(deckCallbacks).map((d) => d.action)).toEqual([
+      'moveToHand', 'moveToDiscard', 'moveToExile', 'moveToDeckTop', 'moveToDeckBottom',
+    ]);
   });
 
-  it('a discard viewer drops D — the cards are already in the graveyard (1f)', () => {
+  it('a discard viewer drops the graveyard target — the cards are already there (1f)', () => {
     const discard: PileViewerCallbacks = { ...deckCallbacks };
     delete discard.onMoveToDiscard;
-    expect(getAvailableDestinations(discard).map((d) => d.key)).toEqual(['H', 'S', 'T', 'Y']);
+    expect(getAvailableDestinations(discard).map((d) => d.action)).toEqual([
+      'moveToHand', 'moveToExile', 'moveToDeckTop', 'moveToDeckBottom',
+    ]);
   });
 
-  it('a scry viewer offers only D/T/Y — no Hand/Exile (1e)', () => {
+  it('a scry viewer offers only grave/top/bottom — no hand or exile (1e)', () => {
     const scry: PileViewerCallbacks = {
       onMoveToDiscard: noop,
       onMoveToDeckTop: noop,
       onMoveToDeckBottom: noop,
     };
-    expect(getAvailableDestinations(scry).map((d) => d.key)).toEqual(['D', 'T', 'Y']);
+    expect(getAvailableDestinations(scry).map((d) => d.action)).toEqual([
+      'moveToDiscard', 'moveToDeckTop', 'moveToDeckBottom',
+    ]);
   });
 
   it('a read-only viewer (no move callbacks) offers nothing', () => {

@@ -1,5 +1,5 @@
 import { test } from '../../fixtures';
-import { expectHandCount, expectPileCount, handCard } from '../../harness';
+import { expectHandCount, expectPileCount, handCard, pressHotkey } from '../../harness';
 
 /**
  * Removing the hovered hand card via a hotkey unmounts its DOM node without a
@@ -11,8 +11,8 @@ import { expectHandCount, expectPileCount, handCard } from '../../harness';
  */
 test('pressing a hotkey twice on a hand card without moving the mouse moves both', async ({ page }) => {
   await handCard(page).first().hover();
-  await page.keyboard.press('d');
-  await page.keyboard.press('d');
+  await pressHotkey(page, 'moveToDiscard');
+  await pressHotkey(page, 'moveToDiscard');
 
   await expectPileCount(page, 'discard', 2);
   await expectHandCount(page, 6);

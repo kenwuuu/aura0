@@ -1,17 +1,6 @@
 import { expect, test } from '../../fixtures';
 import { Page } from '@playwright/test';
-import {
-  boardCardIds,
-  boardCardNode,
-  expectPileCount,
-  handCards,
-  mouseDrag,
-  openPileViewer,
-  pileTile,
-  pileViewerCards,
-  pileViewerGrid,
-  waitForPileViewerReady,
-} from '../../harness';
+import { boardCardIds, boardCardNode, contextMenuRow, expectPileCount, handCards, mouseDrag, openPileViewer, pileTile, pileViewerCards, pileViewerGrid, pressHotkey, waitForPileViewerReady } from '../../harness';
 
 /** The second card in an open pile viewer — any card works identically for these tests. */
 function secondCard(page: Page) {
@@ -19,15 +8,18 @@ function secondCard(page: Page) {
 }
 
 /**
- * Hover the deck pile (not the viewer) and press a move-to-pile hotkey N
- * times. 'd' moves the top card to discard, 's' to exile — these are the
- * pile-hover hotkeys (HotkeyContext.Deck), distinct from the pile-viewer's
- * per-card hotkeys of the same letters.
+ * Hover the deck pile (not the viewer) and press a move hotkey N times. These
+ * are the pile-hover hotkeys (HotkeyContext.Deck), distinct from the pile
+ * viewer's per-card hotkeys for the same actions.
  */
-async function millCardsFromDeck(page: Page, key: 'd' | 's', count: number) {
+async function millCardsFromDeck(
+  page: Page,
+  action: 'moveToDiscard' | 'moveToExile',
+  count: number,
+) {
   await pileTile(page, 'deck').hover();
   for (let i = 0; i < count; i++) {
-    await page.keyboard.press(key);
+    await pressHotkey(page, action);
   }
 }
 
@@ -61,7 +53,7 @@ test('testPilePlayFacedownIsNotOfferedOnThePileItself', async ({ page }) => {
   // a deliberate pick, so the row belongs to the viewer only.
   await pileTile(page, 'deck').click({ button: 'right' });
   // The pile's own play row (label + its `P` shortcut) is there; the viewer's is not.
-  await expect(page.getByText('Play to boardP')).toBeVisible();
+  await expect(contextMenuRow(page, 'playToBattlefield')).toBeVisible();
   await expect(page.getByRole('menuitem', { name: /facedown/i })).toHaveCount(0);
 });
 
@@ -69,7 +61,7 @@ test('testDeckViewerCardToExileHotkey', async ({ page }) => {
   await openPileViewer(page, 'deck');
   await waitForPileViewerReady(page);
   await secondCard(page).click({ button: 'right' });
-  await page.keyboard.press('s');
+  await pressHotkey(page, 'moveToExile');
   await expectPileCount(page, 'exile', 1);
 });
 
@@ -77,7 +69,7 @@ test('testDeckViewerCardToExileTooltip', async ({ page }) => {
   await openPileViewer(page, 'deck');
   await waitForPileViewerReady(page);
   await secondCard(page).click({ button: 'right' });
-  await page.getByText('ExileS').click();
+  await contextMenuRow(page, 'moveToExile').click();
   await expectPileCount(page, 'exile', 1);
 });
 
@@ -85,7 +77,7 @@ test('testDeckViewerCardToDiscardHotkey', async ({ page }) => {
   await openPileViewer(page, 'deck');
   await waitForPileViewerReady(page);
   await secondCard(page).click({ button: 'right' });
-  await page.keyboard.press('d');
+  await pressHotkey(page, 'moveToDiscard');
   await expectPileCount(page, 'discard', 1);
 });
 
@@ -93,7 +85,7 @@ test('testDeckViewerCardToDiscardTooltip', async ({ page }) => {
   await openPileViewer(page, 'deck');
   await waitForPileViewerReady(page);
   await secondCard(page).click({ button: 'right' });
-  await page.getByText('DiscardD').click();
+  await contextMenuRow(page, 'moveToDiscard').click();
   await expectPileCount(page, 'discard', 1);
 });
 
@@ -103,7 +95,7 @@ test('testDeckViewerCardToHandHotkey', async ({ page }) => {
   await secondCard(page).click({ button: 'right' });
   const ninthHandCard = handCards(page).nth(8);
   await expect(ninthHandCard).toBeHidden();
-  await page.keyboard.press('h');
+  await pressHotkey(page, 'moveToHand');
   await expect(ninthHandCard).toBeVisible();
 });
 
@@ -115,7 +107,7 @@ test('testDeckViewerCardToHandTooltip', async ({ page }) => {
 
   await secondCard(page).click({ button: 'right' });
   await expect(ninthHandCard).toBeHidden();
-  await page.getByText('HandH').click();
+  await contextMenuRow(page, 'moveToHand').click();
   await expect(ninthHandCard).toBeVisible();
 
   await expect(page.getByRole('dialog', { name: 'Search Deck' })).toBeVisible();
@@ -128,7 +120,7 @@ test('testDeckViewerCardToDeckTopHotkey', async ({ page }) => {
 
   // move card to deck top (reshuffling within deck)
   await secondCard(page).click({ button: 'right' });
-  await page.keyboard.press('t');
+  await pressHotkey(page, 'moveToDeckTop');
 
   // Deck count should remain the same (92)
   await expectPileCount(page, 'deck', 92);
@@ -140,7 +132,7 @@ test('testDeckViewerCardToDeckTopTooltip', async ({ page }) => {
   await expectPileCount(page, 'deck', 92);
 
   await secondCard(page).click({ button: 'right' });
-  await page.getByText('To deck topT').click();
+  await contextMenuRow(page, 'moveToDeckTop').click();
 
   await expectPileCount(page, 'deck', 92);
 });
@@ -151,7 +143,7 @@ test('testDeckViewerCardToDeckBottomHotkey', async ({ page }) => {
   await expectPileCount(page, 'deck', 92);
 
   await secondCard(page).click({ button: 'right' });
-  await page.keyboard.press('y');
+  await pressHotkey(page, 'moveToDeckBottom');
 
   await expectPileCount(page, 'deck', 92);
 });
@@ -162,7 +154,7 @@ test('testDeckViewerCardToDeckBottomTooltip', async ({ page }) => {
   await expectPileCount(page, 'deck', 92);
 
   await secondCard(page).click({ button: 'right' });
-  await page.getByText('To deck bottomY').click();
+  await contextMenuRow(page, 'moveToDeckBottom').click();
 
   await expectPileCount(page, 'deck', 92);
 });
@@ -170,31 +162,31 @@ test('testDeckViewerCardToDeckBottomTooltip', async ({ page }) => {
 // ── Discard pile viewer ──────────────────────────────────────────────────────
 
 test('testDiscardViewerCardToExileHotkey', async ({ page }) => {
-  await millCardsFromDeck(page, 'd', 7);
+  await millCardsFromDeck(page, 'moveToDiscard', 7);
   await expectPileCount(page, 'exile', 0);
   await expectPileCount(page, 'discard', 7);
 
   await openPileViewer(page, 'discard');
   await waitForPileViewerReady(page);
   await secondCard(page).click({ button: 'right' });
-  await page.keyboard.press('s');
+  await pressHotkey(page, 'moveToExile');
   await expectPileCount(page, 'exile', 1);
 });
 
 test('testDiscardViewerCardToExileTooltip', async ({ page }) => {
-  await millCardsFromDeck(page, 'd', 7);
+  await millCardsFromDeck(page, 'moveToDiscard', 7);
   await expectPileCount(page, 'exile', 0);
   await expectPileCount(page, 'discard', 7);
 
   await openPileViewer(page, 'discard');
   await waitForPileViewerReady(page);
   await secondCard(page).click({ button: 'right' });
-  await page.getByText('ExileS').click();
+  await contextMenuRow(page, 'moveToExile').click();
   await expectPileCount(page, 'exile', 1);
 });
 
 test('testDiscardViewerCardToDeckTopHotkeys', async ({ page }) => {
-  await millCardsFromDeck(page, 'd', 7);
+  await millCardsFromDeck(page, 'moveToDiscard', 7);
   await expectPileCount(page, 'discard', 7);
 
   await openPileViewer(page, 'discard');
@@ -202,64 +194,64 @@ test('testDiscardViewerCardToDeckTopHotkeys', async ({ page }) => {
 
   // move 2 cards to deck top
   await secondCard(page).click({ button: 'right' });
-  await page.keyboard.press('t');
+  await pressHotkey(page, 'moveToDeckTop');
   await waitForPileViewerReady(page);
   await secondCard(page).click({ button: 'right' });
-  await page.keyboard.press('t');
+  await pressHotkey(page, 'moveToDeckTop');
 
   await expectPileCount(page, 'deck', 87);
 });
 
 test('testDiscardViewerCardToDeckTopTooltip', async ({ page }) => {
-  await millCardsFromDeck(page, 'd', 7);
+  await millCardsFromDeck(page, 'moveToDiscard', 7);
   await expectPileCount(page, 'discard', 7);
 
   await openPileViewer(page, 'discard');
   await waitForPileViewerReady(page);
 
   await secondCard(page).click({ button: 'right' });
-  await page.getByText('To deck topT').click();
+  await contextMenuRow(page, 'moveToDeckTop').click();
   await waitForPileViewerReady(page);
   await secondCard(page).click({ button: 'right' });
-  await page.getByText('To deck topT').click();
+  await contextMenuRow(page, 'moveToDeckTop').click();
 
   await expectPileCount(page, 'deck', 87);
 });
 
 test('testDiscardViewerCardToDeckBottomHotkeys', async ({ page }) => {
-  await millCardsFromDeck(page, 'd', 7);
+  await millCardsFromDeck(page, 'moveToDiscard', 7);
   await expectPileCount(page, 'discard', 7);
 
   await openPileViewer(page, 'discard');
   await waitForPileViewerReady(page);
 
   await secondCard(page).click({ button: 'right' });
-  await page.keyboard.press('y');
+  await pressHotkey(page, 'moveToDeckBottom');
   await waitForPileViewerReady(page);
   await secondCard(page).click({ button: 'right' });
-  await page.keyboard.press('y');
+  await pressHotkey(page, 'moveToDeckBottom');
 
   await expectPileCount(page, 'deck', 87);
 });
 
 test('testDiscardViewerCardToDeckBottomTooltip', async ({ page }) => {
-  await millCardsFromDeck(page, 'd', 7);
+  await millCardsFromDeck(page, 'moveToDiscard', 7);
   await expectPileCount(page, 'discard', 7);
 
   await openPileViewer(page, 'discard');
   await waitForPileViewerReady(page);
 
   await secondCard(page).click({ button: 'right' });
-  await page.getByText('To deck bottomY').click();
+  await contextMenuRow(page, 'moveToDeckBottom').click();
   await waitForPileViewerReady(page);
   await secondCard(page).click({ button: 'right' });
-  await page.getByText('To deck bottomY').click();
+  await contextMenuRow(page, 'moveToDeckBottom').click();
 
   await expectPileCount(page, 'deck', 87);
 });
 
 test('testDiscardViewerCardToHandHotkey', async ({ page }) => {
-  await millCardsFromDeck(page, 'd', 7);
+  await millCardsFromDeck(page, 'moveToDiscard', 7);
   await expectPileCount(page, 'discard', 7);
 
   await openPileViewer(page, 'discard');
@@ -268,12 +260,12 @@ test('testDiscardViewerCardToHandHotkey', async ({ page }) => {
 
   await secondCard(page).click({ button: 'right' });
   await expect(ninthHandCard).toBeHidden();
-  await page.keyboard.press('h');
+  await pressHotkey(page, 'moveToHand');
   await expect(ninthHandCard).toBeVisible();
 });
 
 test('testDiscardViewerCardToHandTooltip', async ({ page }) => {
-  await millCardsFromDeck(page, 'd', 7);
+  await millCardsFromDeck(page, 'moveToDiscard', 7);
   await expectPileCount(page, 'discard', 7);
 
   await openPileViewer(page, 'discard');
@@ -282,93 +274,93 @@ test('testDiscardViewerCardToHandTooltip', async ({ page }) => {
 
   await secondCard(page).click({ button: 'right' });
   await expect(ninthHandCard).toBeHidden();
-  await page.getByText('HandH').click();
+  await contextMenuRow(page, 'moveToHand').click();
   await expect(ninthHandCard).toBeVisible();
 });
 
 // ── Exile pile viewer ────────────────────────────────────────────────────────
 
 test('testExileViewerCardToDiscardHotkey', async ({ page }) => {
-  await millCardsFromDeck(page, 's', 7);
+  await millCardsFromDeck(page, 'moveToExile', 7);
   await expectPileCount(page, 'discard', 0);
   await expectPileCount(page, 'exile', 7);
 
   await openPileViewer(page, 'exile');
   await waitForPileViewerReady(page);
   await secondCard(page).click({ button: 'right' });
-  await page.keyboard.press('d');
+  await pressHotkey(page, 'moveToDiscard');
   await expectPileCount(page, 'discard', 1);
 });
 
 test('testExileViewerCardToDiscardTooltip', async ({ page }) => {
-  await millCardsFromDeck(page, 's', 7);
+  await millCardsFromDeck(page, 'moveToExile', 7);
   await expectPileCount(page, 'exile', 7);
 
   await openPileViewer(page, 'exile');
   await waitForPileViewerReady(page);
   await secondCard(page).click({ button: 'right' });
-  await page.getByText('DiscardD').click();
+  await contextMenuRow(page, 'moveToDiscard').click();
   await expectPileCount(page, 'discard', 1);
 });
 
 test('testExileViewerCardToDeckTopHotkey', async ({ page }) => {
-  await millCardsFromDeck(page, 's', 7);
+  await millCardsFromDeck(page, 'moveToExile', 7);
   await expectPileCount(page, 'exile', 7);
 
   await openPileViewer(page, 'exile');
   await waitForPileViewerReady(page);
   await secondCard(page).click({ button: 'right' });
-  await page.keyboard.press('t');
+  await pressHotkey(page, 'moveToDeckTop');
 
   await expectPileCount(page, 'deck', 86);
 });
 
 test('testExileViewerCardToDeckTopTooltip', async ({ page }) => {
-  await millCardsFromDeck(page, 's', 7);
+  await millCardsFromDeck(page, 'moveToExile', 7);
   await expectPileCount(page, 'exile', 7);
 
   await openPileViewer(page, 'exile');
   await waitForPileViewerReady(page);
   await secondCard(page).click({ button: 'right' });
-  await page.getByText('To deck topT').click();
+  await contextMenuRow(page, 'moveToDeckTop').click();
 
   await expectPileCount(page, 'deck', 86);
 });
 
 test('testExileViewerCardToDeckBottomHotkey', async ({ page }) => {
-  await millCardsFromDeck(page, 's', 7);
+  await millCardsFromDeck(page, 'moveToExile', 7);
   await expectPileCount(page, 'exile', 7);
 
   await openPileViewer(page, 'exile');
   await waitForPileViewerReady(page);
 
   await secondCard(page).click({ button: 'right' });
-  await page.keyboard.press('y');
+  await pressHotkey(page, 'moveToDeckBottom');
   await waitForPileViewerReady(page);
   await secondCard(page).click({ button: 'right' });
-  await page.keyboard.press('y');
+  await pressHotkey(page, 'moveToDeckBottom');
 
   await expectPileCount(page, 'deck', 87);
 });
 
 test('testExileViewerCardToDeckBottomTooltip', async ({ page }) => {
-  await millCardsFromDeck(page, 's', 7);
+  await millCardsFromDeck(page, 'moveToExile', 7);
   await expectPileCount(page, 'exile', 7);
 
   await openPileViewer(page, 'exile');
   await waitForPileViewerReady(page);
 
   await secondCard(page).click({ button: 'right' });
-  await page.getByText('To deck bottomY').click();
+  await contextMenuRow(page, 'moveToDeckBottom').click();
   await waitForPileViewerReady(page);
   await secondCard(page).click({ button: 'right' });
-  await page.getByText('To deck bottomY').click();
+  await contextMenuRow(page, 'moveToDeckBottom').click();
 
   await expectPileCount(page, 'deck', 87);
 });
 
 test('testExileViewerCardToHandHotkey', async ({ page }) => {
-  await millCardsFromDeck(page, 's', 7);
+  await millCardsFromDeck(page, 'moveToExile', 7);
   await expectPileCount(page, 'exile', 7);
 
   await openPileViewer(page, 'exile');
@@ -377,12 +369,12 @@ test('testExileViewerCardToHandHotkey', async ({ page }) => {
 
   await secondCard(page).click({ button: 'right' });
   await expect(ninthHandCard).toBeHidden();
-  await page.keyboard.press('h');
+  await pressHotkey(page, 'moveToHand');
   await expect(ninthHandCard).toBeVisible();
 });
 
 test('testExileViewerCardToHandTooltip', async ({ page }) => {
-  await millCardsFromDeck(page, 's', 7);
+  await millCardsFromDeck(page, 'moveToExile', 7);
   await expectPileCount(page, 'exile', 7);
 
   await openPileViewer(page, 'exile');
@@ -391,7 +383,7 @@ test('testExileViewerCardToHandTooltip', async ({ page }) => {
 
   await secondCard(page).click({ button: 'right' });
   await expect(ninthHandCard).toBeHidden();
-  await page.getByText('HandH').click();
+  await contextMenuRow(page, 'moveToHand').click();
   await expect(ninthHandCard).toBeVisible();
 });
 
@@ -413,7 +405,7 @@ test('testScryViewerCardToDiscardHotkey', async ({ page }) => {
 
   await openScry(page, 10);
   await secondCard(page).click({ button: 'right' });
-  await page.keyboard.press('d');
+  await pressHotkey(page, 'moveToDiscard');
   await expectPileCount(page, 'discard', 1);
 });
 
@@ -423,7 +415,7 @@ test('testScryViewerCardToDiscardTooltip', async ({ page }) => {
 
   await openScry(page, 10);
   await secondCard(page).click({ button: 'right' });
-  await page.getByText('DiscardD').click();
+  await contextMenuRow(page, 'moveToDiscard').click();
   await expectPileCount(page, 'discard', 1);
 });
 
@@ -434,7 +426,7 @@ test('testScryViewerCardToDeckTopHotkey', async ({ page }) => {
   await expectPileCount(page, 'deck', 82);
 
   await secondCard(page).click({ button: 'right' });
-  await page.keyboard.press('t');
+  await pressHotkey(page, 'moveToDeckTop');
 
   // Deck count increases by 1 (moving from scry to deck top)
   await expectPileCount(page, 'deck', 83);
@@ -446,7 +438,7 @@ test('testScryViewerCardToDeckTopTooltip', async ({ page }) => {
   await expectPileCount(page, 'deck', 82);
 
   await secondCard(page).click({ button: 'right' });
-  await page.getByText('To deck topT').click();
+  await contextMenuRow(page, 'moveToDeckTop').click();
 
   await expectPileCount(page, 'deck', 83);
 });
@@ -457,7 +449,7 @@ test('testScryViewerCardToDeckBottomHotkey', async ({ page }) => {
   await expectPileCount(page, 'deck', 82);
 
   await secondCard(page).click({ button: 'right' });
-  await page.keyboard.press('y');
+  await pressHotkey(page, 'moveToDeckBottom');
 
   await expectPileCount(page, 'deck', 83);
 });
@@ -528,7 +520,7 @@ test('testPileViewerDoesNotCloseAfterClickingTooltip', async ({ page }) => {
   await openPileViewer(page, 'deck');
   await waitForPileViewerReady(page);
   await secondCard(page).click({ button: 'right' });
-  await page.getByText('HandH').click();
+  await contextMenuRow(page, 'moveToHand').click();
   await expect(page.getByRole('dialog', { name: 'Search Deck' })).toBeVisible();
 });
 
@@ -539,13 +531,13 @@ test('testPileViewerDoesNotCloseAfterMovingCardToDeckTop', async ({ page }) => {
   // stays open. Exercise it from the discard viewer, where "to deck top"
   // moves a real card across piles, so the pile count assertion below
   // actually distinguishes a fired move from a swallowed click.
-  await millCardsFromDeck(page, 'd', 7);
+  await millCardsFromDeck(page, 'moveToDiscard', 7);
   await expectPileCount(page, 'discard', 7);
 
   await openPileViewer(page, 'discard');
   await waitForPileViewerReady(page);
   await secondCard(page).click({ button: 'right' });
-  await page.getByText('To deck topT').click();
+  await contextMenuRow(page, 'moveToDeckTop').click();
 
   await expect(page.getByRole('dialog', { name: 'Discard Pile' })).toBeVisible();
   await expectPileCount(page, 'discard', 6);
@@ -562,8 +554,8 @@ test('testDeckViewerHotkeyTwiceWithoutMouseMove', async ({ page }) => {
   await waitForPileViewerReady(page);
 
   await secondCard(page).hover();
-  await page.keyboard.press('d');
-  await page.keyboard.press('d');
+  await pressHotkey(page, 'moveToDiscard');
+  await pressHotkey(page, 'moveToDiscard');
 
   await expectPileCount(page, 'discard', 2);
 });

@@ -2,6 +2,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import * as Y from 'yjs';
 import { Awareness } from 'y-protocols/awareness';
 import { getCommands, RUNNABLE_ACTION_IDS } from './commands';
+import { resolveBindings } from '@/features/hotkeys/bindings';
+import { HotkeyPreset } from '@/features/hotkeys/presets';
 import { useOverlayStore } from '@/app/stores/overlayStore';
 import { useGameInstance } from '@/app/stores/gameInstanceStore';
 import { useConfirmStore } from '@/app/stores/confirmStore';
@@ -22,7 +24,11 @@ vi.mock('@/features/room/startNewGame', () => ({
   requestNewGame: () => requestNewGame(),
 }));
 
-const byId = (id: string) => getCommands().find((c) => c.id === id)!;
+// The palette is handed the player's effective bindings by its caller, so
+// these fix a preset rather than depending on whichever one ships as default.
+const untap = resolveBindings(HotkeyPreset.Untap);
+const commands = () => getCommands(untap);
+const byId = (id: string) => commands().find((c) => c.id === id)!;
 
 describe('command registry', () => {
   beforeEach(() => {
@@ -31,18 +37,18 @@ describe('command registry', () => {
   });
 
   it('has unique command ids', () => {
-    const ids = getCommands().map((c) => c.id);
+    const ids = commands().map((c) => c.id);
     expect(new Set(ids).size).toBe(ids.length);
   });
 
-  it('reads game-command key badges live from the catalog', () => {
+  it('reads game-command key badges from the bindings it is given', () => {
     expect(byId('draw').shortcut).toBe('C');
     expect(byId('shuffle').shortcut).toBe('V');
     expect(byId('untapAll').shortcut).toBe('X');
   });
 
   it('RUNNABLE_ACTION_IDS matches exactly the runnable game actions', () => {
-    const gameIds = getCommands().filter((c) => c.section === 'Game').map((c) => c.id);
+    const gameIds = commands().filter((c) => c.section === 'Game').map((c) => c.id);
     expect(new Set(RUNNABLE_ACTION_IDS)).toEqual(new Set(gameIds));
   });
 
@@ -75,7 +81,7 @@ describe('command registry', () => {
 
   it('has no Players section until someone has left the room', () => {
     // No game instance wired in → no departed players.
-    expect(getCommands().filter((c) => c.section === 'Players')).toHaveLength(0);
+    expect(commands().filter((c) => c.section === 'Players')).toHaveLength(0);
   });
 
   it('lists a Remove command per departed player, wired to the confirm flow', () => {
@@ -95,7 +101,7 @@ describe('command registry', () => {
     gs.setAwareness(aw);
     gs.setPlayerId('me');
 
-    const players = getCommands().filter((c) => c.section === 'Players');
+    const players = commands().filter((c) => c.section === 'Players');
     expect(players).toHaveLength(1);
     expect(players[0].id).toBe('remove-player-gone');
     expect(players[0].label).toBe('Remove Ghosty');

@@ -1,5 +1,5 @@
 import { expect, test } from '../../fixtures';
-import { boardCardIds, openCardMenu, playCreature } from '../../harness';
+import { boardCardIds, contextMenuRow, openCardMenu, playCreature } from '../../harness';
 
 /**
  * The delete confirmation as a player actually meets it. The rest of the suite
@@ -22,7 +22,7 @@ test('asks before deleting, and cancelling keeps the card', async ({ page }) => 
   const idsBefore = await boardCardIds(page);
 
   await openCardMenu(page, card);
-  await page.getByText('DeleteBack').click();
+  await contextMenuRow(page, 'delete').click();
 
   await expect(confirmDialog(page)).toBeVisible();
   // The card is still there while the question is open.
@@ -39,7 +39,7 @@ test('deletes the card once confirmed', async ({ page }) => {
   const card = await playCreature(page);
 
   await openCardMenu(page, card);
-  await page.getByText('DeleteBack').click();
+  await contextMenuRow(page, 'delete').click();
   await page.getByRole('button', { name: 'Delete' }).click();
 
   await expect(confirmDialog(page)).toBeHidden();
@@ -50,7 +50,7 @@ test('"Don\'t ask again" deletes now and skips the prompt next time', async ({ p
   const first = await playCreature(page);
 
   await openCardMenu(page, first);
-  await page.getByText('DeleteBack').click();
+  await contextMenuRow(page, 'delete').click();
   await page.getByRole('checkbox', { name: "Don't ask again" }).click();
   await page.getByRole('button', { name: 'Delete' }).click();
   await expect(first).toBeHidden();
@@ -58,7 +58,7 @@ test('"Don\'t ask again" deletes now and skips the prompt next time', async ({ p
   // Second delete goes straight through — no dialog to answer.
   const second = await playCreature(page);
   await openCardMenu(page, second);
-  await page.getByText('DeleteBack').click();
+  await contextMenuRow(page, 'delete').click();
 
   await expect(second).toBeHidden();
   await expect(confirmDialog(page)).toBeHidden();

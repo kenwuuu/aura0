@@ -11,7 +11,7 @@
 
 import { test, expect } from '../fixtures';
 import { Page } from '@playwright/test';
-import { expectHandCount, expectPileCount, handCards, openPileViewer } from '../harness';
+import { expectHandCount, expectPileCount, handCards, openPileViewer, pressHotkey } from '../harness';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -127,7 +127,7 @@ test('Actions > Mulligan confirms, then returns hand and redraws 7', async ({ pa
   await expect(page.getByRole('dialog').filter({ hasText: 'Mulligan?' })).toBeVisible({ timeout: 3000 });
   await expect(page.locator('text=took a mulligan')).toBeHidden();
 
-  await page.keyboard.press('m');
+  await pressHotkey(page, 'mulligan');
 
   await expect(page.locator('text=took a mulligan')).toBeVisible({ timeout: 3000 });
 

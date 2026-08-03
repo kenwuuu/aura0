@@ -13,8 +13,12 @@
  * card. Those still appear in the palette's read-only shortcut reference, which
  * excludes whatever is runnable here (see `RUNNABLE_ACTION_IDS`).
  */
-import { HOTKEYS } from '@/features/hotkeys/hotkeys';
 import { dispatchGameAction } from '@/features/hotkeys/gameActions';
+import {
+  formatKeyBinding,
+  getBinding,
+  type EffectiveBindings,
+} from '@/features/hotkeys/bindings';
 import { useOverlayStore } from '@/app/stores/overlayStore';
 import { useGameInstance } from '@/app/stores/gameInstanceStore';
 import { useSettingsModalStore } from '@/app/stores/settingsModalStore';
@@ -67,9 +71,14 @@ export const RUNNABLE_ACTION_IDS: ReadonlySet<string> = new Set(
   GAME_COMMANDS.map((c) => c.action),
 );
 
-/** Build the runnable command list. A function (not a constant) because it
- *  reads `window` for the board target and the live `HOTKEYS` key badges. */
-export function getCommands(): AppCommand[] {
+/**
+ * Build the runnable command list. A function (not a constant) because it reads
+ * `window` for the board target and the departed-player list from Yjs.
+ *
+ * `bindings` is passed in rather than read here so the palette re-renders when a
+ * key changes — the caller already subscribes via `useEffectiveBindings()`.
+ */
+export function getCommands(bindings: EffectiveBindings): AppCommand[] {
   const overlay = useOverlayStore.getState();
 
   const game: AppCommand[] = GAME_COMMANDS.map(({ action, label, keywords }) => ({
@@ -77,7 +86,7 @@ export function getCommands(): AppCommand[] {
     label,
     keywords,
     section: 'Game',
-    shortcut: HOTKEYS.find((h) => h.action === action)?.key || undefined,
+    shortcut: formatKeyBinding(getBinding(bindings, action)) || undefined,
     run: () => dispatchGameAction(action, boardTarget()),
   }));
 
