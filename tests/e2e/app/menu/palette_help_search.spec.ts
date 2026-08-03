@@ -24,13 +24,18 @@ async function search(page: Page, query: string) {
   await commandPaletteInput(page).fill(query);
 }
 
-test('a term with no shortcut and no runnable command finds its section', async ({ page }) => {
-  // Scry carries no key, so `getHotkeysGroupedByZone` drops it from the
-  // shortcut reference, and it isn't runnable from the palette. Before this,
-  // "scry" in ⌘K returned 13 rows, none of them about scrying.
+test('a keyless term finds both the action and the section that explains it', async ({ page }) => {
+  // This test used to assert the help section was SELECTED, because Scry
+  // carried no key and wasn't runnable from the palette — the guide was the
+  // only thing "scry" could find. Making keyless catalog actions runnable
+  // changed the right answer: the action now wins, and the section is the
+  // supporting result rather than the only one.
   await search(page, 'scry');
 
-  await expect(selectedPaletteRow(page)).toContainText('Deck actions');
+  await expect(selectedPaletteRow(page)).toContainText('Scry');
+  await expect(selectedPaletteRow(page)).not.toContainText('›');
+  // The guide row is still there for anyone who wants the explanation.
+  await expect(commandPalette(page).getByText('Deck actions')).toBeVisible();
 });
 
 test('a section matches on a curated keyword its title never mentions', async ({ page }) => {
