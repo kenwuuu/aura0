@@ -56,7 +56,7 @@ test('testInteractiveTooltip', async ({ page }) => {
   expect(await getElementOrientation(firstBoardCard)).toBe('portrait');
 
   await openCardMenu(page, firstBoardCard);
-  await page.getByText('TapSpace').click();
+  await contextMenuRow(page, 'tap').click();
   expect(await getElementOrientation(firstBoardCard)).toBe('landscape');
 
   await openCardMenu(page, firstBoardCard);
@@ -75,7 +75,7 @@ test('testInteractiveTooltip', async ({ page }) => {
 
   // delete third card
   await openCardMenu(page, thirdBoardCard);
-  await page.getByText('DeleteBack').click();
+  await contextMenuRow(page, 'delete').click();
   await expect(thirdBoardCard).toBeHidden();
 
   // move second card to hand
@@ -89,7 +89,7 @@ test('testInteractiveTooltip', async ({ page }) => {
   // pointer events for any further right-clicks on it.
   const tokensBefore = await boardTokens(page).count();
   await openCardMenu(page, firstBoardCard);
-  await page.getByText('+1 counterU').click();
+  await contextMenuRow(page, 'addCounter').click();
   await expect(boardTokens(page)).toHaveCount(tokensBefore + 1);
   const counterToken = boardTokens(page).last();
   await expect(counterToken).toHaveText('1');
@@ -101,7 +101,7 @@ test('testRemoveCounterContextMenuItem', async ({ page }) => {
   const card = await playCreature(page);
   const tokensBefore = await boardTokens(page).count();
   await card.click({ button: 'right' });
-  await page.getByText('-1 counterI').click();
+  await contextMenuRow(page, 'removeCounter').click();
   await expect(boardTokens(page)).toHaveCount(tokensBefore + 1);
   const counterToken = boardTokens(page).last();
   await expect(counterToken).toHaveText('-1');
