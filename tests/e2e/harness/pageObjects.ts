@@ -195,6 +195,36 @@ export function helpButton(page: Page): Locator {
   return toolbar(page).getByRole('button', { name: 'Help' });
 }
 
+/** The unified Help modal (Guide + Shortcuts tabs). */
+export function helpModal(page: Page): Locator {
+  return page.getByRole('dialog', { name: /help & shortcuts/i });
+}
+
+/** A tab in the Help modal. */
+export function helpTab(page: Page, name: 'Guide' | 'Shortcuts'): Locator {
+  return helpModal(page).getByRole('tab', { name });
+}
+
+/**
+ * A section button in the Help guide's left rail, addressed by its visible
+ * title. The rail and the prose pane both render that title, so scope through
+ * the rail's `nav` rather than matching the text loose.
+ */
+export function helpRailSection(page: Page, title: string): Locator {
+  return helpModal(page)
+    .getByRole('navigation', { name: /help sections/i })
+    .getByRole('button', { name: title });
+}
+
+/**
+ * A section's block in the Help guide's scrolling pane, addressed by its
+ * **stable id** from `src/app/content/help/sections.ts` — never by heading text,
+ * which is safe to reword (that split is the whole point of the authored ids).
+ */
+export function helpSection(page: Page, id: string): Locator {
+  return helpModal(page).locator(`[data-help-section="${id}"]`);
+}
+
 /** The Discord button in the top bar (desktop row; moves into the overflow menu on phone). */
 export function discordButton(page: Page): Locator {
   return toolbar(page).getByRole('button', { name: 'Join Discord Server' });

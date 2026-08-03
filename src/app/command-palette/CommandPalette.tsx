@@ -69,6 +69,14 @@ export function CommandPalette() {
     cmd.run();
   };
 
+  // Reference rows can't be run from here, so selecting one hands the player
+  // off to the full cheat-sheet instead of doing nothing.
+  const showShortcutReference = () => {
+    const overlay = useOverlayStore.getState();
+    overlay.close('commandPalette');
+    overlay.openHelp({ tab: 'shortcuts' });
+  };
+
   return (
     <CommandDialog
       open={open}
@@ -129,8 +137,11 @@ export function CommandPalette() {
 
         {referenceZones.length > 0 && <CommandSeparator />}
 
-        {/* Read-only shortcut reference — informational rows (no `onSelect`
-            action), searchable so ⌘K doubles as a shortcut cheat-sheet. */}
+        {/* Shortcut reference — these actions need a hovered target, so the
+            palette can't run them. Selecting one opens Help on its Shortcuts
+            tab: the majority of the palette's rows are these, and they used to
+            be dead ends (`onSelect={() => {}}`), which read as the palette
+            being broken. */}
         {referenceZones.map((z) => (
           <CommandGroup key={z.zone} heading={`${z.zone} shortcuts`}>
             {z.hotkeys.map((h) => (
@@ -138,8 +149,7 @@ export function CommandPalette() {
                 key={h.action}
                 value={h.longDescription}
                 keywords={[h.key, h.action]}
-                onSelect={() => {}}
-                className="cursor-default"
+                onSelect={showShortcutReference}
               >
                 <span>{h.longDescription}</span>
                 <CommandShortcut>{h.key}</CommandShortcut>
