@@ -448,3 +448,4 @@ export function dispatchGameAction(action: string, target: MenuTarget): void {
       return;
   }
 }
+
