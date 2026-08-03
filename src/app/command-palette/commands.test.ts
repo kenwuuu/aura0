@@ -96,6 +96,17 @@ describe('command registry', () => {
       expect(byId('viewPile').label).toBe('View Deck');
     });
 
+    it('does not badge a deck-targeted row with a key that means something else', () => {
+      // `moveToExile` is bound to S, but S exiles the card you're HOVERING —
+      // this row exiles the top of your library. Printing "S" beside "Exile
+      // Top" promises a shortcut that doesn't exist and names one that bins a
+      // board card instead.
+      expect(byId('moveToExile').shortcut).toBeUndefined();
+      // Board-targeted rows are target-free, so their key really is the row.
+      expect(byId('draw').shortcut).toBe('C');
+      expect(byId('shuffle').shortcut).toBe('V');
+    });
+
     it('omits rows the palette cannot actually run', () => {
       // `createToken` dispatches nothing — it's a drag-to-board grid, and there
       // is nothing to drag out of a palette row.

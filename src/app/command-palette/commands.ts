@@ -94,6 +94,22 @@ function catalogGameActions(): ToolbarHotkey[] {
 }
 
 /**
+ * The key badge to print beside a catalog row — but only when pressing that key
+ * would do what the row says.
+ *
+ * A deck-targeted row is the same *action* as its keystroke aimed somewhere
+ * else. "Exile Top" is `moveToExile` pointed at the library, and `S` is
+ * `moveToExile` pointed at whatever you're hovering — so badging that row with
+ * `S` promises a shortcut for exiling the top of your deck that doesn't exist,
+ * and the key it names bins a board card instead. Board-targeted rows are
+ * target-free, so their key really is the row (`C` draws, `V` shuffles).
+ */
+function badgeableKey(hotkey: ToolbarHotkey): string | undefined {
+  if (hotkey.toolbar.target !== 'board') return undefined;
+  return hotkey.key || undefined;
+}
+
+/**
  * Palette wording for rows whose toolbar label is too terse to search for.
  *
  * The toolbar can be terse because its rows sit under "Actions ▾" with the
@@ -163,7 +179,7 @@ export function getCommands(): AppCommand[] {
       label: PALETTE_LABELS[hotkey.action] ?? hotkey.toolbar.label ?? hotkey.shortDescription,
       keywords: PALETTE_KEYWORDS[hotkey.action],
       section: 'Game' as const,
-      shortcut: hotkey.key || undefined,
+      shortcut: badgeableKey(hotkey),
       // The same call the toolbar makes, so a row cannot mean one thing there
       // and something else here.
       run: () => dispatchPlacedAction(hotkey),
