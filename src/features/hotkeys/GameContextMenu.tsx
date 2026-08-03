@@ -20,6 +20,8 @@ import { Fragment } from 'react';
 import { useContextMenuStore } from './contextMenuStore';
 import { getMenuActionsForTarget, type MenuTarget } from './hotkeys';
 import { dispatchGameAction } from './gameActions';
+import { useEffectiveBindings } from './useHotkeyBindings';
+import { formatKeyBinding, getBinding } from './bindings';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -63,6 +65,10 @@ export function GameContextMenu() {
   const viaTouch = useContextMenuStore((s) => s.viaTouch);
   const anchorRect = useContextMenuStore((s) => s.anchorRect);
   const close = useContextMenuStore((s) => s.close);
+  // Shortcut badges come from the player's live bindings, not the catalog, so a
+  // rebind shows up here immediately instead of advertising a key that no longer
+  // does anything.
+  const bindings = useEffectiveBindings();
 
   // A departed opponent's health widget carries exactly one action: Remove.
   // Its gain/lose-life rows target the *local* player, so they'd be misleading
@@ -188,7 +194,9 @@ export function GameContextMenu() {
               onSelect={() => dispatchGameAction(hotkey.action, target)}
             >
               {hotkey.shortDescription}
-              <DropdownMenuShortcut>{hotkey.key}</DropdownMenuShortcut>
+              <DropdownMenuShortcut>
+                {formatKeyBinding(getBinding(bindings, hotkey.action))}
+              </DropdownMenuShortcut>
             </DropdownMenuItem>
             {/* Destructive rows (Delete) get a divider after them so a
                 misclick can't slide from Delete straight into the next

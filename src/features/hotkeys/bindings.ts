@@ -154,6 +154,26 @@ export function formatKeyBinding(keys: readonly string[] | undefined): string {
   return keys.map(formatKey).join('  or  ');
 }
 
+/**
+ * The single character a "press X to confirm" prompt should show and accept.
+ *
+ * `ConfirmationDialog` matches on `event.key`, not `event.code`, and compares it
+ * against the very string it renders — so it needs one character, not a chord.
+ * Modifiers are dropped rather than rendered: showing "⇧L" would print a label
+ * the dialog's own comparison could never match, so a mulligan bound to a chord
+ * would become unconfirmable. Accepting the bare base key is forgiving and
+ * always truthful.
+ *
+ * Returns `''` when the action is unbound, which callers should treat as "no
+ * key prompt".
+ */
+export function getConfirmationKey(keys: readonly string[] | undefined): string {
+  if (!keys || keys.length === 0) return '';
+  const first = keys[0];
+  const base = first.split('+').filter(Boolean).pop() ?? '';
+  return formatKey(base);
+}
+
 // ---------------------------------------------------------------------------
 // Recording
 // ---------------------------------------------------------------------------

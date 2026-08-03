@@ -22,7 +22,9 @@ import {
   DialogTitle,
 } from '@/shared/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/shared/ui/tabs';
-import { getHotkeyByAction, getHotkeysGroupedByZone } from '@/features/hotkeys/hotkeys';
+import { getHotkeysGroupedByZone } from '@/features/hotkeys/hotkeys';
+import { useEffectiveBindings } from '@/features/hotkeys/useHotkeyBindings';
+import { formatKeyBinding, getBinding } from '@/features/hotkeys/bindings';
 import { useOverlayStore } from '@/app/stores/overlayStore';
 import { HELP_GROUPS, HELP_SECTIONS, type HelpSectionId } from '@/app/content/help/sections';
 import styles from './HelpModal.module.css';
@@ -37,11 +39,16 @@ const sectionDomId = (id: string) => `help-section-${id}`;
  * every sentence that mentions it. An unknown action, or one with no binding,
  * falls through to ordinary code styling: `sections.test.ts` is what catches
  * those, because a malformed doc shouldn't blank the whole modal at runtime.
+ *
+ * Reads the player's *effective* binding, not the catalog default — otherwise
+ * the indirection would still hand everyone on Default or Moxfield the Untap
+ * letter, which is the exact staleness the `key:` span exists to prevent.
  */
 function KeyOrCode({ children }: { children?: React.ReactNode }) {
+  const bindings = useEffectiveBindings();
   const text = typeof children === 'string' ? children : null;
   const action = text?.startsWith('key:') ? text.slice(4) : null;
-  const displayKey = action ? getHotkeyByAction(action)?.key : undefined;
+  const displayKey = action ? formatKeyBinding(getBinding(bindings, action)) : undefined;
 
   if (displayKey) {
     return (
@@ -180,9 +187,12 @@ function GuideTab({ target }: { target: HelpSectionId | null }) {
 /** The Shortcuts tab renders the live `HOTKEYS` catalog grouped by zone, so it
  *  can never drift from the actual bindings (it used to be a hand-kept list in a
  *  separate Hotkeys modal). Actions with no binding are absent by design — those
- *  are documented in the Guide, which is why it covers Scry/Surveil/Mill. */
+ *  are documented in the Guide, which is why it covers Scry/Surveil/Mill. The
+ *  keys shown are the player's *effective* ones — their preset and any
+ *  per-action rebinds — not the catalog defaults. */
 function ShortcutsTab() {
   const zones = getHotkeysGroupedByZone();
+  const bindings = useEffectiveBindings();
   return (
     <div className="px-6 pb-6 text-sm leading-relaxed text-[#e5e7eb]">
       <p className="mb-4 rounded-lg border border-[#3d3d3d] bg-[#0f0f0f] px-4 py-3 text-gray-300">
@@ -202,7 +212,7 @@ function ShortcutsTab() {
                 {group.hotkeys.map((hotkey) => (
                   <tr key={hotkey.action} className="border-b border-[#2d2d2d]">
                     <td className="min-w-[72px] whitespace-nowrap py-2 pr-4 align-top font-mono text-sm font-bold text-blue-500">
-                      {hotkey.key}
+                      {formatKeyBinding(getBinding(bindings, hotkey.action))}
                     </td>
                     <td className="py-2 text-sm text-[#e5e7eb]">{hotkey.longDescription}</td>
                   </tr>

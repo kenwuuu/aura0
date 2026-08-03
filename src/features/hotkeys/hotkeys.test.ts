@@ -90,13 +90,13 @@ describe('getHotkeysGroupedByZone', () => {
     const flat = groups.flatMap((g) => g.hotkeys.map((h) => h.action));
     expect(new Set(flat).size, 'no action appears in two zones').toBe(flat.length);
 
-    // Every catalog entry that has a key to press must be reachable.
-    const keyboardActions = HOTKEYS.filter((h) => h.key !== '').map((h) => h.action);
+    // Every catalog entry with a default key to press must be reachable.
+    const keyboardActions = HOTKEYS.filter((h) => h.keys.length > 0).map((h) => h.action);
     expect(new Set(flat)).toEqual(new Set(keyboardActions));
   });
 
   it('omits pointer-only rows that have no keystroke to show', () => {
-    // `viewPile` is a menu-only row (empty `key`/`keys`) — nothing to reference.
+    // `viewPile` is a menu-only row (empty `keys`) — nothing to reference.
     const flat = groups.flatMap((g) => g.hotkeys.map((h) => h.action));
     expect(flat).not.toContain('viewPile');
   });

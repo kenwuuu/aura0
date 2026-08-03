@@ -3,10 +3,41 @@ Keyboard hotkeys and the right-click/tap context menu. They are one feature, not
 ## One catalog, three surfaces
 
 `HOTKEYS` in `hotkeys.ts` is the single source for all three. Keyboard bindings read it via
-`getKeyBindingsForAction`; menu rows via `getMenuActionsForTarget`; the Game Actions toolbar via
-`getToolbarActions`. All three then call `dispatchGameAction` (`gameActions.ts`), so they cannot
-drift — a new action or a bugfix is live everywhere at once. Add actions to the catalog, never
-to one surface.
+`resolveBindings` (`bindings.ts`); menu rows via `getMenuActionsForTarget`; the Game Actions
+toolbar via `getToolbarActions`. All three then call `dispatchGameAction` (`gameActions.ts`), so
+they cannot drift — a new action or a bugfix is live everywhere at once. Add actions to the
+catalog, never to one surface.
+
+## `keys` is a default, not the binding
+
+Since hotkeys became customizable, a catalog entry's `keys` is only the bottom layer of
+
+```
+overrides[action] ?? PRESET[action] ?? catalog.keys
+```
+
+`presets.ts` holds the schemes (`untap` is empty — the catalog *is* Untap; `default` and
+`moxfield` are diffs over it) and `bindings.ts` resolves them. **Never read `keys` to bind or
+render a shortcut** — use `useEffectiveBindings()`, or `getEffectiveBindings()` outside React —
+or you will bind and display the Untap keys for every player on another preset. That is why
+`getKeyBindingsForAction` was deleted rather than left unused, and why `Hotkey.key` (a
+hand-written display string that could disagree with `keys`) is gone in favour of
+`formatKeyBinding`.
+
+For the same reason, **comments and docs here name actions, not letters** — "Move-to-discard",
+not "D". Three surfaces used to hard-code letters and silently went stale on a rebind: the pile
+viewer's destination bar and desktop key legend, the mulligan confirmation's "press M", and
+`help.md`'s prose.
+
+Two rules that bite:
+
+- **`serializeKeyEvent` must mirror react-hotkeys-hook exactly.** rhk matches on `event.code`,
+  aliases some codes *before* lowercasing (`ShiftLeft` → `shift`), then applies
+  `.toLowerCase().replace(/key|digit|numpad/, '')`. Get it wrong and a recorded binding is
+  stored but never fires.
+- **A preset diff is a cycle, not a set of independent edits.** In `default`, `D` is free for
+  Draw only because Discard moved to `G`. `bindings.test.ts` asserts key-uniqueness per preset
+  for exactly this reason.
 
 Executors read their instances from `useGameInstance.getState()`. This hook layer decides
 *which* action fires and *what it targets*; it never touches `yDoc`/`player` directly.
@@ -72,8 +103,14 @@ bindings against it.
 
 ## Scopes: exactly one, always
 
-`HotkeyScope.Board` ↔ `HotkeyScope.PileViewer`, switched on modal state via
-`react-hotkeys-hook`'s `<HotkeysProvider>` (owned by `GameHotkeysManager`).
+`HotkeyScope.Board` ↔ `HotkeyScope.PileViewer` ↔ `HotkeyScope.Capture`, switched on modal and
+capture state via `react-hotkeys-hook`'s `<HotkeysProvider>` (owned by `GameHotkeysManager`).
+
+`Capture` has **no bindings registered under it**, which is the point: it is the "no game
+hotkeys" state written as a scope, so the never-empty rule below still holds. It exists because
+the Settings modal never sets `isModalOpen` (only the pile viewer, AddCard and the command
+palette do), so board hotkeys are live inside it — without `Capture`, pressing `D` to *record*
+it would also draw a card.
 
 **Never let the active-scope set go empty.** react-hotkeys-hook treats empty as "no scoping" and
 silently re-enables *every* scoped binding with only a console warning — board hotkeys firing

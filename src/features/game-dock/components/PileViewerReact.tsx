@@ -14,6 +14,8 @@ import * as React from 'react';
 import type * as Y from 'yjs';
 import { Card, PileType } from '@/features/player';
 import { HotkeyContext } from '@/features/hotkeys/hotkeys';
+import { useEffectiveBindings } from '@/features/hotkeys/useHotkeyBindings';
+import { formatKeyBinding, getBinding } from '@/features/hotkeys/bindings';
 import { YSTATE_DECK_REVEAL_COUNT } from '@/constants';
 import {
   Dialog,
@@ -229,6 +231,9 @@ export function PileViewerReact({
   // viewer (e.g. an opponent's pile) is given no move callbacks, so this is
   // empty and selection is disabled.
   const availableDestinations = getAvailableDestinations(callbacks);
+  // The desktop key legend advertises the same move keys the hotkey layer binds,
+  // so it has to read them rather than restate them.
+  const hotkeyBindings = useEffectiveBindings();
   const selectable = availableDestinations.length > 0;
 
   const [sortOrder, setSortOrderState] = React.useState<SortOrder>('top-to-bottom');
@@ -685,8 +690,8 @@ export function PileViewerReact({
                 <div className="pile-key-legend" aria-hidden="true">
                   <span className="pile-key-legend-hint">HOVER + KEY →</span>
                   {availableDestinations.map((d) => (
-                    <span key={d.key} className="pile-key-chip">
-                      <b>{d.key}</b>
+                    <span key={d.action} className="pile-key-chip">
+                      <b>{formatKeyBinding(getBinding(hotkeyBindings, d.action))}</b>
                       {d.label}
                     </span>
                   ))}

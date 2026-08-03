@@ -13,23 +13,30 @@
  */
 import * as React from 'react';
 import type { PileViewerCallbacks } from './PileViewerReact';
+import { useEffectiveBindings } from '@/features/hotkeys/useHotkeyBindings';
+import { formatKeyBinding, getBinding } from '@/features/hotkeys/bindings';
 
 /**
  * The five pile destinations, in fixed display order. `action` matches the
  * `PileMoveAction` strings routed by `dispatchPileMove`; `callbackKey` is the
  * callback whose presence decides whether this target is offered at all.
+ *
+ * There is deliberately no `key` field. This list used to hard-code
+ * `H`/`D`/`S`/`T`/`Y`, which was harmless while those letters were compiled in —
+ * but they name the *same* actions the keyboard layer binds, so once bindings
+ * became customizable a literal here would confidently label a button with a key
+ * that does nothing. The chips derive from the player's live bindings instead.
  */
 export const PILE_DESTINATIONS: {
-  key: string;
   label: string;
   action: string;
   callbackKey: keyof PileViewerCallbacks;
 }[] = [
-  { key: 'H', label: 'Hand', action: 'moveToHand', callbackKey: 'onMoveToHand' },
-  { key: 'D', label: 'Grave', action: 'moveToDiscard', callbackKey: 'onMoveToDiscard' },
-  { key: 'S', label: 'Exile', action: 'moveToExile', callbackKey: 'onMoveToExile' },
-  { key: 'T', label: 'Deck top', action: 'moveToDeckTop', callbackKey: 'onMoveToDeckTop' },
-  { key: 'Y', label: 'Deck btm', action: 'moveToDeckBottom', callbackKey: 'onMoveToDeckBottom' },
+  { label: 'Hand', action: 'moveToHand', callbackKey: 'onMoveToHand' },
+  { label: 'Grave', action: 'moveToDiscard', callbackKey: 'onMoveToDiscard' },
+  { label: 'Exile', action: 'moveToExile', callbackKey: 'onMoveToExile' },
+  { label: 'Deck top', action: 'moveToDeckTop', callbackKey: 'onMoveToDeckTop' },
+  { label: 'Deck btm', action: 'moveToDeckBottom', callbackKey: 'onMoveToDeckBottom' },
 ];
 
 /** Destinations this viewer can actually move cards to (callback present). */
@@ -51,6 +58,7 @@ export function PileDestinationBar({
   onDestination,
   onClear,
 }: PileDestinationBarProps) {
+  const bindings = useEffectiveBindings();
   const destinations = getAvailableDestinations(callbacks);
   if (selectedCount === 0 || destinations.length === 0) return null;
 
@@ -72,13 +80,15 @@ export function PileDestinationBar({
       <div className="pile-destination-bar-targets">
         {destinations.map((d) => (
           <button
-            key={d.key}
+            key={d.action}
             type="button"
             className="pile-destination-target"
             data-testid={`pile-destination-${d.action}`}
             onClick={() => onDestination(d.action)}
           >
-            <span className="pile-destination-target-key">{d.key}</span>
+            <span className="pile-destination-target-key">
+              {formatKeyBinding(getBinding(bindings, d.action))}
+            </span>
             <span className="pile-destination-target-label">{d.label}</span>
           </button>
         ))}

@@ -72,12 +72,16 @@ describe('help guide key references', () => {
   });
 
   it('only names actions that actually have a binding', () => {
-    // 14 catalog entries are menu- or toolbar-only and carry `key: ''`. Writing
-    // `key:scry` would render nothing at all — those have to be described by
-    // their menu instead, and this is what makes that a build failure rather
-    // than a blank space in the docs.
+    // 14 catalog entries are menu- or toolbar-only and carry no default keys.
+    // Writing `key:scry` would render nothing at all — those have to be
+    // described by their menu instead, and this is what makes that a build
+    // failure rather than a blank space in the docs.
+    //
+    // Checked against the *catalog defaults*, not the player's effective
+    // bindings: this asks "is this action ever bindable", which is a fact about
+    // the catalog. A player who cleared a key shouldn't fail the docs build.
     const unbound = keyReferences().filter(
-      ({ action }) => getHotkeyByAction(action)?.key === '',
+      ({ action }) => getHotkeyByAction(action)?.keys.length === 0,
     );
     expect(unbound).toEqual([]);
   });
