@@ -7,8 +7,13 @@ import { useGameInstance } from '@/app/stores/gameInstanceStore';
 import { useConfirmStore } from '@/app/stores/confirmStore';
 import { YDOC_PLAYER, YSTATE_JOINED_AT, YSTATE_PLAYER_NAME } from '@/constants';
 
-// Mock at the action boundary — these are covered by their own tests; here we
-// only assert the palette wires the right call to each command.
+// Mock at the action boundary — the executors are covered by their own tests;
+// here we only assert the palette wires the right call to each command.
+//
+// `toolbarPlacement` is deliberately NOT mocked: resolving a row's declared
+// `toolbar.target` into the MenuTarget it dispatches against is the thing under
+// test for catalog-derived rows. Stubbing it would leave "Exile Top acts on the
+// deck, not the board" unproven.
 const dispatchGameAction = vi.fn();
 vi.mock('@/features/hotkeys/gameActions', () => ({
   dispatchGameAction: (...args: unknown[]) => dispatchGameAction(...args),
@@ -54,6 +59,71 @@ describe('command registry', () => {
     expect(target).toMatchObject({ kind: 'board' });
     expect(typeof target.x).toBe('number');
     expect(typeof target.y).toBe('number');
+  });
+
+  describe('keyless catalog actions', () => {
+    // These carry `key: ''`, so `getHotkeysGroupedByZone` drops them from every
+    // shortcut list in the app. Until the palette derived its rows from the
+    // catalog they were unreachable from ⌘K entirely.
+    it.each(['scry', 'surveil', 'mill', 'drawX', 'pass', 'revealHand', 'randomDiscard', 'resetDeck'])(
+      'offers %s as a runnable command',
+      (action) => {
+        expect(byId(action)).toBeDefined();
+        expect(byId(action).section).toBe('Game');
+        expect(byId(action).shortcut).toBeUndefined();
+      },
+    );
+
+    it('dispatches a board-targeted row against the board', () => {
+      byId('scry').run();
+      expect(dispatchGameAction).toHaveBeenCalledWith('scry', expect.objectContaining({ kind: 'board' }));
+    });
+
+    it('dispatches a deck-targeted row against the deck pile', () => {
+      // "Exile Top" is plain `moveToExile` aimed at the deck — the same action
+      // and executor the deck node lists as just "Exile". Getting the target
+      // wrong here would exile a board card instead of the top of the library,
+      // which is why the placement is declared rather than assumed.
+      byId('moveToExile').run();
+      expect(dispatchGameAction).toHaveBeenCalledWith('moveToExile', {
+        kind: 'pile',
+        pileType: 'deck',
+      });
+    });
+
+    it('uses the toolbar label where the catalog has one', () => {
+      expect(byId('moveToExile').label).toBe('Exile Top');
+      expect(byId('viewPile').label).toBe('View Deck');
+    });
+
+    it('does not badge a deck-targeted row with a key that means something else', () => {
+      // `moveToExile` is bound to S, but S exiles the card you're HOVERING —
+      // this row exiles the top of your library. Printing "S" beside "Exile
+      // Top" promises a shortcut that doesn't exist and names one that bins a
+      // board card instead.
+      expect(byId('moveToExile').shortcut).toBeUndefined();
+      // Board-targeted rows are target-free, so their key really is the row.
+      expect(byId('draw').shortcut).toBe('C');
+      expect(byId('shuffle').shortcut).toBe('V');
+    });
+
+    it('omits rows the palette cannot actually run', () => {
+      // `createToken` dispatches nothing — it's a drag-to-board grid, and there
+      // is nothing to drag out of a palette row.
+      expect(getCommands().find((c) => c.id === 'createToken')).toBeUndefined();
+      // `createLabel` is disabled ("Coming soon"); a palette lists what you can
+      // do, so it's dropped rather than shown inert.
+      expect(getCommands().find((c) => c.id === 'createLabel')).toBeUndefined();
+    });
+
+    it('still offers the rows that have no toolbar placement at all', () => {
+      // Health and add-card act on the player, so `toolbar.target`'s board/deck
+      // split says nothing about them — they'd vanish if the palette derived
+      // its list from placements alone.
+      for (const action of ['addCard', 'gainHealth', 'loseHealth']) {
+        expect(byId(action)).toBeDefined();
+      }
+    });
   });
 
   it('"Import a deck" opens the deck-selection overlay', () => {

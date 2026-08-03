@@ -8,13 +8,19 @@
  * (`copyRoomLink`, `requestNewGame`) and the `overlayStore`, so those can't
  * drift from the toolbar buttons either.
  *
- * Only target-free actions live here — anything that needs a hovered card/pile
- * (Tap, Flip, the move family) has no meaning without a target and stays on the
- * card. Those still appear in the palette's read-only shortcut reference, which
- * excludes whatever is runnable here (see `RUNNABLE_ACTION_IDS`).
+ * The runnable "Game" rows are DERIVED from the catalog, not listed here: the
+ * palette and the game-actions toolbar share the problem of having no hover, and
+ * #198 already solved it by making each entry declare the target its click
+ * dispatches against. See `catalogGameActions`.
+ *
+ * Anything that needs a hovered card/pile (Tap, Flip, the move family) has no
+ * meaning without a target and stays on the card. Those still appear in the
+ * palette's read-only shortcut reference, which excludes whatever is runnable
+ * here (see `RUNNABLE_ACTION_IDS`).
  */
-import { HOTKEYS } from '@/features/hotkeys/hotkeys';
+import { HOTKEYS, getToolbarActions, type ToolbarHotkey } from '@/features/hotkeys/hotkeys';
 import { dispatchGameAction } from '@/features/hotkeys/gameActions';
+import { dispatchPlacedAction } from '@/features/hotkeys/toolbarPlacement';
 import { useOverlayStore } from '@/app/stores/overlayStore';
 import { useGameInstance } from '@/app/stores/gameInstanceStore';
 import { useSettingsModalStore } from '@/app/stores/settingsModalStore';
@@ -49,37 +55,144 @@ function boardTarget() {
   };
 }
 
-/** Game action ids surfaced as runnable palette commands, with palette-friendly
- *  labels. The key badge is read live from `HOTKEYS` so it can't go stale. */
-const GAME_COMMANDS: Array<{ action: string; label: string; keywords?: string[] }> = [
-  { action: 'draw', label: 'Draw a card', keywords: ['draw'] },
-  { action: 'shuffle', label: 'Shuffle deck' },
-  { action: 'mulligan', label: 'Mulligan (draw a new hand)', keywords: ['redraw', 'new hand'] },
-  { action: 'untapAll', label: 'Untap all your cards', keywords: ['untap'] },
-  { action: 'addCard', label: 'Add any card', keywords: ['add card', 'search', 'outside the game'] },
-  { action: 'gainHealth', label: 'Gain 1 life', keywords: ['life', 'health'] },
-  { action: 'loseHealth', label: 'Lose 1 life', keywords: ['life', 'health', 'damage'] },
+/**
+ * Catalog entries the palette can't run, and why.
+ *
+ * `createToken` performs no dispatch at all: the toolbar renders it as a
+ * sub-popover hosting the drag-to-board keyword grid, and there is nothing to
+ * drag from a palette row. A row that opened a grid you then had to drag out of
+ * would be worse than no row. (Its grid stays reachable from the toolbar's
+ * Create ▾ and the empty-board menu, and "Counters and keyword markers" in
+ * the guide explains it.)
+ */
+const NOT_RUNNABLE_FROM_PALETTE: ReadonlySet<string> = new Set(['createToken']);
+
+/**
+ * Runnable game rows, derived from the catalog rather than listed here.
+ *
+ * The palette and the game-actions toolbar have the same shape of problem —
+ * neither has a hover, so neither can read a target off the cursor — and #198
+ * already solved it by making each entry declare the target its click dispatches
+ * against (`ToolbarPlacement`). So the palette reads the same declarations
+ * through `getToolbarActions` and dispatches through the same
+ * `dispatchPlacedAction`. It is a *view* of the catalog, not a fourth copy.
+ *
+ * This is what makes **Scry, Surveil, Mill, Draw X, Pass, Reveal Hand, Random
+ * Discard, Reset Deck, Exile Top and View Deck** runnable from ⌘K. All of
+ * them carry `key: ''`, so they appear in no shortcut list anywhere — until now
+ * the palette could not offer them and the guide was the only place in the
+ * product they existed.
+ *
+ * `disabled` rows are dropped rather than shown greyed out: a palette is a list
+ * of things you can do, and cmdk has no affordance that reads as "listed but
+ * inert" (that was the old reference rows' whole problem).
+ */
+function catalogGameActions(): ToolbarHotkey[] {
+  return (['button', 'actions', 'create'] as const)
+    .flatMap((surface) => getToolbarActions(surface))
+    .filter((h) => !h.disabled && !NOT_RUNNABLE_FROM_PALETTE.has(h.action));
+}
+
+/**
+ * The key badge to print beside a catalog row — but only when pressing that key
+ * would do what the row says.
+ *
+ * A deck-targeted row is the same *action* as its keystroke aimed somewhere
+ * else. "Exile Top" is `moveToExile` pointed at the library, and `S` is
+ * `moveToExile` pointed at whatever you're hovering — so badging that row with
+ * `S` promises a shortcut for exiling the top of your deck that doesn't exist,
+ * and the key it names bins a board card instead. Board-targeted rows are
+ * target-free, so their key really is the row (`C` draws, `V` shuffles).
+ */
+function badgeableKey(hotkey: ToolbarHotkey): string | undefined {
+  if (hotkey.toolbar.target !== 'board') return undefined;
+  return hotkey.key || undefined;
+}
+
+/**
+ * Palette wording for rows whose toolbar label is too terse to search for.
+ *
+ * The toolbar can be terse because its rows sit under "Actions ▾" with the
+ * board in view; a palette row is read cold, next to "Import a deck". Only rows
+ * that genuinely read wrong alone are overridden — anything absent uses the
+ * catalog's own label, so this shrinks as labels improve rather than growing
+ * into a second registry.
+ */
+const PALETTE_LABELS: Record<string, string> = {
+  draw: 'Draw a card',
+  mulligan: 'Mulligan (draw a new hand)',
+  pass: 'Pass the turn',
+  shuffle: 'Shuffle deck',
+};
+
+/** Extra search terms per action, for words a player would type that the label
+ *  doesn't contain. */
+const PALETTE_KEYWORDS: Record<string, string[]> = {
+  draw: ['draw'],
+  drawX: ['draw multiple', 'draw cards'],
+  scry: ['scry', 'top of library', 'look at top'],
+  surveil: ['surveil', 'bin', 'graveyard'],
+  mill: ['mill', 'discard from deck'],
+  mulligan: ['redraw', 'new hand'],
+  untapAll: ['untap'],
+  pass: ['end turn', 'next player', 'priority'],
+  revealHand: ['show hand', 'hidden', 'privacy'],
+  randomDiscard: ['discard at random'],
+  resetDeck: ['restart', 'game two', 'start over'],
+  moveToExile: ['exile top'],
+  viewPile: ['view deck', 'search library', 'look through'],
+  createTokenCard: ['token', 'create token', 'treasure'],
+  addCard: ['add card', 'search', 'outside the game'],
+  gainHealth: ['life', 'health'],
+  loseHealth: ['life', 'health', 'damage'],
+};
+
+/**
+ * Runnable rows with no toolbar placement.
+ *
+ * These act on the player rather than the board or the deck, so the
+ * board/deck split in `ToolbarPlacement` has nothing to say about them —
+ * `executeHealthAction` and the add-card modal ignore the target entirely. They
+ * would simply vanish if the palette derived its list from placements alone.
+ */
+const PALETTE_ONLY_ACTIONS: Array<{ action: string; label: string }> = [
+  { action: 'addCard', label: 'Add any card' },
+  { action: 'gainHealth', label: 'Gain 1 life' },
+  { action: 'loseHealth', label: 'Lose 1 life' },
 ];
 
 /** Action ids that are runnable here — the shortcut reference excludes these so
  *  a command never appears twice (once runnable, once as a bare key). */
-export const RUNNABLE_ACTION_IDS: ReadonlySet<string> = new Set(
-  GAME_COMMANDS.map((c) => c.action),
-);
+export const RUNNABLE_ACTION_IDS: ReadonlySet<string> = new Set([
+  ...catalogGameActions().map((h) => h.action),
+  ...PALETTE_ONLY_ACTIONS.map((c) => c.action),
+]);
 
 /** Build the runnable command list. A function (not a constant) because it
  *  reads `window` for the board target and the live `HOTKEYS` key badges. */
 export function getCommands(): AppCommand[] {
   const overlay = useOverlayStore.getState();
 
-  const game: AppCommand[] = GAME_COMMANDS.map(({ action, label, keywords }) => ({
-    id: action,
-    label,
-    keywords,
-    section: 'Game',
-    shortcut: HOTKEYS.find((h) => h.action === action)?.key || undefined,
-    run: () => dispatchGameAction(action, boardTarget()),
-  }));
+  const game: AppCommand[] = [
+    ...catalogGameActions().map((hotkey) => ({
+      id: hotkey.action,
+      label: PALETTE_LABELS[hotkey.action] ?? hotkey.toolbar.label ?? hotkey.shortDescription,
+      keywords: PALETTE_KEYWORDS[hotkey.action],
+      section: 'Game' as const,
+      shortcut: badgeableKey(hotkey),
+      // The same call the toolbar makes, so a row cannot mean one thing there
+      // and something else here.
+      run: () => dispatchPlacedAction(hotkey),
+    })),
+    ...PALETTE_ONLY_ACTIONS.map(({ action, label }) => ({
+      id: action,
+      label,
+      keywords: PALETTE_KEYWORDS[action],
+      section: 'Game' as const,
+      shortcut: HOTKEYS.find((h) => h.action === action)?.key || undefined,
+      run: () => dispatchGameAction(action, boardTarget()),
+    })),
+  ];
 
   // One "Remove <name>" command per player who has left the room. Built live
   // from the doc + awareness (via the game instance), so it's empty when nobody

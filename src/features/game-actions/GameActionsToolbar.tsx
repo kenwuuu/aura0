@@ -7,9 +7,9 @@
  *
  * Its rows come from the one game-action catalog — `HOTKEYS`, the same table the
  * keyboard and the right-click menus read — via `getToolbarActions(surface)`,
- * and clicks go through `dispatchGameAction`, the same entry point those two
- * surfaces use. So the toolbar cannot drift from them: it is a third *view* of
- * the catalog, not a second copy of it. (It used to be exactly that second copy,
+ * and clicks go through `dispatchPlacedAction`, which lands in the same
+ * `dispatchGameAction` those two surfaces use. So the toolbar cannot drift from
+ * them: it is a *view* of the catalog, not a second copy of it. (It used to be exactly that second copy,
  * with its own `perform()` bodies; the toolbar's Mulligan skipped the
  * confirmation the M key showed, and it carried private re-implementations of
  * rows the deck node already had.) Three surfaces render here:
@@ -25,13 +25,8 @@
 
 import React, { useRef, useState } from 'react';
 import { ChevronDown } from 'lucide-react';
-import {
-  getToolbarActions,
-  type MenuTarget,
-  type ToolbarHotkey,
-  type ToolbarPlacement,
-} from '@/features/hotkeys/hotkeys';
-import { dispatchGameAction } from '@/features/hotkeys/gameActions';
+import { getToolbarActions, type ToolbarHotkey } from '@/features/hotkeys/hotkeys';
+import { dispatchPlacedAction } from '@/features/hotkeys/toolbarPlacement';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -106,26 +101,11 @@ function ToolbarButton({ label, onClick, title }: { label: string; onClick: () =
 // ── Dispatch ─────────────────────────────────────────────────────────────────
 
 /**
- * The target a toolbar click dispatches against. The toolbar has no hover, so
- * unlike the keyboard and the context menus it can't read one off the cursor —
- * each catalog entry declares the target its row means (see `ToolbarPlacement`).
- * A screen-centre point stands in for the board cursor; every board action the
- * toolbar offers ignores it (only the counter spawns use it, and they aren't
- * on the toolbar).
+ * Dispatch lives in `gameActions` now, because the toolbar is no longer the only
+ * hoverless surface — the ⌘K palette runs the same rows the same way. See
+ * `dispatchPlacedAction`.
  */
-function targetFor(placement: ToolbarPlacement): MenuTarget {
-  if (placement.target === 'deck') return { kind: 'pile', pileType: 'deck' };
-  return {
-    kind: 'board',
-    x: typeof window !== 'undefined' ? window.innerWidth / 2 : 0,
-    y: typeof window !== 'undefined' ? window.innerHeight / 2 : 0,
-  };
-}
-
-function performAction(hotkey: ToolbarHotkey): void {
-  if (hotkey.disabled) return;
-  dispatchGameAction(hotkey.action, targetFor(hotkey.toolbar));
-}
+const performAction = dispatchPlacedAction;
 
 /** Toolbar label: `shortDescription` unless the row needs a targetless name. */
 const labelOf = (hotkey: ToolbarHotkey) => hotkey.toolbar.label ?? hotkey.shortDescription;
