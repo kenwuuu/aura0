@@ -95,7 +95,7 @@ describe('help guide key references', () => {
       .join('\n')
       .toLowerCase();
 
-    const undocumented = HOTKEYS.filter((h) => h.key === '')
+    const undocumented = HOTKEYS.filter((h) => h.keys.length === 0)
       .map((h) => h.shortDescription)
       .filter((label) => !prose.includes(label.toLowerCase()));
 
