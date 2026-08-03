@@ -11,6 +11,7 @@ import { createRoot } from 'react-dom/client';
 import * as Sentry from '@sentry/react';
 import posthog from 'posthog-js';
 import { sentryTunnelOption } from '@/shared/sentryTunnel';
+import { dropUnusedEvents } from '@/infrastructure/analytics/captureFilter';
 
 import { bootstrapGame, type BootstrapOptions } from './bootstrap';
 import { App } from './App';
@@ -42,9 +43,26 @@ const sentryEnvironment = !import.meta.env.PROD
       : 'production';
 
 // ── PostHog ───────────────────────────────────────────────────────────────────
+// `defaults` is not a no-op: the preset silently switches on autocapture,
+// heatmaps, web vitals, and session replay. Nobody chose those, and together
+// they were the majority of an ingestion bill that exhausted the 1M/month
+// allowance twice — on 2026-07-17 and again on 2026-07-30, after which we
+// captured nothing at all for the rest of the period. Anything enabled below
+// is enabled on purpose; see analytics/captureFilter.ts for the rest.
 posthog.init('phc_yVFqMSYG88kEXYf4vcMJgS7YuHpjRyYCD4aWicRXuJtF', {
   api_host: 'https://us.i.posthog.com',
   defaults: '2026-01-30',
+  // Drops `$autocapture` while leaving `$rageclick` alive — the two are not
+  // separable via config. See captureFilter.ts for why this isn't
+  // `autocapture: false`.
+  before_send: dropUnusedEvents,
+  // `$web_vitals`: no insight, no dashboard, no alert reads it. Re-enable
+  // alongside an actual Web Vitals dashboard, not before.
+  capture_performance: { web_vitals: false },
+  // Heatmaps are unread too, and every click on the board generates data for
+  // them. Note the project also has `heatmaps_opt_in` set server-side; this
+  // client flag is what actually stops the collection.
+  capture_heatmaps: false,
 });
 
 // Tag every event with the deployed release so product metrics (boot rate,

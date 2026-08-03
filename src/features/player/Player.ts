@@ -31,7 +31,7 @@ import { describeTransactionOrigin } from "@/infrastructure/networking/transacti
 import { colorFromPlayerId } from './playerColor';
 import { CardPile } from './CardPile';
 import {SavedDeck} from "@/features/player/types";
-import {trackHealthChange, trackPlayerCounterChange} from "@/infrastructure/analytics/PosthogFunctions"
+import {trackPlayerCounterChange} from "@/infrastructure/analytics/PosthogFunctions"
 import { logAction, cardLogName } from '@/features/action-log/actionLog';
 import { makeCounterId } from '@/shared/utils/ids';
 import { toBaseCard } from './toBaseCard';
@@ -340,7 +340,6 @@ export class Player {
    * "all cards are in the deck" leaves them mid-setup rather than ready to play.
    */
   public async reset(): Promise<void> {
-    posthog.capture('game_reset');
     this.returnAllCardsToDeck();
     await this.dealOpeningHand();
   }
@@ -502,7 +501,6 @@ export class Player {
       const finalHealth = map.get(YSTATE_HEALTH) as number;
       const before = this.healthBeforeBurst.get(targetPlayerId);
       if (targetPlayerId === this.playerId) {
-        trackHealthChange(finalHealth);
         logAction(this.yDoc, {
           actorId: this.playerId,
           type: 'health',
