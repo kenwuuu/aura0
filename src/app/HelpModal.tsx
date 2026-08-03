@@ -99,27 +99,35 @@ function GuideTab({ target }: { target: HelpSectionId | null }) {
     setFlashId(target);
   }, [target, scrollTo]);
 
-  // Scroll-spy: the rail follows the pane. `rootMargin` pulls the bottom edge
-  // up so the topmost visible section keeps the highlight, instead of every
-  // section below it competing for it.
-  useEffect(() => {
+  // Scroll-spy: the rail follows the pane. The section that owns the highlight
+  // is the LAST one whose top has reached the top of the pane — not the topmost
+  // one still intersecting it. Those differ by exactly the case that matters:
+  // after scrolling to a section, the tail of the previous one is still a few
+  // pixels on screen above it, and "topmost intersecting" hands it the
+  // highlight, so clicking a rail item highlights the item above it.
+  const syncActiveToScroll = useCallback(() => {
     const pane = paneRef.current;
     if (!pane) return;
 
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const topmost = entries
-          .filter((e) => e.isIntersecting)
-          .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)[0];
-        const id = topmost?.target.getAttribute('data-help-section');
-        if (id) setActiveId(id);
-      },
-      { root: pane, rootMargin: '0px 0px -60% 0px' },
-    );
-
-    pane.querySelectorAll('[data-help-section]').forEach((el) => observer.observe(el));
-    return () => observer.disconnect();
+    const paneTop = pane.getBoundingClientRect().top;
+    // Annotated: `as const` on the manifest narrows this to the first id's
+    // literal type, which nothing else can then be assigned to.
+    let current: string = HELP_SECTIONS[0].id;
+    for (const el of pane.querySelectorAll<HTMLElement>('[data-help-section]')) {
+      // Tolerance covers `.section`'s scroll-margin — a section scrolled to the
+      // top lands a little below the pane's edge, not flush against it.
+      if (el.getBoundingClientRect().top - paneTop > 20) break;
+      current = el.dataset.helpSection ?? current;
+    }
+    setActiveId(current);
   }, []);
+
+  useEffect(() => {
+    const pane = paneRef.current;
+    if (!pane) return;
+    pane.addEventListener('scroll', syncActiveToScroll, { passive: true });
+    return () => pane.removeEventListener('scroll', syncActiveToScroll);
+  }, [syncActiveToScroll]);
 
   return (
     <div className={styles.shell}>
@@ -209,12 +217,17 @@ export const HelpModal: React.FC = () => {
   const isOpen = useOverlayStore((s) => s.helpOpen);
   const helpTarget = useOverlayStore((s) => s.helpTarget);
 
-  // Controlled, so a deep link can land on Shortcuts. Seeded from the target
-  // whenever one arrives; the player's own tab clicks win after that.
+  // Controlled, so a deep link can land on Shortcuts. Re-seeded on every open —
+  // NOT just when a target arrives. Radix unmounts the dialog's contents on
+  // close but this component stays mounted, so `tab` survives a close: without
+  // the reset, one deep link to Shortcuts left the toolbar's Help button
+  // opening on Shortcuts forever after. Between opens the player's own tab
+  // clicks win, because neither dependency changes when they click.
   const [tab, setTab] = useState<string>('guide');
   useEffect(() => {
-    if (helpTarget) setTab(helpTarget.tab);
-  }, [helpTarget]);
+    if (!isOpen) return;
+    setTab(helpTarget?.tab ?? 'guide');
+  }, [isOpen, helpTarget]);
 
   const guideTarget = helpTarget?.tab === 'guide' ? helpTarget.section : null;
 

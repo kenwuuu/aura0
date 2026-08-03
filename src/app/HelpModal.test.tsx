@@ -77,6 +77,24 @@ describe('HelpModal', () => {
     );
   });
 
+  it('reopens on the Guide after a deep link to Shortcuts', async () => {
+    // Radix unmounts the dialog's contents on close, but HelpModal itself stays
+    // mounted — so the tab state survives. Without an explicit reset, one deep
+    // link to Shortcuts left the toolbar's Help button opening there forever.
+    const { rerender } = render(<HelpModal />);
+
+    useOverlayStore.getState().openHelp({ tab: 'shortcuts' });
+    rerender(<HelpModal />);
+    expect(await screen.findByText('Tap card')).toBeInTheDocument();
+
+    useOverlayStore.getState().close('help');
+    rerender(<HelpModal />);
+    useOverlayStore.getState().open('help');
+    rerender(<HelpModal />);
+
+    expect(screen.getByRole('tab', { name: /guide/i })).toHaveAttribute('aria-selected', 'true');
+  });
+
   it('clears the deep-link target when Help closes', () => {
     useOverlayStore.getState().openHelp({ tab: 'guide', section: 'deck-actions' });
     expect(useOverlayStore.getState().helpTarget).not.toBeNull();
