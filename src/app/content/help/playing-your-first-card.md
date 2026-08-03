@@ -1,8 +1,8 @@
 **Drag a card from your hand onto the board.** On a phone, press and hold the
 card for a moment first, then drag.
 
-Dragging works in every direction: hand to board, board to any pile in the dock,
-pile to hand.
+Dragging works in every direction: hand to board, board to any pile on your
+playmat, pile back to hand.
 
 ### Drawing
 

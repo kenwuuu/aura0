@@ -12,7 +12,7 @@ an open pile.
 | `key:moveToSideboard` | your sideboard |
 
 Dragging does the same thing: pull a card from your hand onto the board, or from
-the board onto any pile in the dock at the bottom of the screen.
+the board onto any pile on your playmat.
 
 ### Several at once
 

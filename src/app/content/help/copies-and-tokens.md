@@ -14,8 +14,5 @@ them.
 To create one yourself, open **Create ▾** and pick **Token Card**, then search
 for it by name.
 
-### Keyword tokens
-
-**Create ▾ → Counter** opens a grid of ability markers — flying, deathtouch,
-vigilance and the rest — that you drag onto the board. They sit on the
-battlefield like anything else and can be moved around freely.
+For ability markers — flying, deathtouch, vigilance — see **Counters and keyword
+markers**.

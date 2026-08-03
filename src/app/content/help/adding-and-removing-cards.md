@@ -1,6 +1,7 @@
-Press `key:addCard` to search for any card and put it straight onto the
-battlefield — for a card that isn't in your deck at all: something you're
-casting from exile, a card an opponent gave you, or a wish target.
+Press `key:addCard` — or right-click the board and pick **Add any card** — to
+search for any card and put it straight onto the battlefield. For a card that
+isn't in your deck at all: something you're casting from exile, a card an
+opponent gave you, or a wish target.
 
 ### Removing a card
 

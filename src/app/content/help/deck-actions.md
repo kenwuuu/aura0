@@ -9,7 +9,7 @@ shortcut, so the menu is where to find them.
 | **Scry** | Look at the top cards, then reorder them or send them to the bottom |
 | **Surveil** | Look at the top cards, then keep them or bin them |
 | **Mill** | Put a number of cards from the top into your discard |
-| **Play top card** (`key:playToBattlefield`) | Put the top card straight onto the battlefield |
+| **Play to board** (`key:playToBattlefield`) | Put the top card straight onto the battlefield |
 | **Exile Top** | Exile the top card |
 | **Shuffle** (`key:shuffle`) | Shuffle your deck |
 | **Mulligan** (`key:mulligan`) | Shuffle back and draw a fresh hand |

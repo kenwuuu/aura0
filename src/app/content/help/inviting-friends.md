@@ -9,5 +9,8 @@ still sit down at the table.
 
 ### Starting over
 
-**New Game** (also top right) gives you a fresh, empty table on a new link. Your
-old game keeps running for anyone still in it.
+**New Game** (also top right) opens a fresh table on a new link. Your browser's
+back button takes you back to the game you left, so it isn't a one-way door.
+
+To replay against the same people instead, use **Reset Deck** — see **Resetting
+your deck**.

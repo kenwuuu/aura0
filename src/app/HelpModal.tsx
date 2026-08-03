@@ -64,7 +64,10 @@ const markdownComponents = {
   ul: ({ children }: { children?: React.ReactNode }) => <ul className="mb-4 pl-6 list-disc">{children}</ul>,
   ol: ({ children }: { children?: React.ReactNode }) => <ol className="mb-4 pl-6 list-decimal">{children}</ol>,
   li: ({ children }: { children?: React.ReactNode }) => <li className="mb-2">{children}</li>,
-  strong: ({ children }: { children?: React.ReactNode }) => <strong className="font-bold text-blue-400">{children}</strong>,
+  // Near-white rather than the old blue: the guide names a *lot* of buttons in
+  // bold, and in blue every one of them read as a link you could click.
+  // Blue now means only two things here — a real link, and a key badge.
+  strong: ({ children }: { children?: React.ReactNode }) => <strong className="font-semibold text-gray-50">{children}</strong>,
   code: KeyOrCode,
   pre: ({ children }: { children?: React.ReactNode }) => <pre className="bg-gray-800 p-3 rounded-lg overflow-x-auto mb-4 text-[13px]">{children}</pre>,
   a: ({ children, href }: { children?: React.ReactNode; href?: string }) => <a href={href} className="text-blue-400 hover:text-blue-300 underline" target="_blank" rel="noopener noreferrer">{children}</a>,

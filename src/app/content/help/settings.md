@@ -1,4 +1,5 @@
-The gear button in the bottom-left corner of the board opens Settings.
+The gear button in the bottom-left corner of the board opens Settings (top-right
+on a phone).
 
 **Profile** — your display name and player colour. Both are what opponents see
 on your health box and cursor, so set them before a game with strangers.
