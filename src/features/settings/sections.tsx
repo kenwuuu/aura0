@@ -17,10 +17,11 @@
  */
 import React from 'react';
 import type { LucideIcon } from 'lucide-react';
-import { Gamepad2, Info, Monitor, User, Wrench } from 'lucide-react';
+import { Gamepad2, Info, Keyboard, Monitor, User, Wrench } from 'lucide-react';
 import { ProfileSection } from './sections/ProfileSection';
 import { DisplaySection } from './sections/DisplaySection';
 import { GameplaySection } from './sections/GameplaySection';
+import { HotkeysSection } from './sections/HotkeysSection';
 import { AdvancedSection } from './sections/AdvancedSection';
 import { AboutSection } from './sections/AboutSection';
 
@@ -49,6 +50,15 @@ export const SECTIONS: SettingsSection[] = [
     label: 'Gameplay',
     icon: Gamepad2,
     Component: GameplaySection,
+  },
+  {
+    // After Gameplay: both change what an interaction *does*, and Hotkeys is
+    // the larger of the two, so it earns its own section rather than becoming a
+    // group heading Gameplay's name wouldn't cover.
+    id: 'hotkeys',
+    label: 'Hotkeys',
+    icon: Keyboard,
+    Component: HotkeysSection,
   },
   {
     id: 'advanced',
