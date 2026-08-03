@@ -19,9 +19,8 @@ import {
   takeTabLock,
   tabLockKey,
 } from '@/infrastructure/networking/tabLock';
-import { watchRoomOccupancy } from '@/infrastructure/networking/roomOccupancy';
 import { purgeExpiredRoomDocs } from '@/infrastructure/networking/roomDocStorage';
-import { trackRoomOccupancyChanged, trackRoomDocsPurged } from '@/infrastructure/analytics/PosthogFunctions';
+import { trackRoomDocsPurged } from '@/infrastructure/analytics/PosthogFunctions';
 import { DeckPersistenceService, DeckStorageService } from '@/infrastructure/persistence';
 import { useGameInstance } from '@/app/stores/gameInstanceStore';
 import { usePlayerStore } from '@/app/stores/playerStore';
@@ -150,7 +149,10 @@ export async function bootstrapGame(options: BootstrapOptions = {}): Promise<Boo
   useGameInstance.getState().setAwareness(awareness);
   // Broadcast playerId so peers can look up this player's Yjs name from the cursor overlay.
   awareness.setLocalStateField('playerId', playerId);
-  watchRoomOccupancy(awareness, trackRoomOccupancyChanged);
+  // NOTE: room occupancy is deliberately no longer reported to PostHog. It fired
+  // on every join/leave/reconnect — 14.5% of our entire ingestion bill, 38 events
+  // per player — and not one saved insight ever read it. `watchRoomOccupancy`
+  // itself is still very much alive; `watchInviteConversion` below is built on it.
   watchInviteConversion(awareness, () => roomManager.getRoomName());
 
   // ── 8. Deck seeding + auto-load ────────────────────────────────────────────
