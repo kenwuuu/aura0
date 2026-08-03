@@ -190,6 +190,16 @@ export function commandPalette(page: Page): Locator {
   return page.getByRole('dialog', { name: /command palette/i });
 }
 
+/** The palette's search box. Addressed here so its placeholder copy is one edit. */
+export function commandPaletteInput(page: Page): Locator {
+  return page.getByPlaceholder(/^search actions/i);
+}
+
+/** The palette row cmdk currently has selected — the one Enter would run. */
+export function selectedPaletteRow(page: Page): Locator {
+  return page.locator('[cmdk-item][aria-selected="true"]');
+}
+
 /** The "Help" button in the top bar (desktop row; moves into the overflow menu on phone). */
 export function helpButton(page: Page): Locator {
   return toolbar(page).getByRole('button', { name: 'Help' });

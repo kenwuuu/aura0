@@ -9,6 +9,7 @@
 import { test, expect } from '../../fixtures';
 import {
   commandPalette,
+  commandPaletteInput,
   helpButton,
   helpModal,
   helpRailSection,
@@ -62,7 +63,7 @@ test('a palette shortcut row opens Help on the Shortcuts tab', async ({ page }) 
   await page.keyboard.press('ControlOrMeta+k');
   await expect(commandPalette(page)).toBeVisible();
 
-  await page.getByPlaceholder(/search actions and shortcuts/i).fill('tap card');
+  await commandPaletteInput(page).fill('tap card');
   await page.getByRole('option', { name: /tap card/i }).click();
 
   await expect(commandPalette(page)).not.toBeVisible();
@@ -74,7 +75,7 @@ test('reopening Help after a deep link lands back at the top', async ({ page }) 
   // The target has to be cleared on close, or the toolbar button silently
   // reopens wherever the last deep link pointed.
   await page.keyboard.press('ControlOrMeta+k');
-  await page.getByPlaceholder(/search actions and shortcuts/i).fill('tap card');
+  await commandPaletteInput(page).fill('tap card');
   await page.getByRole('option', { name: /tap card/i }).click();
   await expect(helpTab(page, 'Shortcuts')).toHaveAttribute('aria-selected', 'true');
 

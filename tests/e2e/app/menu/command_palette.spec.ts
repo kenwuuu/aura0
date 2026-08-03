@@ -10,6 +10,7 @@ import { test, expect } from '../../fixtures';
 import {
   commandPalette,
   commandPaletteButton,
+  commandPaletteInput,
   expectHandCount,
 } from '../../harness';
 
@@ -22,7 +23,7 @@ test('⌘K opens the palette and a game command draws a card', async ({ page }) 
   await page.keyboard.press('ControlOrMeta+k');
   await expect(commandPalette(page)).toBeVisible();
 
-  await page.getByPlaceholder(/search actions and shortcuts/i).fill('draw');
+  await commandPaletteInput(page).fill('draw');
   await page.getByRole('option', { name: /draw a card/i }).click();
 
   // The palette closes and the action really ran against game state.
@@ -42,7 +43,7 @@ test('the "Open Help" command opens the unified Help modal at its Shortcuts tab'
   await page.keyboard.press('ControlOrMeta+k');
   await expect(commandPalette(page)).toBeVisible();
 
-  await page.getByPlaceholder(/search actions and shortcuts/i).fill('help');
+  await commandPaletteInput(page).fill('help');
   await page.getByRole('option', { name: /open help/i }).click();
 
   const help = page.getByRole('dialog', { name: /help & shortcuts/i });

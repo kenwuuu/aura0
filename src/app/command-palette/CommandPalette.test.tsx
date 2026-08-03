@@ -65,4 +65,53 @@ describe('CommandPalette', () => {
     await waitFor(() => expect(useOverlayStore.getState().helpOpen).toBe(true));
     expect(useOverlayStore.getState().commandPaletteOpen).toBe(false);
   });
+
+  describe('help sections', () => {
+    const typeSearch = async (query: string) => {
+      const user = userEvent.setup();
+      await user.type(await screen.findByPlaceholderText(/search actions/i), query);
+    };
+
+    it('surfaces a section for a term that exists nowhere else in the app', async () => {
+      // Scry has no keystroke, so `getHotkeysGroupedByZone` drops it from the
+      // reference rows and it isn't runnable — before this, "scry" in ⌘K found
+      // nothing at all.
+      openPalette();
+      render(<CommandPalette />);
+      await typeSearch('scry');
+
+      expect(await screen.findByText('Deck actions')).toBeInTheDocument();
+    });
+
+    it('matches on a curated keyword the section title never mentions', async () => {
+      openPalette();
+      render(<CommandPalette />);
+      await typeSearch('poison');
+
+      expect(await screen.findByText('Life and player counters')).toBeInTheDocument();
+    });
+
+    it('opens Help at that section and closes the palette', async () => {
+      openPalette();
+      render(<CommandPalette />);
+      await typeSearch('scry');
+      const user = userEvent.setup();
+      await user.click(await screen.findByText('Deck actions'));
+
+      await waitFor(() =>
+        expect(useOverlayStore.getState().helpTarget).toEqual({
+          tab: 'guide',
+          section: 'deck-actions',
+        }),
+      );
+      expect(useOverlayStore.getState().helpOpen).toBe(true);
+      expect(useOverlayStore.getState().commandPaletteOpen).toBe(false);
+    });
+
+    // NOTE: which row ends up SELECTED is not asserted here. cmdk orders rows
+    // with real DOM moves that happy-dom doesn't carry out, so the first row in
+    // source order stays aria-selected no matter what the filter returns — any
+    // assertion about it passes even with the filter deleted. Selection is
+    // pinned in tests/e2e/app/menu/palette_help_search.spec.ts.
+  });
 });
