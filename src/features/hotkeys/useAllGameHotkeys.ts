@@ -5,32 +5,51 @@
  * vs pile vs token vs pile-viewer) happens *inside* each handler by reading the
  * single `hoverTarget` from the store, instead of registering the same action
  * once per surface. Modal gating is handled by react-hotkeys-hook scopes
- * (Board ↔ PileViewer) rather than threading `!isModalOpen` through every
- * binding — see GameHotkeysManager for the <HotkeysProvider> that owns them.
+ * (Board ↔ PileViewer ↔ Capture) rather than threading `!isModalOpen` through
+ * every binding — see GameHotkeysManager for the <HotkeysProvider> that owns them.
  *
  * Game instances are read from gameInstanceStore inside the executors in
  * `gameActions.ts` — this hook itself only decides *which* action fires and
  * *what it targets*, never touches yDoc/player directly.
+ *
+ * **Which key** is not decided here either. Every registration resolves through
+ * `useEffectiveBindings()`, so the player's preset and per-action overrides
+ * apply live; the catalog's `keys` is only the fallback under both. Comments
+ * below therefore name actions, never letters — "Move-to-discard", not "D".
  */
 
 import { useEffect, useRef } from 'react';
 import { useHotkeys, useHotkeysContext } from 'react-hotkeys-hook';
 import { useHotkeyStore } from '@/app/stores/hotkeyStore';
 import {
-  getKeyBindingsForAction,
   HotkeyContext,
   HotkeyScope,
   type MenuTarget,
 } from '@/features/hotkeys/hotkeys';
 import { dispatchGameAction } from '@/features/hotkeys/gameActions';
+import { useEffectiveBindings } from '@/features/hotkeys/useHotkeyBindings';
+import { getBinding } from '@/features/hotkeys/bindings';
 
 export function useAllGameHotkeys() {
   const hoverTarget = useHotkeyStore((s) => s.hoverTarget);
   const isModalOpen = useHotkeyStore((s) => s.isModalOpen);
+  const isCapturingHotkey = useHotkeyStore((s) => s.isCapturingHotkey);
   // Reactive so the battlefield `enabled` flags below re-evaluate when the
   // selection appears/clears: a selected group must accept board actions with
   // nothing hovered, which means those keys can't be gated on hover alone.
   const hasSelection = useHotkeyStore((s) => s.selectedCardIds.size > 0);
+
+  // The player's effective bindings (preset + overrides), read live. Every
+  // binding below resolves through `keys()` instead of the catalog, so a rebind
+  // in Settings re-registers on the next render — rhk re-runs its effect when
+  // the joined key string changes.
+  const bindings = useEffectiveBindings();
+  const keys = (action: string) => getBinding(bindings, action) as string[];
+  // Guards every registration below. An action can resolve to no keys at all
+  // (a preset that doesn't bind it, or a player who cleared it), and a key-less
+  // `useHotkeys` would sit in the registry matching nothing — harmless today,
+  // but it makes "is this action live?" unanswerable from the binding list.
+  const bound = (action: string) => keys(action).length > 0;
 
   const { enableScope, disableScope } = useHotkeysContext();
 
@@ -44,15 +63,22 @@ export function useAllGameHotkeys() {
   // Modal state → active scope. Keep exactly one scope active at all times
   // (an empty active-scope set re-enables scoped bindings with a warning), and
   // enable the new scope before disabling the old to avoid a transient gap.
+  //
+  // Capture wins over the pile viewer: recording a key must silence everything,
+  // and `Capture` has no bindings of its own, so it is the "no game hotkeys"
+  // state written as a scope rather than as an empty set.
   useEffect(() => {
-    if (isModalOpen) {
-      enableScope(HotkeyScope.PileViewer);
-      disableScope(HotkeyScope.Board);
-    } else {
-      enableScope(HotkeyScope.Board);
-      disableScope(HotkeyScope.PileViewer);
+    const active = isCapturingHotkey
+      ? HotkeyScope.Capture
+      : isModalOpen
+        ? HotkeyScope.PileViewer
+        : HotkeyScope.Board;
+
+    enableScope(active);
+    for (const scope of [HotkeyScope.Board, HotkeyScope.PileViewer, HotkeyScope.Capture]) {
+      if (scope !== active) disableScope(scope);
     }
-  }, [isModalOpen, enableScope, disableScope]);
+  }, [isModalOpen, isCapturingHotkey, enableScope, disableScope]);
 
   // --- Shared option presets (per-binding `enabled` is spread in) ---
   const board = { scopes: HotkeyScope.Board, preventDefault: true } as const;
@@ -102,114 +128,114 @@ export function useAllGameHotkeys() {
   // ===========================================================================
   // Global shortcuts — fire whenever the Board scope is active (no hover needed)
   // ===========================================================================
-  useHotkeys(getKeyBindingsForAction('draw'), () => {
+  useHotkeys(keys('draw'), () => {
     dispatchGameAction('draw', { kind: 'board', ...cursorPos.current });
-  }, board);
+  }, { ...board, enabled: bound('draw') });
 
-  useHotkeys(getKeyBindingsForAction('shuffle'), () => {
+  useHotkeys(keys('shuffle'), () => {
     dispatchGameAction('shuffle', { kind: 'board', ...cursorPos.current });
-  }, board);
+  }, { ...board, enabled: bound('shuffle') });
 
-  useHotkeys(getKeyBindingsForAction('mulligan'), () => {
+  useHotkeys(keys('mulligan'), () => {
     dispatchGameAction('mulligan', { kind: 'board', ...cursorPos.current });
-  }, board);
+  }, { ...board, enabled: bound('mulligan') });
 
-  useHotkeys(getKeyBindingsForAction('addCard'), () => {
+  useHotkeys(keys('addCard'), () => {
     dispatchGameAction('addCard', { kind: 'board', ...cursorPos.current });
-  }, board);
+  }, { ...board, enabled: bound('addCard') });
 
-  useHotkeys(getKeyBindingsForAction('gainHealth'), () => {
+  useHotkeys(keys('gainHealth'), () => {
     dispatchGameAction('gainHealth', { kind: 'board', ...cursorPos.current });
-  }, board);
+  }, { ...board, enabled: bound('gainHealth') });
 
-  useHotkeys(getKeyBindingsForAction('loseHealth'), () => {
+  useHotkeys(keys('loseHealth'), () => {
     dispatchGameAction('loseHealth', { kind: 'board', ...cursorPos.current });
-  }, board);
+  }, { ...board, enabled: bound('loseHealth') });
 
-  useHotkeys(getKeyBindingsForAction('untapAll'), () => {
+  useHotkeys(keys('untapAll'), () => {
     dispatchGameAction('untapAll', { kind: 'board', ...cursorPos.current });
-  }, board);
+  }, { ...board, enabled: bound('untapAll') });
 
   // ===========================================================================
   // Contextual shortcuts — one binding per key, routed by the hovered surface
   // ===========================================================================
 
   // Battlefield-only keys
-  useHotkeys(getKeyBindingsForAction('tap'), () => dispatchOrSelection('tap'),
-    { ...board, enabled: isBattlefield || hasSelection });
-  useHotkeys(getKeyBindingsForAction('sick'), () => dispatchOrSelection('sick'),
-    { ...board, enabled: isBattlefield || hasSelection });
-  // Counters aren't hover-routed like the rest: by default 'u'/'i' quick-drop a
-  // counter at the cursor. A multi-selection takes over that key — whether a
-  // member is hovered or nothing is — so each selected card gets its own centered
-  // counter (matching the menu's card-anchored counter); the cursor quick-drop
-  // remains only when there's no selection to act on.
-  useHotkeys(getKeyBindingsForAction('addCounter'), () => {
+  useHotkeys(keys('tap'), () => dispatchOrSelection('tap'),
+    { ...board, enabled: bound('tap') && (isBattlefield || hasSelection) });
+  useHotkeys(keys('sick'), () => dispatchOrSelection('sick'),
+    { ...board, enabled: bound('sick') && (isBattlefield || hasSelection) });
+  // Counters aren't hover-routed like the rest: by default the counter keys
+  // quick-drop a counter at the cursor. A multi-selection takes them over —
+  // whether a member is hovered or nothing is — so each selected card gets its
+  // own centered counter (matching the menu's card-anchored counter); the cursor
+  // quick-drop remains only when there's no selection to act on.
+  useHotkeys(keys('addCounter'), () => {
     const sel = useHotkeyStore.getState().selectedCardIds;
     if (isBattlefield && t && sel.has(t.id)) dispatch('addCounter');
     else if (!t && sel.size > 0) dispatchGameAction('addCounter', { kind: 'battlefieldCard', id: [...sel][0] });
     else dispatchGameAction('addCounter', { kind: 'board', ...cursorPos.current });
-  }, board);
-  useHotkeys(getKeyBindingsForAction('removeCounter'), () => {
+  }, { ...board, enabled: bound('addCounter') });
+  useHotkeys(keys('removeCounter'), () => {
     const sel = useHotkeyStore.getState().selectedCardIds;
     if (isBattlefield && t && sel.has(t.id)) dispatch('removeCounter');
     else if (!t && sel.size > 0) dispatchGameAction('removeCounter', { kind: 'battlefieldCard', id: [...sel][0] });
     else dispatchGameAction('removeCounter', { kind: 'board', ...cursorPos.current });
-  }, board);
-  useHotkeys(getKeyBindingsForAction('copy'), () => dispatchOrSelection('copy'),
-    { ...board, enabled: isBattlefield || hasSelection });
+  }, { ...board, enabled: bound('removeCounter') });
+  useHotkeys(keys('copy'), () => dispatchOrSelection('copy'),
+    { ...board, enabled: bound('copy') && (isBattlefield || hasSelection) });
 
   // Flip — battlefield card or hand card
-  useHotkeys(getKeyBindingsForAction('flip'), () => dispatchOrSelection('flip'),
-    { ...board, enabled: isBattlefield || isHand || hasSelection });
+  useHotkeys(keys('flip'), () => dispatchOrSelection('flip'),
+    { ...board, enabled: bound('flip') && (isBattlefield || isHand || hasSelection) });
 
-  // Backspace — delete battlefield card or delete token
-  useHotkeys(getKeyBindingsForAction('delete'), () => {
+  // Delete — battlefield card, or the hovered token
+  useHotkeys(keys('delete'), () => {
     if (isBattlefield) dispatch('delete');
     else if (isToken) dispatch('tokenDelete');
     else if (!t) {
       const sel = useHotkeyStore.getState().selectedCardIds;
       if (sel.size > 0) dispatchGameAction('delete', { kind: 'battlefieldCard', id: [...sel][0] });
     }
-  }, { ...board, enabled: isBattlefield || isToken || hasSelection });
+  }, { ...board, enabled: bound('delete') && (isBattlefield || isToken || hasSelection) });
 
-  // Play-to-board (P) — top card of the deck straight onto the battlefield.
+  // Play-to-board — top card of the deck straight onto the battlefield.
   // Gated to the deck specifically (not every pile like the moveTo* keys) to
   // match the catalog, which lists this row on the deck's menu only: exile and
   // discard get played from by picking a card in the pile viewer, not blind off
   // the top.
-  useHotkeys(getKeyBindingsForAction('playToBattlefield'), () => dispatch('playToBattlefield'),
-    { ...board, enabled: isPile && t?.pileType === 'deck' });
+  useHotkeys(keys('playToBattlefield'), () => dispatch('playToBattlefield'),
+    { ...board, enabled: bound('playToBattlefield') && (isPile && t?.pileType === 'deck') });
 
-  // Move-to-hand (H) — battlefield card or pile top
-  useHotkeys(getKeyBindingsForAction('moveToHand'), () => dispatchOrSelection('moveToHand'),
-    { ...board, enabled: isBattlefield || isPile || hasSelection });
+  // Move-to-hand — battlefield card or pile top
+  useHotkeys(keys('moveToHand'), () => dispatchOrSelection('moveToHand'),
+    { ...board, enabled: bound('moveToHand') && (isBattlefield || isPile || hasSelection) });
 
-  // Move-to-discard (D) — battlefield / hand / pile
-  useHotkeys(getKeyBindingsForAction('moveToDiscard'), () => dispatchOrSelection('moveToDiscard'),
-    { ...board, enabled: isBattlefield || isHand || isPile || hasSelection });
+  // Move-to-discard — battlefield / hand / pile
+  useHotkeys(keys('moveToDiscard'), () => dispatchOrSelection('moveToDiscard'),
+    { ...board, enabled: bound('moveToDiscard') && (isBattlefield || isHand || isPile || hasSelection) });
 
-  // Move-to-exile (S) — battlefield / hand / pile
-  useHotkeys(getKeyBindingsForAction('moveToExile'), () => dispatchOrSelection('moveToExile'),
-    { ...board, enabled: isBattlefield || isHand || isPile || hasSelection });
+  // Move-to-exile — battlefield / hand / pile
+  useHotkeys(keys('moveToExile'), () => dispatchOrSelection('moveToExile'),
+    { ...board, enabled: bound('moveToExile') && (isBattlefield || isHand || isPile || hasSelection) });
 
-  // Move-to-deck-top (T) — battlefield / hand / pile
-  useHotkeys(getKeyBindingsForAction('moveToDeckTop'), () => dispatchOrSelection('moveToDeckTop'),
-    { ...board, enabled: isBattlefield || isHand || isPile || hasSelection });
+  // Move-to-deck-top — battlefield / hand / pile
+  useHotkeys(keys('moveToDeckTop'), () => dispatchOrSelection('moveToDeckTop'),
+    { ...board, enabled: bound('moveToDeckTop') && (isBattlefield || isHand || isPile || hasSelection) });
 
-  // Move-to-deck-bottom (Y) — battlefield / hand / pile (position 0)
-  useHotkeys(getKeyBindingsForAction('moveToDeckBottom'), () => dispatchOrSelection('moveToDeckBottom'),
-    { ...board, enabled: isBattlefield || isHand || isPile || hasSelection });
+  // Move-to-deck-bottom — battlefield / hand / pile (position 0)
+  useHotkeys(keys('moveToDeckBottom'), () => dispatchOrSelection('moveToDeckBottom'),
+    { ...board, enabled: bound('moveToDeckBottom') && (isBattlefield || isHand || isPile || hasSelection) });
 
-  // Move-to-sideboard (B) — battlefield / hand / pile
-  useHotkeys(getKeyBindingsForAction('moveToSideboard'), () => dispatchOrSelection('moveToSideboard'),
-    { ...board, enabled: isBattlefield || isHand || isPile || hasSelection });
+  // Move-to-sideboard — battlefield / hand / pile
+  useHotkeys(keys('moveToSideboard'), () => dispatchOrSelection('moveToSideboard'),
+    { ...board, enabled: bound('moveToSideboard') && (isBattlefield || isHand || isPile || hasSelection) });
 
   // Token counters
-  useHotkeys(getKeyBindingsForAction('tokenIncrement'), () => dispatch('tokenIncrement'),
-    { ...board, enabled: isToken });
-  useHotkeys(getKeyBindingsForAction('tokenDecrement'), () => dispatch('tokenDecrement'),
-    { ...board, enabled: isToken });
+  useHotkeys(keys('tokenIncrement'), () => dispatch('tokenIncrement'),
+    { ...board, enabled: bound('tokenIncrement') && (isToken) });
+  useHotkeys(keys('tokenDecrement'), () => dispatch('tokenDecrement'),
+    { ...board, enabled: bound('tokenDecrement') && (isToken) });
 
   // ===========================================================================
   // Pile-viewer shortcuts — active only while the PileViewer scope is on.
@@ -217,17 +243,17 @@ export function useAllGameHotkeys() {
   // PileViewerReact's dispatchPileMove, based on which callback it was given —
   // not duplicated here.
   // ===========================================================================
-  useHotkeys(getKeyBindingsForAction('moveToHand'), () => dispatch('moveToHand'),
-    { ...pv, enabled: isPileViewer });
-  useHotkeys(getKeyBindingsForAction('moveToDiscard'), () => dispatch('moveToDiscard'),
-    { ...pv, enabled: isPileViewer });
-  useHotkeys(getKeyBindingsForAction('moveToExile'), () => dispatch('moveToExile'),
-    { ...pv, enabled: isPileViewer });
-  useHotkeys(getKeyBindingsForAction('moveToDeckTop'), () => dispatch('moveToDeckTop'),
-    { ...pv, enabled: isPileViewer });
-  useHotkeys(getKeyBindingsForAction('moveToDeckBottom'), () => dispatch('moveToDeckBottom'),
-    { ...pv, enabled: isPileViewer });
-  useHotkeys(getKeyBindingsForAction('moveToSideboard'), () => dispatch('moveToSideboard'),
-    { ...pv, enabled: isPileViewer });
+  useHotkeys(keys('moveToHand'), () => dispatch('moveToHand'),
+    { ...pv, enabled: bound('moveToHand') && (isPileViewer) });
+  useHotkeys(keys('moveToDiscard'), () => dispatch('moveToDiscard'),
+    { ...pv, enabled: bound('moveToDiscard') && (isPileViewer) });
+  useHotkeys(keys('moveToExile'), () => dispatch('moveToExile'),
+    { ...pv, enabled: bound('moveToExile') && (isPileViewer) });
+  useHotkeys(keys('moveToDeckTop'), () => dispatch('moveToDeckTop'),
+    { ...pv, enabled: bound('moveToDeckTop') && (isPileViewer) });
+  useHotkeys(keys('moveToDeckBottom'), () => dispatch('moveToDeckBottom'),
+    { ...pv, enabled: bound('moveToDeckBottom') && (isPileViewer) });
+  useHotkeys(keys('moveToSideboard'), () => dispatch('moveToSideboard'),
+    { ...pv, enabled: bound('moveToSideboard') && (isPileViewer) });
 }
 

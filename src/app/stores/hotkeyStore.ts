@@ -43,6 +43,14 @@ interface HotkeyStore {
   isModalOpen: boolean;
   addCardModalOpen: boolean;
 
+  // True while the Settings hotkey editor is recording a keypress. Switches the
+  // active scope to `HotkeyScope.Capture`, which has no bindings, so the key
+  // being recorded doesn't also play the game. This is needed because the
+  // Settings modal — unlike the pile viewer, AddCard and the command palette —
+  // never sets `isModalOpen`, so board hotkeys are otherwise live inside it and
+  // pressing `D` to record it would draw a card too.
+  isCapturingHotkey: boolean;
+
   // Actions
   setHoveredBattlefieldCard: (cardId: string | null) => void;
   setHoveredHandCard: (cardId: string | null) => void;
@@ -52,6 +60,7 @@ interface HotkeyStore {
   setSelectedCardIds: (ids: Set<string>) => void;
   setModalOpen: (isOpen: boolean) => void;
   setAddCardModalOpen: (isOpen: boolean) => void;
+  setCapturingHotkey: (isCapturing: boolean) => void;
   reset: () => void;
 }
 
@@ -60,6 +69,7 @@ export const useHotkeyStore = create<HotkeyStore>((set) => ({
   selectedCardIds: new Set<string>(),
   isModalOpen: false,
   addCardModalOpen: false,
+  isCapturingHotkey: false,
 
   setHoveredBattlefieldCard: (cardId) =>
     set({ hoverTarget: cardId ? { kind: 'battlefield', id: cardId } : null }),
@@ -84,6 +94,8 @@ export const useHotkeyStore = create<HotkeyStore>((set) => ({
   setModalOpen: (isOpen) => set({ isModalOpen: isOpen }),
 
   setAddCardModalOpen: (isOpen) => set({ addCardModalOpen: isOpen }),
+
+  setCapturingHotkey: (isCapturing) => set({ isCapturingHotkey: isCapturing }),
 
   reset: () => set({ hoverTarget: null, selectedCardIds: new Set<string>() }),
 }));

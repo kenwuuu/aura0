@@ -41,10 +41,19 @@ export type HotkeyContext = typeof HotkeyContext[keyof typeof HotkeyContext];
  * set makes scoped bindings fall back to "always on" with a console warning):
  * - `Board`      — normal play; all battlefield / hand / pile / token hotkeys.
  * - `PileViewer` — a modal (pile viewer) is open; only its card hotkeys fire.
+ * - `Capture`    — Settings is recording a new binding. **Nothing is registered
+ *   under this scope, and that is the point**: it is the "no game hotkeys" state,
+ *   expressed as a scope so the never-empty rule above still holds.
+ *
+ *   It has to exist because the Settings modal is not one of the surfaces that
+ *   sets `isModalOpen` (only the pile viewer, AddCard and the command palette
+ *   are), so board hotkeys stay live while Settings is open. Without it,
+ *   pressing `D` to *record* it would also draw a card.
  */
 export const HotkeyScope = {
   Board: 'board',
   PileViewer: 'pile-viewer',
+  Capture: 'capture',
 } as const;
 
 export type HotkeyScope = typeof HotkeyScope[keyof typeof HotkeyScope];
@@ -534,7 +543,7 @@ export type ToolbarHotkey = Hotkey & { toolbar: ToolbarPlacement };
 /**
  * The toolbar's entries for one of its surfaces, in `toolbar.order`.
  *
- * The third reader of `HOTKEYS`, after `getKeyBindingsForAction` (keyboard) and
+ * The third reader of `HOTKEYS`, after `resolveBindings` (keyboard) and
  * `getMenuActionsForTarget` (context menus). Before these registries were
  * unified the toolbar had its own parallel list with its own `perform()`
  * bodies, and the two drifted exactly as you'd expect: the toolbar's Mulligan
@@ -605,13 +614,15 @@ export function getHotkeysGroupedByZone(): HotkeyZone[] {
   return groups;
 }
 
-/**
- * Get key bindings for a specific action (for react-hotkeys-hook)
- */
-export function getKeyBindingsForAction(action: string): string[] {
-  const hotkey = HOTKEYS.find((h) => h.action === action);
-  return hotkey?.keys ?? [];
-}
+// `getKeyBindingsForAction` used to live here, returning a catalog entry's
+// `keys` straight to react-hotkeys-hook. It is gone deliberately rather than
+// left unused: since bindings became customizable, the catalog is only the
+// *fallback* layer under the player's preset and overrides, so a caller reading
+// it directly would quietly bind the Untap keys for someone on Default or
+// Moxfield — a bug that works perfectly on the author's machine.
+//
+// Read bindings through `useEffectiveBindings()` (or `getEffectiveBindings()`
+// outside React) in `useHotkeyBindings.ts`.
 
 /**
  * The catalog entry for an action, or `undefined` if there is no such action.
