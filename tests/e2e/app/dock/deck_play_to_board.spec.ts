@@ -12,14 +12,7 @@
  * never buries one card under another.
  */
 import { expect, test } from '../../fixtures';
-import {
-  boardCardIds,
-  boardCardNode,
-  expectHandCount,
-  expectPileCount,
-  pileTile,
-  transformPosition,
-} from '../../harness';
+import { boardCardIds, boardCardNode, contextMenuRow, expectHandCount, expectPileCount, pileTile, pressHotkey, transformPosition } from '../../harness';
 
 /** Right-click the deck pile and click its "Play to board" row. */
 async function playTopOfDeckViaMenu(page: import('@playwright/test').Page): Promise<void> {
@@ -27,7 +20,7 @@ async function playTopOfDeckViaMenu(page: import('@playwright/test').Page): Prom
   await menu.waitFor({ state: 'detached' });
   await pileTile(page, 'deck').click({ button: 'right' });
   await menu.waitFor({ state: 'visible' });
-  await page.getByText('Play to boardP').click();
+  await contextMenuRow(page, 'playToBattlefield').click();
   await menu.waitFor({ state: 'detached' });
 }
 
@@ -49,7 +42,7 @@ test('the deck menu plays the top card straight to the board', async ({ page }) 
 
 test('the P hotkey plays the top card while the deck is hovered', async ({ page }) => {
   await pileTile(page, 'deck').hover();
-  await page.keyboard.press('p');
+  await pressHotkey(page, 'playToBattlefield');
 
   await expectPileCount(page, 'deck', 91);
   await expectHandCount(page, 8);
@@ -60,9 +53,9 @@ test('the P hotkey plays the top card while the deck is hovered', async ({ page 
 
 test('cards played in a row cascade instead of stacking on one spot', async ({ page }) => {
   await pileTile(page, 'deck').hover();
-  await page.keyboard.press('p');
-  await page.keyboard.press('p');
-  await page.keyboard.press('p');
+  await pressHotkey(page, 'playToBattlefield');
+  await pressHotkey(page, 'playToBattlefield');
+  await pressHotkey(page, 'playToBattlefield');
 
   await expectPileCount(page, 'deck', 89);
 

@@ -36,6 +36,7 @@ import {
   tourTail,
   zoomControls,
   PHONE_VIEWPORT,
+  pressHotkey,
 } from '../harness';
 
 // Every other spec suppresses the tour (fixtures.ts) — this one is why the
@@ -50,7 +51,7 @@ async function waitForTour(page: Page) {
 /** Tap the card on the board: Space while hovering it. There is no click-to-tap. */
 async function tapBoardCard(page: Page, card: ReturnType<typeof boardCards>) {
   await card.hover();
-  await page.keyboard.press('Space');
+  await pressHotkey(page, 'tap');
 }
 
 /** Walk the control order (play -> tap -> draw) to land on `invite`. */

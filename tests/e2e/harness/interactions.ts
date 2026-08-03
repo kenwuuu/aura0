@@ -1,5 +1,5 @@
 import { Page, Locator, expect } from '@playwright/test';
-import { boardCard, boardCardIds, boardCardNode, cardPreview, pileTile, whiteboard, deckImportOpenButton, deckImportModal, boardTokens, transformPosition } from './pageObjects';
+import { boardCard, boardCardIds, boardCardNode, cardPreview, contextMenuRow, pileTile, whiteboard, deckImportOpenButton, deckImportModal, boardTokens, transformPosition } from './pageObjects';
 import { TESTID, PileKind } from './selectors';
 
 export async function centerOf(locator: Locator): Promise<{ x: number; y: number }> {
@@ -338,7 +338,7 @@ export async function openCardMenu(page: Page, card: Locator): Promise<void> {
 export async function cloneBoardCard(page: Page, card: Locator): Promise<Locator> {
   const before = new Set(await boardCardIds(page));
   await openCardMenu(page, card);
-  await page.getByText('Copy/cloneK').click();
+  await contextMenuRow(page, 'copy').click();
 
   let newId = '';
   await expect(async () => {

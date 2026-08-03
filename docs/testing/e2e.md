@@ -54,11 +54,24 @@ never need to invent a selector or a drag recipe from scratch.
    15–20) to travel to a point before pressing, not a single jump — see
    `mouseDrag` for the pattern, or add a small harness helper for the
    specific interaction rather than inlining raw `page.mouse` calls in a spec.
-6. **One behavior per test.** A test should exercise and assert one thing.
+6. **Press actions, not letters.** Use `pressHotkey(page, 'moveToDiscard')` from
+   the harness rather than `page.keyboard.press('d')`. Keys are customizable
+   (preset + per-action overrides), so a literal letter stopped being a fact
+   about the app and became a fact about one preset. The failure is silent
+   rather than loud: on the shipped Default preset `d` still *does* something —
+   it draws instead of discarding — so the spec dies on an assertion several
+   steps later with nothing pointing back at the keypress. `keysForAction(action)`
+   is there for the rare spec that needs raw descriptors (life has two bindings
+   each way, and `health_display` exists to prove both fire). Two traps come with
+   it: `SETTINGS_VERSION` in `harness/settings.ts` must track the store's, or
+   seeded specs migrate onto a different preset from unseeded ones; and
+   `E2E_DEFAULT_PRESET` in `harness/hotkeys.ts` must track `hotkeyPreset`'s
+   initial value.
+7. **One behavior per test.** A test should exercise and assert one thing.
    Setup/preamble (importing a deck, playing a card onto the board) belongs in
    a scenario helper (`tests/e2e/harness/scenarios.ts`) so it reads as a single
    line, not a re-litigation of a previous test.
-7. **DOM assertions are the default; state assertions are a deferred,
+8. **DOM assertions are the default; state assertions are a deferred,
    targeted supplement.** This app's DOM is largely *the* product (a
    whiteboard), so DOM-based assertions (does the card render on the board?
    does the pile count read 3?) are the right default and cover almost
@@ -69,7 +82,7 @@ never need to invent a selector or a drag recipe from scratch.
    needs reading the actual Yjs state, not polling the DOM. This accessor
    doesn't exist yet; see "Deferred: state-based assertions" below before
    building one — don't invent an ad hoc one in a single spec.
-8. **`@smoke` tests are the blocking gate — keep that suite small and
+9. **`@smoke` tests are the blocking gate — keep that suite small and
    real-transport.** Tag with Playwright's tag syntax:
    `test('...', { tag: '@smoke' }, async ({ page }) => { ... })`. A test only
    belongs in `tests/e2e/smoke/` if it exercises a load-bearing subsystem once
@@ -78,7 +91,7 @@ never need to invent a selector or a drag recipe from scratch.
    `tests/e2e/app/` as advisory (untagged) coverage. Don't tag a test `@smoke`
    just because it passes reliably; tag it because its failure should block
    merges.
-9. **Never import from Moxfield in a test.** Not in e2e, not in a script, not
+10. **Never import from Moxfield in a test.** Not in e2e, not in a script, not
    in a one-off you plan to delete. Moxfield issued Aura a single approved
    User-Agent capped at **one request per second for all of Aura** — the same
    budget real players are spending, and the penalty for breaching it is the

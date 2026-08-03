@@ -28,6 +28,7 @@ import {
   realMouseMoveTo,
   transformPosition,
   whiteboard,
+  pressHotkey,
 } from '../../harness';
 
 /**
@@ -53,7 +54,7 @@ test('a keyword-token write leaves everything already on the board visible', asy
   await playCreature(page);
   for (const i of [0, 1]) {
     await realMouseMoveTo(page, await tokenSpot(page, i));
-    await page.keyboard.press('u');
+    await pressHotkey(page, 'addCounter');
     await expect(boardTokens(page)).toHaveCount(i + 1);
   }
 
@@ -63,7 +64,7 @@ test('a keyword-token write leaves everything already on the board visible', asy
   // the fix it took every node down with it, cards included: the rebuild is per
   // *board*, not per map, so a token write blanks the cards too.
   await realMouseMoveTo(page, await tokenSpot(page, 2));
-  await page.keyboard.press('u');
+  await pressHotkey(page, 'addCounter');
   await expect(boardTokens(page)).toHaveCount(3);
 
   await expectNoBoardNodeWentHidden(page);
@@ -73,7 +74,7 @@ test('a card write leaves everything already on the board visible', async ({ pag
   const card = await playCreature(page);
   const cardId = (await card.getAttribute('data-card-id'))!;
   await realMouseMoveTo(page, await tokenSpot(page, 0));
-  await page.keyboard.press('u');
+  await pressHotkey(page, 'addCounter');
   await expect(boardTokens(page)).toHaveCount(1);
 
   await recordBoardNodeVisibility(page);
@@ -101,7 +102,7 @@ test('a card stays clickable through a burst of board writes', async ({ page }) 
   // every node, so the odds of a click landing on nothing climb with traffic.
   for (let i = 0; i < 6; i++) {
     await realMouseMoveTo(page, await tokenSpot(page, i));
-    await page.keyboard.press('u');
+    await pressHotkey(page, 'addCounter');
     await expect(boardTokens(page)).toHaveCount(i + 1);
   }
 

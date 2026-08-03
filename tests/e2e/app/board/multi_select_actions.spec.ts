@@ -8,6 +8,7 @@ import {
   parkMouseAwayFromBoard,
   playCreature,
   whiteboard,
+  pressHotkey,
 } from '../../harness';
 import type { Locator, Page } from '@playwright/test';
 
@@ -135,7 +136,7 @@ test('a Space hotkey taps every card in a box-selected group', async ({ page }) 
   // hovered card, so this checks that a box-selected card is hoverable through
   // the selection overlay — the right-click menu path never needed hover.
   await a.hover();
-  await page.keyboard.press('Space');
+  await pressHotkey(page, 'tap');
 
   expect(await getElementOrientation(a)).toBe('landscape');
   expect(await getElementOrientation(b)).toBe('landscape');
@@ -150,7 +151,7 @@ test('a Space hotkey taps the whole selection with nothing hovered', async ({ pa
   // group must accept the action whether or not the cursor is over a member —
   // before, the battlefield hotkeys were disabled with nothing hovered.
   await parkMouseAwayFromBoard(page);
-  await page.keyboard.press('Space');
+  await pressHotkey(page, 'tap');
 
   expect(await getElementOrientation(a)).toBe('landscape');
   expect(await getElementOrientation(b)).toBe('landscape');
@@ -164,7 +165,7 @@ test('a move hotkey fans over the selection with nothing hovered', async ({ page
   // Discard (D) with nothing hovered removes every selected card from the board;
   // the unselected card stays put.
   await parkMouseAwayFromBoard(page);
-  await page.keyboard.press('d');
+  await pressHotkey(page, 'moveToDiscard');
 
   await expect(a).toHaveCount(0);
   await expect(b).toHaveCount(0);

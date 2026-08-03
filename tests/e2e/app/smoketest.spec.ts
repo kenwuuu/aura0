@@ -1,10 +1,5 @@
 import { expect, test } from '../fixtures';
-import {
-  boardCards,
-  expectPileCount,
-  importOneCardDeck,
-  playCreature,
-} from '../harness';
+import { boardCards, contextMenuRow, expectPileCount, importOneCardDeck, playCreature } from '../harness';
 
 test('testImportDeck', async ({ page }) => {
   // import a one-card deck
@@ -18,14 +13,14 @@ test('testImportDeck', async ({ page }) => {
 
   // Right-click opens the action menu.
   await cards.last().click({ button: 'right' });
-  await expect(page.getByText('Copy/cloneK')).toBeVisible();
+  await expect(contextMenuRow(page, 'copy')).toBeVisible();
   await page.keyboard.press('Escape');
   await page.mouse.move(200, 200);
 
   // Clone twice → four cards to distribute to the four destinations.
   const cloneTopCard = async () => {
     await cards.last().click({ button: 'right' });
-    await page.getByText('Copy/cloneK').click();
+    await contextMenuRow(page, 'copy').click();
   };
   await cloneTopCard();
   await expect(cards).toHaveCount(3);

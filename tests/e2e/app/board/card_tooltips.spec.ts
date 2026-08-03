@@ -1,10 +1,10 @@
 import { expect, test } from '../../fixtures';
-import {boardTokens, cloneBoardCard, expectPileCount, getElementOrientation, openCardMenu, playCreature} from '../../harness';
+import { boardTokens, cloneBoardCard, contextMenuRow, expectPileCount, getElementOrientation, openCardMenu, playCreature } from '../../harness';
 
 test('testExileTooltip', async ({ page }) => {
   const card = await playCreature(page);
   await card.click({ button: 'right' });
-  const tooltipRow = page.getByText('ExileS');
+  const tooltipRow = contextMenuRow(page, 'moveToExile');
   await tooltipRow.waitFor({ state: 'visible' });
   await tooltipRow.click();
   await expectPileCount(page, 'exile', 1);
@@ -13,7 +13,7 @@ test('testExileTooltip', async ({ page }) => {
 test('testDiscardTooltip', async ({ page }) => {
   const card = await playCreature(page);
   await card.click({ button: 'right' });
-  const tooltipRow = page.getByText('DiscardD');
+  const tooltipRow = contextMenuRow(page, 'moveToDiscard');
   await tooltipRow.waitFor({ state: 'visible' });
   await tooltipRow.click();
   await expectPileCount(page, 'discard', 1);
@@ -22,7 +22,7 @@ test('testDiscardTooltip', async ({ page }) => {
 test('testDeckTooltip', async ({ page }) => {
   const card = await playCreature(page);
   await card.click({ button: 'right' });
-  const tooltipRow = page.getByText('To deck topT');
+  const tooltipRow = contextMenuRow(page, 'moveToDeckTop');
   await tooltipRow.waitFor({ state: 'visible' });
   await tooltipRow.click();
 
@@ -37,7 +37,7 @@ test('testHandTooltip', async ({ page }) => {
   await expect(eighthHandCard).toBeHidden();
 
   await card.click({ button: 'right' });
-  const tooltipRow = page.getByText('HandH');
+  const tooltipRow = contextMenuRow(page, 'moveToHand');
   await tooltipRow.waitFor({ state: 'visible' });
   await tooltipRow.click();
 
@@ -60,11 +60,11 @@ test('testInteractiveTooltip', async ({ page }) => {
   expect(await getElementOrientation(firstBoardCard)).toBe('landscape');
 
   await openCardMenu(page, firstBoardCard);
-  await page.getByText('Untap allX').click();
+  await contextMenuRow(page, 'untapAll').click();
   expect(await getElementOrientation(firstBoardCard)).toBe('portrait');
 
   await openCardMenu(page, firstBoardCard);
-  await page.getByText('FlipF').click();
+  await contextMenuRow(page, 'flip').click();
   const cardImgSrc = await firstBoardCard.locator('img').getAttribute('src');
   expect(cardImgSrc === '/assets/card-back.png')
 
@@ -80,7 +80,7 @@ test('testInteractiveTooltip', async ({ page }) => {
 
   // move second card to hand
   await openCardMenu(page, secondBoardCard);
-  await page.getByText('HandH').click();
+  await contextMenuRow(page, 'moveToHand').click();
   await expect(secondBoardCard).toBeHidden();
 
   // 'addCounter' spawns a "+1/+1" keyword token at the card's position (see
