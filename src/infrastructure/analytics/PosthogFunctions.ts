@@ -7,14 +7,6 @@ import type {
   PrintingMismatch,
 } from '@/infrastructure/cards/CardApiClient';
 
-// HEALTH
-
-export function trackHealthChange(currentHealth: any): void {
-  posthog.capture('health_total_changed', {
-    health_total: currentHealth,
-  });
-}
-
 // CUSTOM COUNTERS
 
 export function trackPlayerCounterChange(counterTitle: string, currentValue: number): void {
@@ -35,20 +27,6 @@ export function trackCustomCounterCreated(counterTitle: string, counterIcon: str
 
 /** Yjs sync transport, used to break down connection outcomes by transport. */
 export type TransportLabel = 'websocket' | 'webrtc';
-
-/**
- * Emitted whenever the number of players actually in the room changes (see
- * `watchRoomOccupancy` in `roomOccupancy.ts`) — not on every awareness update.
- * Answers "how many players are in a room at a time": breaking down by
- * `$session_id` and taking the max (or just plotting the distribution of
- * `player_count` values) gives room-size distribution without needing
- * duration-weighting.
- */
-export function trackRoomOccupancyChanged(playerCount: number): void {
-  posthog.capture('room_occupancy_changed', {
-    player_count: playerCount,
-  });
-}
 
 /**
  * Emitted per disconnected episode, for BOTH outcomes, so the failure rate is a
