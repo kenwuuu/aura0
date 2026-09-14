@@ -16,6 +16,7 @@ from slowapi.errors import RateLimitExceeded
 from fastapi.middleware.cors import CORSMiddleware
 
 from settings import settings
+import card_index
 from card_index import Dataset, load_dataset, normalize_key  # noqa: F401 (re-exported)
 
 logging.basicConfig(level=logging.INFO)
@@ -27,11 +28,11 @@ logger = logging.getLogger(__name__)
 
 CARD_JSON_DIR = settings.card_json_dir
 
-# List of dataset names (no extension). Each must have a matching <name>.ndjson
+# List of dataset names (no extension). Each must have a matching <name>.zndjson
 # in CARD_JSON_DIR. Sourced from the BULK_DATA_TYPES env var (see settings.py).
 DATASET_NAMES: List[str] = settings.dataset_names
 
-NDJSON_EXT = ".ndjson"
+DATA_EXT = card_index.DATA_EXT
 
 # Rate limit strings. DESIGN DECISION: tune these per your traffic expectations.
 RATE_SINGLE   = "200/second"
@@ -43,7 +44,7 @@ BULK_MAX_IDS  = 200
 # Maximum cards returned by a single /v1/cards/random request.
 RANDOM_MAX_N  = 100
 
-# A dataset's underlying .ndjson file is considered stale if it hasn't been
+# A dataset's underlying data file is considered stale if it hasn't been
 # replaced (by data_updater.py) in longer than this. Reported via /v1/health so
 # an external monitor can poll and alert on it.
 STALE_AFTER_SECONDS = 10 * 24 * 3600
@@ -53,26 +54,28 @@ CORS_ORIGINS  = settings.cors_origins
 
 
 # ---------------------------------------------------------------------------
-# Loaded datasets (mmap-backed) + thread-local file handles
+# Loaded datasets (mmap-backed) + thread-local block readers
 # ---------------------------------------------------------------------------
 
 # name -> Dataset (loaded trie + per-card offsets + generation). A reload swaps a
 # whole Dataset in; single-key dict assignment is atomic under the GIL, and every
 # reader snapshots the current Dataset, so a lookup's offset and file bytes always
-# come from the same NDJSON generation.
+# come from the same data generation.
 datasets: Dict[str, Dataset] = {}
 
-# Thread-local open file handles, keyed by dataset name -> (generation, file).
+# Thread-local block readers, keyed by dataset name -> (generation, reader).
+# Per-thread rather than shared because a BlockReader owns a file position and a
+# small decompressed-block cache; sharing one would need a lock on every lookup.
 _local = threading.local()
 
 
 def get_handle(ds: Dataset):
-    """Return (and lazily open) a thread-local read handle for *ds*'s NDJSON.
+    """Return (and lazily open) a thread-local `block_store.BlockReader` for *ds*.
 
-    The handle is tied to the dataset's generation: when a reload swaps in a newer
-    generation, the next call closes the stale handle and reopens — so a reader
-    never seeks a freshly-built offset into the old (already-replaced) file. This
-    is the fix for the pre-existing stale-handle bug in the in-RAM rebuild path.
+    The reader is tied to the dataset's generation: when a reload swaps in a newer
+    generation, the next call closes the stale reader and reopens — so a lookup
+    never resolves a freshly-built offset against the old (already-replaced) file.
+    This is the fix for the pre-existing stale-handle bug in the in-RAM rebuild path.
     """
     if not hasattr(_local, "handles"):
         _local.handles = {}
@@ -80,9 +83,9 @@ def get_handle(ds: Dataset):
     if cached is None or cached[0] != ds.generation or cached[1].closed:
         if cached is not None and not cached[1].closed:
             cached[1].close()
-        fh = ds.ndjson_path.open("rb")
-        _local.handles[ds.name] = (ds.generation, fh)
-        return fh
+        reader = ds.open_reader()
+        _local.handles[ds.name] = (ds.generation, reader)
+        return reader
     return cached[1]
 
 
@@ -126,9 +129,9 @@ async def watch_data_files() -> None:
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     missing = [
-        str(CARD_JSON_DIR / f"{name}{NDJSON_EXT}")
+        str(CARD_JSON_DIR / f"{name}{DATA_EXT}")
         for name in DATASET_NAMES
-        if not (CARD_JSON_DIR / f"{name}{NDJSON_EXT}").exists()
+        if not (CARD_JSON_DIR / f"{name}{DATA_EXT}").exists()
     ]
     if missing:
         raise RuntimeError(f"Data file(s) not found: {missing}")
@@ -222,10 +225,8 @@ def lookup(card_id: str, dataset: Optional[str] = None) -> Optional[dict]:
         return None
 
     try:
-        f = get_handle(ds)
-        f.seek(offset)
-        return json.loads(f.readline())
-    except (OSError, json.JSONDecodeError):
+        return json.loads(get_handle(ds).read_line(offset))
+    except (OSError, ValueError, json.JSONDecodeError):
         logger.exception(f"Failed to read card {card_id!r} from dataset [{ds.name}] at offset {offset}")
         return None
 
@@ -235,15 +236,14 @@ def bulk_lookup(
         dataset: Optional[str] = None,
 ) -> Tuple[List[dict], List[str]]:
     ds = _dataset_for_request(dataset)
-    f = get_handle(ds)
+    reader = get_handle(ds)
     found, not_found = [], []
     for card_id in card_ids:
         offset = ds.get_offset(normalize_key(card_id))
         if offset is None:
             not_found.append(card_id)
         else:
-            f.seek(offset)
-            found.append(json.loads(f.readline()))
+            found.append(json.loads(reader.read_line(offset)))
     return found, not_found
 
 
@@ -256,11 +256,10 @@ def random_cards(n: int, dataset: Optional[str] = None) -> List[dict]:
     """
     ds = _dataset_for_request(dataset)
     offsets = ds.offsets
-    f = get_handle(ds)
+    reader = get_handle(ds)
     cards = []
     for offset in random.sample(offsets, min(n, len(offsets))):
-        f.seek(offset)
-        cards.append(json.loads(f.readline()))
+        cards.append(json.loads(reader.read_line(offset)))
     return cards
 
 
@@ -283,12 +282,12 @@ class BulkLookupRequest(BaseModel):
 # ---------------------------------------------------------------------------
 
 def _dataset_health(name: str, ds: Dataset) -> dict:
-    """Entry count plus freshness, derived from the .ndjson file's mtime so
+    """Entry count plus freshness, derived from the data file's mtime so
     it reflects when data_updater.py last replaced it — not when this
     process last (re)loaded its index."""
     info = {"entries": len(ds.trie), "last_updated": None, "age_seconds": None, "stale": None}
     try:
-        mtime = ds.ndjson_path.stat().st_mtime
+        mtime = ds.data_path.stat().st_mtime
     except OSError:
         return info
     last_updated = datetime.fromtimestamp(mtime, tz=timezone.utc)

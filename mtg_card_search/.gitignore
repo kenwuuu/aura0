@@ -32,3 +32,9 @@ data_updater.log
 *.marisa
 *.offsets
 *.index.json
+
+# Block-compressed row store — derived, same as the index above. For the test
+# fixture, `sample_cards.ndjson` stays the committed source of truth (plain
+# text: reviewable, editable, greppable) and conftest.py regenerates this from
+# it, so a libzstd difference can't dirty the tree with binary churn.
+*.zndjson

@@ -1,5 +1,5 @@
 """Prebuilt, memory-mapped card index — the single source of truth for how the
-service turns an NDJSON dataset into fast lookups.
+service turns a card dataset into fast lookups.
 
 Both `data_updater.py` (the offline build) and `api.py` (mmap load + a one-time
 fallback build) import from here, so the way keys are extracted and the way the
@@ -7,13 +7,19 @@ index is built/read can never drift.
 
 On-disk layout, per dataset ``<name>`` in the data dir:
 
-    <name>.ndjson       source rows (owned by data_updater)
-    <name>.marisa       marisa RecordTrie: normalized key -> (byte offset,)
-    <name>.offsets      packed uint64 byte offsets, one per indexed card (random)
+    <name>.zndjson      source rows, block-compressed (owned by data_updater)
+    <name>.marisa       marisa RecordTrie: normalized key -> (virtual offset,)
+    <name>.offsets      packed uint64 virtual offsets, one per indexed card (random)
     <name>.index.json   meta: entry/card counts + source identity (generation)
 
+Rows live in `block_store`'s block-compressed format rather than plain NDJSON —
+`all_cards` is 2.86 GB raw and doesn't fit the droplet's disk, but compresses
+~8x while staying randomly seekable. The values stored here are `block_store`
+*virtual offsets* (block position + position within the block) rather than plain
+byte offsets; they are still one uint64, so the artifact shapes are unchanged.
+
 The API loads the prebuilt trie (`RecordTrie.load`) instead of rebuilding it from
-the multi-GB NDJSON, so it starts in ~seconds. marisa is a *succinct* structure —
+the multi-GB dataset, so it starts in ~seconds. marisa is a *succinct* structure —
 even a few hundred thousand keys is only single-digit MB, an order of magnitude
 smaller than the equivalent Python dict — so the loaded trie is effectively off
 the heap for our purposes. (We deliberately do NOT `mmap` it: marisa's mmap
@@ -29,6 +35,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import unicodedata
 from array import array
 from dataclasses import dataclass
 from pathlib import Path
@@ -37,31 +44,69 @@ from typing import Callable, Iterable, Optional
 
 import marisa_trie
 
+import block_store
+
 logger = logging.getLogger(__name__)
 
-# One unsigned 64-bit byte offset per key (future-proof past a 2 GB NDJSON).
+# One unsigned 64-bit block_store virtual offset per key.
 TRIE_FMT = "<Q"
 OFFSETS_TYPECODE = "Q"
 
 
-# Bump this whenever `default_key_extractor` changes which keys it yields.
+# Bump this whenever the key schema changes — which keys `default_key_extractor`
+# yields, how `normalize_key` folds them, or which card wins a contested key.
 #
-# A prebuilt index is otherwise only invalidated by the NDJSON's mtime/size, so a
+# A prebuilt index is otherwise only invalidated by the data file's mtime/size, so a
 # key-schema change would ship against a stale trie and the new keys would simply
 # never exist — the change appearing to do nothing. Versioning the schema makes
 # the artifacts self-invalidating.
 #
 # v2: also index the full "Front // Back" name of two-faced cards.
-KEY_SCHEMA_VERSION = 2
+# v3: fold diacritics in normalize_key; English printings win contested keys.
+# v4: values are block_store virtual offsets, not plain byte offsets.
+KEY_SCHEMA_VERSION = 4
 
 
 def normalize_key(raw: str) -> str:
-    return raw.strip().lower().replace(" ", "")
+    """Fold a card name to its lookup key: diacritic-, case- and space-insensitive.
+
+    Dropping accents is what makes localized names actually reachable. Scryfall
+    stores `printed_name` exactly as printed — `Planície`, `Pântano`, `Itzquinth,
+    Primogênito de Gishath` — but players type what their keyboard gives them, and
+    the Portuguese decklists in #173 are full of bare `Planicie` / `Pantano`. This
+    runs on both the build and the query side (`api.lookup` normalizes the
+    incoming id through here), so the two spellings collapse to one key. It buys
+    the same thing for English names players can't easily type: `Juzam Djinn`,
+    `Jotun Grunt`, `Lim-Dul the Necromancer`.
+
+    Measured on the real all_cards dataset, folding merges no two distinct
+    English card names that weren't already merged by the space-stripping above
+    it (the one pre-existing collision is `Waste Land` / `Wasteland`).
+    """
+    decomposed = unicodedata.normalize("NFKD", raw)
+    unaccented = "".join(ch for ch in decomposed if not unicodedata.combining(ch))
+    return unaccented.strip().lower().replace(" ", "")
 
 
 def default_should_skip(data: dict) -> bool:
     # Art cards (e.g. art_series printings) are not legal cards — don't index them.
     return data.get("layout") == "art_series"
+
+
+def default_is_preferred_printing(data: dict) -> bool:
+    """Whether this card should win a key another card also claims.
+
+    Matters because of the `all_cards` dataset (every card in every language,
+    which is how #173's localized names get indexed at all): a non-English
+    printing carries the *English* `name` alongside its localized `printed_name`,
+    so every printing of Sol Ring in all 19 languages claims the key `solring`.
+    First-wins alone hands that key to whichever language the file happens to
+    list first — measured on the real dataset, English lost most of them, so a
+    plain English lookup came back as a French or Japanese card (foreign image,
+    foreign `printed_name`). That is ~all of our traffic, so English wins ties;
+    localized names, which no English printing claims, are unaffected.
+    """
+    return data.get("lang") == "en"
 
 
 def default_key_extractor(data: dict) -> Iterable[str]:
@@ -89,12 +134,16 @@ def default_key_extractor(data: dict) -> Iterable[str]:
 
 SkipFn = Callable[[dict], bool]
 KeyFn = Callable[[dict], Iterable[str]]
+PreferFn = Callable[[dict], bool]
+
+
+DATA_EXT = block_store.DATA_EXT
 
 
 def artifact_paths(data_dir: Path, name: str):
-    """(ndjson, marisa, offsets, meta) paths for a dataset."""
+    """(data, marisa, offsets, meta) paths for a dataset."""
     return (
-        data_dir / f"{name}.ndjson",
+        data_dir / f"{name}{DATA_EXT}",
         data_dir / f"{name}.marisa",
         data_dir / f"{name}.offsets",
         data_dir / f"{name}.index.json",
@@ -107,34 +156,44 @@ def build_artifacts(
     *,
     should_skip: SkipFn = default_should_skip,
     extract_keys: KeyFn = default_key_extractor,
+    is_preferred: PreferFn = default_is_preferred_printing,
 ) -> dict:
-    """(Re)build the mmap artifacts for one dataset from its NDJSON.
+    """(Re)build the mmap artifacts for one dataset from its stored rows.
 
     Each artifact is written to a ``*_new`` temp and then ``os.replace``d — the
-    same atomic swap `data_updater` uses for the NDJSON — so a crashed or partial
+    same atomic swap `data_updater` uses for the data file — so a crashed or partial
     build never replaces good artifacts and a concurrent reader never sees half a
     file. The meta file is written LAST: its presence with a matching source
     identity is the signal that every artifact is ready.
     """
-    ndjson_path, marisa_path, offsets_path, meta_path = artifact_paths(data_dir, name)
+    data_path, marisa_path, offsets_path, meta_path = artifact_paths(data_dir, name)
     start = perf_counter()
 
     key_to_offset: dict[str, int] = {}
+    # Keys already claimed by a preferred (English) printing. Holds the same
+    # string objects as `key_to_offset`, so it costs a hash table and no new
+    # strings — worth it to keep this a single pass over a multi-GB file.
+    preferred_keys: set[str] = set()
     offsets = array(OFFSETS_TYPECODE)
 
-    with ndjson_path.open("rb") as f:
-        while True:
-            offset = f.tell()
-            line = f.readline()
-            if not line:
-                break
-            data = json.loads(line)
-            if should_skip(data):
-                continue
-            offsets.append(offset)
-            for key in extract_keys(data):
-                if key not in key_to_offset:  # first-wins, like the old in-RAM build
+    # One sequential pass; block_store decompresses each block exactly once.
+    for offset, line in block_store.iter_lines(data_path):
+        data = json.loads(line)
+        if should_skip(data):
+            continue
+        offsets.append(offset)
+        preferred = is_preferred(data)
+        for key in extract_keys(data):
+            # First-wins within a tier, but a preferred printing outranks a
+            # non-preferred incumbent (see default_is_preferred_printing).
+            if preferred:
+                if key not in preferred_keys:
                     key_to_offset[key] = offset
+                    preferred_keys.add(key)
+            elif key not in key_to_offset:
+                key_to_offset[key] = offset
+
+    del preferred_keys  # release before marisa's build allocates
 
     trie = marisa_trie.RecordTrie(
         TRIE_FMT, ((k, (v,)) for k, v in key_to_offset.items())
@@ -148,7 +207,7 @@ def build_artifacts(
     with open(offsets_new, "wb") as f:
         offsets.tofile(f)
 
-    st = ndjson_path.stat()
+    st = data_path.stat()
     meta = {
         "name": name,
         "entries": len(key_to_offset),
@@ -156,8 +215,8 @@ def build_artifacts(
         "source_mtime_ns": st.st_mtime_ns,
         "source_size": st.st_size,
         "key_schema_version": KEY_SCHEMA_VERSION,
-        # `generation` ties a loaded index to the exact NDJSON it was built from;
-        # readers key their file handle on it (see api.get_handle).
+        # `generation` ties a loaded index to the exact data file it was built
+        # from; readers key their reader on it (see api.get_handle).
         "generation": st.st_mtime_ns,
     }
     with open(meta_new, "w") as f:
@@ -176,33 +235,37 @@ def build_artifacts(
 
 @dataclass
 class Dataset:
-    """A loaded dataset (trie + per-card offsets + source generation).
+    """A loaded dataset (trie + per-card virtual offsets + source generation).
 
-    ``generation`` ties the NDJSON file handle to this exact index version, so a
-    reader that snapshots one `Dataset` always reads offsets and file bytes from
-    the same NDJSON generation — fixing the stale-handle bug where, after a data
-    refresh, a cached handle seeked new offsets into the old (replaced) file.
+    ``generation`` ties an open reader to this exact index version, so a reader
+    that snapshots one `Dataset` always resolves offsets against the same data
+    generation — fixing the stale-handle bug where, after a data refresh, a
+    cached handle seeked new offsets into the old (replaced) file.
     """
     name: str
-    ndjson_path: Path
+    data_path: Path
     trie: "marisa_trie.RecordTrie"
     offsets: array
     generation: int
 
     def get_offset(self, key: str) -> Optional[int]:
+        """Virtual offset (see block_store) for *key*, or None."""
         values = self.trie.get(key)
         return values[0][0] if values else None
 
+    def open_reader(self) -> block_store.BlockReader:
+        return block_store.BlockReader(self.data_path)
 
-def _is_fresh(meta_path: Path, ndjson_path: Path) -> bool:
-    """Fresh means: built from *this* NDJSON, and by *this* key schema.
+
+def _is_fresh(meta_path: Path, data_path: Path) -> bool:
+    """Fresh means: built from *this* data file, and by *this* key schema.
 
     Checking the source alone would let a `default_key_extractor` change load a
     trie that predates it — the new keys would silently 404.
     """
     try:
         meta = json.loads(meta_path.read_text())
-        st = ndjson_path.stat()
+        st = data_path.stat()
         return (
             meta.get("source_mtime_ns") == st.st_mtime_ns
             and meta.get("source_size") == st.st_size
@@ -218,26 +281,41 @@ def load_dataset(
     *,
     should_skip: SkipFn = default_should_skip,
     extract_keys: KeyFn = default_key_extractor,
+    is_preferred: PreferFn = default_is_preferred_printing,
 ) -> Dataset:
     """Load a dataset's mmap index.
 
-    If the prebuilt artifacts are missing or stale versus the NDJSON, build them
-    once in-process (slow, and logged loudly) rather than hard-failing — so a
+    If the prebuilt artifacts are missing or stale versus the data file, build
+    them once in-process (slow, and logged loudly) rather than hard-failing — so a
     fresh deploy or a rollback that predates a `data_updater --build-index` still
     comes up; it's just slow that one time.
     """
-    ndjson_path, marisa_path, offsets_path, meta_path = artifact_paths(data_dir, name)
-    if not ndjson_path.exists():
-        raise FileNotFoundError(f"NDJSON not found for dataset {name!r}: {ndjson_path}")
+    data_path, marisa_path, offsets_path, meta_path = artifact_paths(data_dir, name)
+    if not data_path.exists():
+        legacy = data_dir / f"{name}.ndjson"
+        hint = (
+            f" A plain {legacy.name} is present: rows are now block-compressed, so "
+            f"run `data_updater.py --recompress` to convert it in place (no download)."
+            if legacy.exists() else ""
+        )
+        raise FileNotFoundError(
+            f"Card data not found for dataset {name!r}: {data_path}.{hint}"
+        )
 
     present = marisa_path.exists() and offsets_path.exists() and meta_path.exists()
-    if not present or not _is_fresh(meta_path, ndjson_path):
+    if not present or not _is_fresh(meta_path, data_path):
         logger.warning(
             "[%s] prebuilt index missing or stale — building in-process "
             "(one-time and slow; run `data_updater.py --build-index` to avoid this).",
             name,
         )
-        build_artifacts(data_dir, name, should_skip=should_skip, extract_keys=extract_keys)
+        build_artifacts(
+            data_dir,
+            name,
+            should_skip=should_skip,
+            extract_keys=extract_keys,
+            is_preferred=is_preferred,
+        )
 
     trie = marisa_trie.RecordTrie(TRIE_FMT)
     # load (not mmap): mmap'd marisa tries segfault at interpreter shutdown on
@@ -251,7 +329,7 @@ def load_dataset(
     meta = json.loads(meta_path.read_text())
     return Dataset(
         name=name,
-        ndjson_path=ndjson_path,
+        data_path=data_path,
         trie=trie,
         offsets=offsets,
         generation=meta["generation"],
