@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { handleFoilRedeem } from './foilCodes';
+import { buildCodeSet, handleFoilRedeem } from './foilCodes';
 
 const CODES = new Set(['FOIL-7X2QF']);
 
@@ -66,5 +66,21 @@ describe('handleFoilRedeem', () => {
 
   it('rejects a non-string code', async () => {
     expect((await redeem({ code: 42 })).status).toBe(400);
+  });
+
+  it('matches a stored code that was added in the wrong case', async () => {
+    // The stored list is normalized too, not just the incoming code. Without
+    // that, a code pasted into the array in lowercase would silently never
+    // match, and the buyer holding it would be told their real code was
+    // invalid — a failure nobody would think to go looking for in the array.
+    const response = await handleFoilRedeem(
+      new Request('https://aura0.app/api/foil-codes/redeem', {
+        method: 'POST',
+        body: JSON.stringify({ code: 'FOIL-7X2QF' }),
+      }),
+      buildCodeSet(['  foil-7x2qf  ']),
+    );
+
+    expect(await response.json()).toEqual({ valid: true, style: 'nebula' });
   });
 });

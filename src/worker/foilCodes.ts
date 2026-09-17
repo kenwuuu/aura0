@@ -25,28 +25,44 @@
 import { errorResponse } from './deckImport';
 
 /**
- * Valid license codes, uppercase.
- *
- * Add a code here when Ko-fi reports a purchase, then redeploy. Codes are
- * single-style for now; if a second cosmetic ever ships, this becomes a map from
- * code to style id rather than growing a parallel array.
- */
-const FOIL_CODES: ReadonlySet<string> = new Set<string>([
-  // e.g. 'FOIL-7X2QF'
-]);
-
-/** The one style this endpoint can grant. See the note on {@link FOIL_CODES}. */
-const FOIL_STYLE = 'nebula';
-
-const JSON_HEADERS = { 'content-type': 'application/json' };
-
-/**
  * Normalize before comparing, because the code arrives by email and is retyped
  * by hand: case varies, and a copy-paste routinely brings whitespace with it.
+ *
+ * Applied to the stored list as well as to the incoming code — see
+ * {@link ISSUED_CODES}.
  */
 function normalize(code: string): string {
   return code.trim().toUpperCase();
 }
+
+/**
+ * Codes we have issued. **Add one line here per purchase, then redeploy** —
+ * that is the whole fulfillment mechanism (see `docs/deployment/FOIL_CODES.md`).
+ *
+ * Written exactly as mailed to the buyer, in whatever case: the list is
+ * normalized on the way in, so a lowercase entry still matches. That is not a
+ * nicety — comparing a normalized input against a raw list would mean a code
+ * pasted in the wrong case silently never worked, and the buyer would be told
+ * their real code was invalid.
+ *
+ * Codes are single-style for now. If a second cosmetic ever ships, this becomes
+ * a map from code to style id rather than growing a parallel array.
+ */
+const ISSUED_CODES: readonly string[] = [
+  // 'FOIL-7X2QF',   // 2026-09-17 ko-fi #1234
+];
+
+/** Exported so the normalization of the stored list is covered, not assumed. */
+export function buildCodeSet(codes: readonly string[]): ReadonlySet<string> {
+  return new Set(codes.map(normalize));
+}
+
+const FOIL_CODES: ReadonlySet<string> = buildCodeSet(ISSUED_CODES);
+
+/** The one style this endpoint can grant. See the note on {@link ISSUED_CODES}. */
+const FOIL_STYLE = 'nebula';
+
+const JSON_HEADERS = { 'content-type': 'application/json' };
 
 /**
  * `codes` is a seam for tests, which need a populated list to exercise the
