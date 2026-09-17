@@ -19,6 +19,7 @@ import {useContextMenuStore} from "@/features/hotkeys/contextMenuStore";
 import {usePileViewerHotkeyStore} from "@/features/game-dock/pileViewerHotkeyStore";
 import {useCardPreviewStore} from "@/features/card-preview/cardPreviewStore";
 import {wasLastInputTouch} from "@/shared/pointerInput";
+import {FoilOverlay, foilStyleFor} from '@/features/cosmetics';
 
 /** Hold duration (ms) before a touch turns into a card preview instead of a tap. */
 const LONG_PRESS_MS = 450;
@@ -181,6 +182,7 @@ export const CardGridItemReact = React.memo(function CardGridItemReact({
   const hasFrontImage = frontImageUrl && !frontImageError;
   const hasBackImage = backImageUrl && !backImageError;
   const hasAnyImage = hasFrontImage || hasBackImage;
+  const foilStyle = foilStyleFor(card, showFaceDown);
 
   return (
     <div
@@ -236,6 +238,11 @@ export const CardGridItemReact = React.memo(function CardGridItemReact({
                 onError={() => setBackImageError(true)}
               />
             )}
+
+            {/* `showFaceDown` is the pile's own concealment — a face-down pile
+                hides its cards without flipping any of them, so the card's flip
+                state cannot answer this on its own. */}
+            {foilStyle && <FoilOverlay styleId={foilStyle} />}
           </div>
         ) : (
           <div className={styles.cardGridItemFallback}>#{card.cardNumber}</div>

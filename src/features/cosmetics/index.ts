@@ -13,3 +13,4 @@ export {
   type RedeemOutcome,
 } from './cosmeticsStore';
 export { FoilOverlay } from './FoilOverlay';
+export { foilStyleFor } from './foilVisibility';
