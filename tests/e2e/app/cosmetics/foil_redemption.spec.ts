@@ -1,11 +1,6 @@
 import { expect } from '@playwright/test';
 import { test } from '../../fixtures';
-import {
-  enableFeatureFlag,
-  handCards,
-  importDeck,
-  mockFoilCodeCheck,
-} from '../../harness';
+import { handCards, importDeck, mockFoilCodeCheck } from '../../harness';
 
 /**
  * Foil overlays on hand cards only.
@@ -39,9 +34,7 @@ const openStore = async (page: import('@playwright/test').Page) => {
 };
 
 test.beforeEach(async ({ page }) => {
-  await enableFeatureFlag(page, 'cosmetics-foil-store');
   await mockFoilCodeCheck(page);
-  await page.reload({ waitUntil: 'networkidle' });
   await importDeck(page, 'Foil deck', DECKLIST);
   await expect(handCards(page)).toHaveCount(3);
 });

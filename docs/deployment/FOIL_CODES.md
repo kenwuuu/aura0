@@ -38,9 +38,9 @@ unrelated release, which is exactly the coupling the hotfix path exists to
 break. `CLAUDE.md` calls a `master` hotfix "a human call — not a default"; a
 paid customer waiting on a code is that call.
 
-The change itself is one string added to a list, covered by tests, behind a
-feature flag, touching nothing else. Shipping it straight to production is a
-smaller risk than the alternative.
+The change itself is one string added to a list, covered by tests, server-side
+only, touching nothing else. Shipping it straight to production is a smaller
+risk than the alternative.
 
 **The back-merge is not optional.** After merging to `master`, merge
 `master → staging` immediately. Skip it and `staging` no longer contains the

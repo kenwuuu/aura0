@@ -132,29 +132,6 @@ export async function resolveTourStepOrder(): Promise<TourVariant> {
   return posthog.getFeatureFlag(TOUR_STEP_ORDER_FLAG) === 'draw_first' ? 'draw_first' : 'control';
 }
 
-const FOIL_COSMETIC_FLAG = 'cosmetics-foil-store';
-
-/**
- * Whether the foil cosmetic store is offered at all.
- *
- * This is a demand test with manual fulfillment — every purchase costs a human
- * an email — so the kill switch matters more than usual: drop the rollout to 0%
- * and the store is gone without a deploy.
- *
- * A PostHog we never heard from falls back to **off**, the opposite of the tour
- * flag above. The asymmetry is deliberate: showing onboarding to someone whose
- * flags didn't load is harmless, whereas offering something to buy is a promise
- * we then have to keep by hand.
- *
- * It gates the storefront only, never the rendering. A player who has already
- * redeemed keeps their foils if this is switched off — we sold them, and
- * confiscating them because a flag moved would be indefensible.
- */
-export async function isFoilCosmeticEnabled(): Promise<boolean> {
-  if (!(await whenFlagsReady())) return false;
-  return posthog.isFeatureEnabled(FOIL_COSMETIC_FLAG) ?? false;
-}
-
 /** Test seam: drops the memoized flag-resolution race between test cases. */
 export function resetFlagResolutionForTests(): void {
   flagsReady = null;

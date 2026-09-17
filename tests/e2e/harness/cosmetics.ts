@@ -49,45 +49,6 @@ export async function seedCosmeticEntitlement(
 }
 
 /**
- * Turn a PostHog feature flag on for this page.
- *
- * `blockAnalytics` aborts PostHog for every spec, which sends flag resolution
- * down its no-payload fallback — and `cosmetics-foil-store` falls back to
- * **off**, so the store is invisible in e2e unless a payload is served. This
- * fulfills the flags request instead of aborting it; Playwright matches the most
- * recently registered route first, so calling this after the fixture's
- * `blockAnalytics` wins for this URL and everything else stays blocked.
- *
- * Both response shapes are sent because posthog-js changed endpoints across the
- * versions this app has run: `featureFlags` is the older `/decide` shape, `flags`
- * the newer one. Sending both is cheaper than pinning a client version here.
- *
- * FeatureFlags only believes a payload arrived when PostHog reports the load
- * succeeded, so this has to be a real 200 — an aborted or errored request reads
- * as "we never heard" and the flag stays off.
- */
-export async function enableFeatureFlag(page: Page, flagKey: string): Promise<void> {
-  await page.route('https://us.i.posthog.com/**', async (route) => {
-    const url = route.request().url();
-    if (!/\/(flags|decide)\//.test(url)) {
-      await route.abort();
-      return;
-    }
-
-    await route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({
-        featureFlags: { [flagKey]: true },
-        flags: { [flagKey]: { key: flagKey, enabled: true, variant: null } },
-        featureFlagPayloads: {},
-        errorsWhileComputingFlags: false,
-      }),
-    });
-  });
-}
-
-/**
  * Answer the Worker's code check without a Worker.
  *
  * The endpoint runs in the Vite dev server during e2e (see `foilCodesApi` in
