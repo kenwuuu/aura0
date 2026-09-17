@@ -1,0 +1,112 @@
+/**
+ * Foil / holo treatment.
+ *
+ * Luminance-aware, so it works over any card art with no per-card masking:
+ * layers are art → color-dodge rainbow (brightens light areas, spares shadows,
+ * the way a real foil catches light) → overlay sheen, with a blurred rainbow
+ * conic ring tracing the edge.
+ */
+
+.layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  border-radius: inherit;
+  /* Sits above the art but below any badge or selection affordance the card
+     draws on top of itself. */
+  z-index: 1;
+}
+
+.holo,
+.sheen {
+  position: absolute;
+  inset: 0;
+}
+
+.holo {
+  background: linear-gradient(
+    115deg,
+    #ff2fb0,
+    #ff8c00,
+    #ffed00,
+    #12ffa0,
+    #17b3ff,
+    #9b5cff,
+    #ff2fb0
+  );
+  background-size: 220% 220%;
+  mix-blend-mode: color-dodge;
+  animation: foil-holo-shift 7s linear infinite;
+}
+
+.sheen {
+  background: linear-gradient(
+    115deg,
+    transparent 40%,
+    rgba(255, 255, 255, 0.6) 50%,
+    transparent 60%
+  );
+  background-size: 300% 300%;
+  mix-blend-mode: overlay;
+  animation: foil-sheen 4s ease-in-out infinite;
+}
+
+.edge {
+  position: absolute;
+  /* Oversized so the conic's centre never shows; the mask keeps only a thin
+     ring, and the parent's overflow clips the rest. */
+  inset: -70%;
+  background: conic-gradient(
+    from 0deg,
+    #ff2fb0,
+    #ff8c00,
+    #ffed00,
+    #12ffa0,
+    #17b3ff,
+    #9b5cff,
+    #ff2fb0
+  );
+  animation: foil-rainbow-spin 4s linear infinite;
+  filter: blur(1px);
+  opacity: 0.9;
+  -webkit-mask-image: radial-gradient(closest-side, transparent 78%, #000 92%);
+  mask-image: radial-gradient(closest-side, transparent 78%, #000 92%);
+}
+
+@keyframes foil-holo-shift {
+  0% {
+    background-position: 0% 50%;
+  }
+  100% {
+    background-position: 200% 50%;
+  }
+}
+
+@keyframes foil-sheen {
+  0% {
+    background-position: -140% 0;
+  }
+  100% {
+    background-position: 240% 0;
+  }
+}
+
+@keyframes foil-rainbow-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/**
+ * Respect a reduced-motion preference by holding the foil still rather than
+ * removing it. The shimmer is the thing that was paid for; the movement is not,
+ * and three looping animations under a card is exactly what this setting is for.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .holo,
+  .sheen,
+  .edge {
+    animation: none;
+  }
+}
