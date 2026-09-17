@@ -57,6 +57,7 @@ export function toCardDataResult(
   count: number = 1,
   commander: boolean = false,
   section?: SectionKind,
+  isFoil: boolean = false,
 ): CardDataResult {
   return {
     count,
@@ -67,6 +68,7 @@ export function toCardDataResult(
     imageUris: extractImageUris(scryfallCard),
     ...(commander && canBeCommander(scryfallCard) ? { commander: true } : {}),
     ...(section ? { section } : {}),
+    ...(isFoil ? { isFoil: true } : {}),
   };
 }
 
@@ -88,6 +90,15 @@ export function toCard(
  * Build a Card from a CardDataResult (the shape returned by CardLookupService).
  * Shared by TokenService and MtgTextListDeckImporter so both card-creation paths
  * agree on how a looked-up card's fields map onto a battlefield/deck Card.
+ *
+ * Note this names every field it copies rather than spreading `result`, which
+ * makes it the one place in the import chain where a field added upstream stops
+ * unless it is added here too — silently, since every field is optional.
+ *
+ * It stays a pure adapter: it records `isFoil` (what the list said) and never
+ * reads the cosmetics store to set `foil` (what the owner is entitled to). That
+ * decision belongs to the action layer, and this function is shared with
+ * TokenService, which has no business asking about entitlement at all.
  */
 export function fromCardDataResult(
   result: CardDataResult,
@@ -100,6 +111,7 @@ export function fromCardDataResult(
     scryfallId: result.scryfallId,
     images: result.imageUris,
     ...(result.commander ? { commander: true } : {}),
+    ...(result.isFoil ? { isFoil: true } : {}),
     ...overrides,
   });
 }
