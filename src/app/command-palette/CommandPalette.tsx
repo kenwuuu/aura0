@@ -30,6 +30,7 @@ import { useOverlayStore } from '@/app/stores/overlayStore';
 import { useHotkeyStore } from '@/app/stores/hotkeyStore';
 import { HELP_SECTIONS } from '@/app/content/help/sections';
 import { getCommands, RUNNABLE_ACTION_IDS, type AppCommand } from './commands';
+import { useFoilCosmeticFlag } from '@/features/settings/useFoilCosmeticFlag';
 import { helpRowValue, paletteFilter } from './paletteFilter';
 
 /**
@@ -100,7 +101,12 @@ export function CommandPalette() {
     setModalOpen(open);
   }, [open, setModalOpen]);
 
-  const commands = getCommands();
+  // The cosmetics store is flag-gated, and this entry opens the Settings
+  // section it adds — so with the flag off the section does not exist and the
+  // command would silently land the player on whichever section happens to be
+  // first. Gate the two together.
+  const cosmeticsEnabled = useFoilCosmeticFlag();
+  const commands = getCommands().filter((c) => c.id !== 'nav-cosmetics' || cosmeticsEnabled);
   const game = commands.filter((c) => c.section === 'Game');
   const players = commands.filter((c) => c.section === 'Players');
   const nav = commands.filter((c) => c.section === 'Navigation');

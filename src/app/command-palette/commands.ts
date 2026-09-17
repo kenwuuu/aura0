@@ -154,6 +154,17 @@ export function getCommands(): AppCommand[] {
       section: 'Navigation',
       run: () => window.open(KOFI_URL, '_blank', 'noopener,noreferrer'),
     },
+    {
+      // Opens the Settings section rather than a dialog of its own — Settings
+      // is already mounted and already takes a section id. Not a HOTKEYS entry:
+      // a storefront is not a game action, and it has no board target to
+      // dispatch against.
+      id: 'nav-cosmetics',
+      label: 'Foil cards',
+      keywords: ['cosmetics', 'foil', 'holo', 'shiny', 'premium', 'buy', 'unlock', 'redeem', 'code'],
+      section: 'Navigation',
+      run: () => useSettingsModalStore.getState().open('cosmetics'),
+    },
   ];
 
   return [...game, ...players, ...nav];

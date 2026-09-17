@@ -869,6 +869,22 @@ export function trackTourCompleted(ctx: Omit<TourEventContext, 'stepId' | 'stepI
   });
 }
 
+/**
+ * The one event the foil cosmetic emits.
+ *
+ * Deliberately one, and deliberately this one. The project is over its PostHog
+ * free-tier volume, so a per-card or per-render event would be unaffordable for
+ * a decoration; redemptions are a handful a week and are the only number the
+ * demand test actually needs. Failures are captured alongside successes, since
+ * a spike in `invalid` means the fulfillment email is wrong — which the success
+ * count alone would never show.
+ *
+ * The code itself is never sent: it is a bearer token for something purchased.
+ */
+export function trackFoilCodeRedeemed(outcome: 'success' | 'invalid' | 'error'): void {
+  posthog.capture('foil_code_redeemed', { outcome });
+}
+
 /** Terminal, like `tour_completed` — the two together close the funnel. */
 export function trackTourSkipped(ctx: TourEventContext): void {
   const pending = inFlightTour;

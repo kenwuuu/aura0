@@ -19,6 +19,7 @@ import {
 import { SECTIONS } from './sections';
 import { useSettingsModalStore } from '@/app/stores/settingsModalStore';
 import { useManualTransportOverrideFlag } from './useManualTransportOverrideFlag';
+import { useFoilCosmeticFlag } from './useFoilCosmeticFlag';
 import styles from './SettingsModal.module.css';
 
 export function SettingsModal() {
@@ -26,13 +27,21 @@ export function SettingsModal() {
   const initialSectionId = useSettingsModalStore((s) => s.initialSectionId);
   const close = useSettingsModalStore((s) => s.close);
 
-  // 'advanced' is the one section gated behind a PostHog flag (rollout for
-  // the manual transport-override feature, currently its only control) —
-  // every other section in the registry is unconditionally visible. If
-  // Advanced grows an ungated control, move this gate onto the transport row
-  // itself rather than dropping the whole section.
+  // Two sections are gated behind PostHog flags; every other section in the
+  // registry is unconditionally visible. 'advanced' gates the manual
+  // transport-override rollout (currently its only control) — if Advanced grows
+  // an ungated control, move that gate onto the transport row rather than
+  // dropping the whole section. 'cosmetics' gates the foil store, whose
+  // fulfillment is manual, so the ability to stop offering it without a deploy
+  // is the point. Note it hides the storefront only: a player who has already
+  // redeemed keeps their foils, because the flag never reaches the renderers.
   const advancedSectionEnabled = useManualTransportOverrideFlag();
-  const sections = SECTIONS.filter((s) => s.id !== 'advanced' || advancedSectionEnabled);
+  const cosmeticsSectionEnabled = useFoilCosmeticFlag();
+  const sections = SECTIONS.filter((s) => {
+    if (s.id === 'advanced') return advancedSectionEnabled;
+    if (s.id === 'cosmetics') return cosmeticsSectionEnabled;
+    return true;
+  });
 
   const [activeSectionId, setActiveSectionId] = useState(sections[0].id);
 
