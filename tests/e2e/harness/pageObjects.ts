@@ -387,3 +387,29 @@ export function tourBackButton(page: Page): Locator {
 export function replayTourButton(page: Page): Locator {
   return page.getByTestId(TESTID.replayTour);
 }
+
+/**
+ * Foil overlays currently drawn anywhere on the page.
+ *
+ * The overlay is `aria-hidden` decoration with no text, so there is no role or
+ * accessible name to reach it by — a testid is the honest option here rather
+ * than a CSS-class selector that would break on any styling change.
+ */
+export function foilOverlays(page: Page): Locator {
+  return page.getByTestId(TESTID.foilOverlay);
+}
+
+/** The foil overlay inside one battlefield card, addressed by card id. */
+export function boardCardFoil(page: Page, cardId: string): Locator {
+  return boardCard(page, cardId).getByTestId(TESTID.foilOverlay);
+}
+
+/** The foil overlay inside one hand card, addressed by card id. */
+export function handCardFoil(page: Page, cardId: string): Locator {
+  return handCard(page, cardId).getByTestId(TESTID.foilOverlay);
+}
+
+/** The foil overlay inside one pile-viewer tile, addressed by card id. */
+export function pileViewerCardFoil(page: Page, cardId: string): Locator {
+  return pileViewerCard(page, cardId).getByTestId(TESTID.foilOverlay);
+}

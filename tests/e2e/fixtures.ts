@@ -2,6 +2,7 @@ import {test as base, expect, Locator} from '@playwright/test';
 import { blockAnalytics } from './harness/network';
 import { markReturningPlayer } from './harness/onboarding';
 import { setDeleteConfirmation } from './harness/settings';
+import { seedCosmeticEntitlement } from './harness/cosmetics';
 
 async function closeIfVisible(locator: Locator) {
   // Only try the click if the locator exists in the DOM
@@ -22,7 +23,11 @@ function generateRandomString(length: number): string {
   return result;
 }
 
-export const test = base.extend<{ onboardingTour: boolean; deleteConfirmation: boolean }>({
+export const test = base.extend<{
+  onboardingTour: boolean;
+  deleteConfirmation: boolean;
+  foilEntitlement: boolean;
+}>({
   /**
    * Whether this spec wants the first-run tour. Off by default: a fresh context
    * has empty localStorage, which makes every test a brand-new player, and the
@@ -43,12 +48,30 @@ export const test = base.extend<{ onboardingTour: boolean; deleteConfirmation: b
    */
   deleteConfirmation: [false, { option: true }],
 
-  page: async ({ page, onboardingTour, deleteConfirmation }, use) => {
+  /**
+   * Whether this spec's player has bought the foil cosmetic. Off by default,
+   * which is what nearly every player is. Opt in with
+   * `test.use({ foilEntitlement: true })` — see app/cosmetics/foil_cards.spec.ts.
+   *
+   * It has to be seeded here rather than in a spec's `beforeEach`, because the
+   * fixture navigates and then clears localStorage: anything a spec seeded
+   * beforehand would be wiped, and re-seeding afterwards would need a second
+   * navigation that throws away the random room this context was given.
+   */
+  foilEntitlement: [false, { option: true }],
+
+  page: async ({ page, onboardingTour, deleteConfirmation, foilEntitlement }, use) => {
     // The whole context, not just this page: `openDuplicateTab` opens a second page
     // here, and a page-level script would leave that tab booting as a new player.
     if (!onboardingTour) await markReturningPlayer(page.context());
 
     await setDeleteConfirmation(page.context(), deleteConfirmation);
+
+    // Before the goto below: the store rehydrates when its module first loads,
+    // so the unlock has to already be in storage by the time the app boots. (The
+    // `localStorage.clear()` after that goto wipes the key but not the store
+    // that already read it — the same way the two seeds above survive.)
+    if (foilEntitlement) await seedCosmeticEntitlement(page.context());
 
     await blockAnalytics(page);
 
