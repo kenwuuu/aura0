@@ -1,4 +1,5 @@
 import { DeckImportEnv, errorResponse, handleDeckImport } from './deckImport';
+import { handleFoilRedeem } from './foilCodes';
 import { handleSentryTunnel, isSentryTunnelRequest } from './sentryTunnel';
 
 // The MoxfieldGate Durable Object is deliberately NOT exported here. It lives in
@@ -20,6 +21,13 @@ import { handleSentryTunnel, isSentryTunnelRequest } from './sentryTunnel';
  *                       answers every request with a hardcoded
  *                       `Access-Control-Allow-Origin: http://localhost:3000`.
  *                       See `deckImport.ts`.
+ *
+ * One route is here for a different reason — not because a browser cannot reach
+ * it, but because of what shipping it to the browser would reveal:
+ *
+ *  - `/api/foil-codes/redeem` cosmetic license codes. A client-side list would
+ *                       ship every code ever issued to anyone who opened
+ *                       devtools. See `foilCodes.ts`.
  *
  * Every path not listed in `run_worker_first` (wrangler.jsonc) is left to the
  * asset router, so the SPA is served exactly as it was before this file existed.
@@ -47,6 +55,10 @@ export default {
 
     if (pathname === '/api/deck-import') {
       return handleDeckImport(request, env);
+    }
+
+    if (pathname === '/api/foil-codes/redeem') {
+      return handleFoilRedeem(request);
     }
 
     // Anything else under /api/ is ours and does not exist. Answering in JSON
