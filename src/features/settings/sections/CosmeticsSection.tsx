@@ -12,12 +12,26 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
-import { DEFAULT_CARD_BACK } from '@/constants';
 import { FOIL_STYLE_NEBULA, FoilOverlay, useCosmeticsStore } from '@/features/cosmetics';
 import { trackFoilCodeRedeemed } from '@/infrastructure/analytics/PosthogFunctions';
 import { SettingRow } from '../components/SettingRow';
 import { SettingGroup } from '../components/SettingGroup';
 import styles from './CosmeticsSection.module.css';
+
+/**
+ * The card the store shimmers over.
+ *
+ * A real printing, not the card back: the back is the one face in the game that
+ * never shows a foil in play, so previewing on it sells the effect against the
+ * single card it will never appear on. Sol Ring is the pick because almost every
+ * player owns one, and its art carries both bright metal and deep shadow — the
+ * two halves of what `color-dodge` does differently.
+ *
+ * Scryfall's CDN, like every other piece of card art in the app. It is
+ * decorative, so a blocked or slow image costs the preview and nothing else.
+ */
+const PREVIEW_CARD_ART =
+  'https://cards.scryfall.io/normal/front/4/c/4cbc6901-6a4a-4d0a-83ea-7eefa3b35021.jpg';
 
 /**
  * The Ko-fi shop. Kept separate from the palette's general donation link
@@ -69,7 +83,7 @@ export function CosmeticsSection() {
       <SettingGroup title="Foil cards">
         <div className={styles.preview}>
           <div className={styles.card}>
-            <img src={DEFAULT_CARD_BACK} alt="" className={styles.art} />
+            <img src={PREVIEW_CARD_ART} alt="" className={styles.art} />
             <FoilOverlay styleId={FOIL_STYLE_NEBULA} />
           </div>
           <p className={styles.blurb}>

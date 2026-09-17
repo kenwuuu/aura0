@@ -24,9 +24,14 @@ export function FoilOverlay({ styleId }: { styleId: string }) {
 
   return (
     <div aria-hidden className={styles.layer} data-testid="foil-overlay" data-foil-style={styleId}>
+      {/* Order is the design's: cast, rainbow, specular sweep, edge filament.
+          The two blended layers only read correctly over what precedes them. */}
+      <div className={styles.tint} />
       <div className={styles.holo} />
       <div className={styles.sheen} />
-      <div className={styles.edge} />
+      <div className={styles.edge}>
+        <div className={styles.edgeSpin} />
+      </div>
     </div>
   );
 }
