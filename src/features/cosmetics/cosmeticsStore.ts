@@ -21,6 +21,8 @@
  */
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { useGameInstance } from '@/app/stores/gameInstanceStore';
+import { DeckPersistenceService } from '@/infrastructure/persistence';
 
 /** The only cosmetic style that exists today. */
 export const FOIL_STYLE_NEBULA = 'nebula';
@@ -87,9 +89,26 @@ export const useCosmeticsStore = create<CosmeticsStore>()(
           return 'invalid';
         }
 
-        set((state) => ({
-          entitlements: { ...state.entitlements, [payload.style as string]: true },
-        }));
+        const style = payload.style;
+        set((state) => ({ entitlements: { ...state.entitlements, [style]: true } }));
+
+        // Applying to cards already in play belongs here, not at the call site.
+        // Fulfillment is manual, so a code always arrives long after the deck
+        // was imported — a redemption that only affected future imports would
+        // leave a buyer staring at a board that looks exactly as it did before
+        // they paid. Any future surface that redeems a code gets this for free.
+        const { player, roomManager } = useGameInstance.getState();
+        player?.applyFoilEntitlement(style);
+
+        // The per-room deck snapshot is a second, independent copy of the deck
+        // pile in localStorage, and it is only ever rewritten on deck load. The
+        // sweep above would otherwise leave it holding the pre-purchase deck for
+        // up to its 12-hour lifetime, ready to restore unfoiled cards on the
+        // next boot that falls back to it.
+        if (player && roomManager) {
+          DeckPersistenceService.saveDeckForRoom(roomManager.getRoomName(), player.getDeck());
+        }
+
         return 'success';
       },
     }),

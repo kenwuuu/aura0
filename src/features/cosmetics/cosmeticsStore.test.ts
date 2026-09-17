@@ -1,5 +1,9 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import * as Y from 'yjs';
 import { FOIL_STYLE_NEBULA, getIsEntitled, useCosmeticsStore } from './cosmeticsStore';
+import { useGameInstance } from '@/app/stores/gameInstanceStore';
+import { Player } from '@/features/player';
+import { makeCards } from '@/test/factories';
 
 const reset = () => useCosmeticsStore.setState({ entitlements: {} });
 
@@ -126,6 +130,62 @@ describe('cosmeticsStore', () => {
     await useCosmeticsStore.persist.rehydrate();
 
     expect(getIsEntitled(FOIL_STYLE_NEBULA)).toBe(false);
+  });
+
+  it('applies the style to cards already in play', async () => {
+    // The whole reason the sweep is inside `redeemCode` rather than at the call
+    // site. Fulfillment is manual, so the code always arrives long after the
+    // deck was imported — a redemption that only affected future imports would
+    // leave a buyer looking at a board unchanged from before they paid.
+    const yDoc = new Y.Doc();
+    const player = new Player('p1', yDoc, [], { initialHealth: 40 });
+    player.getPile('hand').setCards([{ ...makeCards(1)[0], isFoil: true }]);
+    useGameInstance.setState({ player });
+
+    vi.stubGlobal('fetch', respondWith(200, { valid: true, style: FOIL_STYLE_NEBULA }));
+    await useCosmeticsStore.getState().redeemCode('FOIL-7X2QF');
+
+    expect(player.getPile('hand').getCards()[0].foil).toBe(FOIL_STYLE_NEBULA);
+  });
+
+  it('does not sweep when the code was rejected', async () => {
+    const yDoc = new Y.Doc();
+    const player = new Player('p1', yDoc, [], { initialHealth: 40 });
+    player.getPile('hand').setCards([{ ...makeCards(1)[0], isFoil: true }]);
+    useGameInstance.setState({ player });
+
+    vi.stubGlobal('fetch', respondWith(200, { valid: false }));
+    await useCosmeticsStore.getState().redeemCode('FOIL-NOPE1');
+
+    expect(player.getPile('hand').getCards()[0].foil).toBeUndefined();
+  });
+
+  it('refreshes the per-room deck snapshot so a reload keeps the foils', async () => {
+    // That snapshot is a second copy of the deck pile in localStorage, rewritten
+    // only on deck load. Left alone it would hold the pre-purchase deck for its
+    // whole 12-hour life and hand back unfoiled cards on the next boot that
+    // falls back to it.
+    const yDoc = new Y.Doc();
+    const player = new Player('p1', yDoc, [], { initialHealth: 40 });
+    player.getPile('deck').setCards([{ ...makeCards(1)[0], isFoil: true }]);
+    useGameInstance.setState({
+      player,
+      roomManager: { getRoomName: () => 'room-1' } as never,
+    });
+
+    vi.stubGlobal('fetch', respondWith(200, { valid: true, style: FOIL_STYLE_NEBULA }));
+    await useCosmeticsStore.getState().redeemCode('FOIL-7X2QF');
+
+    const snapshot = JSON.parse(localStorage.getItem('aura-deck-state-room-1') ?? '{}');
+    expect(snapshot.cards[0].foil).toBe(FOIL_STYLE_NEBULA);
+  });
+
+  it('redeems fine before a game exists', async () => {
+    // Nothing guarantees a player is bootstrapped when a code is entered.
+    useGameInstance.setState({ player: null });
+    vi.stubGlobal('fetch', respondWith(200, { valid: true, style: FOIL_STYLE_NEBULA }));
+
+    await expect(useCosmeticsStore.getState().redeemCode('FOIL-7X2QF')).resolves.toBe('success');
   });
 
   it('keeps only true entitlements, not any truthy value', async () => {
