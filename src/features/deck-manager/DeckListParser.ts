@@ -19,6 +19,15 @@ export type DeckLineItem = {
   // Whether this card was under a commander header
   commander?: boolean;
   /**
+   * Whether the line carried a foil marker. Absent, never `false`, when it did
+   * not — the same shape as `commander`.
+   *
+   * This records the printing the player owns, not anything about cosmetics
+   * entitlement. What (if anything) a foil card renders as is decided much
+   * later, by the cosmetics layer.
+   */
+  isFoil?: boolean;
+  /**
    * The section header labels this card sat under, normalized and lowercased —
    * the card's provenance. Absent when the card sat under no header at all.
    */
@@ -431,7 +440,8 @@ const SET_CODE_SHAPE = new RegExp(`^${SET_CODE_BODY}$`);
  * annotations exporters append.
  *
  * Archidekt writes `[Finisher]` and `^Drawn,#1b1686^`; MTGO-style exports write
- * `*F*` for foil. All of those used to land in `collectorNumber` under the old
+ * `*F*` for foil (see {@link FOIL_MARKER}, which reads that one rather than
+ * discarding it). All of those used to land in `collectorNumber` under the old
  * take-the-next-token rule, which bought a guaranteed-404 `bySet` request for
  * every such line before the name lookup rescued it. A collector number always
  * carries a digit ("63", "259p", "2017EU", "C15-56") and is never built from the
@@ -439,6 +449,29 @@ const SET_CODE_SHAPE = new RegExp(`^${SET_CODE_BODY}$`);
  */
 function isCollectorNumber(token: string): boolean {
   return /\d/.test(token) && /^[A-Za-z0-9★-]+$/.test(token);
+}
+
+/**
+ * A finish marker as MTGO-style exports write it: `*F*` foil, `*E*` etched.
+ *
+ * Both are foil treatments and both shimmer, so both read as foil here — the
+ * distinction between them is a printing detail this app has nowhere to put.
+ * Matched as a whole token so an asterisked word ("*promo*") is left alone.
+ */
+const FOIL_MARKER = /(^|\s)\*[FE]\*(?=\s|$)/g;
+
+/**
+ * Lift the finish marker off a line, returning the line without it.
+ *
+ * This has to run before anything else reads the line. `isCollectorNumber`
+ * guards only the token immediately after a set code, so on a line that names
+ * no printing at all ("1 Flusterstorm *F*") nothing was stopping the marker
+ * from being swept into the card's name — the #172 welding bug, where an
+ * annotation glued to a name takes the whole lookup down with it.
+ */
+function stripFoilMarker(line: string): { line: string; isFoil: boolean } {
+  const stripped = line.replace(FOIL_MARKER, '');
+  return { line: stripped === line ? line : stripped.trim(), isFoil: stripped !== line };
 }
 
 /**
@@ -499,13 +532,18 @@ export function stripBackFace(name: string): string {
 }
 
 function parseLine(line: string): DeckLineItem {
-  line = line.trim();
+  // The finish marker comes off first so that every reader below — the name
+  // slice especially — sees a line that is only count, name and printing.
+  const { line: bare, isFoil } = stripFoilMarker(line.trim());
+  line = bare;
+
   const parts = line.split(/\s+/);
   const count = parseCount(parts[0]);
   const printing = extractPrinting(line);
+  const foil = isFoil ? { isFoil: true as const } : {};
 
   if (printing === null) {
-    return { count, name: stripBackFace(parts.slice(1).join(' ')) };
+    return { count, name: stripBackFace(parts.slice(1).join(' ')), ...foil };
   }
 
   // The name sits between the count and the printing suffix. This reads the raw
@@ -518,5 +556,6 @@ function parseLine(line: string): DeckLineItem {
     ...(printing.collectorNumber !== undefined
       ? { collectorNumber: printing.collectorNumber }
       : {}),
+    ...foil,
   };
 }
