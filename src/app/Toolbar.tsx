@@ -41,7 +41,7 @@ import type { SavedDeck } from '@/features/player/types';
 import type { YjsNetworkProvider } from '@/infrastructure/networking/YjsNetworkFactory';
 
 const DISCORD_URL = 'https://discord.gg/PgH2gVZYKq';
-const KOFI_URL = 'https://ko-fi.com/Z8Z11OOHFX';
+const KOFI_URL = 'https://ko-fi.com/aura0';
 
 interface ToolbarProps {
   yjsNetworkProvider: YjsNetworkProvider;

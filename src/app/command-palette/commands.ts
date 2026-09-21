@@ -26,7 +26,7 @@ import { getDepartedPlayers, requestRemovePlayer } from '@/features/player/remov
 // Duplicated (two-line) from Toolbar so the palette has no reason to import from
 // it; if these ever grow, hoist them to a shared constants module.
 const DISCORD_URL = 'https://discord.gg/PgH2gVZYKq';
-const KOFI_URL = 'https://ko-fi.com/Z8Z11OOHFX';
+const KOFI_URL = 'https://ko-fi.com/aura0';
 
 export interface AppCommand {
   id: string;
