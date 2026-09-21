@@ -2,9 +2,10 @@
  * Cosmetics settings section — the foil store.
  *
  * A demand test, not a storefront: one style, bought as a Ko-fi shop item,
- * fulfilled by hand. Ko-fi mails us a purchase, we mail back a code, the code
- * goes in the Worker's list on the next deploy. That round trip is why the copy
- * names a 24-hour window — an unexplained wait reads as a broken purchase.
+ * fulfilled by hand. Ko-fi mails us a purchase, we mint a code and mail it back.
+ * Nothing is deployed in between — the code validates against itself — but a
+ * human still has to read the email and send it, which is why the copy names a
+ * 24-hour window. An unexplained wait reads as a broken purchase.
  *
  * There is no account system, so a redeemed code is remembered in this browser
  * only. That is stated plainly rather than papered over.
@@ -41,17 +42,23 @@ const PREVIEW_CARD_ART =
  */
 const KOFI_SHOP_URL = 'https://ko-fi.com/Z8Z11OOHFX/shop';
 
-const MESSAGES: Record<string, string> = {
-  invalid: "That code didn't work. Check it against the email we sent you.",
-  error: "We couldn't reach the server. Give it a minute and try again.",
-};
+/**
+ * The only way redemption can fail. Checking the code locally means there is no
+ * unreachable-server case to tell apart from a bad code — which is the one
+ * distinction a network check had to work hardest not to blur.
+ */
+const INVALID_MESSAGE = "That code didn't work. Check it against the email we sent you.";
 
 export function CosmeticsSection() {
   const entitled = useCosmeticsStore((s) => s.entitlements[FOIL_STYLE_NEBULA] === true);
   const redeemCode = useCosmeticsStore((s) => s.redeemCode);
 
   const [code, setCode] = useState('');
-  const [status, setStatus] = useState<'idle' | 'busy' | 'invalid' | 'error'>('idle');
+  // `busy` never visibly renders today: the check is local, so it resolves in a
+  // microtask. It is kept because `redeemCode` is the swap point for a real
+  // backend (see cosmeticsStore.ts) and that swap should not have to come back
+  // out here and rebuild this form's state machine.
+  const [status, setStatus] = useState<'idle' | 'busy' | 'invalid'>('idle');
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Clear a stale failure the moment the player starts fixing the code, so the
@@ -146,9 +153,9 @@ export function CosmeticsSection() {
           </>
         )}
 
-        {(status === 'invalid' || status === 'error') && (
+        {status === 'invalid' && (
           <p className={styles.failure} role="alert" data-testid="foil-code-error">
-            {MESSAGES[status]}
+            {INVALID_MESSAGE}
           </p>
         )}
       </SettingGroup>

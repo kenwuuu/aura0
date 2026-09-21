@@ -1,6 +1,6 @@
 import { expect } from '@playwright/test';
 import { test } from '../../fixtures';
-import { handCards, importDeck, mockFoilCodeCheck } from '../../harness';
+import { MISTYPED_FOIL_CODE, VALID_FOIL_CODE, handCards, importDeck } from '../../harness';
 
 /**
  * Foil overlays on hand cards only.
@@ -19,6 +19,10 @@ const handFoils = (page: import('@playwright/test').Page) =>
  * the purchase and long after the deck was imported. Unit tests prove the sweep
  * writes to every zone; what only a browser proves is that the cards already on
  * screen repaint, with no reload.
+ *
+ * Nothing is mocked. The code check is local, so these specs type a real code
+ * and get the real answer — there is no endpoint standing between the two for a
+ * route handler to stub out.
  */
 
 const DECKLIST = [
@@ -34,7 +38,6 @@ const openStore = async (page: import('@playwright/test').Page) => {
 };
 
 test.beforeEach(async ({ page }) => {
-  await mockFoilCodeCheck(page);
   await importDeck(page, 'Foil deck', DECKLIST);
   await expect(handCards(page)).toHaveCount(3);
 });
@@ -45,7 +48,7 @@ test('a good code lights up cards already in hand, without a reload', async ({ p
   await expect(handFoils(page)).toHaveCount(0);
 
   await openStore(page);
-  await page.getByLabel('Foil license code').fill('FOIL-7X2QF');
+  await page.getByLabel('Foil license code').fill(VALID_FOIL_CODE);
   await page.getByRole('button', { name: 'Redeem' }).click();
 
   await expect(page.getByTestId('foil-unlocked')).toBeVisible();
@@ -54,9 +57,9 @@ test('a good code lights up cards already in hand, without a reload', async ({ p
   await expect(handFoils(page)).toHaveCount(2);
 });
 
-test('a bad code changes nothing', async ({ page }) => {
+test('a mistyped code changes nothing', async ({ page }) => {
   await openStore(page);
-  await page.getByLabel('Foil license code').fill('FOIL-WRONG');
+  await page.getByLabel('Foil license code').fill(MISTYPED_FOIL_CODE);
   await page.getByRole('button', { name: 'Redeem' }).click();
 
   await expect(page.getByRole('alert')).toContainText(/check it against the email/i);
@@ -65,7 +68,7 @@ test('a bad code changes nothing', async ({ page }) => {
 
 test('the unlock survives a reload', async ({ page }) => {
   await openStore(page);
-  await page.getByLabel('Foil license code').fill('FOIL-7X2QF');
+  await page.getByLabel('Foil license code').fill(VALID_FOIL_CODE);
   await page.getByRole('button', { name: 'Redeem' }).click();
   await expect(handFoils(page)).toHaveCount(2);
 

@@ -876,12 +876,13 @@ export function trackTourCompleted(ctx: Omit<TourEventContext, 'stepId' | 'stepI
  * free-tier volume, so a per-card or per-render event would be unaffordable for
  * a decoration; redemptions are a handful a week and are the only number the
  * demand test actually needs. Failures are captured alongside successes, since
- * a spike in `invalid` means the fulfillment email is wrong — which the success
- * count alone would never show.
+ * a spike in `invalid` means the fulfillment email is wrong, or that the code
+ * scheme rotated out from under codes already in inboxes — neither of which the
+ * success count alone would ever show.
  *
  * The code itself is never sent: it is a bearer token for something purchased.
  */
-export function trackFoilCodeRedeemed(outcome: 'success' | 'invalid' | 'error'): void {
+export function trackFoilCodeRedeemed(outcome: 'success' | 'invalid'): void {
   posthog.capture('foil_code_redeemed', { outcome });
 }
 

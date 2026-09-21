@@ -98,46 +98,6 @@ function deckImportApi(): Plugin {
   };
 }
 
-/**
- * Serve `/api/foil-codes/redeem` from the dev server, for the same reason
- * `deckImportApi` exists: in production it is the Worker, and Vite doesn't run
- * the Worker.
- *
- * Without this, redeeming a code would be broken in dev and working in
- * production — the single worst way for this to fail, since the dev-only
- * breakage looks exactly like a bad code.
- */
-function foilCodesApi(): Plugin {
-  return {
-    name: 'aura-foil-codes-api',
-    apply: 'serve',
-    configureServer(server) {
-      server.middlewares.use('/api/foil-codes/redeem', async (req, res) => {
-        const { handleFoilRedeem } = await server.ssrLoadModule('/src/worker/foilCodes.ts');
-
-        // The handler reads only the method and the JSON body, so unlike
-        // deck-import there are no headers worth forwarding.
-        const body = await new Promise<string>((resolve) => {
-          let raw = '';
-          req.on('data', (chunk) => { raw += chunk; });
-          req.on('end', () => resolve(raw));
-        });
-
-        const response: Response = await handleFoilRedeem(
-          new Request(new URL(req.url ?? '/', 'http://localhost'), {
-            method: req.method,
-            ...(req.method === 'GET' || req.method === 'HEAD' ? {} : { body }),
-          }),
-        );
-
-        res.statusCode = response.status;
-        response.headers.forEach((value, key) => res.setHeader(key, value));
-        res.end(await response.text());
-      });
-    },
-  };
-}
-
 // Deploys run through Cloudflare Workers Builds, which sets WORKERS_CI_COMMIT_SHA
 // natively; the build command also exports it as VITE_APP_VERSION so it reaches
 // client code via import.meta.env (Vite's VITE_ prefix convention). CF_PAGES_COMMIT_SHA
@@ -172,7 +132,6 @@ export default defineConfig({
       : []),
     tailwindcss(),
     deckImportApi(),
-    foilCodesApi(),
   ],
   server: {
     port: 5173,

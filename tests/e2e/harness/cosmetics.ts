@@ -49,32 +49,21 @@ export async function seedCosmeticEntitlement(
 }
 
 /**
- * Answer the Worker's code check without a Worker.
+ * A real code, minted by `scripts/foil-code.mjs` and written down.
  *
- * The endpoint runs in the Vite dev server during e2e (see `foilCodesApi` in
- * vite.config.ts) but ships with an empty code list, so a spec that typed a real
- * code would fail for the right reason and the wrong test. Routing it here keeps
- * the spec about the redemption flow rather than about which codes are live.
+ * There is no list of issued codes to mock and no endpoint to intercept — a
+ * code is valid because its check digits agree with its body, so the specs type
+ * the same string a buyer would and the shipped validator answers it. That also
+ * makes these specs the tripwire for a salt rotation: change the scheme in
+ * `foilCode.ts` and redemption fails here, loudly, which is exactly what
+ * invalidating every code already in a buyer's inbox should feel like.
  */
-export async function mockFoilCodeCheck(
-  target: Page | BrowserContext,
-  options: { validCode?: string; fail?: boolean } = {},
-): Promise<void> {
-  const { validCode = 'FOIL-7X2QF', fail = false } = options;
+export const VALID_FOIL_CODE = 'FOIL-9YEVN-Y6A';
 
-  await target.route('**/api/foil-codes/redeem', async (route) => {
-    if (fail) {
-      await route.fulfill({ status: 503, contentType: 'application/json', body: '{}' });
-      return;
-    }
-
-    const { code } = JSON.parse(route.request().postData() ?? '{}');
-    const valid = typeof code === 'string' && code.trim().toUpperCase() === validCode;
-
-    await route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify(valid ? { valid: true, style: FOIL_STYLE } : { valid: false }),
-    });
-  });
-}
+/**
+ * Correctly shaped, wrong check digits — one character off {@link VALID_FOIL_CODE}.
+ *
+ * A mistyped code, rather than obvious junk: junk would be rejected by the
+ * pattern alone and would never exercise the check digits at all.
+ */
+export const MISTYPED_FOIL_CODE = 'FOIL-9YEVN-Y6B';

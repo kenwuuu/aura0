@@ -1,19 +1,17 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { act, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { CosmeticsSection } from './CosmeticsSection';
 import { FOIL_STYLE_NEBULA, useCosmeticsStore } from '@/features/cosmetics';
 
-const respondWith = (status: number, body: unknown) =>
-  vi.fn().mockResolvedValue({ status, json: async () => body } as Response);
+/** Real codes, minted by `scripts/foil-code.mjs`. Nothing here is mocked. */
+const VALID_CODE = 'FOIL-9YEVN-Y6A';
+/** Correctly shaped, one character off in the check digits — i.e. a typo. */
+const MISTYPED_CODE = 'FOIL-9YEVN-Y6B';
 
 describe('CosmeticsSection', () => {
   beforeEach(() => {
     useCosmeticsStore.setState({ entitlements: {} });
-  });
-
-  afterEach(() => {
-    vi.unstubAllGlobals();
   });
 
   it('cannot submit an empty code', () => {
@@ -23,49 +21,47 @@ describe('CosmeticsSection', () => {
   });
 
   it('confirms the unlock after a good code', async () => {
-    vi.stubGlobal('fetch', respondWith(200, { valid: true, style: FOIL_STYLE_NEBULA }));
     const user = userEvent.setup();
     render(<CosmeticsSection />);
 
-    await user.type(screen.getByLabelText('Foil license code'), 'FOIL-7X2QF');
+    await user.type(screen.getByLabelText('Foil license code'), VALID_CODE);
     await user.click(screen.getByRole('button', { name: 'Redeem' }));
 
     expect(await screen.findByText('✓ Active')).toBeInTheDocument();
   });
 
-  it('tells a bad code apart from an unreachable server', async () => {
-    // These send the player somewhere different — one means "check what you
-    // typed", the other "wait and retry" — so the copy must not be shared.
-    vi.stubGlobal('fetch', respondWith(200, { valid: false }));
+  it('points a mistyped code back at the email it came from', async () => {
+    // The only failure the player can hit now that the check is local, so the
+    // copy has to be actionable on its own rather than one of two branches.
     const user = userEvent.setup();
     render(<CosmeticsSection />);
 
-    await user.type(screen.getByLabelText('Foil license code'), 'FOIL-NOPE1');
+    await user.type(screen.getByLabelText('Foil license code'), MISTYPED_CODE);
     await user.click(screen.getByRole('button', { name: 'Redeem' }));
 
     expect(await screen.findByRole('alert')).toHaveTextContent(/check it against the email/i);
   });
 
-  it('says to retry when the server could not be reached', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('offline')));
+  it('accepts a code the way an email delivers it', async () => {
+    // Buyers paste, and a paste brings case and padding with it. Being strict
+    // here would read to them as the code itself being wrong.
     const user = userEvent.setup();
     render(<CosmeticsSection />);
 
-    await user.type(screen.getByLabelText('Foil license code'), 'FOIL-7X2QF');
+    await user.type(screen.getByLabelText('Foil license code'), `  ${VALID_CODE.toLowerCase()}  `);
     await user.click(screen.getByRole('button', { name: 'Redeem' }));
 
-    expect(await screen.findByRole('alert')).toHaveTextContent(/couldn't reach the server/i);
+    expect(await screen.findByText('✓ Active')).toBeInTheDocument();
   });
 
   it('clears the failure as soon as the player edits the code', async () => {
     // An error left standing over a code the player has already started fixing
     // reads as though the new one failed too.
-    vi.stubGlobal('fetch', respondWith(200, { valid: false }));
     const user = userEvent.setup();
     render(<CosmeticsSection />);
 
     const input = screen.getByLabelText('Foil license code');
-    await user.type(input, 'FOIL-NOPE1');
+    await user.type(input, MISTYPED_CODE);
     await user.click(screen.getByRole('button', { name: 'Redeem' }));
     expect(await screen.findByRole('alert')).toBeInTheDocument();
 
