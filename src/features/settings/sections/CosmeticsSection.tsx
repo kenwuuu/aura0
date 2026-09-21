@@ -13,8 +13,16 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
-import { FOIL_STYLE_NEBULA, FoilOverlay, useCosmeticsStore } from '@/features/cosmetics';
-import { trackFoilCodeRedeemed } from '@/infrastructure/analytics/PosthogFunctions';
+import {
+  FOIL_STYLE_NEBULA,
+  FoilOverlay,
+  consumeOpenedByPromo,
+  useCosmeticsStore,
+} from '@/features/cosmetics';
+import {
+  trackFoilCodeRedeemed,
+  trackFoilStoreViewed,
+} from '@/infrastructure/analytics/PosthogFunctions';
 import { SettingRow } from '../components/SettingRow';
 import { SettingGroup } from '../components/SettingGroup';
 import styles from './CosmeticsSection.module.css';
@@ -59,6 +67,15 @@ const INVALID_MESSAGE = "That code didn't work. Check it against the email we se
 export function CosmeticsSection() {
   const entitled = useCosmeticsStore((s) => s.entitlements[FOIL_STYLE_NEBULA] === true);
   const redeemCode = useCosmeticsStore((s) => s.redeemCode);
+
+  // The denominator for redemptions, without which a demand test concludes
+  // nothing: zero sales reads the same whether nobody wanted this or nobody
+  // found it. Fired here rather than at the callers because this component is
+  // the one thing every route into the store has in common — Settings, ⌘K, and
+  // the unprompted open.
+  useEffect(() => {
+    trackFoilStoreViewed(consumeOpenedByPromo());
+  }, []);
 
   const [code, setCode] = useState('');
   // `busy` never visibly renders today: the check is local, so it resolves in a

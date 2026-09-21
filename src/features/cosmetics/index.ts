@@ -13,4 +13,6 @@ export {
   type RedeemOutcome,
 } from './cosmeticsStore';
 export { FoilOverlay } from './FoilOverlay';
+export { FoilStorePromo } from './FoilStorePromo';
 export { foilStyleFor } from './foilVisibility';
+export { consumeOpenedByPromo, shouldPromoteFoil, MIN_VISITS_TO_PROMOTE } from './foilPromo';

@@ -67,3 +67,44 @@ export const VALID_FOIL_CODE = 'FOIL-9YEVN-Y6A';
  * pattern alone and would never exercise the check digits at all.
  */
 export const MISTYPED_FOIL_CODE = 'FOIL-9YEVN-Y6B';
+
+/** The key `foilPromo.ts` records an unprompted store open under. */
+const FOIL_PROMO_SEEN_KEY = 'aura:foil-promo-seen';
+
+/**
+ * Keep the foil store from opening itself over a spec.
+ *
+ * Necessary because of an interaction between two harness defaults:
+ * `markReturningPlayer` seeds 99 prior visits into *every* context so the
+ * onboarding tour stays away, and 99 is comfortably over the promo's
+ * `MIN_VISITS_TO_PROMOTE`. Left alone, the Settings modal would open on load in
+ * every spec in the suite — the exact failure that helper's own comment warns
+ * about for the tour.
+ *
+ * Its own storage key, so a blind `setItem` clobbers nothing: unlike
+ * `aura:settings`, nothing else lives here, and an init script that re-runs on
+ * every navigation has no sibling fields to wipe.
+ */
+export async function suppressFoilStorePromo(target: Page | BrowserContext): Promise<void> {
+  await target.addInitScript((key) => {
+    localStorage.setItem(key as string, 'e2e');
+  }, FOIL_PROMO_SEEN_KEY);
+}
+
+/**
+ * Open the app in a fresh tab and hand back that page.
+ *
+ * Exists because the promo decides *during boot*, and the shared `page` fixture
+ * is deliberately not a boot: it navigates, clears localStorage, dismisses
+ * whatever modals are up and waits for a loaded deck before a spec ever sees it.
+ * Every one of those steps sits on top of the thing under test here.
+ *
+ * A new tab in the same context keeps the init scripts — the seeded visit count,
+ * the promo suppression, the animation kill — and skips the teardown, which
+ * makes it the closest thing the suite has to a real player arriving.
+ */
+export async function openFreshTab(page: Page, room: string): Promise<Page> {
+  const fresh = await page.context().newPage();
+  await fresh.goto(`/?room=${room}`, { waitUntil: 'networkidle' });
+  return fresh;
+}

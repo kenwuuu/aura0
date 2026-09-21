@@ -886,6 +886,22 @@ export function trackFoilCodeRedeemed(outcome: 'success' | 'invalid'): void {
   posthog.capture('foil_code_redeemed', { outcome });
 }
 
+/**
+ * The store being looked at, which is the denominator `foil_code_redeemed` needs.
+ *
+ * Without it a demand test cannot conclude anything: zero purchases reads
+ * identically whether nobody wanted the cosmetic or nobody ever found the page
+ * offering it, and those two answers point in opposite directions. `promoted`
+ * splits the views the app went and asked for from the ones a player sought out,
+ * so the prompt can be judged separately from the product.
+ *
+ * Bounded by how often anyone opens one Settings section, so it costs
+ * essentially nothing against the ingest ceiling.
+ */
+export function trackFoilStoreViewed(promoted: boolean): void {
+  posthog.capture('foil_store_viewed', { promoted });
+}
+
 /** Terminal, like `tour_completed` — the two together close the funnel. */
 export function trackTourSkipped(ctx: TourEventContext): void {
   const pending = inFlightTour;

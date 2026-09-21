@@ -2,7 +2,7 @@ import {test as base, expect, Locator} from '@playwright/test';
 import { blockAnalytics } from './harness/network';
 import { markReturningPlayer } from './harness/onboarding';
 import { setDeleteConfirmation } from './harness/settings';
-import { seedCosmeticEntitlement } from './harness/cosmetics';
+import { seedCosmeticEntitlement, suppressFoilStorePromo } from './harness/cosmetics';
 
 async function closeIfVisible(locator: Locator) {
   // Only try the click if the locator exists in the DOM
@@ -27,6 +27,7 @@ export const test = base.extend<{
   onboardingTour: boolean;
   deleteConfirmation: boolean;
   foilEntitlement: boolean;
+  foilStorePromo: boolean;
 }>({
   /**
    * Whether this spec wants the first-run tour. Off by default: a fresh context
@@ -60,7 +61,20 @@ export const test = base.extend<{
    */
   foilEntitlement: [false, { option: true }],
 
-  page: async ({ page, onboardingTour, deleteConfirmation, foilEntitlement }, use) => {
+  /**
+   * Whether this spec wants the foil store to open itself on load. Off by
+   * default, and that default is load-bearing rather than tidy: every context
+   * here is seeded with 99 prior visits to keep the onboarding tour away, which
+   * is well past the promo's threshold, so without this the Settings modal
+   * would cover every spec in the suite. Opt in with
+   * `test.use({ foilStorePromo: true })` — see app/cosmetics/foil_promo.spec.ts.
+   */
+  foilStorePromo: [false, { option: true }],
+
+  page: async (
+    { page, onboardingTour, deleteConfirmation, foilEntitlement, foilStorePromo },
+    use,
+  ) => {
     // The whole context, not just this page: `openDuplicateTab` opens a second page
     // here, and a page-level script would leave that tab booting as a new player.
     if (!onboardingTour) await markReturningPlayer(page.context());
@@ -72,6 +86,10 @@ export const test = base.extend<{
     // `localStorage.clear()` after that goto wipes the key but not the store
     // that already read it — the same way the two seeds above survive.)
     if (foilEntitlement) await seedCosmeticEntitlement(page.context());
+
+    // Before the goto too: the promo decides on mount, so the marker has to be
+    // in storage by the time the app boots.
+    if (!foilStorePromo) await suppressFoilStorePromo(page.context());
 
     await blockAnalytics(page);
 
