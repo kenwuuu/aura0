@@ -105,6 +105,25 @@ export async function suppressFoilStorePromo(target: Page | BrowserContext): Pro
  */
 export async function openFreshTab(page: Page, room: string): Promise<Page> {
   const fresh = await page.context().newPage();
-  await fresh.goto(`/?room=${room}`, { waitUntil: 'networkidle' });
+  // `domcontentloaded`, not `networkidle`: card art streams from Scryfall's CDN,
+  // so the network is never dependably idle and the wait hangs intermittently.
+  // Callers assert on what they came for, which waits on its own.
+  await fresh.goto(`/?room=${room}`, { waitUntil: 'domcontentloaded' });
+  return fresh;
+}
+
+/**
+ * Reopen the room this page is in, in a new tab, and hand back that page.
+ *
+ * The "came back later" counterpart to {@link openFreshTab}: same context, so
+ * the same localStorage — entitlements, the promo marker, the per-room deck
+ * snapshot — and a genuine cold boot rather than a reload. Reloads race the
+ * deck load here badly enough to hang intermittently, and a returning player is
+ * what the specs using this actually mean.
+ */
+export async function reopenInNewTab(page: Page): Promise<Page> {
+  const url = page.url();
+  const fresh = await page.context().newPage();
+  await fresh.goto(url, { waitUntil: 'domcontentloaded' });
   return fresh;
 }

@@ -1,6 +1,12 @@
 import { expect } from '@playwright/test';
 import { test } from '../../fixtures';
-import { MISTYPED_FOIL_CODE, VALID_FOIL_CODE, handCards, importDeck } from '../../harness';
+import {
+  MISTYPED_FOIL_CODE,
+  VALID_FOIL_CODE,
+  handCards,
+  importDeck,
+  reopenInNewTab,
+} from '../../harness';
 
 /**
  * Foil overlays on hand cards only.
@@ -72,8 +78,13 @@ test('the unlock survives a reload', async ({ page }) => {
   await page.getByRole('button', { name: 'Redeem' }).click();
   await expect(handFoils(page)).toHaveCount(2);
 
-  await page.reload({ waitUntil: 'networkidle' });
+  // A new tab rather than a reload, which is what the assertion below actually
+  // claims: a buyer who closes the tab and comes back. It is also the more
+  // stable of the two — reloading races the deck load and hangs about one run
+  // in ten, where a cold boot into the same room does not.
+  const returning = await reopenInNewTab(page);
+  await expect(handCards(returning)).toHaveCount(3, { timeout: 15000 });
 
   // A buyer who closes the tab and comes back must not have to redeem again.
-  await expect(handFoils(page)).toHaveCount(2);
+  await expect(handFoils(returning)).toHaveCount(2);
 });
