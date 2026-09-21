@@ -26,7 +26,7 @@ import { getDepartedPlayers, requestRemovePlayer } from '@/features/player/remov
 // Duplicated (two-line) from Toolbar so the palette has no reason to import from
 // it; if these ever grow, hoist them to a shared constants module.
 const DISCORD_URL = 'https://discord.gg/PgH2gVZYKq';
-const KOFI_URL = 'https://ko-fi.com/Z8Z11OOHFX';
+const KOFI_URL = 'https://ko-fi.com/aura0';
 
 export interface AppCommand {
   id: string;
@@ -153,6 +153,17 @@ export function getCommands(): AppCommand[] {
       keywords: ['donate', 'tip', 'support'],
       section: 'Navigation',
       run: () => window.open(KOFI_URL, '_blank', 'noopener,noreferrer'),
+    },
+    {
+      // Opens the Settings section rather than a dialog of its own — Settings
+      // is already mounted and already takes a section id. Not a HOTKEYS entry:
+      // a storefront is not a game action, and it has no board target to
+      // dispatch against.
+      id: 'nav-cosmetics',
+      label: 'Foil cards',
+      keywords: ['cosmetics', 'foil', 'holo', 'shiny', 'premium', 'buy', 'unlock', 'redeem', 'code'],
+      section: 'Navigation',
+      run: () => useSettingsModalStore.getState().open('cosmetics'),
     },
   ];
 

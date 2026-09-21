@@ -32,6 +32,7 @@ import { YjsNetworkProvider } from '@/infrastructure/networking/YjsNetworkFactor
 import { AddCardManager } from '@/features/deck-manager/AddCardManager';
 import { OnboardingTour } from '@/features/onboarding';
 import { AnnouncementModal } from '@/app/AnnouncementModal';
+import { FoilStorePromo } from '@/features/cosmetics';
 import { SettingsModal } from '@/features/settings/SettingsModal';
 import { ActionLogPanel } from '@/features/action-log/ActionLogPanel';
 import { logAction } from '@/features/action-log/actionLog';
@@ -218,6 +219,10 @@ export function App({ yDoc, yjsNetworkProvider, player, roomManager, playerId, c
           teaching the game. Deliberately NOT gated on `isDevEnv` the way that
           modal was — a tour you can't see in dev is a tour nobody maintains. */}
       <OnboardingTour />
+      {/* Opens the foil store once for long-time players. Safe to sit next to
+          the tour: that needs <3 prior visits and this needs >10, so the two
+          can never both fire. */}
+      <FoilStorePromo />
       {AnnouncementsService.shouldShowAnnouncement() && (
         <AnnouncementModal onClose={() => AnnouncementsService.markAnnouncementAsSeen()} />
       )}

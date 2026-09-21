@@ -1,0 +1,142 @@
+/**
+ * Layout for the Help modal's Guide tab: a two-column shell with a section rail
+ * on the left and one continuously scrolling pane on the right.
+ *
+ * Deliberately different from SettingsModal, which swaps a single panel per
+ * category: settings are discrete choices, a guide is read straight through. So
+ * every section is in the DOM at once and the rail scroll-spies rather than
+ * filtering — which is also what lets a deep link scroll to a section instead of
+ * having to select it.
+ */
+
+/* Two-column shell --------------------------------------------------------- */
+.shell {
+  display: grid;
+  grid-template-columns: 190px 1fr;
+  min-height: 0;
+  flex: 1;
+  overflow: hidden;
+}
+
+/* Section rail ------------------------------------------------------------- */
+.rail {
+  border-right: 1px solid #2d2d2d;
+  padding: 4px 8px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow-y: auto;
+}
+
+.railGroup {
+  margin: 12px 0 4px;
+  padding: 0 10px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #6b7280;
+}
+
+.railGroup:first-child {
+  margin-top: 4px;
+}
+
+.railButton {
+  display: block;
+  width: 100%;
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: #9ca3af;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.15s, color 0.15s;
+}
+
+.railButton:hover {
+  background: #2d2d2d;
+  color: #e5e7eb;
+}
+
+.railButtonActive,
+.railButtonActive:hover {
+  background: #1e3a5f;
+  color: #93c5fd;
+}
+
+/* Content pane ------------------------------------------------------------- */
+.pane {
+  padding: 4px 24px 24px;
+  overflow-y: auto;
+  scroll-behavior: smooth;
+}
+
+.section {
+  /* Clears the pane's top edge when a deep link scrolls this section into view,
+     so its heading doesn't sit flush against the tab bar. */
+  scroll-margin-top: 12px;
+  padding-top: 12px;
+}
+
+.sectionTitle {
+  margin: 0 0 12px;
+  font-size: 20px;
+  font-weight: 700;
+  color: #f9fafb;
+}
+
+/* Flashed on the section a deep link just landed on, so the player can see
+   where they were taken. Purely decorative — the scroll is what does the work. */
+@keyframes helpSectionFlash {
+  from {
+    background: rgba(59, 130, 246, 0.14);
+  }
+  to {
+    background: transparent;
+  }
+}
+
+.sectionFlash {
+  animation: helpSectionFlash 1.6s ease-out;
+  border-radius: 10px;
+}
+
+/* Phone -------------------------------------------------------------------- */
+/* The rail becomes a horizontally scrolling strip above the prose. Cheap, and
+   it keeps every section one tap away instead of hiding navigation entirely.
+   Modal polish at this width is its own project — see issue #76. */
+@media (max-width: 640px) {
+  .shell {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr;
+  }
+
+  .rail {
+    flex-direction: row;
+    align-items: center;
+    gap: 6px;
+    border-right: none;
+    border-bottom: 1px solid #2d2d2d;
+    padding: 8px;
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+
+  .railGroup {
+    display: none;
+  }
+
+  .railButton {
+    width: auto;
+    white-space: nowrap;
+    background: #1f1f1f;
+  }
+
+  .pane {
+    padding: 4px 16px 20px;
+  }
+}

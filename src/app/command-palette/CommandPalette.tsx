@@ -1,12 +1,17 @@
 /**
  * ⌘K command palette — a searchable launcher for target-free game actions and
- * app navigation, plus a read-only reference for the target-bound keyboard
- * shortcuts (Tap, Flip, the move family, …) that need a hovered card.
+ * app navigation, a searchable index of the Help guide, plus a read-only
+ * reference for the target-bound keyboard shortcuts (Tap, Flip, the move
+ * family, …) that need a hovered card.
  *
  * Mounted once at the app shell (a sibling of `GameHotkeysManager`, i.e. outside
  * its `HotkeysProvider`), so its `mod+k` binding is scope-less and always live.
  * Open state lives in `overlayStore` so the toolbar launcher and the palette's
  * own "Open Help" / "Import a deck" commands share it.
+ *
+ * Scoring is `paletteFilter`, not cmdk's default — it adds a relevance floor,
+ * because a fuzzy matcher makes almost every short query match almost every row
+ * a little. See that file for the measurements.
  */
 import { useEffect } from 'react';
 import { useHotkeys } from 'react-hotkeys-hook';
@@ -23,7 +28,52 @@ import {
 import { getHotkeysGroupedByZone } from '@/features/hotkeys/hotkeys';
 import { useOverlayStore } from '@/app/stores/overlayStore';
 import { useHotkeyStore } from '@/app/stores/hotkeyStore';
+import { HELP_SECTIONS } from '@/app/content/help/sections';
 import { getCommands, RUNNABLE_ACTION_IDS, type AppCommand } from './commands';
+import { helpRowValue, paletteFilter } from './paletteFilter';
+
+/**
+ * The Help guide, one row per section, opening Help at that section.
+ *
+ * Rendered unconditionally, and **not** gated on a non-empty search. Gating it
+ * looked tidier — it keeps 25 doc rows out of the palette's resting state — but
+ * mounting a whole group mid-keystroke loses the race with cmdk's item
+ * registration: on the first query typed after opening, the rows appeared and
+ * nothing was selected at all, so Enter did nothing. Rendering the group up
+ * front costs a longer list on open and gets a palette that always has a
+ * selection.
+ *
+ * Placed after the runnable groups on purpose — see `paletteFilter`, where
+ * source order (not a score bias) is what stops a doc outranking the action it
+ * documents.
+ *
+ * Matches on the breadcrumb and the section's curated keywords only, never body
+ * text: in the old single-file help, "draw" hit two sections and one of them
+ * matched purely on the word "draw**n**" in a sentence about import order.
+ */
+function HelpSectionRows() {
+  return (
+    <CommandGroup heading="Help">
+      {HELP_SECTIONS.map((section) => (
+        <CommandItem
+          key={section.id}
+          value={helpRowValue(section.group, section.title)}
+          keywords={[...section.keywords]}
+          onSelect={() => {
+            const overlay = useOverlayStore.getState();
+            overlay.close('commandPalette');
+            overlay.openHelp({ tab: 'guide', section: section.id });
+          }}
+        >
+          <span>
+            <span className="text-muted-foreground">{section.group} › </span>
+            {section.title}
+          </span>
+        </CommandItem>
+      ))}
+    </CommandGroup>
+  );
+}
 
 export function CommandPalette() {
   const open = useOverlayStore((s) => s.commandPaletteOpen);
@@ -69,6 +119,14 @@ export function CommandPalette() {
     cmd.run();
   };
 
+  // Reference rows can't be run from here, so selecting one hands the player
+  // off to the full cheat-sheet instead of doing nothing.
+  const showShortcutReference = () => {
+    const overlay = useOverlayStore.getState();
+    overlay.close('commandPalette');
+    overlay.openHelp({ tab: 'shortcuts' });
+  };
+
   return (
     <CommandDialog
       open={open}
@@ -79,8 +137,9 @@ export function CommandPalette() {
       // 36px glyph, which is oversized for a spotlight. Palettes close on
       // Escape / click-outside, matching Raycast/Obsidian/Cloudflare.
       showCloseButton={false}
+      filter={paletteFilter}
     >
-      <CommandInput placeholder="Search actions and shortcuts…" />
+      <CommandInput placeholder="Search actions, shortcuts and help…" />
       <CommandList>
         <CommandEmpty>No results found.</CommandEmpty>
 
@@ -127,10 +186,15 @@ export function CommandPalette() {
           ))}
         </CommandGroup>
 
+        <HelpSectionRows />
+
         {referenceZones.length > 0 && <CommandSeparator />}
 
-        {/* Read-only shortcut reference — informational rows (no `onSelect`
-            action), searchable so ⌘K doubles as a shortcut cheat-sheet. */}
+        {/* Shortcut reference — these actions need a hovered target, so the
+            palette can't run them. Selecting one opens Help on its Shortcuts
+            tab: the majority of the palette's rows are these, and they used to
+            be dead ends (`onSelect={() => {}}`), which read as the palette
+            being broken. */}
         {referenceZones.map((z) => (
           <CommandGroup key={z.zone} heading={`${z.zone} shortcuts`}>
             {z.hotkeys.map((h) => (
@@ -138,8 +202,7 @@ export function CommandPalette() {
                 key={h.action}
                 value={h.longDescription}
                 keywords={[h.key, h.action]}
-                onSelect={() => {}}
-                className="cursor-default"
+                onSelect={showShortcutReference}
               >
                 <span>{h.longDescription}</span>
                 <CommandShortcut>{h.key}</CommandShortcut>

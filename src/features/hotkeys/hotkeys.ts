@@ -614,6 +614,19 @@ export function getKeyBindingsForAction(action: string): string[] {
 }
 
 /**
+ * The catalog entry for an action, or `undefined` if there is no such action.
+ *
+ * Used by the Help guide to render a `` `key:<action>` `` span as the action's
+ * live `key` (see `app/content/help/sections.ts`), so prose can name a shortcut
+ * without hardcoding the letter. Note the caller must also check `key !== ''`:
+ * plenty of catalog entries are menu- or toolbar-only and have no binding to
+ * print.
+ */
+export function getHotkeyByAction(action: string): Hotkey | undefined {
+  return HOTKEYS.find((h) => h.action === action);
+}
+
+/**
  * A "what did the user right-click" discriminant for the game context menu.
  * Each variant maps to exactly one `HotkeyContext` (see `getMenuActionsForTarget`),
  * so the menu's rows and the keyboard hotkeys are always reading the same catalog.

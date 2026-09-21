@@ -27,6 +27,8 @@ export type CardDataResult = {
   scryfallId: string;
   imageUris: CardImages;
   commander?: boolean;
+  /** Whether the deck list tagged this entry as a foil printing. */
+  isFoil?: boolean;
   /**
    * The section of the deck list this entry came from, carried through the
    * lookup so the importer can route `excluded` cards to the sideboard.

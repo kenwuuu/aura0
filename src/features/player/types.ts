@@ -32,6 +32,24 @@ export interface Card {
   images?: CardImages; // Image URIs from Scryfall
   scryfallId?: string; // Scryfall ID for future API calls
   commander?: boolean; // Imported under a commander header — auto-drawn into the opening hand
+  /**
+   * Whether the import tagged this as a foil printing. A fact about the card the
+   * player owns — written for everyone, entitlement-blind, and never changed
+   * after import.
+   */
+  isFoil?: boolean;
+  /**
+   * The cosmetic foil style currently applied, e.g. `"nebula"`. This is what
+   * renderers key off, and the only one of the two that peers can act on.
+   *
+   * It is separate from `isFoil` because the two are decided at different times
+   * by different authorities. `isFoil` comes from the deck list; `foil` is the
+   * owner's entitlement decision, and entitlement is local — a peer cannot
+   * derive "should this shimmer" from `isFoil` alone, so the owner has to
+   * serialize that answer into the shared doc. Keeping `isFoil` around is also
+   * what lets a purchase apply retroactively to cards already in play.
+   */
+  foil?: string;
   x: number;
   y: number;
   rotation: number;

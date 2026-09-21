@@ -11,7 +11,8 @@ import { RoomManager } from '@/features/room';
 import { DeckStorageService } from '@/infrastructure/persistence';
 import { DeckPersistenceService } from '@/infrastructure/persistence';
 import { DEFAULT_DECK } from './defaultDeck';
-import { SavedDeck } from '@/features/player/types';
+import { Card, SavedDeck } from '@/features/player/types';
+import { FOIL_STYLE_NEBULA, getIsEntitled } from '@/features/cosmetics';
 import { YSTATE_DECK_CARD_COUNT } from '@/constants';
 
 const isDevEnv = import.meta.env.MODE === 'development';
@@ -37,6 +38,34 @@ export async function seedDefaultDeckIfFirstLoad(storage: DeckStorageService): P
 }
 
 /**
+ * Stamp the player's foil style onto every card the import tagged as foil.
+ *
+ * `isFoil` records the printing; `foil` records the entitlement decision, and
+ * only the second one transfers meaning to peers — entitlement is local, so a
+ * peer cannot work out on its own whether a foil card should shimmer.
+ *
+ * This sits inside `loadDeck` rather than at its call sites so that every path a
+ * deck can take into a game — auto-load on room entry, the deck picker, a
+ * freshly imported list — gets it without having to remember. An unentitled
+ * player's deck passes through untouched, foil flags intact, ready for the
+ * retroactive sweep if they buy later.
+ */
+function withEntitledFoils(savedDeck: SavedDeck): SavedDeck {
+  if (!getIsEntitled(FOIL_STYLE_NEBULA)) {
+    return savedDeck;
+  }
+
+  const applied = (cards: Card[]): Card[] =>
+    cards.map((card) => (card.isFoil ? { ...card, foil: FOIL_STYLE_NEBULA } : card));
+
+  return {
+    ...savedDeck,
+    cards: applied(savedDeck.cards),
+    ...(savedDeck.sideboard ? { sideboard: applied(savedDeck.sideboard) } : {}),
+  };
+}
+
+/**
  * Load a saved deck into the player, persist state, and emit analytics.
  * Called both by auto-load on room entry and when the user manually picks a deck.
  */
@@ -45,7 +74,7 @@ export function loadDeck(player: Player, roomManager: RoomManager, savedDeck: Sa
 
   // loadNewDeck sweeps the previous game off the board and out of the piles
   // before swapping the list in, so there is nothing to reset here first.
-  player.loadNewDeck(savedDeck).then(() => {
+  player.loadNewDeck(withEntitledFoils(savedDeck)).then(() => {
     // Sync the visible deck-count Yjs state
     player.yPlayerState.set(YSTATE_DECK_CARD_COUNT, player.getDeck().getCardCount());
 

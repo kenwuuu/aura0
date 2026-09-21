@@ -60,8 +60,11 @@
 }
 
 .cardGridItemImage {
+  /* Bound to the card box below, which has to reproduce this exact height to
+     size itself. Two places, one number. */
+  --pile-card-height: 250px;
   width: 100%;
-  height: 250px;
+  height: var(--pile-card-height);
   background-color: #1a1a1a;
   display: flex;
   align-items: center;
@@ -85,8 +88,45 @@
 
 .cardImageContainer {
   position: relative;
-  width: 100%;
-  height: 100%;
+  /**
+   * The CARD, not the cell that holds it.
+   *
+   * The cell is a grid column wide (>=176px) and a fixed 250px tall, which is
+   * not the shape of a Magic card. `object-fit: contain` on the images below
+   * therefore centres the art and leaves transparent gutters either side — and
+   * anything drawn at `inset: 0` on this box, the foil overlay above all, paints
+   * across those gutters too. The rainbow shimmer ended up a wide rectangle with
+   * the card floating inside it instead of a treatment hugging the card's edges.
+   *
+   * Giving this box the card's own 63:88 ratio makes the two coincide: the box
+   * becomes the largest card-shaped rectangle that fits the cell, which is
+   * precisely what `contain` was already drawing the art into. The images keep
+   * `object-fit: contain` and are unaffected, because there is no longer
+   * anything to letterbox.
+   */
+  aspect-ratio: 63 / 88;
+  /**
+   * Height-bound in any column with room for a 250px-tall card (178.9px of
+   * width), width-bound in the narrowest ones — a 180px grid column less the
+   * card's 2px borders leaves 176px, just under. `min()` picks the binding axis
+   * and `aspect-ratio` derives the other, so the ratio survives either way.
+   * Deriving the height rather than fixing it is the whole trick: `height: 100%`
+   * with a clamped width would go back to being the wrong shape.
+   */
+  width: min(100%, calc(var(--pile-card-height) * 63 / 88));
+  margin: auto;
+}
+
+@media (max-width: 639px) {
+  /* Separate from the block above on purpose: this has to come *after* the base
+     rule to win on source order, and that block sits before it.
+
+     Here the cell already carries the card's ratio, so the card box is simply
+     the whole cell — and `--pile-card-height` no longer describes anything,
+     since the cell's height is derived rather than fixed. */
+  .cardImageContainer {
+    width: 100%;
+  }
 }
 
 .cardGridItemImg {

@@ -1,0 +1,201 @@
+/**
+ * Foil / metal treatment — Manabase Design System 0.2.1v, section 12.
+ *
+ * Luminance-aware, so it works over any card art with no per-card masking:
+ * a cool cast, then a rotated rainbow blended with `color-dodge` (brightens
+ * light areas, spares shadows, the way a real foil catches light), then a
+ * specular sweep, with a rainbow filament tracing the card edge.
+ *
+ * Layer order and every value here comes from section 12 of the design file.
+ * 0.2.1v retuned the holo and the sheen against 0.2v — if these stop matching,
+ * the design moved, not the taste.
+ */
+
+.layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  border-radius: inherit;
+  /**
+   * No `z-index` here, deliberately, and it is load-bearing.
+   *
+   * A positioned element with a z-index creates a stacking context, and a
+   * stacking context is an isolated blending group — `mix-blend-mode` below
+   * would then blend against this layer's own children instead of the card art,
+   * which paints the rainbow as an opaque slab and hides the card completely.
+   * The design file has `zIndex: 1` here and therefore has that bug; it only
+   * looks right in the mock because the placeholder art is a flat dark
+   * gradient. Over real card art it covers everything.
+   *
+   * Being the last positioned child is what keeps this above the art without
+   * one: positioned elements paint over in-flow content, and anything a card
+   * draws on top of itself (badges, selection affordances) is either positioned
+   * later or carries its own z-index.
+   */
+  /* The design crossfades the treatment over .45s behind its on/off toggle.
+     There is no toggle here — the retroactive sweep mounts this the instant a
+     code is redeemed — so it plays once, on mount, which is precisely the
+     "cards already in hand light up" moment that sweep exists for. */
+  animation: foil-fade-in 0.45s ease;
+}
+
+/**
+ * A cool cast under the rainbow.
+ *
+ * New in 0.2.1v, and not cosmetic trim: `color-dodge` can only ever brighten,
+ * so over the warm art most Magic cards use, the rainbow alone skews orange.
+ * This is what keeps the treatment reading as metal rather than as a filter.
+ */
+.tint {
+  position: absolute;
+  inset: 0;
+  background: rgba(130, 155, 255, 0.14);
+}
+
+/**
+ * Oversized and rotated, rather than a gradient drawn at an angle.
+ *
+ * The gradient itself runs at 90deg and the element carries the 25deg tilt, so
+ * the band travels diagonally across the art while `background-position`
+ * animates along one axis only. `inset: -45%` covers the corners the rotation
+ * would otherwise swing off the card. The stop list opens and closes on the
+ * same red so the loop has no seam.
+ */
+.holo {
+  position: absolute;
+  inset: -45%;
+  transform: rotate(25deg);
+  background: linear-gradient(
+    90deg,
+    #ff2020,
+    #ff8c00,
+    #ffed00,
+    #12ffa0,
+    #17b3ff,
+    #9b5cff,
+    #ff2fb0,
+    #ff2020
+  );
+  background-size: 200% 100%;
+  mix-blend-mode: color-dodge;
+  /**
+   * The design draws this at full strength. Over its flat mock art that reads
+   * fine; over real card art `color-dodge` is violent enough to blow the whole
+   * card out to near-white, rules text included, which is unacceptable when the
+   * card still has to be *read* during a game. Tempering it here is what
+   * actually delivers the design's stated intent — brighten the light areas,
+   * barely touch the shadows.
+   */
+  opacity: 0.4;
+  animation: foil-holo-shift 7s linear infinite;
+}
+
+.sheen {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    115deg,
+    transparent 40%,
+    rgba(255, 255, 255, 0.6) 50%,
+    transparent 60%
+  );
+  background-size: 300% 300%;
+  /* Without this the band tiles and a second highlight trails the first. */
+  background-repeat: no-repeat;
+  mix-blend-mode: overlay;
+  animation: foil-sheen 4s ease-in-out infinite;
+}
+
+/**
+ * The rainbow filament around the card's edge.
+ *
+ * The design builds this as a 2px padding frame: a spinning conic sits behind
+ * an opaque card body, the body covers the middle, and only the ring shows. An
+ * overlay that lives *inside* the art cannot add padding around it, so the ring
+ * is cut here instead — this element masks itself down to a 2px inset frame
+ * that follows the card's own radius, and `.edgeSpin` rotates inside it. Same
+ * filament, and no call site has to change its layout to get it.
+ *
+ * The mask is the standard two-layer exclude: one layer over the content box,
+ * one over the border box, leaving only the 2px difference painted.
+ */
+.edge {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 2px;
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  mask-composite: exclude;
+}
+
+.edgeSpin {
+  position: absolute;
+  inset: -70%;
+  background: conic-gradient(
+    from 0deg,
+    #ff2fb0,
+    #ff2020,
+    #ff8c00,
+    #ffed00,
+    #12ffa0,
+    #17b3ff,
+    #9b5cff,
+    #ff2fb0
+  );
+  animation: foil-rainbow-spin 4s linear infinite;
+  filter: blur(1px);
+}
+
+@keyframes foil-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes foil-holo-shift {
+  0% {
+    background-position: 0% 50%;
+  }
+  100% {
+    background-position: 200% 50%;
+  }
+}
+
+@keyframes foil-sheen {
+  0% {
+    background-position: 5% 0;
+  }
+  100% {
+    background-position: 140% 0;
+  }
+}
+
+@keyframes foil-rainbow-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/**
+ * Respect a reduced-motion preference by holding the foil still rather than
+ * removing it. The shimmer is the thing that was paid for; the movement is not,
+ * and three looping animations under a card is exactly what this setting is for.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .layer,
+  .holo,
+  .sheen,
+  .edgeSpin {
+    animation: none;
+  }
+}
