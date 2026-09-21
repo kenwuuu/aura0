@@ -38,6 +38,16 @@ const ALL_FOIL_DECKLIST = [
   .map((name) => `1 ${name} *F*`)
   .join('\n');
 
+/**
+ * A Magic card's proportions — `CARD_WIDTH / CARD_HEIGHT` from `src/constants.ts`.
+ *
+ * Written out rather than imported because the e2e suite deliberately does not
+ * reach into app source; the value is stable enough that pinning it here is the
+ * honest trade. The bug this guards against produced roughly 0.94, so the
+ * tolerance below has an order of magnitude of room.
+ */
+const CARD_ASPECT_RATIO = 63 / 88;
+
 /** The ids of the hand cards currently drawn with a foil overlay. */
 async function foilHandCardIds(page: Page): Promise<string[]> {
   return handCards(page).evaluateAll((nodes) =>
@@ -92,7 +102,19 @@ test.describe('with the cosmetic unlocked', () => {
         await openPileViewer(page, 'discard');
         await waitForPileViewerReady(page);
 
-        await expect(pileViewerCards(page).getByTestId('foil-overlay')).toHaveCount(1);
+        const overlay = pileViewerCards(page).getByTestId('foil-overlay');
+        await expect(overlay).toHaveCount(1);
+
+        // Shape, not just presence. The overlay fills its positioning parent,
+        // and that parent used to be the grid cell rather than the card: a cell
+        // is a ~180px+ column by a fixed 250px, so the shimmer painted a wide
+        // rectangle with the art floating inside it, square-ish and visibly not
+        // hugging the card's edges. `toHaveCount` cannot see that — it was green
+        // the whole time the bug was on screen — so this pins the one number
+        // that tells the two apart.
+        const box = await overlay.boundingBox();
+        expect(box, 'the foil overlay should have a layout box').not.toBeNull();
+        expect(box!.width / box!.height).toBeCloseTo(CARD_ASPECT_RATIO, 2);
         return;
       }
     }
