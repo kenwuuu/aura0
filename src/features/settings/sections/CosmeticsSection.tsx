@@ -35,12 +35,19 @@ const PREVIEW_CARD_ART =
   'https://cards.scryfall.io/normal/front/4/c/4cbc6901-6a4a-4d0a-83ea-7eefa3b35021.jpg';
 
 /**
- * The Ko-fi shop. Kept separate from the palette's general donation link
- * (`KOFI_URL` in command-palette/commands.ts) — one is a tip, this is a
- * purchase, and pointing a buyer at the tip jar would take their money without
- * ever producing a code.
+ * The Ko-fi listing for this cosmetic — the item itself, not the shop.
+ *
+ * Kept separate from the palette's general donation link (`KOFI_URL` in
+ * command-palette/commands.ts): one is a tip, this is a purchase, and pointing a
+ * buyer at the tip jar would take their money without ever producing a code.
+ *
+ * Deliberately the `/s/` item permalink rather than `ko-fi.com/aura0/shop`. A
+ * shop root lists everything and leaves the buyer to find the right thing, which
+ * is a step at which people simply leave — and if the shop ever holds a second
+ * item, the wrong purchase arrives looking exactly like the right one and gets
+ * fulfilled by hand as a foil code.
  */
-const KOFI_SHOP_URL = 'https://ko-fi.com/Z8Z11OOHFX/shop';
+const KOFI_SHOP_URL = 'https://ko-fi.com/s/d99c7c77dd';
 
 /**
  * The only way redemption can fail. Checking the code locally means there is no

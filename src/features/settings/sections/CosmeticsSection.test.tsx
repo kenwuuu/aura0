@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, afterEach, beforeEach, vi } from 'vitest';
 import { act, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { CosmeticsSection } from './CosmeticsSection';
@@ -12,6 +12,10 @@ const MISTYPED_CODE = 'FOIL-9YEVN-Y6B';
 describe('CosmeticsSection', () => {
   beforeEach(() => {
     useCosmeticsStore.setState({ entitlements: {} });
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
   });
 
   it('cannot submit an empty code', () => {
@@ -82,6 +86,26 @@ describe('CosmeticsSection', () => {
 
     expect(screen.queryByRole('button', { name: 'Open Ko-fi' })).not.toBeInTheDocument();
     expect(screen.queryByLabelText('Foil license code')).not.toBeInTheDocument();
+  });
+
+  it('sends a buyer to the item, not the shop front', async () => {
+    // Pinned rather than eyeballed, because it shipped pointing at the shop root
+    // and review caught it twice. A root lists everything and leaves the buyer
+    // to find the right thing — and the moment a second item exists, the wrong
+    // purchase arrives looking exactly like the right one and gets fulfilled by
+    // hand as a foil code.
+    const open = vi.fn();
+    vi.stubGlobal('open', open);
+    const user = userEvent.setup();
+    render(<CosmeticsSection />);
+
+    await user.click(screen.getByRole('button', { name: 'Open Ko-fi' }));
+
+    expect(open).toHaveBeenCalledWith(
+      expect.stringMatching(/^https:\/\/ko-fi\.com\/s\/\w+$/),
+      '_blank',
+      'noopener,noreferrer',
+    );
   });
 
   it('warns that fulfillment is not instant', () => {
