@@ -17,10 +17,11 @@
  */
 import React from 'react';
 import type { LucideIcon } from 'lucide-react';
-import { Gamepad2, Info, Monitor, User, Wrench } from 'lucide-react';
+import { Gamepad2, Info, Monitor, Sparkles, User, Wrench } from 'lucide-react';
 import { ProfileSection } from './sections/ProfileSection';
 import { DisplaySection } from './sections/DisplaySection';
 import { GameplaySection } from './sections/GameplaySection';
+import { CosmeticsSection } from './sections/CosmeticsSection';
 import { AdvancedSection } from './sections/AdvancedSection';
 import { AboutSection } from './sections/AboutSection';
 
@@ -49,6 +50,12 @@ export const SECTIONS: SettingsSection[] = [
     label: 'Gameplay',
     icon: Gamepad2,
     Component: GameplaySection,
+  },
+  {
+    id: 'cosmetics',
+    label: 'Cosmetics',
+    icon: Sparkles,
+    Component: CosmeticsSection,
   },
   {
     id: 'advanced',

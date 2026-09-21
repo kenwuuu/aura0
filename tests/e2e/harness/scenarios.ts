@@ -6,6 +6,7 @@ import { waitForSync } from './waits';
 import { expectPileCount, expectHandCount } from './assertions';
 import { blockAnalytics } from './network';
 import { markReturningPlayer } from './onboarding';
+import { suppressFoilStorePromo } from './cosmetics';
 
 /**
  * Import a single-card deck and confirm it landed: one card in the opening
@@ -104,6 +105,15 @@ export async function connectSecondPlayer(
   const context = await browser.newContext();
   // Before the first page exists, so it is in place for that page's very first navigation.
   if (!onboardingTour) await markReturningPlayer(context);
+
+  // Unconditionally, and for the same reason the line above exists. This is a
+  // *separate* BrowserContext, so nothing the `page` fixture seeded reaches it —
+  // and `markReturningPlayer` hands it 99 prior visits, which is well past the
+  // foil promo's threshold. Without this the second player boots with the
+  // Settings modal open over their board, which reads as a broken peer rather
+  // than as a prompt. No spec wants a promo on the second player; if one ever
+  // does, this takes an option the way the tour above does.
+  await suppressFoilStorePromo(context);
 
   const second = await context.newPage();
   await blockAnalytics(second);

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { toCardDataResult } from './ScryfallCardAdapter';
-import type { ScryfallCard } from './types';
+import { fromCardDataResult, toCardDataResult } from './ScryfallCardAdapter';
+import type { CardDataResult, ScryfallCard } from './types';
 
 const card = (overrides: Partial<ScryfallCard> = {}): ScryfallCard =>
   ({
@@ -69,5 +69,40 @@ describe('toCardDataResult — the commander tag', () => {
     );
 
     expect(result.commander).toBeUndefined();
+  });
+});
+
+describe('the foil flag', () => {
+  const result = (overrides: Partial<CardDataResult> = {}): CardDataResult => ({
+    count: 1,
+    name: 'Sol Ring',
+    scryfallId: 'id-1',
+    imageUris: { front: null, back: null },
+    ...overrides,
+  });
+
+  it('carries a foil entry through the lookup result', () => {
+    expect(toCardDataResult(card(), 1, false, undefined, true).isFoil).toBe(true);
+  });
+
+  it('leaves the flag off a non-foil entry', () => {
+    expect(toCardDataResult(card(), 1, false, undefined, false).isFoil).toBeUndefined();
+  });
+
+  it('puts the flag on the Card', () => {
+    // `fromCardDataResult` hand-picks the fields it copies rather than spreading
+    // the result, so a field added upstream reaches the Card only if it is named
+    // here too — and because every field is optional, missing it is silent.
+    expect(fromCardDataResult(result({ isFoil: true })).isFoil).toBe(true);
+  });
+
+  it('leaves the flag off a non-foil Card', () => {
+    expect(fromCardDataResult(result()).isFoil).toBeUndefined();
+  });
+
+  it('never carries an applied foil style out of a lookup', () => {
+    // `isFoil` is the printing the player owns; `foil` is the cosmetic, decided
+    // later by the entitlement layer. A lookup must never set the second one.
+    expect(fromCardDataResult(result({ isFoil: true })).foil).toBeUndefined();
   });
 });

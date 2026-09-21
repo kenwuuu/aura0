@@ -5,6 +5,7 @@ import { Card } from '@/features/player';
 import { DEFAULT_CARD_BACK } from '@/constants';
 import { useContextMenuStore } from '@/features/hotkeys/contextMenuStore';
 import { useContextMenuTap } from '@/features/hotkeys/useContextMenuTap';
+import { FoilOverlay, foilStyleFor } from '@/features/cosmetics';
 
 interface HandCardProps {
   card: Card;
@@ -22,6 +23,8 @@ export const HandCard: React.FC<HandCardProps> = ({ card, onMouseEnter, onMouseM
   const imageUrl = card.isFlipped
     ? (card.images?.back?.normal ?? DEFAULT_CARD_BACK)
     : card.images?.front?.normal;
+
+  const foilStyle = foilStyleFor(card);
 
   const handleContextMenu = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -70,11 +73,14 @@ export const HandCard: React.FC<HandCardProps> = ({ card, onMouseEnter, onMouseM
       onContextMenu={handleContextMenu}
     >
       {imageUrl ? (
-        <img
-          src={imageUrl}
-          alt={card.isFlipped ? 'Card Back' : (card.name || `Card #${card.cardNumber}`)}
-          className="hand-card-image"
-        />
+        <span className="hand-card-art">
+          <img
+            src={imageUrl}
+            alt={card.isFlipped ? 'Card Back' : (card.name || `Card #${card.cardNumber}`)}
+            className="hand-card-image"
+          />
+          {foilStyle && <FoilOverlay styleId={foilStyle} />}
+        </span>
       ) : (
         <span className="card-number-badge">#{card.cardNumber}</span>
       )}

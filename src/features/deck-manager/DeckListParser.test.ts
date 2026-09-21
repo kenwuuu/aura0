@@ -756,8 +756,8 @@ Krenko, Mob Boss
         const result = parseDecklist(deckText);
 
         expect(result).toHaveLength(2);
-        expect(result[0]).toEqual({ count: 1, name: 'Birgi, God of Storytelling', setCode: 'J21', collectorNumber: '416' });
-        expect(result[1]).toEqual({ count: 1, name: 'Faithless Looting', setCode: 'STA', collectorNumber: '101e' });
+        expect(result[0]).toEqual({ count: 1, name: 'Birgi, God of Storytelling', setCode: 'J21', collectorNumber: '416', isFoil: true });
+        expect(result[1]).toEqual({ count: 1, name: 'Faithless Looting', setCode: 'STA', collectorNumber: '101e', isFoil: true });
       });
 
       it('should handle lines with Archidekt formatting', () => {
@@ -967,8 +967,36 @@ SIDEBOARD:
           ]);
         });
 
-        it('ignores an MTGO-style foil marker', () => {
+        it('reads an MTGO-style foil marker without disturbing the printing', () => {
           expect(parseDecklist('1 Flusterstorm (MH3) 496 *F*')).toEqual([
+            { count: 1, name: 'Flusterstorm', setCode: 'MH3', collectorNumber: '496', isFoil: true },
+          ]);
+        });
+
+        it('reads an etched foil marker', () => {
+          expect(parseDecklist('1 Flusterstorm (MH3) 496 *E*')).toEqual([
+            { count: 1, name: 'Flusterstorm', setCode: 'MH3', collectorNumber: '496', isFoil: true },
+          ]);
+        });
+
+        it('leaves isFoil absent on a non-foil line', () => {
+          // Absent rather than `false`, matching `commander?`/`section?`.
+          expect(parseDecklist('1 Flusterstorm (MH3) 496')).toEqual([
+            { count: 1, name: 'Flusterstorm', setCode: 'MH3', collectorNumber: '496' },
+          ]);
+        });
+
+        it('does not weld a foil marker onto a name that has no printing', () => {
+          // The marker used to survive into the name here — `extractPrinting`
+          // only guards the token after a set code, and there is no set code on
+          // this line — which is the #172 welding bug, and a guaranteed 404.
+          expect(parseDecklist('1 Flusterstorm *F*')).toEqual([
+            { count: 1, name: 'Flusterstorm', isFoil: true },
+          ]);
+        });
+
+        it('does not mistake an asterisked word for a foil marker', () => {
+          expect(parseDecklist('1 Flusterstorm (MH3) 496 *promo*')).toEqual([
             { count: 1, name: 'Flusterstorm', setCode: 'MH3', collectorNumber: '496' },
           ]);
         });

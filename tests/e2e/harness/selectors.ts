@@ -6,6 +6,7 @@
 
 export const TESTID = {
   battlefieldCard: 'battlefield-card',
+  foilOverlay: 'foil-overlay',
   battlefieldToken: 'battlefield-token',
   pile: 'pile',
   healthValue: 'health-value',

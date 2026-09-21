@@ -9,6 +9,7 @@ import { wasLastInputTouch } from '@/shared/pointerInput';
 import { useContextMenuStore } from '@/features/hotkeys/contextMenuStore';
 import { useContextMenuTap } from '@/features/hotkeys/useContextMenuTap';
 import { resolveCardFace, resolveCardRotation, isHiddenFacedown } from './cardNodeLogic';
+import { FoilOverlay, foilStyleFor } from '@/features/cosmetics';
 import { CARD_WIDTH, CARD_HEIGHT } from '@/constants';
 
 interface CardNodeData extends WhiteboardCard {
@@ -103,6 +104,10 @@ export const CardNode = memo(function CardNode({ data, id, selected }: NodeProps
   // counter — so it leads, unlike hand / pile-viewer cards where the preview does.
   const tapMenu = useContextMenuTap({ kind: 'battlefieldCard', id }, { showPreview, menuFirst: true });
 
+  // Only for a card that has art to shimmer over — the numbered placeholder is
+  // a stand-in for a card whose image never loaded, not a card.
+  const foilStyle = foilStyleFor(card);
+
   // tap + rotation transform
   const rotation = resolveCardRotation(card);
   const transform = rotation ? `rotate(${rotation}deg)` : undefined;
@@ -120,12 +125,17 @@ export const CardNode = memo(function CardNode({ data, id, selected }: NodeProps
       {...tapMenu}
     >
       {face.src ? (
-        <img
-          src={face.src}
-          alt={face.alt}
-          style={{ width: '100%', height: '100%', objectFit: 'cover', pointerEvents: 'none', display: 'block', borderRadius: 3 }}
-          draggable={false}
-        />
+        <>
+          <img
+            src={face.src}
+            alt={face.alt}
+            style={{ width: '100%', height: '100%', objectFit: 'cover', pointerEvents: 'none', display: 'block', borderRadius: 3 }}
+            draggable={false}
+          />
+          {/* Inside the wrapper, so the overlay inherits the tap rotation the
+              card already carries and needs no transform of its own. */}
+          {foilStyle && <FoilOverlay styleId={foilStyle} />}
+        </>
       ) : (
         <div style={{
           width: '100%', height: '100%',

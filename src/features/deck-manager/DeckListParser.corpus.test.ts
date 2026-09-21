@@ -77,6 +77,36 @@ describe.each(FIXTURES)('real-world corpus: %s', (fixture) => {
     expect(offenders).toEqual([]);
   });
 
+  it('reads every foil marker in the corpus, and never leaves one in a name', () => {
+    // ~1,000 `*F*` and ~70 `*E*` lines sit in these fixtures. Two failures are
+    // possible and both matter: missing the marker (the card silently imports
+    // as non-foil), and letting it survive into the name (a guaranteed 404 —
+    // the #172 welding bug, which no set code guards against).
+    const offenders = decks.flatMap((deck) => {
+      const foilLines = deck.text
+        .split('\n')
+        .filter((line) => /(^|\s)\*[FE]\*(\s|$)/.test(line)).length;
+
+      // Sideboard/maybeboard cards land in `excluded`, not `items` — a foil
+      // sideboard card is still a foil card, so both halves are checked.
+      const parsed = parseDecklistWithStats(deck.text);
+      const all = [...parsed.items, ...parsed.excluded];
+      const foilItems = all.filter((item) => item.isFoil).length;
+      const welded = all
+        .filter((item) => item.name.includes('*'))
+        .map((item) => `${deck.label}: marker welded into name ${JSON.stringify(item.name)}`);
+
+      return [
+        ...welded,
+        ...(foilItems === foilLines
+          ? []
+          : [`${deck.label}: ${foilLines} foil lines but ${foilItems} foil items`]),
+      ];
+    });
+
+    expect(offenders).toEqual([]);
+  });
+
   it('never imports a section header as a card', () => {
     // A header the parser fails to recognize falls through to the
     // quantity-less-card rule and is imported as a card, inflating the deck by

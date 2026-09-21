@@ -386,6 +386,49 @@ export class Player {
     this.yPlayerState.set(YSTATE_HEALTH, this.config.initialHealth);
   }
 
+  /**
+   * Apply a foil style to every card this player owns that the import tagged as
+   * foil — on the board and in all six piles.
+   *
+   * Fulfillment is manual, so a license code arrives hours after the purchase
+   * and long after the deck was imported. Without this, a buyer would see
+   * nothing until they rebuilt their board, which is a poor first impression of
+   * a thing they just paid for.
+   *
+   * It lives on Player because it is the only place that reaches both the board
+   * map and every pile at once. Note it is deliberately wider than
+   * `returnAllCardsToDeck`, which skips the sideboard and scry: that is right
+   * for a reset and wrong here, since a foil card waiting in the sideboard is
+   * still owned and still expected to shimmer the moment it is drawn.
+   *
+   * Everything is written inside one transaction, so peers replay a single
+   * update rather than one per card.
+   */
+  public applyFoilEntitlement(styleId: string): void {
+    this.yDoc.transact(() => {
+      this.yCardsOnBoard.forEach((card: any, cardId: string) => {
+        // Ownership gates nothing else about a board card, so this filter is the
+        // only thing keeping a redemption from foiling an opponent's deck.
+        if (card.ownerId === this.playerId && card.isFoil && card.foil !== styleId) {
+          this.yCardsOnBoard.set(cardId, { ...card, foil: styleId });
+        }
+      });
+
+      for (const pileType of Object.keys(this.piles) as PileType[]) {
+        const pile = this.piles[pileType];
+        const cards = pile.getCards();
+        // Rewriting a pile replaces the whole array, so an untouched pile is
+        // skipped rather than rewritten to an identical value — which would
+        // otherwise put every pile on the wire on a second redemption.
+        if (cards.some((card) => card.isFoil && card.foil !== styleId)) {
+          pile.setCards(
+            cards.map((card) => (card.isFoil ? { ...card, foil: styleId } : card)),
+          );
+        }
+      }
+    }, 'foil-entitlement');
+  }
+
   public removeCardFromHand(cardId: string): Card | null {
     const card: Card | null = this.hand.removeCardById(cardId);
     return card;
@@ -648,6 +691,15 @@ export class Player {
 
   public getDeck(): CardPile {
     return this.deck;
+  }
+
+  /**
+   * A pile by kind. The named getters below predate this and cover five of the
+   * six; this one reaches the sideboard too and is what any caller that has to
+   * treat all piles alike should use.
+   */
+  public getPile(pileType: PileType): CardPile {
+    return this.piles[pileType];
   }
 
   public getHand(): CardPile {

@@ -275,7 +275,9 @@ export class CardApiClient {
         printingMismatches.push(outcome.mismatch);
       }
       if (outcome.card) {
-        results.push(toCardDataResult(outcome.card, entry.count, entry.commander, entry.section));
+        results.push(
+          toCardDataResult(outcome.card, entry.count, entry.commander, entry.section, entry.isFoil),
+        );
       } else {
         failedItems.push(entry);
         failures.push({ item: entry, reason: outcome.reason, status: outcome.status });
@@ -286,6 +288,7 @@ export class CardApiClient {
           scryfallId: '',
           imageUris: { front: null, back: null },
           commander: entry.commander,
+          isFoil: entry.isFoil,
           section: entry.section,
           error: `[${this.config.name}] lookup failed for "${entry.name}" (${outcome.reason})`,
         });
