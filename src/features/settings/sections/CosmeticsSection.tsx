@@ -118,9 +118,9 @@ export function CosmeticsSection() {
             <FoilOverlay styleId={FOIL_STYLE_NEBULA} />
           </div>
           <p className={styles.blurb}>
-            Cards your deck list marks as foil get a real holographic shimmer —
+            Cards your deck list marks as foil get a real holographic shimmer:
             on your battlefield, in your hand, and on everyone else&apos;s screen
-            too. Pure flair, no gameplay effect.
+            too.
           </p>
         </div>
 
@@ -137,7 +137,7 @@ export function CosmeticsSection() {
           <>
             <SettingRow
               label="Get foil cards"
-              description="$10 on Ko-fi. We send your code by email, usually within 24 hours — it's fulfilled by hand, not instantly."
+              description="$10 on Ko-fi. We send your code by email, usually within 24 hours."
             >
               <Button
                 variant="secondary"
