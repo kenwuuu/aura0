@@ -1,10 +1,10 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { act, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import * as Y from 'yjs';
 import { ActionLogPanel } from './ActionLogPanel';
 import { logAction } from './actionLog';
-import { YDOC_PLAYER, YSTATE_PLAYER_NAME } from '@/constants';
+import { ACTION_LOG_MAX_ENTRIES, YDOC_PLAYER, YSTATE_PLAYER_NAME } from '@/constants';
 
 describe('ActionLogPanel', () => {
   it('shows a placeholder when there are no entries', () => {
@@ -86,5 +86,25 @@ describe('ActionLogPanel', () => {
 
     await user.click(screen.getByRole('button', { name: /action log/i }));
     expect(screen.getByText('drew a card')).toBeInTheDocument();
+  });
+
+  it('keeps scrolling to the newest entry once the log is full and trimming', () => {
+    // At the soft cap every append also trims the oldest entry, so the entry
+    // count stops changing. Scrolling must follow the newest entry, not the count.
+    const yDoc = new Y.Doc();
+    for (let i = 0; i < ACTION_LOG_MAX_ENTRIES; i++) {
+      logAction(yDoc, { actorId: 'p1', type: 'draw', text: `entry ${i}` });
+    }
+    const scrollIntoView = vi.spyOn(Element.prototype, 'scrollIntoView').mockImplementation(() => {});
+    render(<ActionLogPanel yDoc={yDoc} localPlayerId="p1" />);
+    scrollIntoView.mockClear();
+
+    act(() => {
+      logAction(yDoc, { actorId: 'p1', type: 'draw', text: 'the newest entry' });
+    });
+
+    expect(screen.getByText('the newest entry')).toBeInTheDocument();
+    expect(scrollIntoView).toHaveBeenCalled();
+    scrollIntoView.mockRestore();
   });
 });
