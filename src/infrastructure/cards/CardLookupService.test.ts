@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { CardLookupService } from './CardLookupService';
 import { CardApiClient, FetchListResult, LookupFailureReason } from './CardApiClient';
 import { DeckLineItem } from '@/features/deck-manager/DeckListParser';
@@ -28,6 +28,7 @@ function makeRun(
     failedItems,
     failures: failedItems.map((item) => ({ item, reason })),
     printingMismatches: [],
+    printingMisses: [],
   };
 }
 
@@ -137,6 +138,99 @@ describe('CardLookupService — Aura -> Scryfall fallback policy', () => {
       expect(result.fallbackTriggeredCount).toBe(2);
       expect(result.fallbackRecoveredCount).toBe(1);
       expect(result.fallbackFailedCount).toBe(1);
+    });
+  });
+
+  describe('exact printings Aura has not indexed yet', () => {
+    // The Discord report: `Soul Warden (sld) 2435` imported with the default art.
+    // Aura's index predates that Secret Lair drop, so the printing 404s, the
+    // name resolves, and — because that's a success — Scryfall was never asked.
+    const AURA = 'https://aura.test';
+    const SCRYFALL = 'https://scryfall.test';
+    const sld = (name: string, collectorNumber: string): DeckLineItem => ({
+      count: 1, name, setCode: 'sld', collectorNumber,
+    });
+    const json = (body: object): Response =>
+      ({ ok: true, status: 200, statusText: 'OK', json: async () => body }) as Response;
+    const notFound = (): Response =>
+      ({ ok: false, status: 404, statusText: 'Not Found', headers: new Headers(), json: async () => ({}) }) as Response;
+
+    function realClients() {
+      const rateLimit = { interval: 10, intervalCap: 100, throttleBackoffMs: 1 };
+      const aura = new CardApiClient({
+        name: 'aura', baseUrl: AURA, rateLimit,
+        endpoints: {
+          byId: (id) => `${AURA}/cards/${id}`,
+          byName: (name) => `${AURA}/cards/${encodeURIComponent(name)}`,
+          bySet: (set, num) => `${AURA}/cards/${set}${num}`,
+        },
+      });
+      const scryfall = new CardApiClient({
+        name: 'scryfall', baseUrl: SCRYFALL, rateLimit,
+        endpoints: {
+          byId: (id) => `${SCRYFALL}/cards/${id}`,
+          byName: (name) => `${SCRYFALL}/cards/named?exact=${encodeURIComponent(name)}`,
+          bySet: (set, num) => `${SCRYFALL}/cards/${set}/${num}/en`,
+        },
+      });
+      return new CardLookupService(aura, scryfall);
+    }
+
+    afterEach(() => vi.unstubAllGlobals());
+
+    it('asks Scryfall for the exact printing and imports its art', async () => {
+      const fetchMock = vi.fn(async (url: string) => {
+        if (url === `${AURA}/cards/sld2435`) return notFound();
+        if (url === `${AURA}/cards/Soul%20Warden`) return json({ id: 'default-printing', name: 'Soul Warden' });
+        if (url === `${SCRYFALL}/cards/sld/2435/en`) return json({ id: 'sld-2435', name: 'Soul Warden' });
+        throw new Error(`unexpected fetch ${url}`);
+      });
+      vi.stubGlobal('fetch', fetchMock);
+
+      const result = await realClients().fetchImagesForList([sld('Soul Warden', '2435')]);
+
+      expect(result.results.map((r) => r.scryfallId)).toEqual(['sld-2435']);
+      expect(result.printingMisses).toEqual([]);
+      // A recovered printing isn't a failed card — the fallback counters stay clean.
+      expect(result.fallbackTriggeredCount).toBe(0);
+    });
+
+    it('keeps the name-resolved card when Scryfall has no such printing either', async () => {
+      vi.stubGlobal('fetch', vi.fn(async (url: string) => {
+        if (url === `${AURA}/cards/Soul%20Warden`) return json({ id: 'default-printing', name: 'Soul Warden' });
+        return notFound();
+      }));
+
+      const result = await realClients().fetchImagesForList([sld('Soul Warden', '99999')]);
+
+      expect(result.results.map((r) => r.scryfallId)).toEqual(['default-printing']);
+      expect(result.failedItems).toEqual([]);
+    });
+
+    it('keeps the name-resolved card when that printing is a different card on Scryfall', async () => {
+      vi.stubGlobal('fetch', vi.fn(async (url: string) => {
+        if (url === `${AURA}/cards/sld2435`) return notFound();
+        if (url === `${AURA}/cards/Soul%20Warden`) return json({ id: 'default-printing', name: 'Soul Warden' });
+        if (url === `${SCRYFALL}/cards/sld/2435/en`) return json({ id: 'other', name: 'Smart Ass' });
+        throw new Error(`unexpected fetch ${url}`);
+      }));
+
+      const result = await realClients().fetchImagesForList([sld('Soul Warden', '2435')]);
+
+      expect(result.results.map((r) => r.scryfallId)).toEqual(['default-printing']);
+    });
+
+    it('never asks Scryfall when Aura has the printing', async () => {
+      const fetchMock = vi.fn(async (url: string) => {
+        if (url === `${AURA}/cards/sld1`) return json({ id: 'sld-1', name: 'Snow-Covered Plains' });
+        throw new Error(`unexpected fetch ${url}`);
+      });
+      vi.stubGlobal('fetch', fetchMock);
+
+      const result = await realClients().fetchImagesForList([sld('Snow-Covered Plains', '1')]);
+
+      expect(result.results.map((r) => r.scryfallId)).toEqual(['sld-1']);
+      expect(fetchMock).toHaveBeenCalledTimes(1);
     });
   });
 
