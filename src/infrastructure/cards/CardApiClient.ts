@@ -128,7 +128,7 @@ function statusOf(err: unknown): number | undefined {
  * false mismatch falls back to the name and still finds the right card, losing
  * only the exact printing, while a false match imports the wrong card silently.
  */
-function namesAgree(requested: string, returned: string): boolean {
+export function namesAgree(requested: string, returned: string): boolean {
   return normalizeName(requested) === normalizeName(returned);
 }
 
@@ -178,6 +178,21 @@ export type PrintingMismatch = {
   resolvedBy: 'name' | 'printing';
 };
 
+/**
+ * A line whose printing this backend has never heard of (a 404), resolved by
+ * name instead — so it carries the right card in some *other* printing.
+ *
+ * The usual cause is an index older than the printing: a Secret Lair drop
+ * released after our card data was last built 404s on its collector number, the
+ * name still matches, and the player silently gets the default art. Surfaced so
+ * a backend with fresher data can be asked for the exact printing.
+ */
+export type PrintingMiss = {
+  item: DeckLineItem;
+  /** The name-resolved result in `results` — the object to swap out on recovery. */
+  result: CardDataResult;
+};
+
 export type FetchListResult = {
   results: CardDataResult[];
   failedItems: DeckLineItem[];
@@ -185,6 +200,8 @@ export type FetchListResult = {
   failures: LookupFailure[];
   /** Lines whose printing named a different card. Empty on a clean import. */
   printingMismatches: PrintingMismatch[];
+  /** Lines whose printing 404'd here but whose name resolved. See {@link PrintingMiss}. */
+  printingMisses: PrintingMiss[];
 };
 
 /**
@@ -269,15 +286,18 @@ export class CardApiClient {
     const failedItems: DeckLineItem[] = [];
     const failures: LookupFailure[] = [];
     const printingMismatches: PrintingMismatch[] = [];
+    const printingMisses: PrintingMiss[] = [];
 
     for (const { entry, outcome } of outcomes) {
       if (outcome.mismatch !== undefined) {
         printingMismatches.push(outcome.mismatch);
       }
       if (outcome.card) {
-        results.push(
-          toCardDataResult(outcome.card, entry.count, entry.commander, entry.section, entry.isFoil),
+        const result = toCardDataResult(
+          outcome.card, entry.count, entry.commander, entry.section, entry.isFoil,
         );
+        results.push(result);
+        if (outcome.printingMissed) printingMisses.push({ item: entry, result });
       } else {
         failedItems.push(entry);
         failures.push({ item: entry, reason: outcome.reason, status: outcome.status });
@@ -295,7 +315,7 @@ export class CardApiClient {
       }
     }
 
-    return { results, failedItems, failures, printingMismatches };
+    return { results, failedItems, failures, printingMismatches, printingMisses };
   }
 
   getQueueSize(): number {
@@ -323,6 +343,8 @@ export class CardApiClient {
     reason: LookupFailureReason;
     status?: number;
     mismatch?: PrintingMismatch;
+    /** The printing 404'd and the name resolved instead. */
+    printingMissed?: boolean;
   }> {
     // Set when the printing resolved to a card that isn't the one the line named.
     let mismatched: ScryfallCard | undefined;
@@ -356,6 +378,9 @@ export class CardApiClient {
       return {
         card,
         reason: 'unknown',
+        ...(printingError !== undefined && classifyError(printingError) === 'not_found'
+          ? { printingMissed: true }
+          : {}),
         ...(mismatched === undefined
           ? {}
           : { mismatch: { item: entry, returnedName: mismatched.name, resolvedBy: 'name' } }),

@@ -108,6 +108,7 @@ function makeMockLookup(options: LookupOptions = {}): CardLookupService {
         reason: 'not_found' as LookupFailureReason,
       })),
       printingMismatches: options.printingMismatches ?? [],
+      printingMisses: [],
       fallbackTriggeredCount: triggered,
       fallbackRecoveredCount: options.fallback?.recovered ?? 0,
       fallbackFailedCount: options.fallback?.failed ?? 0,

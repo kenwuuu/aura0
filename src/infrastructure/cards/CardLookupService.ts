@@ -1,5 +1,11 @@
 import { DeckLineItem } from '@/features/deck-manager/DeckListParser';
-import { CardApiClient, FetchListResult, LookupFailure } from './CardApiClient';
+import {
+  CardApiClient,
+  FetchListResult,
+  LookupFailure,
+  PrintingMiss,
+  namesAgree,
+} from './CardApiClient';
 import { createAuraClient, createScryfallClient } from './clients';
 import { toCardDataResult } from './ScryfallCardAdapter';
 import { CardDataResult, ScryfallCard } from './types';
@@ -54,6 +60,7 @@ export class CardLookupService {
     onProgress?: (current: number, total: number) => void,
   ): Promise<LookupListResult> {
     const primaryRun = await this.primary.fetchImagesForList(entries, onProgress);
+    await this.recoverExactPrintings(primaryRun);
 
     if (primaryRun.failedItems.length === 0) {
       return {
@@ -86,11 +93,48 @@ export class CardLookupService {
       // and an item handed to the fallback was, by definition, one the primary
       // never resolved, so the two lists cannot double-count the same card.
       printingMismatches: [...primaryRun.printingMismatches, ...fallbackRun.printingMismatches],
+      printingMisses: [...primaryRun.printingMisses, ...fallbackRun.printingMisses],
       fallbackTriggeredCount,
       fallbackRecoveredCount: fallbackTriggeredCount - fallbackFailedCount,
       fallbackFailedCount,
       auraFailures: primaryRun.failures,
     };
+  }
+
+  /**
+   * Ask the fallback for the exact printing of every line the primary could only
+   * resolve by name, swapping each one it finds into `run.results` in place.
+   *
+   * The primary resolving a card by name is a success, so without this those
+   * lines never reach the fallback at all — a printing newer than Aura's index
+   * (a fresh Secret Lair drop) imports with the default art even though Scryfall
+   * has the exact card. Only the printing is asked for: the name already
+   * resolved, so a miss here just keeps the card we have. One request per miss,
+   * and a clean import has none.
+   */
+  private async recoverExactPrintings(run: FetchListResult): Promise<void> {
+    if (run.printingMisses.length === 0) return;
+
+    const recovered = new Map<CardDataResult, CardDataResult>();
+    await Promise.all(run.printingMisses.map(async ({ item, result }: PrintingMiss) => {
+      if (!item.setCode || !item.collectorNumber) return;
+      try {
+        const card = await this.fallback.fetchBySet(
+          item.setCode, item.collectorNumber, 1, item.name,
+        );
+        if (!namesAgree(item.name, card.name)) return;
+        recovered.set(
+          result,
+          toCardDataResult(card, item.count, item.commander, item.section, item.isFoil),
+        );
+      } catch {
+        // Neither backend has the printing; the name-resolved card stands.
+      }
+    }));
+
+    if (recovered.size === 0) return;
+    run.results = run.results.map((r) => recovered.get(r) ?? r);
+    run.printingMisses = run.printingMisses.filter(({ result }) => !recovered.has(result));
   }
 
   async fetchCardByName(name: string): Promise<ScryfallCard> {
