@@ -41,10 +41,14 @@ export function ActionLogBody({ yDoc, localPlayerId }: ActionLogPanelProps) {
   const entries = useActionLog(yDoc);
   const bottomRef = useRef<HTMLDivElement>(null);
 
-  // Auto-scroll to the newest entry whenever the list grows.
+  // Auto-scroll whenever a new entry arrives. Keyed on the newest entry's id,
+  // not the count: once the log reaches ACTION_LOG_MAX_ENTRIES every append
+  // also trims the oldest entry, so the length stops changing and a
+  // length-keyed effect would silently stop scrolling mid-game.
+  const newestEntryId = entries[entries.length - 1]?.id;
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [entries.length]);
+  }, [newestEntryId]);
 
   return (
     <>
