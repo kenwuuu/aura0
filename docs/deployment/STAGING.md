@@ -119,14 +119,16 @@ wired to the same GitHub repo, building the `staging` branch.
   (that's per-Worker, set in step 3), which is exactly what we want: PRs default
   to `staging`, prod still deploys from `master`.
 
-- **Protecting `master` — the paywall.** GitHub's native **branch protection**
-  and **rulesets** are *not available* on a private repo on the Free plan
-  (`kenwuuu/aura0` is private + Free — both APIs return HTTP 403). Native,
-  server-side protection needs one of: **GitHub Pro** (~$4/mo), or making the
-  repo **public** (which would expose git history that contains a compromised
-  Cloudflare TURN token — rotate/scrub first; see `DEPLOYMENT_SETUP.md` §4).
+- **Branch protection (repo is public since 2026-11-15).** Native protection
+  was paywalled while the repo was private + Free; now that it's public it's
+  free. `staging` requires the `test`, `e2e-smoke` and `e2e-preview` checks
+  (not `e2e-full`, which is advisory into staging), blocks force-push/delete,
+  does not require up-to-date branches, and does not enforce on admins.
+  **Merging a green PR into staging:** `gh pr merge <n> --squash --auto` —
+  GitHub's native auto-merge waits for the required checks, then merges.
+  (This replaces the old `automerge`-label bot, `auto-merge-staging.yml`.)
 
-- **Free guard we use instead — a local `pre-push` hook** (`.husky/pre-push`):
+- **Plus a local `pre-push` hook for `master`** (`.husky/pre-push`):
   blocks accidental `git push` to `master` on any machine that has run
   `npm install` (husky installs it). It is **not** a security control — it can't
   police GitHub-side merges or clones without the hook — it just stops the
