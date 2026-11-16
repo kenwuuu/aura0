@@ -4,7 +4,7 @@ name: Open staging → master promotion PR
 # `staging` is ahead of `master`. It only *opens* the PR — merging stays a
 # human click (the production gate: all four required checks, incl. the now-
 # blocking `e2e-full`, must be green first). Flip on master auto-merge later by
-# labeling this PR and teaching auto-merge-staging.yml about the master base.
+# enabling GitHub's native auto-merge on this PR (`gh pr merge --auto --merge`).
 #
 # IMPORTANT — why this needs a PAT, not GITHUB_TOKEN:
 #   A PR opened with the built-in GITHUB_TOKEN does NOT trigger `pull_request`
